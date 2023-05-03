@@ -1,5 +1,5 @@
 #!name=自己收藏脚本
-#!desc=值得买签到、去广告、阿里云盘签到；IT自家签到；B站每日任务、去广告；Bing积分；京东比价
+#!desc=值得买签到、去广告、阿里云盘签到；IT之家广告；B站每日任务、去广告；Bing积分；京东比价
 #!system=ios
 
 [URL Rewrite]
@@ -37,9 +37,7 @@ Bing积分cookie = requires-body=0,type=http-request,pattern=https:\/\/rewards\.
 Bing积分 = type=cron,cronexp="0 10 0 * * ?",wake-system=1,script-path=https://raw.githubusercontent.com/lowking/Scripts/master/bing/bingPoint.js
 
 # > IT之家
-IT之家cookie = type=http-request,pattern=^https:\/\/my\.ruanmei\.com\/api\/usersign\/getsigninfo?,script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/ithome/ithome.cookie.js,debug=true
 IT之家广告 = type=http-response,pattern=^https?:\/\/(api\.ithome\.com\/json\/(((newslist|listpage)\/news)|(slide\/index)))|(napi\.ithome\.com\/api\/news\/index),script-path=https://raw.githubusercontent.com/toulanboy/scripts/master/ithome_ad/ithome_ad.js,requires-body=true
-IT之家签到 = type=cron,cronexp=10 0 * * *,script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/ithome/ithome.js,wake-system=true
 
 # > BILIBILI
 B站每日任务 = type=cron,cronexp=30 7 * * *,script-path=https://raw.githubusercontent.com/ClydeTime/Quantumult/main/Script/Task/BiliBili.js
