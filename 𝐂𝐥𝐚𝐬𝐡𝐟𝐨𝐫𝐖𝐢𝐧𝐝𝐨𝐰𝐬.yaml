@@ -130,6 +130,8 @@ proxy-groups:
     type: select
     proxies:
       - 🇺🇲 美国节点
+      - 🇭🇰 香港节点
+      - 🇯🇵 日本节点
   - name: 🌌 谷歌服务
     <<: *a3
   - name: 📟 电报消息
