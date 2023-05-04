@@ -226,7 +226,7 @@ rule-providers:
     url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/ProxyLite/ProxyLite.yaml
     path: ./ruleset/ProxyLite.yaml
 rules:
-
+  - DOMAIN-SUFFIX,bing.com,🇯🇵 日本节点
   - RULE-SET,Direct,DIRECT
   - RULE-SET,Lan,DIRECT
   - RULE-SET,Download,DIRECT
