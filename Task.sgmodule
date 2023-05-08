@@ -79,6 +79,30 @@
 ## 米家 //home.mi.com
 ^https:\/\/home\.mi\.com\/cgi-op\/api\/v1\/recommendation\/(banner|myTab)\? url reject-dict
 
+## 小红书
+# 惊喜弹窗
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/surprisebox\/(get_style\?|open\?|submit_action$) url reject-dict
+^https:\/\/www\.xiaohongshu\.com\/api\/marketing\/box\/trigger\? url reject-dict
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v[23]\/note\/(feed|redtube|videofeed)\? url response-body "disable_watermark":false, response-body "disable_watermark":true,
+^https:\/\/www\.xiaohongshu\.com\/api\/sns\/v1\/ads\/resource\? url reject-dict
+
+## 微博
+^https:\/\/api\.weibo\.cn\/2\/(ug\/checkin\/list|push\/daily)\? url reject-dict
+^https:\/\/api\.weibo\.cn\/2\/!\/live\/media_homelist\? url reject-dict
+^https:\/\/api\.weibo\.cn\/2\/comments\/bullet_screens\? url reject-dict
+^https:\/\/api\.weibo\.cn\/2\/photo\/info\? url reject-dict
+^https:\/\/api\.weibo\.cn\/2\/statuses\/(container_positive|push_info)\? url reject-dict
+^https:\/\/api\.weibo\.cn\/2\/!\/huati\/(discovery_home_bottom_getdotinfo|mobile_discovery_searchchange)\? url reject-dict
+^https:\/\/api\.weibo\.cn\/2\/!\/huati\/(discovery_home_bottom_getdotinfo|mobile_discovery_searchchange)\? url reject-dict
+^https:\/\/api\.weibo\.cn\/2\/hot\/hours_spotlight\? url reject-dict
+^https:\/\/api\.weibo\.cn\/2\/video\/redpacket\? url reject-dict
+^https:\/\/api\.weibo\.cn\/!\/sug\/list\/finderchange\? url reject-dict
+^https:\/\/bootrealtime\.uve\.weibo\.com\/v2\/ad\/realtime$ url reject-dict
+^https:\/\/sdkapp\.uve\.weibo\.com\/interface\/sdk\/(get-lbs-cell-info\.php$|sdkconfig\.php\?) url reject
+^https:\/\/card\.weibo\.com\/article\/m\/aj\/(reward|uvead)\? url reject-dict
+^https:\/\/weibo\.com\/ttarticle\/x\/m\/aj\/(reward|uvead)\? url reject-dict
+
+
 [Script]
 # > 什么值得买
 什么值得买_获取cookie = script-path=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/script/smzdm/smzdm_daily.js,type=http-request,requires-body=false,pattern=^https?:\/\/user-api\.smzdm\.com\/checkin$
@@ -111,13 +135,43 @@ B站净化 = type=http-response,pattern=^https:\/\/app\.bilibili\.com\/x\/(v2\/(
 bili-proto = type=http-response,pattern=^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.(view\.v1\.View\/View|dynamic\.v2\.Dynamic\/DynAll)$,requires-body=1,binary-body-mode=1,max-size=0,script-path=https://raw.githubusercontent.com/app2smile/rules/master/js/bilibili-proto.js,script-update-interval=0
 
 # > 京东比价
-http-response ^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusiness|serverConfig|basicConfig) requires-body=1,script-path= https://raw.githubusercontent.com/zwf234/rules/master/js/jd_price.js
+http-response ^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusiness|serverConfig|basicConfig), requires-body=1,script-path= https://raw.githubusercontent.com/zwf234/rules/master/js/jd_price.js
 
 # > 解除微信链接限制
 解除微信链接限制 = type=http-response,pattern=^https\:\/\/(weixin110\.qq|security.wechat)\.com\/cgi-bin\/mmspamsupport-bin\/newredirectconfirmcgi\?,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/wechat/wechat110.js
 
 # > 开屏广告
-开屏广告 = type=http-response,pattern=^https:\/\/api\.m\.mi\.com\/v1\/app\/start$ requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/myBlockAds.js
+开屏广告 = type=http-response,pattern=^https:\/\/api\.m\.mi\.com\/v1\/app\/start$, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/myBlockAds.js
+
+# > 小红书搜索页
+搜索页 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/search\/(banner|hot)_list\??, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
+搜索页 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/(hint|trending)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
+搜索页 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v10\/search\/notes\?, requires-body=1,script-path=  https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
+
+# > 小红书开屏广告
+小红书开屏广告 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system_service\/config\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
+小红书开屏广告 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/system_service\/splash_config$, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
+小红书信息流 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v6\/homefeed\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
+
+# > 微博广告
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/(checkin\/show|client\/publisher_list|push\/active)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/(cardlist|page)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/comments\/build_comments\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/(container\/asyn|flowlist)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/profile\/(container_timeline|me)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/statuses\/(container_timeline(_topic|_unread|_hot)?|unread_hot_timeline)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/statuses\/(extend|show)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/video\/tiny_stream_video_list\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/!\/huati\/discovery_home_bottom_channels\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/messageflow\/notice\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/search\/(container_timeline|finder)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/api\.weibo\.cn\/2\/searchall\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/bootpreload\.uve\.weibo\.com\/v1\/ad\/preload$, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/sdkapp\.uve\.weibo\.com\/interface\/sdk\/sdkad\.php$, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/wbapp\.uve\.weibo\.com\/wbapplua\/wbpullad\.lua\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/weibo.js
+微博广告= type= http-response, pattern=^https:\/\/weibo\.cn\/sinaurl\?(.*&)?(u|toasturl|goto)= url, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/noRedirect.js
+微博广告= type= http-response, pattern=^https:\/\/shop\.sc\.weibo\.com\/h5\/jump\/error\?(.*&)?url=, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/noRedirect.js
+微博广告= type= http-response, pattern=^https:\/\/(sinaurl|t)\.cn\/, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/noRedirect.js
 
 [MITM]
-hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,api.m.jd.com,www.bing.com,auth.aliyundrive.com,api.ithome.com,napi.ithome.com, mp.weixin.qq.com, weixin110.qq.com, security.wechat.com,acs.m.taobao.com, gw.alicdn.com, heic.alicdn.com,pan.baidu.com,app-gw.csdn.net,api.douban.com,api.douban.com,elemecdn.com, fuss10.elemecdn.com, www1.elecfans.com,gab.122.gov.cn,flowplus.meituan.net, img.meituan.net, s3plus.meituan.net,gw.alicdn.com,api.m.mi.com, api-mifit.huami.com, api.jr.mi.com, home.mi.com
+hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,api.m.jd.com,www.bing.com,auth.aliyundrive.com,api.ithome.com,napi.ithome.com, mp.weixin.qq.com, weixin110.qq.com, security.wechat.com,acs.m.taobao.com, gw.alicdn.com, heic.alicdn.com,pan.baidu.com,app-gw.csdn.net,api.douban.com,api.douban.com,elemecdn.com, fuss10.elemecdn.com, www1.elecfans.com,gab.122.gov.cn,flowplus.meituan.net, img.meituan.net, s3plus.meituan.net,gw.alicdn.com,api.m.mi.com, api-mifit.huami.com, api.jr.mi.com, home.mi.com,edith.xiaohongshu.com, www.xiaohongshu.com,api.weibo.cn, *.uve.weibo.com, card.weibo.com, weibo.com, weibo.cn, shop.sc.weibo.com, t.cn, sinaurl.cn
