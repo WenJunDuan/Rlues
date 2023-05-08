@@ -9,10 +9,75 @@
 ^https?:\/\/haojia\.m\.smzdm\.com\/detail_modul\/user_related_modul - reject
 # 什么值得买_Wiki(618晒物活动推广，将来可能不是广告)
 ^https?:\/\/haojia\.m\.smzdm\.com\/detail_modul\/wiki_related_modul - reject
+
 # Unlock browser restrictions for new bing AI search.
 ^https:\/\/www\.bing\.com\/(search|new) header-replace-regex User-Agent \w+\/[\d\.]+$ "AppleWebKit/537.36 Chrome/110.0 Safari/537.36 Edg/110.0"
+
 # ithome新闻列表广告
 ^https?:\/\/api\.zuihuimai\.com\/static\/.*\/hongbao reject
+
+# 阿里巴巴 //acs.m.taobao.com, gw.alicdn.com, heic.alicdn.com
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alibaba\.advertisementservice\.getadv url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimama\.etao\.config\.query\/.+?etao_advertise url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.alimusic\.common\.mobileservice\.startinit url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.etao\.noah\.query\/.+tao_splash url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.film\.mtopadvertiseapi\.queryadvertise url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.o2o\.ad\.gateway\.get url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.trip\.activity\.querytmsresources url reject
+^https:\/\/gw\.alicdn\.com\/imgextra\/i\d\/[\w!]+-\d-tps-702-758\.png url reject-dict
+^https:\/\/(gw|heic)\.alicdn\.com\/imgextra\/i\d\/\d*\/?[\w!]+-\d-(octopus|tps-1125-1602)\.jpg_(1\d{3}|9\d{2})x(1\d{3}|9\d{2})q[59]0 url reject-dict
+
+# 百度云 //pan.baidu.com
+^https:\/\/pan\.baidu\.com\/act\/api\/activityentry\? url reject-dict
+^https:\/\/pan\.baidu\.com\/rest\/2\.0\/pcs\/adx\? url reject-dict
+^https:\/\/update\.pan\.baidu\.com\/statistics\? url reject-dict
+
+# CSDN //app-gw.csdn.net
+^https:\/\/app-gw\.csdn\.net\/cms-app\/v\d\/home_page\/open_advertisement url reject
+
+# 豆瓣 //api.douban.com
+^https:\/\/api\.douban\.com\/v2\/app_ads\/splash url reject
+^https:\/\/api\.douban\.com\b.*\/common_ads\? url reject
+
+# 饿了么 //elemecdn.com, fuss10.elemecdn.com, www1.elecfans.com
+^https:\/\/elemecdn.com\/.+\/sitemap url reject
+^https:\/\/fuss10.elemecdn.com\/.+\/w\/640\/h\/\d{3,4} url reject
+^https:\/\/fuss10.elemecdn.com\/.+\/w\/750\/h\/\d{3,4} url reject
+^https:\/\/fuss10.elemecdn.com\/.+\.mp4 url reject
+^https:\/\/www1.elecfans.com\/www\/delivery url reject
+
+# 交管12123 //gab.122.gov.cn
+^https:\/\/gab\.122\.gov\.cn\/eapp\/m\/sysquery\/adver$ url reject
+
+# 美团 & 美团外卖//flowplus.meituan.net, img.meituan.net, s3plus.meituan.net
+^http:\/\/wmapi\.meituan\.com\/api\/v7\/(loadInfo|openscreen|startpicture)\? url reject-dict
+^https:\/\/flowplus\.meituan\.net\/v1\/mss_\w+\/linglong\/\d+\.jpg url reject-dict
+^https:\/\/img\.meituan\.net\/bizad\/bizad_brandCpt_\d+\.jpg url reject-dict
+^https:\/\/s3plus\.meituan\.net\/v1\/mss_\w+\/(brandcpt-vedio|waimai-alita)\/\w+\.zip$ url reject-dict
+
+# 微信 //mp.weixin.qq.com, weixin110.qq.com, security.wechat.com
+## 移除公众号中的推广内容
+^https:\/\/mp\.weixin\.qq\.com\/mp\/(cps_product_info|getappmsgad|relatedarticle)\? url reject-dict
+
+# 闲鱼 //gw.alicdn.com, acs.m.taobao.com
+^https:\/\/gw\.alicdn\.com\/mt\/ url reject
+^https:\/\/gw\.alicdn\.com\/tfs\/.+\d{3,4}-\d{4} url reject
+^https:\/\/gw\.alicdn\.com\/tps\/.+\d{3,4}-\d{4} url reject
+^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome url reject
+
+## 小米商城 //api.m.mi.com
+## 搜索框,热词,卡片
+^https:\/\/api\.m\.mi\.com\/v1\/app\/popup_info$ url reject-dict
+^https:\/\/api\.m\.mi\.com\/v1\/misearch\/search_input$ url reject-dict
+^https:\/\/api\.m\.mi\.com\/v2\/search\/search_default$ url reject-dict
+## 商品推荐信息流
+^https:\/\/api\.m\.mi\.com\/v1\/home\/page_feed(_v5)?$ url reject-dict
+## 小米金融 //api.jr.mi.com
+^https:\/\/api\.jr\.mi\.com\/jr\/api\/playScreen url reject
+^https:\/\/api\.jr\.mi\.com\/v\d\/adv url reject
+## 米家 //home.mi.com
+^https:\/\/home\.mi\.com\/cgi-op\/api\/v1\/recommendation\/(banner|myTab)\? url reject-dict
 
 [Script]
 # > 什么值得买
@@ -49,7 +114,12 @@ bili-proto = type=http-response,pattern=^https:\/\/(grpc\.biliapi\.net|app\.bili
 http-response ^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusiness|serverConfig|basicConfig) requires-body=1,script-path= https://raw.githubusercontent.com/zwf234/rules/master/js/jd_price.js
 
 # > 解除微信链接限制
-解除微信链接限制 = type=http-response,pattern=^https\:\/\/(weixin110\.qq|security.wechat)\.com\/cgi-bin\/mmspamsupport-bin\/newredirectconfirmcgi\?,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/zZPiglet/Task/master/asset/UnblockURLinWeChat.js
+解除微信链接限制 = type=http-response,pattern=^https\:\/\/(weixin110\.qq|security.wechat)\.com\/cgi-bin\/mmspamsupport-bin\/newredirectconfirmcgi\?,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/wechat/wechat110.js
+
+# > 开屏广告
+开屏广告 = type=http-response,pattern=^https:\/\/api\.m\.mi\.com\/v1\/app\/start$ requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/myBlockAds.js
 
 [MITM]
-hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,api.m.jd.com,www.bing.com,auth.aliyundrive.com,api.ithome.com,napi.ithome.com, security.wechat.com, weixin110.qq.com
+hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,api.m.jd.com,
+www.bing.com,auth.aliyundrive.com,api.ithome.com,napi.ithome.com, mp.weixin.qq.com, weixin110.qq.com, security.wechat.com,acs.m.taobao.com, gw.alicdn.com, heic.alicdn.com,pan.baidu.com,app-gw.csdn.net,api.douban.com,api.douban.com,elemecdn.com, 
+fuss10.elemecdn.com, www1.elecfans.com,gab.122.gov.cn,flowplus.meituan.net, img.meituan.net, s3plus.meituan.net,gw.alicdn.com,api.m.mi.com, api-mifit.huami.com, api.jr.mi.com, home.mi.com
