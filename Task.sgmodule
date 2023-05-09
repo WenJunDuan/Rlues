@@ -126,15 +126,5 @@ http-response ^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusin
 # > 开屏广告
 开屏广告 = type=http-response,pattern=^https:\/\/api\.m\.mi\.com\/v1\/app\/start$, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/myBlockAds.js
 
-# > 小红书搜索页
-搜索页 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/search\/(banner|hot)_list\??, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
-搜索页 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/(hint|trending)\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
-搜索页 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v10\/search\/notes\?, requires-body=1,script-path=  https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
-
-# > 小红书开屏广告
-小红书开屏广告 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system_service\/config\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
-小红书开屏广告 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/system_service\/splash_config$, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
-小红书信息流 = type= http-response, pattern=^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v6\/homefeed\?, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/xiaohongshu.js
-
 [MITM]
 hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,api.m.jd.com,www.bing.com,auth.aliyundrive.com,api.ithome.com,napi.ithome.com, mp.weixin.qq.com, weixin110.qq.com, security.wechat.com,acs.m.taobao.com, gw.alicdn.com, heic.alicdn.com,pan.baidu.com,app-gw.csdn.net,api.douban.com,api.douban.com,elemecdn.com, fuss10.elemecdn.com, www1.elecfans.com,gab.122.gov.cn,flowplus.meituan.net, img.meituan.net, s3plus.meituan.net,gw.alicdn.com,api.m.mi.com, api-mifit.huami.com, api.jr.mi.com, home.mi.com,edith.xiaohongshu.com, www.xiaohongshu.com
