@@ -33,9 +33,6 @@
 ^https:\/\/pan\.baidu\.com\/rest\/2\.0\/pcs\/adx\? url reject-dict
 ^https:\/\/update\.pan\.baidu\.com\/statistics\? url reject-dict
 
-# CSDN //app-gw.csdn.net
-^https:\/\/app-gw\.csdn\.net\/cms-app\/v\d\/home_page\/open_advertisement url reject
-
 # 豆瓣 //api.douban.com
 ^https:\/\/api\.douban\.com\/v2\/app_ads\/splash url reject
 ^https:\/\/api\.douban\.com\b.*\/common_ads\? url reject
@@ -66,26 +63,6 @@
 ^https:\/\/gw\.alicdn\.com\/tps\/.+\d{3,4}-\d{4} url reject
 ^https:\/\/acs\.m\.taobao\.com\/gw\/mtop\.taobao\.idle\.home\.welcome url reject
 
-## 小米商城 //api.m.mi.com
-## 搜索框,热词,卡片
-^https:\/\/api\.m\.mi\.com\/v1\/app\/popup_info$ url reject-dict
-^https:\/\/api\.m\.mi\.com\/v1\/misearch\/search_input$ url reject-dict
-^https:\/\/api\.m\.mi\.com\/v2\/search\/search_default$ url reject-dict
-## 商品推荐信息流
-^https:\/\/api\.m\.mi\.com\/v1\/home\/page_feed(_v5)?$ url reject-dict
-## 小米金融 //api.jr.mi.com
-^https:\/\/api\.jr\.mi\.com\/jr\/api\/playScreen url reject
-^https:\/\/api\.jr\.mi\.com\/v\d\/adv url reject
-## 米家 //home.mi.com
-^https:\/\/home\.mi\.com\/cgi-op\/api\/v1\/recommendation\/(banner|myTab)\? url reject-dict
-
-## 小红书
-# 惊喜弹窗
-^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/surprisebox\/(get_style\?|open\?|submit_action$) url reject-dict
-^https:\/\/www\.xiaohongshu\.com\/api\/marketing\/box\/trigger\? url reject-dict
-^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v[23]\/note\/(feed|redtube|videofeed)\? url response-body "disable_watermark":false, response-body "disable_watermark":true,
-^https:\/\/www\.xiaohongshu\.com\/api\/sns\/v1\/ads\/resource\? url reject-dict
-
 [Script]
 # > 什么值得买
 什么值得买_获取cookie = script-path=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/script/smzdm/smzdm_daily.js,type=http-request,requires-body=false,pattern=^https?:\/\/user-api\.smzdm\.com\/checkin$
@@ -114,8 +91,6 @@ IT之家广告 = type=http-response,pattern=^https?:\/\/(api\.ithome\.com\/json\
 # > BILIBILI
 B站每日任务 = type=cron,cronexp=30 7 * * *,script-path=https://raw.githubusercontent.com/ClydeTime/Quantumult/main/Script/Task/BiliBili.js
 B站获取Cookie(APP) = type=http-request,pattern=^https:\/\/app\.bilibili\.com\/x\/resource\/domain\?,script-path=https://raw.githubusercontent.com/ClydeTime/Quantumult/main/Script/Task/BiliBili.js
-B站净化 = type=http-response,pattern=^https:\/\/app\.bilibili\.com\/x\/(v2\/(splash\/(list|show)|feed\/index\?)|resource\/show\/tab\/v2),requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/app2smile/rules/master/js/bilibili-json.js,script-update-interval=0
-bili-proto = type=http-response,pattern=^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.(view\.v1\.View\/View|dynamic\.v2\.Dynamic\/DynAll)$,requires-body=1,binary-body-mode=1,max-size=0,script-path=https://raw.githubusercontent.com/app2smile/rules/master/js/bilibili-proto.js,script-update-interval=0
 
 # > 京东比价
 http-response ^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusiness|serverConfig|basicConfig), requires-body=1,script-path= https://raw.githubusercontent.com/zwf234/rules/master/js/jd_price.js
@@ -123,8 +98,5 @@ http-response ^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(wareBusin
 # > 解除微信链接限制
 解除微信链接限制 = type=http-response,pattern=^https\:\/\/(weixin110\.qq|security.wechat)\.com\/cgi-bin\/mmspamsupport-bin\/newredirectconfirmcgi\?,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/wechat/wechat110.js
 
-# > 开屏广告
-开屏广告 = type=http-response,pattern=^https:\/\/api\.m\.mi\.com\/v1\/app\/start$, requires-body=1,script-path= https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/myBlockAds.js
-
 [MITM]
-hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,api.m.jd.com,www.bing.com,auth.aliyundrive.com,api.ithome.com,napi.ithome.com, mp.weixin.qq.com, weixin110.qq.com, security.wechat.com,acs.m.taobao.com, gw.alicdn.com, heic.alicdn.com,pan.baidu.com,app-gw.csdn.net,api.douban.com,api.douban.com,elemecdn.com, fuss10.elemecdn.com, www1.elecfans.com,gab.122.gov.cn,flowplus.meituan.net, img.meituan.net, s3plus.meituan.net,gw.alicdn.com,api.m.mi.com, api-mifit.huami.com, api.jr.mi.com, home.mi.com,edith.xiaohongshu.com, www.xiaohongshu.com
+hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,api.m.jd.com,www.bing.com,auth.aliyundrive.com,api.ithome.com,napi.ithome.com, mp.weixin.qq.com, weixin110.qq.com, security.wechat.com,acs.m.taobao.com, gw.alicdn.com, heic.alicdn.com,pan.baidu.com,app-gw.csdn.net,api.douban.com,api.douban.com,elemecdn.com, fuss10.elemecdn.com, www1.elecfans.com,gab.122.gov.cn,flowplus.meituan.net, img.meituan.net, s3plus.meituan.net,gw.alicdn.com
