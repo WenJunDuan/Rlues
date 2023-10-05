@@ -131,11 +131,11 @@ proxies:
 
 proxy-providers:
 # 服务器节点订阅，默认使用 Dler Cloud 提供的托管转换器筛选节点
-# 请填写 Encode 后的https%3A%2F%2Fmagiskcloud.com%2Fmodules%2Fservers%2FV2RaySocks%2Fsubscribe%2Fosubscribe.php%3Fsid%3D1894%26token%3Dqtm7MBywkMjJ，可到 https://www.urlencoder.org 进行转换
+# 请填写 Encode 后的11111111111111111，可到 https://www.urlencoder.org 进行转换
 # 若机场本身提供 Clash 格式节点订阅，可直接替换 url 后方链接使用
   Proxies - HK:
     type: http
-    url: "https://api.dler.io/sub?target=clash&url=https%3A%2F%2Fmagiskcloud.com%2Fmodules%2Fservers%2FV2RaySocks%2Fsubscribe%2Fosubscribe.php%3Fsid%3D1894%26token%3Dqtm7MBywkMjJ&include=%E9%A6%99%E6%B8%AF%7CHK&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
+    url: "https://api.dler.io/sub?target=clash&url=11111111111111111&include=%E9%A6%99%E6%B8%AF%7CHK&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
     interval: 3600
     path: ./Proxies/HKList.yaml
     health-check:
@@ -144,7 +144,7 @@ proxy-providers:
       url: http://www.gstatic.com/generate_204
   Proxies - SG:
     type: http
-    url: "https://api.dler.io/sub?target=clash&url=https%3A%2F%2Fmagiskcloud.com%2Fmodules%2Fservers%2FV2RaySocks%2Fsubscribe%2Fosubscribe.php%3Fsid%3D1894%26token%3Dqtm7MBywkMjJ&include=%E6%96%B0%E5%8A%A0%E5%9D%A1%7CSG&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
+    url: "https://api.dler.io/sub?target=clash&url=11111111111111111&include=%E6%96%B0%E5%8A%A0%E5%9D%A1%7CSG&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
     interval: 3600
     path: ./Proxies/SGList.yaml
     health-check:
@@ -153,7 +153,7 @@ proxy-providers:
       url: http://www.gstatic.com/generate_204
   Proxies - TW:
     type: http
-    url: "https://api.dler.io/sub?target=clash&url=https%3A%2F%2Fmagiskcloud.com%2Fmodules%2Fservers%2FV2RaySocks%2Fsubscribe%2Fosubscribe.php%3Fsid%3D1894%26token%3Dqtm7MBywkMjJ&include=%E5%8F%B0%E6%B9%BE%7CTW&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
+    url: "https://api.dler.io/sub?target=clash&url=11111111111111111&include=%E5%8F%B0%E6%B9%BE%7CTW&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
     interval: 3600
     path: ./Proxies/TWList.yaml
     health-check:
@@ -162,7 +162,7 @@ proxy-providers:
       url: http://www.gstatic.com/generate_204
   Proxies - JP:
     type: http
-    url: "https://api.dler.io/sub?target=clash&url=https%3A%2F%2Fmagiskcloud.com%2Fmodules%2Fservers%2FV2RaySocks%2Fsubscribe%2Fosubscribe.php%3Fsid%3D1894%26token%3Dqtm7MBywkMjJ&include=%E6%97%A5%E6%9C%AC%7CJP&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
+    url: "https://api.dler.io/sub?target=clash&url=11111111111111111&include=%E6%97%A5%E6%9C%AC%7CJP&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
     interval: 3600
     path: ./Proxies/JPList.yaml
     health-check:
@@ -171,7 +171,7 @@ proxy-providers:
       url: http://www.gstatic.com/generate_204
   Proxies - KR:
     type: http
-    url: "https://api.dler.io/sub?target=clash&url=https%3A%2F%2Fmagiskcloud.com%2Fmodules%2Fservers%2FV2RaySocks%2Fsubscribe%2Fosubscribe.php%3Fsid%3D1894%26token%3Dqtm7MBywkMjJ&include=%E9%9F%A9%E5%9B%BD%7CKR&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
+    url: "https://api.dler.io/sub?target=clash&url=11111111111111111&include=%E9%9F%A9%E5%9B%BD%7CKR&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
     interval: 3600
     path: ./Proxies/KRList.yaml
     health-check:
@@ -180,7 +180,7 @@ proxy-providers:
       url: http://www.gstatic.com/generate_204
   Proxies - US:
     type: http
-    url: "https://api.dler.io/sub?target=clash&url=https%3A%2F%2Fmagiskcloud.com%2Fmodules%2Fservers%2FV2RaySocks%2Fsubscribe%2Fosubscribe.php%3Fsid%3D1894%26token%3Dqtm7MBywkMjJ&include=%E7%BE%8E%E5%9B%BD%7CUS&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
+    url: "https://api.dler.io/sub?target=clash&url=11111111111111111&include=%E7%BE%8E%E5%9B%BD%7CUS&emoji=true&list=true&udp=true&tfo=true&scv=false&fdn=false&sort=false"
     interval: 3600
     path: ./Proxies/USList.yaml
     health-check:
