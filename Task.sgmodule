@@ -9,9 +9,9 @@
 ^https?:\/\/haojia\.m\.smzdm\.com\/detail_modul\/user_related_modul - reject
 # 什么值得买_Wiki(618晒物活动推广，将来可能不是广告)
 ^https?:\/\/haojia\.m\.smzdm\.com\/detail_modul\/wiki_related_modul - reject
+^https:\/\/user-api\.smzdm\.com\/vip\/bottom_card_list\?basic_v=0&f=iphone&limit=20&page=1&sign= url reject-dict
+^https:\/\/app-api\.smzdm\.com\/util\/update url reject-dict
 
-# Unlock browser restrictions for new bing AI search.
-^https:\/\/www\.bing\.com\/(search|new) header-replace-regex User-Agent \w+\/[\d\.]+$ "AppleWebKit/537.36 Chrome/110.0 Safari/537.36 Edg/110.0"
 
 [Script]
 # > 什么值得买
@@ -43,4 +43,4 @@ B站获取Cookie(APP) = type=http-request,pattern=^https:\/\/app\.bilibili\.com\
 解除微信链接限制 = type=http-response,pattern=^https\:\/\/(weixin110\.qq|security.wechat)\.com\/cgi-bin\/mmspamsupport-bin\/newredirectconfirmcgi\?,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/wechat/wechat110.js
 
 [MITM]
-hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,www.bing.com,auth.aliyundrive.com,mp.weixin.qq.com, weixin110.qq.com, security.wechat.com
+hostname = %APPEND% user-api.smzdm.com,app-api.smzdm.com,homepage-api.smzdm.com,haojia-api.smzdm.com,haojia.m.smzdm.com,baike-api.smzdm.com,s-api.smzdm.com,zhiyou.m.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,auth.aliyundrive.com,mp.weixin.qq.com, weixin110.qq.com, security.wechat.com
