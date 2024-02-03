@@ -11,8 +11,8 @@
 # 什么值得买_每日签到 = script-path=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/script/smzdm/smzdm_daily.js,timeout=120,type=cron,cronexp=5 10 * * *
 
 # > 阿里云盘签到
-阿里云盘签到 = type=cron, cronexp="0 7,11 * * *", script-path=https://gist.githubusercontent.com/Sliverkiss/33800a98dcd029ba09f8b6fc6f0f5162/raw/aliyun.js, timeout=60, wake-system=1
-阿里云盘签到cookie = type=http-request, pattern=^https:\/\/(auth|aliyundrive)\.alipan\.com\/v2\/account\/token, script-path=https://raw.githubusercontent.com/zqzess/rule_for_quantumultX/master/js/Mine/aDriveCheckIn/aDriveCheckIn.js, requires-body=true, max-size=-1, timeout=60
+阿里网盘token获取 = type=http-request,pattern=^https:\/\/(auth|aliyundrive)\.alipan\.com\/v2\/account\/token,requires-body=1,script-path=https://raw.githubusercontent.com/zqzess/rule_for_quantumultX/master/js/Mine/aDriveCheckIn/aDriveCheckIn.js
+阿里网盘签到 = type=cron,cronexp=10 7 * * *,script-path=https://raw.githubusercontent.com/zqzess/rule_for_quantumultX/master/js/Mine/aDriveCheckIn/aDriveCheckIn.js
 
 # > Bing积分
 #Bing积分cookie = requires-body=0,type=http-request,pattern=https:\/\/rewards\.bing\.com,script-path=https://raw.githubusercontent.com/lowking/Scripts/master/bing/bingPoint.js
