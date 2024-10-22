@@ -4,7 +4,6 @@
 
 [URL Rewrite]
 
-
 [Script]
 # > 什么值得买
 什么值得买_获取cookie = script-path=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/script/smzdm/smzdm_daily.js,type=http-request,requires-body=false,pattern=^https?:\/\/user-api\.smzdm\.com\/checkin$
@@ -21,6 +20,7 @@
 # > BILIBILI
 B站每日任务 = type=cron,cronexp=30 7 * * *,script-path=https://raw.githubusercontent.com/ClydeTime/Quantumult/main/Script/Task/BiliBili.js
 B站获取Cookie(APP) = type=http-request,pattern=^https:\/\/app\.bilibili\.com\/x\/resource\/domain\?,script-path=https://raw.githubusercontent.com/ClydeTime/Quantumult/main/Script/Task/BiliBili.js
+#B站获取Cookie(网页) = type=http-request,pattern=^https:\/\/m.bilibili.com/$,script-path=https://raw.githubusercontent.com/ClydeTime/Quantumult/main/Script/Task/BiliBili.js
 
 # > 解除微信链接限制
 解除微信链接限制 = type=http-response,pattern=^https\:\/\/(weixin110\.qq|security.wechat)\.com\/cgi-bin\/mmspamsupport-bin\/newredirectconfirmcgi\?,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/RuCu6/QuanX/main/Scripts/wechat/wechat110.js
