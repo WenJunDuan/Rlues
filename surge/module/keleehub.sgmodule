@@ -1,17 +1,18 @@
 #!name=适配可莉插件中心
-#!desc=修复在 hub.kelee.one 点击无反应的问题。需配套 ScriptHub 使用。
+#!desc=Fix KeleeHub: 将 Loon 插件链接转换为 Surge 模块安装链接。内嵌脚本自动处理 URL 编码，解决点击无反应问题。
 #!category=可莉插件中心
-#!author=原作者@iKeLee, Modified
-
-[Body Rewrite]
-# 扩大匹配范围：不仅仅匹配 list.json，而是匹配该域名下所有请求 (HTML/JSON)
-# 作用：查找页面或数据中的 loon 导入协议，替换为 Surge 安装模块协议 (通过 ScriptHub 中转)
-http-response ^https?:\/\/(hub|pluginhub)\.kelee\.one type=text-sub, pattern="loon://import\?plugin=(https?:\/\/kelee\.one\/Tool\/Loon\/Lpx\/(.+?)\.lpx)", replacement="surge:///install-module?url=http://script.hub/file/_start_/$1/_end_/$2.sgmodule%3Ftype%3Dloon-plugin%26target%3Dsurge-module%26del%3Dtrue%26jqEnabled%3Dtrue%26pm%3D.%26sni%3D."
+#!author=原作者@iKeLee, Modified by GPT
+#!system=ios
 
 [Header Rewrite]
-# 强制该域名不缓存，确保每次都能触发 Body Rewrite
-http-request ^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-None-Match
-http-request ^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-Modified-Since
+# 移除缓存验证头，强制 Surge 处理 Body，防止 Safari 读取本地缓存
+^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-None-Match
+^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-Modified-Since
+
+[Script]
+# 使用内嵌 Base64 脚本，无需外部依赖，无需额外文件
+# 脚本逻辑：拦截网页响应 -> 查找 loon:// 链接 -> 清洗转义字符 -> 生成 ScriptHub 转换链接 -> URL编码 -> 替换为 surge:// 协议
+KeleeHub_Fix = type=http-response, pattern=^https?:\/\/(hub|pluginhub)\.kelee\.one, requires-body=true, script-path=data:text/javascript;base64,dmFyIGI9JHJlc3BvbnNlLmJvZHk7CnZhciByZWdleD0vbG9vbjooPzpcL1wvfFxcXC9cXFwvKWltcG9ydFw/cGx1Z2luPShbXiInXHNcXF0rKS9nOwpiPWIucmVwbGFjZShyZWdleCxmdW5jdGlvbihtLHApe3ZhciBjPXAucmVwbGFjZSgvXFxcLy9nLCIvIik7dmFyIGY9InBsdWdpbi5zZ21vZHVsZSI7dmFyIHM9Yy5zcGxpdCgiLyIpO2lmKHMubGVuZ3RoPjApZj1zW3MubGVuZ3RoLTFdLnJlcGxhY2UoIi5scHgiLCIuc2dtb2R1bGUiKTt2YXIgaD0iaHR0cDovL3NjcmlwdC5odWIvZmlsZS9fc3RhcnRfLyIrYysiL19lbmRfLyIrZisiP3R5cGU9bG9vbi1wbHVnaW4mdGFyZ2V0PXN1cmdlLW1vZHVsZSZkZWw9dHJ1ZSZqcUVuYWJsZWQ9dHJ1ZSI7cmV0dXJuInN1cmdlOi8vL2luc3RhbGwtbW9kdWxlP3VybD0iK2VuY29kZVVSSUNvbXBvbmVudChoKTt9KTsKJGRvbmUoe2JvZHk6Yn0pOw==
 
 [MITM]
 hostname = %APPEND% hub.kelee.one, pluginhub.kelee.one
