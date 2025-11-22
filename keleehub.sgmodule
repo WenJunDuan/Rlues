@@ -1,0 +1,17 @@
+#!name=适配可莉插件中心
+#!desc=修复在 hub.kelee.one 点击无反应的问题。需配套 ScriptHub 使用。
+#!category=可莉插件中心
+#!author=原作者@iKeLee, Modified
+
+[Body Rewrite]
+# 扩大匹配范围：不仅仅匹配 list.json，而是匹配该域名下所有请求 (HTML/JSON)
+# 作用：查找页面或数据中的 loon 导入协议，替换为 Surge 安装模块协议 (通过 ScriptHub 中转)
+http-response ^https?:\/\/(hub|pluginhub)\.kelee\.one type=text-sub, pattern="loon://import\?plugin=(https?:\/\/kelee\.one\/Tool\/Loon\/Lpx\/(.+?)\.lpx)", replacement="surge:///install-module?url=http://script.hub/file/_start_/$1/_end_/$2.sgmodule%3Ftype%3Dloon-plugin%26target%3Dsurge-module%26del%3Dtrue%26jqEnabled%3Dtrue%26pm%3D.%26sni%3D."
+
+[Header Rewrite]
+# 强制该域名不缓存，确保每次都能触发 Body Rewrite
+http-request ^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-None-Match
+http-request ^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-Modified-Since
+
+[MITM]
+hostname = %APPEND% hub.kelee.one, pluginhub.kelee.one
