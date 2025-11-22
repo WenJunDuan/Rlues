@@ -1,18 +1,23 @@
 #!name=适配可莉插件中心
-#!desc=Fix KeleeHub: 将 Loon 插件链接转换为 Surge 模块安装链接。内嵌脚本自动处理 URL 编码，解决点击无反应问题。
+#!desc=修复点击无反应问题。扩大了MITM范围至所有 kelee.one 子域名，防止数据源漏网。
 #!category=可莉插件中心
 #!author=原作者@iKeLee, Modified by GPT
 #!system=ios
 
 [Header Rewrite]
-# 移除缓存验证头，强制 Surge 处理 Body，防止 Safari 读取本地缓存
-^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-None-Match
-^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-Modified-Since
+# 1. 暴力清除缓存头，防止 Safari 读取本地缓存
+^https?:\/\/.*\.kelee\.one\/.* header-del If-None-Match
+^https?:\/\/.*\.kelee\.one\/.* header-del If-Modified-Since
+^https?:\/\/.*\.kelee\.one\/.* header-del Cache-Control
+
+# 2. (关键) 尝试禁用 Service Worker 注册，防止 PWA 缓存绕过 Surge
+^https?:\/\/.*\.kelee\.one\/.*sw\.js header-del Content-Type
 
 [Script]
-# 使用内嵌 Base64 脚本，无需外部依赖，无需额外文件
-# 脚本逻辑：拦截网页响应 -> 查找 loon:// 链接 -> 清洗转义字符 -> 生成 ScriptHub 转换链接 -> URL编码 -> 替换为 surge:// 协议
-KeleeHub_Fix = type=http-response, pattern=^https?:\/\/(hub|pluginhub)\.kelee\.one, requires-body=true, script-path=data:text/javascript;base64,dmFyIGI9JHJlc3BvbnNlLmJvZHk7CnZhciByZWdleD0vbG9vbjooPzpcL1wvfFxcXC9cXFwvKWltcG9ydFw/cGx1Z2luPShbXiInXHNcXF0rKS9nOwpiPWIucmVwbGFjZShyZWdleCxmdW5jdGlvbihtLHApe3ZhciBjPXAucmVwbGFjZSgvXFxcLy9nLCIvIik7dmFyIGY9InBsdWdpbi5zZ21vZHVsZSI7dmFyIHM9Yy5zcGxpdCgiLyIpO2lmKHMubGVuZ3RoPjApZj1zW3MubGVuZ3RoLTFdLnJlcGxhY2UoIi5scHgiLCIuc2dtb2R1bGUiKTt2YXIgaD0iaHR0cDovL3NjcmlwdC5odWIvZmlsZS9fc3RhcnRfLyIrYysiL19lbmRfLyIrZisiP3R5cGU9bG9vbi1wbHVnaW4mdGFyZ2V0PXN1cmdlLW1vZHVsZSZkZWw9dHJ1ZSZqcUVuYWJsZWQ9dHJ1ZSI7cmV0dXJuInN1cmdlOi8vL2luc3RhbGwtbW9kdWxlP3VybD0iK2VuY29kZVVSSUNvbXBvbmVudChoKTt9KTsKJGRvbmUoe2JvZHk6Yn0pOw==
+# 使用内嵌脚本处理所有 kelee.one 相关的请求
+# 自动识别并转换 loon:// 链接
+KeleeHub_Fix_All = type=http-response, pattern=^https?:\/\/.*\.kelee\.one, requires-body=true, max-size=524288, script-path=data:text/javascript;base64,dmFyIGI9JHJlc3BvbnNlLmJvZHk7CnZhciByZWdleD0vbG9vbjooPzpcL1wvfFxcXC9cXFwvKWltcG9ydFw/cGx1Z2luPShbXiInXHNcXF0rKS9nOwppZihiLm1hdGNoKHJlZ2V4KSl7CiAgICBiPWIucmVwbGFjZShyZWdleCxmdW5jdGlvbihtLHApewogICAgICAgIHZhciBjPXAucmVwbGFjZSgvXFxcLy9nLCIvIik7CiAgICAgICAgdmFyIGY9InBsdWdpbi5zZ21vZHVsZSI7CiAgICAgICAgdmFyIHM9Yy5zcGxpdCgiLyIpOwogICAgICAgIGlmKHMubGVuZ3RoPjApZj1zW3MubGVuZ3RoLTFdLnJlcGxhY2UoIi5scHgiLCIuc2dtb2R1bGUiKTsKICAgICAgICB2YXIgaD0iaHR0cDovL3NjcmlwdC5odWIvZmlsZS9fc3RhcnRfLyIrYysiL19lbmRfLyIrZisiP3R5cGU9bG9vbi1wbHVnaW4mdGFyZ2V0PXN1cmdlLW1vZHVsZSZkZWw9dHJ1ZSZqcUVuYWJsZWQ9dHJ1ZSI7CiAgICAgICAgcmV0dXJuInN1cmdlOi8vL2luc3RhbGwtbW9kdWxlP3VybD0iK2VuY29kZVVSSUNvbXBvbmVudChoKTsKICAgIH0pOwogICAgJGRvbmUoe2JvZHk6Yn0pOwp9ZWxzZXsKICAgICRkb25lKHt9KTsKfQ==
 
 [MITM]
-hostname = %APPEND% hub.kelee.one, pluginhub.kelee.one
+# 扩大拦截范围，包括主域名和所有子域名
+hostname = %APPEND% kelee.one, *.kelee.one
