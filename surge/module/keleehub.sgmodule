@@ -1,23 +1,22 @@
 #!name=适配可莉插件中心
-#!desc=修复点击无反应问题。扩大了MITM范围至所有 kelee.one 子域名，防止数据源漏网。
+#!desc=使用前端JS注入技术，监听并劫持页面点击事件。解决动态渲染、编码错误和缓存问题。
 #!category=可莉插件中心
-#!author=原作者@iKeLee, Modified by GPT
+#!author=GPT_Modified
 #!system=ios
 
 [Header Rewrite]
-# 1. 暴力清除缓存头，防止 Safari 读取本地缓存
-^https?:\/\/.*\.kelee\.one\/.* header-del If-None-Match
-^https?:\/\/.*\.kelee\.one\/.* header-del If-Modified-Since
-^https?:\/\/.*\.kelee\.one\/.* header-del Cache-Control
+# 1. 移除 CSP 安全策略，允许我们注入的脚本运行 (非常关键)
+^https?:\/\/(hub|pluginhub)\.kelee\.one header-del Content-Security-Policy
+^https?:\/\/(hub|pluginhub)\.kelee\.one header-del Content-Security-Policy-Report-Only
 
-# 2. (关键) 尝试禁用 Service Worker 注册，防止 PWA 缓存绕过 Surge
-^https?:\/\/.*\.kelee\.one\/.*sw\.js header-del Content-Type
+# 2. 移除缓存，确保 HTML 重新加载以包含我们的脚本
+^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-None-Match
+^https?:\/\/(hub|pluginhub)\.kelee\.one header-del If-Modified-Since
 
-[Script]
-# 使用内嵌脚本处理所有 kelee.one 相关的请求
-# 自动识别并转换 loon:// 链接
-KeleeHub_Fix_All = type=http-response, pattern=^https?:\/\/.*\.kelee\.one, requires-body=true, max-size=524288, script-path=data:text/javascript;base64,dmFyIGI9JHJlc3BvbnNlLmJvZHk7CnZhciByZWdleD0vbG9vbjooPzpcL1wvfFxcXC9cXFwvKWltcG9ydFw/cGx1Z2luPShbXiInXHNcXF0rKS9nOwppZihiLm1hdGNoKHJlZ2V4KSl7CiAgICBiPWIucmVwbGFjZShyZWdleCxmdW5jdGlvbihtLHApewogICAgICAgIHZhciBjPXAucmVwbGFjZSgvXFxcLy9nLCIvIik7CiAgICAgICAgdmFyIGY9InBsdWdpbi5zZ21vZHVsZSI7CiAgICAgICAgdmFyIHM9Yy5zcGxpdCgiLyIpOwogICAgICAgIGlmKHMubGVuZ3RoPjApZj1zW3MubGVuZ3RoLTFdLnJlcGxhY2UoIi5scHgiLCIuc2dtb2R1bGUiKTsKICAgICAgICB2YXIgaD0iaHR0cDovL3NjcmlwdC5odWIvZmlsZS9fc3RhcnRfLyIrYysiL19lbmRfLyIrZisiP3R5cGU9bG9vbi1wbHVnaW4mdGFyZ2V0PXN1cmdlLW1vZHVsZSZkZWw9dHJ1ZSZqcUVuYWJsZWQ9dHJ1ZSI7CiAgICAgICAgcmV0dXJuInN1cmdlOi8vL2luc3RhbGwtbW9kdWxlP3VybD0iK2VuY29kZVVSSUNvbXBvbmVudChoKTsKICAgIH0pOwogICAgJGRvbmUoe2JvZHk6Yn0pOwp9ZWxzZXsKICAgICRkb25lKHt9KTsKfQ==
+[Body Rewrite]
+# 核心魔法：在网页 body 结束标签前，插入我们的劫持脚本
+# 只要访问的是 html 页面，就注入这段 JS
+^https?:\/\/(hub|pluginhub)\.kelee\.one text "</body>" "</body><script>!function(){document.addEventListener('click',function(e){var t=e.target.closest('a');if(t&&t.href&&t.href.startsWith('loon://')){e.preventDefault(),e.stopImmediatePropagation();var r=t.href,n=r.replace('loon://import?plugin=',''),o=n.replace(/\\\//g,'/'),i='plugin.sgmodule';try{var a=o.split('?')[0].split('/');a.length>0&&(i=a[a.length-1].replace('.lpx','.sgmodule'))}catch(e){}var c='http://script.hub/file/_start_/'+o+'/_end_/'+i+'?type=loon-plugin&target=surge-module&del=true&jqEnabled=true',l='surge:///install-module?url='+encodeURIComponent(c);console.log('Surge Redirect:',l),window.location.href=l}},!0);}();</script>"
 
 [MITM]
-# 扩大拦截范围，包括主域名和所有子域名
-hostname = %APPEND% kelee.one, *.kelee.one
+hostname = %APPEND% hub.kelee.one, pluginhub.kelee.one
