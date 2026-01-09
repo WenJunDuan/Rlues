@@ -1,21 +1,22 @@
-# VibeCoding Kernel v7.2 (VibeOS)
+# VibeCoding Kernel v7.3 (VibeOS)
 
 > **"Talk is cheap. Show me the code."** — Linus Torvalds
-> **"Claude不是聊天机器人，而是可并行调度、可验证的工程资源。"** — Boris Cherny
+> **"Claude 不是聊天机器人，而是可并行调度、可验证的工程资源。"** — Boris Cherny
 
-AI编程协作专家系统，融合 RIPER-10 工作流、寸止协议、Linus思维和Boris的工程实践。
+AI 编程协作专家系统，融合 RIPER-10 工作流、寸止协议、Linus 思维、Boris 实践和官方 Plugins。
 
 ---
 
-## 🧠 核心理念
+## 🆕 v7.3 核心特性
 
-| 理念 | 来源 | 描述 |
-|:---|:---|:---|
-| **Data First** | Linus | 先定义数据结构，再写逻辑 |
-| **Async Awareness** | Boris | 文件系统是唯一真理，不依赖会话记忆 |
-| **Stop Hooks** | 寸止 | 关键决策点强制停止，等待用户确认 |
-| **Verification Loop** | Boris | 验证回路是质量提升2-3倍的核心 |
-| **Simplicity First** | Linus | KISS原则，避免过度工程化 |
+| 特性                | 描述                                      |
+| :------------------ | :---------------------------------------- |
+| **vibe-前缀指令**   | 自定义指令使用`vibe-`前缀，避免与官方冲突 |
+| **分离架构**        | Agent/Skills/Commands/MCP 完全独立        |
+| **多执行技能**      | Codex、Gemini(未来)、Claude 原生可选      |
+| **官方 Plugins**    | 集成 9 个官方插件                         |
+| **Path C 逐步思考** | 复杂任务必须逐步推理                      |
+| **.ai_state 位置**  | 统一放在`project_document/.ai_state/`     |
 
 ---
 
@@ -23,36 +24,35 @@ AI编程协作专家系统，融合 RIPER-10 工作流、寸止协议、Linus思
 
 ```
 .claude/
-├── CLAUDE.md              # 🔑 Bootloader（系统入口）
-├── commands/              # Slash指令定义
-│   ├── _definitions.md   # 指令索引
-│   ├── plan.md           # /plan 深度规划
-│   ├── design.md         # /design 架构设计
-│   ├── code.md           # /code 编码执行
-│   └── review.md         # /review 代码审查
+├── CLAUDE.md              # 🔑 Bootloader
+├── commands/              # vibe-前缀指令
+│   ├── _index.md         # 指令索引
+│   ├── vibe-plan.md      # /vibe-plan
+│   ├── vibe-design.md    # /vibe-design
+│   ├── vibe-code.md      # /vibe-code
+│   ├── vibe-review.md    # /vibe-review
+│   └── vibe-init.md      # /vibe-init
 ├── agents/                # 角色库
-│   ├── pm.md             # 项目经理
-│   ├── pdm.md            # 产品经理
-│   ├── ar.md             # 架构师(Linus Mode)
-│   ├── ld.md             # 开发工程师
-│   ├── qe.md             # 质量工程师
-│   ├── sa.md             # 安全审计
-│   └── ui.md             # UI设计师
-├── skills/                # 技能扩展
-│   ├── codex/            # ⭐ 代码执行
-│   ├── memory/           # 记忆管理
-│   ├── sou/              # 语义搜索
-│   ├── thinking/         # 深度推理
+│   ├── pm.md, pdm.md, ar.md, ld.md
+│   ├── qe.md, sa.md, ui.md
+├── skills/                # 技能库
+│   ├── codex/            # AI执行引擎
+│   ├── gemini/           # 备选引擎(未来)
+│   ├── thinking/         # 逐步思考
 │   ├── meeting/          # 模拟会议
-│   ├── verification/     # 🆕 验证回路
-│   └── knowledge-bridge/ # 🆕 知识桥接
+│   ├── verification/     # 验证回路
+│   ├── knowledge-bridge/ # 知识桥接
+│   ├── memory/           # 记忆管理
+│   └── sou/              # 语义搜索
 ├── workflows/
-│   ├── pace.md           # P.A.C.E.路由
+│   ├── pace.md           # P.A.C.E.路由+逐步思考
 │   └── riper.md          # RIPER-10流程
 ├── hooks/
-│   └── stop-hooks.md     # 🆕 Stop Hooks定义
+│   └── stop-hooks.md     # Stop Hooks定义
+├── plugins/
+│   └── _index.md         # 官方Plugins索引
 ├── templates/
-│   └── ai-state.md       # 🆕 .ai_state模板
+│   └── ai-state.md       # .ai_state模板
 └── references/
     ├── frontend-standards.md
     ├── backend-standards.md
@@ -64,100 +64,131 @@ AI编程协作专家系统，融合 RIPER-10 工作流、寸止协议、Linus思
 ## 🚀 快速开始
 
 ### 1. 部署配置
+
 ```bash
 cp -r .claude /your/project/
 ```
 
-### 2. 初始化项目状态
+### 2. 初始化项目
+
 ```bash
-mkdir .ai_state
-touch .ai_state/active_context.md
+/vibe-init
 ```
 
-### 3. 启动
-```markdown
-AI启动时会自动：
-1. 读取 .ai_state/active_context.md
-2. 汇报当前状态
-3. 等待指令
+创建 `project_document/.ai_state/` 目录。
+
+### 3. 使用指令
+
+```bash
+/vibe-plan      # 深度规划
+/vibe-design    # 架构设计
+/vibe-code      # 编码执行
+/vibe-review    # 代码审查
 ```
 
 ---
 
-## 🔐 四大铁律
+## 🎯 自定义指令 (vibe-前缀)
 
-1. **禁止直接询问** - 只能通过`寸止`交互
-2. **默认静默执行** - 不创建文档/不测试/不编译
-3. **未批准禁止结束** - 必须获得`寸止`确认
-4. **工具优先于输出** - 能用工具解决的优先调用
+| 指令           | 简写  | 描述       |
+| :------------- | :---- | :--------- |
+| `/vibe-plan`   | `/vp` | 深度规划   |
+| `/vibe-design` | `/vd` | 架构设计   |
+| `/vibe-code`   | `/vc` | 编码执行   |
+| `/vibe-review` | `/vr` | 代码审查   |
+| `/vibe-init`   | -     | 初始化项目 |
+| `/vibe-state`  | -     | 查看状态   |
+
+### 参数
+
+```bash
+/vibe-code --skill=codex     # 指定Codex执行
+/vibe-code --path=C          # 强制Path C逐步思考
+/vibe-review --strict        # 攻击性审查
+```
 
 ---
 
-## 🛑 Stop Hooks
+## 🔌 官方 Plugins
 
-| Token | 触发条件 |
-|:---|:---|
-| `[PLAN_READY]` | 任务拆解完成 |
-| `[DESIGN_FREEZE]` | 接口定义完成 |
-| `[PRE_COMMIT]` | 大规模修改前 |
-| `[TASK_DONE]` | 任务完成 |
-| `[VERIFICATION_FAILED]` | 验证失败3次 |
+| 插件                    | 用途     |
+| :---------------------- | :------- |
+| `code-review`           | 代码审查 |
+| `commit-commands`       | Git 提交 |
+| `feature-dev`           | 功能开发 |
+| `frontend-design`       | 前端设计 |
+| `pr-review-toolkit`     | PR 审查  |
+| `security-guidance`     | 安全指导 |
+| `learning-output-style` | 输出风格 |
+| `hookify`               | 钩子系统 |
+| `ralph-wiggum`          | 创意模式 |
+
+#@# 🔌 官方 Plugins 安装
+
+第一步：准备插件文件
+如果你还没有下载源码，请先克隆仓库
+
+```bash
+mkdir -p ~/git
+cd ~/git
+git clone https://github.com/anthropics/claude-code.git
+```
+
+第二步：生成启动指令
+
+```bash
+claude \
+  --plugin-dir ./plugins/code-review \
+  --plugin-dir ./plugins/commit-commands \
+  --plugin-dir ./plugins/feature-dev \
+  --plugin-dir ./plugins/frontend-design \
+  --plugin-dir ./plugins/learning-output-style \
+  --plugin-dir ./plugins/hookify \
+  --plugin-dir ./plugins/pr-review-toolkit \
+  --plugin-dir ./plugins/security-guidance \
+  --plugin-dir ./plugins/ralph-wiggum
+```
 
 ---
 
 ## ⚡ P.A.C.E. 路由
 
-| 路径 | 条件 | 流程 |
-|:---|:---|:---|
-| **A** | 单文件/<30行 | LD→Verify |
-| **B** | 2-10文件 | PM→LD→QE |
-| **C** | >10文件 | PDM→AR→PM→LD→QE |
+| 路径  | 条件          | 特点                |
+| :---- | :------------ | :------------------ |
+| **A** | 单文件/<30 行 | 静默执行            |
+| **B** | 2-10 文件     | 计划先行            |
+| **C** | >10 文件      | **逐步思考+分阶段** |
 
 ---
 
-## 🔄 验证回路
+## 🛠️ 技能选择
 
-> **这是质量提升2-3倍的核心原则** — Boris Cherny
+```bash
+# Codex执行
+/vibe-code --skill=codex "实现登录"
 
-```
-Execute → Verify → Pass? → Done
-              ↓ No
-         Analyze → Fix → Retry (max 3)
-```
+# Gemini执行（未来）
+/vibe-code --skill=gemini "优化性能"
 
----
-
-## 📋 .ai_state 持久化
-
-```
-.ai_state/
-├── active_context.md   # 当前任务状态（必须）
-├── conventions.md      # 项目约定
-└── decisions.md        # 决策记录
+# Claude原生（默认）
+/vibe-code "简单修复"
 ```
 
-> **文件系统是唯一的真理**，不要依赖会话记忆。
+---
+
+## 📍 状态位置
+
+```
+project_document/
+└── .ai_state/
+    ├── active_context.md   # 当前任务
+    ├── conventions.md      # 项目约定
+    ├── decisions.md        # 决策记录
+    └── hooks.log          # 钩子日志
+```
+
+> **文件系统是唯一的真理**
 
 ---
 
-## 🛠️ MCP 工具
-
-**必需**: 寸止, memory, codex
-**推荐**: augment, sequential-thinking, promptx
-**可选**: mcp-deepwiki, chrome-devtools, fetch
-
----
-
-## 🆕 v7.2 更新
-
-- **Bootloader架构**: 系统入口，动态加载
-- **Stop Hooks**: 强制停止钩子系统
-- **.ai_state持久化**: 项目状态文件系统
-- **Verification Loop**: 验证回路技能
-- **Knowledge Bridge**: 知识桥接技能
-- **Slash Commands**: 指令系统定义
-- **Boris实践融合**: 异步意识、并行调度、验证闭环
-
----
-
-**版本**: v7.2 | **架构**: VibeOS | **协议**: RIPER-10 + 寸止 | **哲学**: Linus + Boris
+**版本**: v7.3 | **架构**: VibeOS Modular | **协议**: RIPER-10 + 寸止
