@@ -1,72 +1,19 @@
-# VibeCoding Kernel v7.3 (VibeOS)
+# VibeCoding Kernel v7.4
 
 > **"Talk is cheap. Show me the code."** — Linus Torvalds
-> **"Claude 不是聊天机器人，而是可并行调度、可验证的工程资源。"** — Boris Cherny
+> **"Claude不是聊天机器人，而是可并行调度、可验证的工程资源。"** — Boris Cherny
 
-AI 编程协作专家系统，融合 RIPER-10 工作流、寸止协议、Linus 思维、Boris 实践和官方 Plugins。
-
----
-
-## 🆕 v7.3 核心特性
-
-| 特性                | 描述                                      |
-| :------------------ | :---------------------------------------- |
-| **vibe-前缀指令**   | 自定义指令使用`vibe-`前缀，避免与官方冲突 |
-| **分离架构**        | Agent/Skills/Commands/MCP 完全独立        |
-| **多执行技能**      | Codex、Gemini(未来)、Claude 原生可选      |
-| **官方 Plugins**    | 集成 9 个官方插件                         |
-| **Path C 逐步思考** | 复杂任务必须逐步推理                      |
-| **.ai_state 位置**  | 统一放在`project_document/.ai_state/`     |
-
----
-
-## 📁 目录结构
-
-```
-.claude/
-├── CLAUDE.md              # 🔑 Bootloader
-├── commands/              # vibe-前缀指令
-│   ├── _index.md         # 指令索引
-│   ├── vibe-plan.md      # /vibe-plan
-│   ├── vibe-design.md    # /vibe-design
-│   ├── vibe-code.md      # /vibe-code
-│   ├── vibe-review.md    # /vibe-review
-│   └── vibe-init.md      # /vibe-init
-├── agents/                # 角色库
-│   ├── pm.md, pdm.md, ar.md, ld.md
-│   ├── qe.md, sa.md, ui.md
-├── skills/                # 技能库
-│   ├── codex/            # AI执行引擎
-│   ├── gemini/           # 备选引擎(未来)
-│   ├── thinking/         # 逐步思考
-│   ├── meeting/          # 模拟会议
-│   ├── verification/     # 验证回路
-│   ├── knowledge-bridge/ # 知识桥接
-│   ├── memory/           # 记忆管理
-│   └── sou/              # 语义搜索
-├── workflows/
-│   ├── pace.md           # P.A.C.E.路由+逐步思考
-│   └── riper.md          # RIPER-10流程
-├── hooks/
-│   └── stop-hooks.md     # Stop Hooks定义
-├── plugins/
-│   └── _index.md         # 官方Plugins索引
-├── templates/
-│   └── ai-state.md       # .ai_state模板
-└── references/
-    ├── frontend-standards.md
-    ├── backend-standards.md
-    └── mcp-tools.md
-```
+AI 编程协作系统，支持 Claude Code / Codex CLI / Gemini CLI 多引擎调度。
 
 ---
 
 ## 🚀 快速开始
 
-### 1. 部署配置
+### 1. 复制到项目
 
 ```bash
-cp -r .claude /your/project/
+cp -r .claude your-project/
+cp orchestrator.yaml your-project/.claude/
 ```
 
 ### 2. 初始化项目
@@ -75,120 +22,170 @@ cp -r .claude /your/project/
 /vibe-init
 ```
 
-创建 `project_document/.ai_state/` 目录。
-
-### 3. 使用指令
+### 3. 开始使用
 
 ```bash
-/vibe-plan      # 深度规划
-/vibe-design    # 架构设计
-/vibe-code      # 编码执行
-/vibe-review    # 代码审查
+/vibe-plan "我想做一个博客系统"
 ```
 
 ---
 
-## 🎯 自定义指令 (vibe-前缀)
+## 📁 目录结构
 
-| 指令           | 简写  | 描述       |
-| :------------- | :---- | :--------- |
-| `/vibe-plan`   | `/vp` | 深度规划   |
-| `/vibe-design` | `/vd` | 架构设计   |
-| `/vibe-code`   | `/vc` | 编码执行   |
-| `/vibe-review` | `/vr` | 代码审查   |
-| `/vibe-init`   | -     | 初始化项目 |
-| `/vibe-state`  | -     | 查看状态   |
+```
+config-agent_v7.4/
+├── README.md                    # 本文件
+├── plugins-guide.md             # 官方 Plugin 配置指南
+│
+└── .claude/
+    ├── CLAUDE.md                # AI 入口文件
+    ├── orchestrator.yaml        # AI 调度配置
+    │
+    ├── agents/                  # 角色定义
+    │   ├── pm.md               # 项目经理
+    │   ├── pdm.md              # 产品经理
+    │   ├── ar.md               # 架构师
+    │   ├── ld.md               # 开发工程师
+    │   ├── qe.md               # 质量工程师
+    │   ├── sa.md               # 安全审计
+    │   ├── ui.md               # UI设计师
+    │   └── orchestrator.md     # 调度中心
+    │
+    ├── skills/                  # 技能定义
+    │   ├── codex/              # Codex 执行引擎
+    │   ├── gemini/             # Gemini 执行引擎
+    │   ├── thinking/           # 深度推理
+    │   ├── verification/       # 验证回路
+    │   ├── meeting/            # 多角色会议
+    │   ├── memory/             # 记忆管理
+    │   ├── sou/                # 代码搜索
+    │   ├── knowledge-bridge/   # 知识桥接
+    │   ├── multi-ai-sync/      # 🆕 多 AI 同步
+    │   └── user-guide/         # 🆕 用户操作指南
+    │
+    ├── commands/                # 自定义指令
+    │   ├── vibe-plan.md        # 规划模式
+    │   ├── vibe-design.md      # 设计模式
+    │   ├── vibe-code.md        # 编码模式
+    │   ├── vibe-review.md      # 审查模式
+    │   └── vibe-init.md        # 初始化
+    │
+    ├── workflows/               # 工作流
+    │   ├── pace.md             # P.A.C.E. 复杂度路由
+    │   └── riper.md            # RIPER-10 执行循环
+    │
+    ├── hooks/                   # 钩子
+    │   └── stop-hooks.md       # 寸止协议
+    │
+    ├── references/              # 参考文档
+    │   ├── frontend-standards.md
+    │   ├── backend-standards.md
+    │   └── mcp-tools.md
+    │
+    └── templates/               # 模板
+        ├── ai-state.md
+        └── kanban.md
+```
 
-### 参数
+---
+
+## 🎯 核心指令
+
+| 指令 | 简写 | 描述 |
+|:---|:---|:---|
+| `/vibe-plan` | `/vp` | 深度规划模式 |
+| `/vibe-design` | `/vd` | 架构设计模式 |
+| `/vibe-code` | `/vc` | 编码执行模式 |
+| `/vibe-review` | `/vr` | 代码审查模式 |
+| `/vibe-init` | - | 初始化项目 |
+
+### 指定执行引擎
 
 ```bash
-/vibe-code --skill=codex     # 指定Codex执行
-/vibe-code --path=C          # 强制Path C逐步思考
-/vibe-review --strict        # 攻击性审查
+/vibe-code --engine=codex "实现登录功能"
+/vibe-code --engine=gemini "优化性能"
 ```
 
 ---
 
-## 🔌 官方 Plugins
+## 🔧 AI 调度配置
 
-| 插件                    | 用途     |
-| :---------------------- | :------- |
-| `code-review`           | 代码审查 |
-| `commit-commands`       | Git 提交 |
-| `feature-dev`           | 功能开发 |
-| `frontend-design`       | 前端设计 |
-| `pr-review-toolkit`     | PR 审查  |
-| `security-guidance`     | 安全指导 |
-| `learning-output-style` | 输出风格 |
-| `hookify`               | 钩子系统 |
-| `ralph-wiggum`          | 创意模式 |
+编辑 `orchestrator.yaml`：
 
-#@# 🔌 官方 Plugins 安装
+```yaml
+# 默认引擎
+default_engine:
+  name: claude-code
 
-第一步：准备插件文件
-如果你还没有下载源码，请先克隆仓库
+# 角色映射（可选）
+role_engine_mapping:
+  ld: codex    # 开发者使用 codex
+
+# 并行配置
+parallel:
+  enabled: true
+  max_concurrent: 3
+```
+
+**优先级**: 用户指令 > 角色映射 > 默认引擎
+
+---
+
+## 🔄 多 AI 协调
+
+详见 `.claude/skills/multi-ai-sync/SKILL.md`
+
+核心原则：
+1. **文件系统是唯一真理** — `project_document/.ai_state/`
+2. **任务单一所有权** — 防止冲突
+3. **显式交接** — 通过 `handoff.md`
+4. **锁机制** — `.ai_lock` 防并发
+
+---
+
+## 📦 官方 Plugins
+
+从 GitHub 复制到 `.claude/commands/`：
 
 ```bash
-mkdir -p ~/git
-cd ~/git
-git clone https://github.com/anthropics/claude-code.git
+git clone https://github.com/anthropics/claude-code.git temp
+cp temp/.claude/commands/code-review.md .claude/commands/
+rm -rf temp
 ```
 
-第二步：生成启动指令
-
-```bash
-claude \
-  --plugin-dir ./plugins/code-review \
-  --plugin-dir ./plugins/commit-commands \
-  --plugin-dir ./plugins/feature-dev \
-  --plugin-dir ./plugins/frontend-design \
-  --plugin-dir ./plugins/learning-output-style \
-  --plugin-dir ./plugins/hookify \
-  --plugin-dir ./plugins/pr-review-toolkit \
-  --plugin-dir ./plugins/security-guidance \
-  --plugin-dir ./plugins/ralph-wiggum
-```
+详见 `plugins-guide.md`
 
 ---
 
-## ⚡ P.A.C.E. 路由
+## 🛑 寸止协议
 
-| 路径  | 条件          | 特点                |
-| :---- | :------------ | :------------------ |
-| **A** | 单文件/<30 行 | 静默执行            |
-| **B** | 2-10 文件     | 计划先行            |
-| **C** | >10 文件      | **逐步思考+分阶段** |
+关键决策点必须停止等待用户确认：
 
----
-
-## 🛠️ 技能选择
-
-```bash
-# Codex执行
-/vibe-code --skill=codex "实现登录"
-
-# Gemini执行（未来）
-/vibe-code --skill=gemini "优化性能"
-
-# Claude原生（默认）
-/vibe-code "简单修复"
-```
+| Token | 触发条件 |
+|:---|:---|
+| `[PLAN_READY]` | 任务拆解完成 |
+| `[DESIGN_FREEZE]` | 接口定义完成 |
+| `[PRE_COMMIT]` | 大规模修改前 |
+| `[TASK_DONE]` | 任务完成 |
 
 ---
 
-## 📍 状态位置
+## 📋 v7.4 更新内容
 
-```
-project_document/
-└── .ai_state/
-    ├── active_context.md   # 当前任务
-    ├── conventions.md      # 项目约定
-    ├── decisions.md        # 决策记录
-    └── hooks.log          # 钩子日志
-```
-
-> **文件系统是唯一的真理**
+- 🆕 `orchestrator.yaml` — AI 调度配置化
+- 🆕 `multi-ai-sync/` — 多 AI 协调同步协议
+- 🆕 `user-guide/` — 用户操作指南
+- 🆕 `--engine` 参数 — 用户指定执行引擎
+- 🆕 `kanban.md` — 可视化进度看板
 
 ---
 
-**版本**: v7.3 | **架构**: VibeOS Modular | **协议**: RIPER-10 + 寸止
+## 📖 更多文档
+
+- [用户操作指南](.claude/skills/user-guide/SKILL.md)
+- [多 AI 同步协议](.claude/skills/multi-ai-sync/SKILL.md)
+- [Plugin 配置指南](plugins-guide.md)
+
+---
+
+**版本**: v7.4 | **架构**: VibeOS Modular | **哲学**: Linus + Boris
