@@ -3,7 +3,19 @@
 > **"Talk is cheap. Show me the code."** — Linus Torvalds
 > **"Claude不是聊天机器人，而是可并行调度、可验证的工程资源。"** — Boris Cherny
 
-AI 编程协作系统，支持 Claude Code / Codex CLI / Gemini CLI 多引擎调度。
+AI 编程协作系统 — **工作流模式，不是对话模式**
+
+---
+
+## 🎯 v7.5 核心解决的问题
+
+| 问题 | 解决方案 |
+|:---|:---|
+| 会话断了就退化为对话 | **会话持久化 + 强制恢复** |
+| 指令没有生命周期 | **生命周期钩子 + 中断恢复** |
+| 不持续学习项目文档 | **文档同步 + 周期检查** |
+| kanban只有已完成 | **三态看板（计划/进行/完成）** |
+| 流程结束没确认 | **强制寸止 + TODO核对** |
 
 ---
 
@@ -13,7 +25,6 @@ AI 编程协作系统，支持 Claude Code / Codex CLI / Gemini CLI 多引擎调
 
 ```bash
 cp -r .claude your-project/
-cp orchestrator.yaml your-project/.claude/
 ```
 
 ### 2. 初始化项目
@@ -22,7 +33,7 @@ cp orchestrator.yaml your-project/.claude/
 /vibe-init
 ```
 
-### 3. 开始使用
+### 3. 开始工作
 
 ```bash
 /vibe-plan "我想做一个博客系统"
@@ -30,36 +41,161 @@ cp orchestrator.yaml your-project/.claude/
 
 ---
 
-## 🆕 v7.5 新特性
+## ⚠️ 核心机制：工作流锁定
 
-| 特性 | 说明 |
-|:---|:---|
-| **code-simplifier** | 开发时自动简化代码，Linus品味守护 |
-| **双轨记忆** | 项目状态 → 文件，通用知识 → Memory MCP |
-| **强制TODO流程** | 所有路径都必须生成TODO并核对 |
-| **错误学习** | 自动从Bug中学习，记录教训 |
-| **Git工作流** | 规范分支策略和提交规范 |
-| **调试技能** | 系统化调试方法 |
-| **性能优化** | 性能问题检测和优化 |
-| **细化RIPER** | 每个阶段更详细的步骤 |
+**进入工作流后，AI会锁定为工作流模式，不会退化为一问一答。**
+
+```
+/vibe-code → 创建 workflow.lock → 保持工作流模式
+                                       ↓
+                              直到完成或暂停才解锁
+```
+
+### 解锁条件
+
+- ✅ 所有TODO完成 + 寸止确认
+- ⏸️ 用户执行 `/vibe-pause`
+- ⛔ 用户执行 `/vibe-abort`
 
 ---
 
-## 🧠 记忆分离原则
-
-v7.5 最重要的改进：**项目状态和通用知识分离**
+## 📁 状态文件
 
 ```
-项目状态 (.ai_state/)          通用知识 (Memory MCP)
-──────────────────────────     ──────────────────────────
-✅ 当前任务 TODO               ✅ 用户偏好
-✅ 项目进度                    ✅ 禁止动作（用户指出的）
-✅ 项目技术决策                ✅ 高频动作和方法
-✅ AI交接记录                  ✅ 代码模式
-                              ✅ 错误教训
+project_document/.ai_state/
+├── session.yaml          # 会话状态（核心）
+├── workflow.lock         # 工作流锁
+├── checkpoint.md         # 断点恢复信息
+├── active_context.md     # TODO列表
+├── kanban.md             # 三态看板
+├── handoff.md            # AI交接
+├── conventions.md        # 项目约定
+├── decisions.md          # 技术决策
+└── doc_check.yaml        # 文档检查记录
 ```
 
-用户说"以后不要做XXX"，会自动记录到 Memory MCP。
+---
+
+## 🎮 指令系统
+
+### 工作流指令
+
+| 指令 | 描述 |
+|:---|:---|
+| `/vibe-plan` | 深度规划 |
+| `/vibe-design` | 架构设计 |
+| `/vibe-code` | 编码执行 |
+| `/vibe-review` | 代码审查 |
+
+### 控制指令
+
+| 指令 | 描述 |
+|:---|:---|
+| `/vibe-state` | 查看状态 |
+| `/vibe-pause` | **暂停工作流** |
+| `/vibe-resume` | **恢复工作流** |
+| `/vibe-abort` | **终止工作流** |
+| `/vibe-init` | 初始化项目 |
+
+### 参数
+
+```bash
+--engine=codex    # 指定Codex执行
+--engine=gemini   # 指定Gemini执行
+--tdd             # TDD模式
+--path=C          # 强制Path C
+--strict          # 严格审查
+```
+
+---
+
+## 🔄 生命周期
+
+```
+指令开始 → onInit() → 创建锁
+    ↓
+执行阶段 → onPhaseEnter() → 更新状态
+    ↓
+任务执行 → onTaskStart() → kanban(进行中)
+    ↓
+任务完成 → onTaskComplete() → kanban(已完成)
+    ↓
+流程结束 → onBeforeComplete() → 寸止确认
+    ↓
+确认通过 → onComplete() → 释放锁
+```
+
+### 中断恢复
+
+```
+/vibe-pause → onPause() → 保存断点 → 释放锁
+                              ↓
+/vibe-resume → onResume() → 加载断点 → 重新锁定 → 继续执行
+```
+
+---
+
+## 📋 三态看板
+
+```
+📥 计划中 (TODO)     →     🔄 进行中 (DOING)     →     ✅ 已完成 (DONE)
+      │                          │                          │
+      │  onTaskStart()           │  onTaskComplete()        │
+      └──────────────────────────┘──────────────────────────┘
+```
+
+每次任务状态变化都会更新 kanban.md。
+
+---
+
+## 🛑 寸止确认
+
+**每个工作流结束必须调用寸止与用户确认**：
+
+```markdown
+## [TASK_DONE] 流程完成
+
+### TODO 核对
+- [x] T-001: 数据模型 ✅
+- [x] T-002: API接口 ✅
+- [x] T-003: 前端页面 ✅
+
+### 验收标准
+- [x] 功能可用 ✅
+- [x] 测试通过 ✅
+
+---
+请验收：`通过` | `问题` | `优化`
+```
+
+---
+
+## 📚 持续学习
+
+### 文档监控
+
+每个阶段自动检查：
+- `conventions.md` — 项目约定
+- `decisions.md` — 技术决策
+- `package.json` — 依赖变化
+
+### 知识记录
+
+发现新规则 → 记录到 Memory MCP
+
+用户说"不要做XXX" → 记录到 `forbidden_action`
+
+---
+
+## 🧠 记忆分离
+
+| 项目状态 (.ai_state/) | 通用知识 (Memory MCP) |
+|:---|:---|
+| 当前TODO | 用户偏好 |
+| 项目进度 | 禁止动作 |
+| 技术决策 | 高频方法 |
+| AI交接 | 代码模式 |
+| | 错误教训 |
 
 ---
 
@@ -67,158 +203,84 @@ v7.5 最重要的改进：**项目状态和通用知识分离**
 
 ```
 config-agent_v7.5/
-├── README.md                    # 本文件
-├── plugins-guide.md             # 官方 Plugin 配置指南
+├── README.md
+├── plugins-guide.md
 │
 └── .claude/
-    ├── CLAUDE.md                # AI 入口文件
-    ├── orchestrator.yaml        # AI 调度配置
+    ├── CLAUDE.md
+    ├── orchestrator.yaml
     │
-    ├── agents/                  # 角色定义 (8个)
+    ├── agents/ (8)
     │   └── pm, pdm, ar, ld, qe, sa, ui, orchestrator
     │
-    ├── skills/                  # 技能定义 (15个)
-    │   ├── codex/              # Codex 执行引擎
-    │   ├── gemini/             # Gemini 执行引擎
-    │   ├── thinking/           # 深度推理
-    │   ├── verification/       # 验证回路
-    │   ├── meeting/            # 多角色会议
-    │   ├── memory/             # 增强记忆（双轨分离）
-    │   ├── sou/                # 代码搜索
-    │   ├── knowledge-bridge/   # 知识桥接
-    │   ├── multi-ai-sync/      # 多 AI 同步
-    │   ├── user-guide/         # 用户操作指南
-    │   ├── code-simplifier/    # 🆕 代码简化器
-    │   ├── error-learning/     # 🆕 错误学习
-    │   ├── git-workflow/       # 🆕 Git 工作流
-    │   ├── debug/              # 🆕 调试技能
-    │   └── performance/        # 🆕 性能优化
+    ├── skills/ (18)
+    │   ├── session-manager/    # 🆕 会话管理
+    │   ├── lifecycle/          # 🆕 生命周期
+    │   ├── document-sync/      # 🆕 文档同步
+    │   ├── code-simplifier/
+    │   ├── error-learning/
+    │   ├── git-workflow/
+    │   ├── debug/
+    │   ├── performance/
+    │   ├── memory/
+    │   ├── codex/
+    │   ├── gemini/
+    │   ├── thinking/
+    │   ├── verification/
+    │   ├── meeting/
+    │   ├── sou/
+    │   ├── knowledge-bridge/
+    │   ├── multi-ai-sync/
+    │   └── user-guide/
     │
-    ├── commands/                # 自定义指令 (6个)
-    │   └── vibe-plan, vibe-design, vibe-code, vibe-review, vibe-init
+    ├── commands/ (10)
+    │   ├── vibe-plan.md
+    │   ├── vibe-design.md
+    │   ├── vibe-code.md
+    │   ├── vibe-review.md
+    │   ├── vibe-init.md
+    │   ├── vibe-state.md       # 🆕
+    │   ├── vibe-pause.md       # 🆕
+    │   ├── vibe-resume.md      # 🆕
+    │   ├── vibe-abort.md       # 🆕
+    │   └── _index.md
     │
-    ├── workflows/               # 工作流 (细化版)
-    │   ├── pace.md             # P.A.C.E. 复杂度路由
-    │   └── riper.md            # RIPER-10 执行循环
+    ├── workflows/
+    │   ├── pace.md
+    │   └── riper.md
     │
-    ├── hooks/                   # 钩子
-    ├── references/              # 参考文档
-    └── templates/               # 模板
+    ├── hooks/
+    ├── references/
+    └── templates/
+        ├── ai-state.md
+        └── kanban.md
 ```
 
 ---
 
-## 🎯 核心指令
+## 📊 版本对比
 
-| 指令 | 简写 | 描述 |
+| 特性 | v7.4 | v7.5 |
 |:---|:---|:---|
-| `/vibe-plan` | `/vp` | 深度规划模式 |
-| `/vibe-design` | `/vd` | 架构设计模式 |
-| `/vibe-code` | `/vc` | 编码执行模式 |
-| `/vibe-review` | `/vr` | 代码审查模式 |
-| `/vibe-init` | - | 初始化项目 |
-| `/vibe-state` | - | 查看状态 |
-
-### 参数
-
-```bash
-/vibe-code --engine=codex "实现登录功能"   # 指定引擎
-/vibe-code --tdd "实现用户注册"            # TDD模式
-/vibe-code --path=C "重构认证系统"         # 强制Path C
-/vibe-review --strict                      # 攻击性审查
-```
-
----
-
-## 📋 强制 TODO 流程
-
-**v7.5 核心改进**：无论简单还是复杂，都必须：
-
-```
-1. 生成 TODO 列表
-2. 执行开发
-3. 根据 TODO 逐项核对
-4. 调用寸止与用户确认
-```
-
-这确保了所有任务都有明确的验收标准和完成检查。
-
----
-
-## 🔧 AI 调度配置
-
-编辑 `orchestrator.yaml`：
-
-```yaml
-# 默认引擎
-default_engine:
-  name: claude-code
-
-# 角色映射（可选）
-role_engine_mapping:
-  ld: codex    # 开发者使用 codex
-
-# 并行配置
-parallel:
-  enabled: true
-  max_concurrent: 3
-```
-
-**优先级**: 用户指令 > 角色映射 > 默认引擎
-
----
-
-## 🛑 寸止协议
-
-关键决策点必须停止等待用户确认：
-
-| Token | 触发条件 |
-|:---|:---|
-| `[PLAN_READY]` | TODO生成完成 |
-| `[DESIGN_FREEZE]` | 接口定义完成 |
-| `[PRE_COMMIT]` | 大规模修改前 |
-| `[PHASE_DONE]` | Phase完成 |
-| `[TASK_DONE]` | TODO全部完成 |
-
----
-
-## 📖 核心文档
-
-| 文档 | 说明 |
-|:---|:---|
-| [用户操作指南](.claude/skills/user-guide/SKILL.md) | 给用户看的操作手册 |
-| [多AI同步协议](.claude/skills/multi-ai-sync/SKILL.md) | 多AI协调机制 |
-| [代码简化器](.claude/skills/code-simplifier/SKILL.md) | Linus品味守护 |
-| [记忆系统](.claude/skills/memory/SKILL.md) | 双轨记忆分离 |
-| [错误学习](.claude/skills/error-learning/SKILL.md) | 从Bug中学习 |
-| [PACE工作流](.claude/workflows/pace.md) | 复杂度路由详解 |
-| [RIPER循环](.claude/workflows/riper.md) | 执行循环详解 |
-| [Plugin指南](plugins-guide.md) | 官方Plugin配置 |
-
----
-
-## 📊 v7.4 → v7.5 变更
-
-| 类别 | 变更 |
-|:---|:---|
-| **新增技能** | code-simplifier, error-learning, git-workflow, debug, performance |
-| **增强技能** | memory (双轨分离) |
-| **工作流** | pace.md 和 riper.md 全面细化 |
-| **核心流程** | 强制 TODO 生成和核对 |
-| **记忆策略** | 项目状态与通用知识分离 |
-| **文件总数** | 35 → 40 |
+| 会话持久化 | ❌ | ✅ |
+| 工作流锁定 | ❌ | ✅ |
+| 生命周期钩子 | ❌ | ✅ |
+| 中断恢复 | ❌ | ✅ |
+| 文档同步 | ❌ | ✅ |
+| 三态看板 | ❌ | ✅ |
+| 强制寸止 | 部分 | ✅ |
+| 文件总数 | 41 | 47 |
 
 ---
 
 ## ⚡ 核心原则
 
-1. **用户指令优先** — 用户说的比配置重要
-2. **必须生成TODO** — 无论简单还是复杂
-3. **必须核对TODO** — 执行完必须检查
-4. **用户纠正必记录** — 禁止动作写入Memory
-5. **文件系统是唯一真理** — 不依赖会话记忆
-6. **从错误中学习** — 教训记录到Memory
+1. **工作流模式** — 不是对话模式
+2. **会话持久化** — 断开不丢失
+3. **强制TODO** — 生成+核对
+4. **强制寸止** — 流程结束确认
+5. **持续学习** — 文档同步
 
 ---
 
-**版本**: v7.5 | **架构**: VibeOS Modular | **哲学**: Linus + Boris
+**版本**: v7.5 | **架构**: VibeOS Modular | **模式**: 工作流
