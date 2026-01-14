@@ -1,21 +1,58 @@
-# VibeCoding Kernel v7.5
+# VibeCoding Kernel v7.6
 
-> **"Talk is cheap. Show me the code."** — Linus Torvalds
-> **"Claude不是聊天机器人，而是可并行调度、可验证的工程资源。"** — Boris Cherny
-
-AI 编程协作系统 — **工作流模式，不是对话模式**
+> **核心改进**: 精简文档 + 按需加载 + 真寸止
 
 ---
 
-## 🎯 v7.5 核心解决的问题
+## 🎯 v7.6 核心变化
 
-| 问题 | 解决方案 |
-|:---|:---|
-| 会话断了就退化为对话 | **会话持久化 + 强制恢复** |
-| 指令没有生命周期 | **生命周期钩子 + 中断恢复** |
-| 不持续学习项目文档 | **文档同步 + 周期检查** |
-| kanban只有已完成 | **三态看板（计划/进行/完成）** |
-| 流程结束没确认 | **强制寸止 + TODO核对** |
+| 变化      | v7.5           | v7.6                         |
+| :-------- | :------------- | :--------------------------- |
+| CLAUDE.md | 417 行         | ~90 行                       |
+| 总文件数  | 48 个          | ~25 个                       |
+| 总行数    | ~6000 行       | ~2000 行                     |
+| Workflow  | 单文件 1500 行 | 按阶段拆分                   |
+| Skills    | 17 个独立      | 10 个合并                    |
+| 寸止      | 文字输出       | cunzhi/mcp-feedback-enhanced |
+
+---
+
+## 📁 目录结构
+
+```
+.claude/
+├── CLAUDE.md           # 核心铁律（<100行）
+├── orchestrator.yaml   # 调度配置
+│
+├── skills/             # 按需加载
+│   ├── research.md     # R1 阶段
+│   ├── innovate.md     # I 阶段
+│   ├── plan.md         # P 阶段
+│   ├── execute.md      # E 阶段
+│   ├── review.md       # R2 阶段
+│   ├── cunzhi.md       # 寸止协议
+│   ├── memory.md       # 记忆系统
+│   ├── multi-ai.md     # 多AI协调
+│   └── code-quality.md # 代码质量
+│
+├── workflows/          # 路径流程
+│   ├── path-a.md       # 快速修复
+│   ├── path-b.md       # 计划开发
+│   └── path-c.md       # 系统开发
+│
+├── commands/           # 指令定义
+│   ├── _index.md
+│   ├── vibe-init.md
+│   ├── vibe-code.md
+│   └── control.md
+│
+├── hooks/              # 钩子函数
+│   └── hooks.md
+│
+└── templates/          # 模板
+    ├── kanban.md
+    └── active_context.md
+```
 
 ---
 
@@ -27,7 +64,7 @@ AI 编程协作系统 — **工作流模式，不是对话模式**
 cp -r .claude your-project/
 ```
 
-### 2. 初始化项目
+### 2. 初始化
 
 ```bash
 /vibe-init
@@ -36,251 +73,63 @@ cp -r .claude your-project/
 ### 3. 开始工作
 
 ```bash
-/vibe-plan "我想做一个博客系统"
+/vibe-code 实现用户登录功能
 ```
 
 ---
 
-## ⚠️ 核心机制：工作流锁定
+## 🔴 核心铁律
 
-**进入工作流后，AI会锁定为工作流模式，不会退化为一问一答。**
-
-```
-/vibe-code → 创建 workflow.lock → 保持工作流模式
-                                       ↓
-                              直到完成或暂停才解锁
-```
-
-### 解锁条件
-
-- ✅ 所有TODO完成 + 寸止确认
-- ⏸️ 用户执行 `/vibe-pause`
-- ⛔ 用户执行 `/vibe-abort`
+1. **启动必检查** → session.lock
+2. **任务必 TODO** → 无论大小
+3. **执行必更新** → kanban 三态
+4. **完成必核对** → 逐项对照
+5. **结束必寸止** → 调用 cunzhi
+6. **纠正必记录** → forbidden_action
+7. **文件是真理** → .ai_state/
 
 ---
 
-## 📁 状态文件
+## 📋 指令
 
-```
-project_document/.ai_state/
-├── session.yaml          # 会话状态（核心）
-├── workflow.lock         # 工作流锁
-├── checkpoint.md         # 断点恢复信息
-├── active_context.md     # TODO列表
-├── kanban.md             # 三态看板
-├── handoff.md            # AI交接
-├── conventions.md        # 项目约定
-├── decisions.md          # 技术决策
-└── doc_check.yaml        # 文档检查记录
-```
+| 指令           | 作用       |
+| :------------- | :--------- |
+| `/vibe-init`   | 初始化项目 |
+| `/vibe-plan`   | 生成 TODO  |
+| `/vibe-code`   | 执行编码   |
+| `/vibe-status` | 查看状态   |
+| `/vibe-pause`  | 暂停工作流 |
+| `/vibe-resume` | 恢复工作流 |
 
 ---
 
-## 🎮 指令系统
+## 🔧 按需加载
 
-### 工作流指令
+核心理念：**AI 不需要一次读完所有文档**
 
-| 指令 | 描述 |
-|:---|:---|
-| `/vibe-plan` | 深度规划 |
-| `/vibe-design` | 架构设计 |
-| `/vibe-code` | 编码执行 |
-| `/vibe-review` | 代码审查 |
+```
+CLAUDE.md (铁律) → 加载
+         ↓
+选择路径 → 加载 workflows/path-x.md
+         ↓
+执行阶段 → 加载 skills/xxx.md
+```
 
-### 控制指令
+这样每次只加载需要的部分，避免注意力衰减。
 
-| 指令 | 描述 |
-|:---|:---|
-| `/vibe-state` | 查看状态 |
-| `/vibe-pause` | **暂停工作流** |
-| `/vibe-resume` | **恢复工作流** |
-| `/vibe-abort` | **终止工作流** |
-| `/vibe-init` | 初始化项目 |
+---
 
-### 参数
+## 📞 寸止机制
 
-```bash
---engine=codex    # 指定Codex执行
---engine=gemini   # 指定Gemini执行
---tdd             # TDD模式
---path=C          # 强制Path C
---strict          # 严格审查
+```
+优先: cunzhi MCP
+降级: mcp-feedback-enhanced
+
+每个寸止点都必须调用工具，
+真正暂停等待用户确认，
+不是只输出文字！
 ```
 
 ---
 
-## 🔄 生命周期
-
-```
-指令开始 → onInit() → 创建锁
-    ↓
-执行阶段 → onPhaseEnter() → 更新状态
-    ↓
-任务执行 → onTaskStart() → kanban(进行中)
-    ↓
-任务完成 → onTaskComplete() → kanban(已完成)
-    ↓
-流程结束 → onBeforeComplete() → 寸止确认
-    ↓
-确认通过 → onComplete() → 释放锁
-```
-
-### 中断恢复
-
-```
-/vibe-pause → onPause() → 保存断点 → 释放锁
-                              ↓
-/vibe-resume → onResume() → 加载断点 → 重新锁定 → 继续执行
-```
-
----
-
-## 📋 三态看板
-
-```
-📥 计划中 (TODO)     →     🔄 进行中 (DOING)     →     ✅ 已完成 (DONE)
-      │                          │                          │
-      │  onTaskStart()           │  onTaskComplete()        │
-      └──────────────────────────┘──────────────────────────┘
-```
-
-每次任务状态变化都会更新 kanban.md。
-
----
-
-## 🛑 寸止确认
-
-**每个工作流结束必须调用寸止与用户确认**：
-
-```markdown
-## [TASK_DONE] 流程完成
-
-### TODO 核对
-- [x] T-001: 数据模型 ✅
-- [x] T-002: API接口 ✅
-- [x] T-003: 前端页面 ✅
-
-### 验收标准
-- [x] 功能可用 ✅
-- [x] 测试通过 ✅
-
----
-请验收：`通过` | `问题` | `优化`
-```
-
----
-
-## 📚 持续学习
-
-### 文档监控
-
-每个阶段自动检查：
-- `conventions.md` — 项目约定
-- `decisions.md` — 技术决策
-- `package.json` — 依赖变化
-
-### 知识记录
-
-发现新规则 → 记录到 Memory MCP
-
-用户说"不要做XXX" → 记录到 `forbidden_action`
-
----
-
-## 🧠 记忆分离
-
-| 项目状态 (.ai_state/) | 通用知识 (Memory MCP) |
-|:---|:---|
-| 当前TODO | 用户偏好 |
-| 项目进度 | 禁止动作 |
-| 技术决策 | 高频方法 |
-| AI交接 | 代码模式 |
-| | 错误教训 |
-
----
-
-## 📁 目录结构
-
-```
-config-agent_v7.5/
-├── README.md
-├── plugins-guide.md
-│
-└── .claude/
-    ├── CLAUDE.md
-    ├── orchestrator.yaml
-    │
-    ├── agents/ (8)
-    │   └── pm, pdm, ar, ld, qe, sa, ui, orchestrator
-    │
-    ├── skills/ (18)
-    │   ├── session-manager/    # 🆕 会话管理
-    │   ├── lifecycle/          # 🆕 生命周期
-    │   ├── document-sync/      # 🆕 文档同步
-    │   ├── code-simplifier/
-    │   ├── error-learning/
-    │   ├── git-workflow/
-    │   ├── debug/
-    │   ├── performance/
-    │   ├── memory/
-    │   ├── codex/
-    │   ├── gemini/
-    │   ├── thinking/
-    │   ├── verification/
-    │   ├── meeting/
-    │   ├── sou/
-    │   ├── knowledge-bridge/
-    │   ├── multi-ai-sync/
-    │   └── user-guide/
-    │
-    ├── commands/ (10)
-    │   ├── vibe-plan.md
-    │   ├── vibe-design.md
-    │   ├── vibe-code.md
-    │   ├── vibe-review.md
-    │   ├── vibe-init.md
-    │   ├── vibe-state.md       # 🆕
-    │   ├── vibe-pause.md       # 🆕
-    │   ├── vibe-resume.md      # 🆕
-    │   ├── vibe-abort.md       # 🆕
-    │   └── _index.md
-    │
-    ├── workflows/
-    │   ├── pace.md
-    │   └── riper.md
-    │
-    ├── hooks/
-    ├── references/
-    └── templates/
-        ├── ai-state.md
-        └── kanban.md
-```
-
----
-
-## 📊 版本对比
-
-| 特性 | v7.4 | v7.5 |
-|:---|:---|:---|
-| 会话持久化 | ❌ | ✅ |
-| 工作流锁定 | ❌ | ✅ |
-| 生命周期钩子 | ❌ | ✅ |
-| 中断恢复 | ❌ | ✅ |
-| 文档同步 | ❌ | ✅ |
-| 三态看板 | ❌ | ✅ |
-| 强制寸止 | 部分 | ✅ |
-| 文件总数 | 41 | 47 |
-
----
-
-## ⚡ 核心原则
-
-1. **工作流模式** — 不是对话模式
-2. **会话持久化** — 断开不丢失
-3. **强制TODO** — 生成+核对
-4. **强制寸止** — 流程结束确认
-5. **持续学习** — 文档同步
-
----
-
-**版本**: v7.5 | **架构**: VibeOS Modular | **模式**: 工作流
+**版本**: v7.6 | **架构**: 按需加载 + 真寸止
