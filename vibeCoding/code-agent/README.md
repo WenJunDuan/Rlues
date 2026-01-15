@@ -1,135 +1,175 @@
-# VibeCoding Kernel v7.6
+# VibeCoding Kernel v7.6.2
 
-> **核心改进**: 精简文档 + 按需加载 + 真寸止
+> AI 驱动的智能编程框架，融合 Linus Torvalds 的简洁哲学与 Boris Cherny 的 Claude Code 实践。
 
----
+## ✨ 特性
 
-## 🎯 v7.6 核心变化
+- **按需加载**: 只加载需要的技能，避免上下文过载
+- **真寸止**: 使用 MCP 工具实现真正的暂停等待
+- **双轨记忆**: Memory MCP + 本地文件双重保障
+- **多AI协调**: 支持 Claude/Codex/Gemini 协作
+- **能力增强**: 集成 MCP 工具和官方 Skills
+- **标准结构**: Skills 采用官方 `skill-name/SKILL.md` 结构
 
-| 变化      | v7.5           | v7.6                         |
-| :-------- | :------------- | :--------------------------- |
-| CLAUDE.md | 417 行         | ~90 行                       |
-| 总文件数  | 48 个          | ~25 个                       |
-| 总行数    | ~6000 行       | ~2000 行                     |
-| Workflow  | 单文件 1500 行 | 按阶段拆分                   |
-| Skills    | 17 个独立      | 10 个合并                    |
-| 寸止      | 文字输出       | cunzhi/mcp-feedback-enhanced |
+## 🚀 快速开始
 
----
+### 1. 安装
+```bash
+# 复制 .claude/ 目录到项目根目录
+cp -r config-agent_v7.6.2/.claude /your/project/
+```
+
+### 2. 初始化
+```bash
+/vibe-init my-project
+```
+
+### 3. 开始开发
+```bash
+/vibe-code "添加用户登录功能"
+```
 
 ## 📁 目录结构
 
 ```
 .claude/
-├── CLAUDE.md           # 核心铁律（<100行）
-├── orchestrator.yaml   # 调度配置
+├── CLAUDE.md              # 核心铁律 (必读)
+├── orchestrator.yaml      # 调度配置
 │
-├── skills/             # 按需加载
-│   ├── research.md     # R1 阶段
-│   ├── innovate.md     # I 阶段
-│   ├── plan.md         # P 阶段
-│   ├── execute.md      # E 阶段
-│   ├── review.md       # R2 阶段
-│   ├── cunzhi.md       # 寸止协议
-│   ├── memory.md       # 记忆系统
-│   ├── multi-ai.md     # 多AI协调
-│   └── code-quality.md # 代码质量
+├── skills/                # 技能模块 (标准结构)
+│   ├── riper/             # RIPER 核心流程 (复杂技能)
+│   │   ├── SKILL.md       # 主说明
+│   │   ├── research.md    # R1-感知
+│   │   ├── innovate.md    # I-设计
+│   │   ├── plan.md        # P-规划
+│   │   ├── execute.md     # E-执行
+│   │   └── review.md      # R2-验证
+│   ├── cunzhi/
+│   │   └── SKILL.md       # 寸止协议
+│   ├── memory/
+│   │   └── SKILL.md       # 双轨记忆
+│   ├── code-quality/
+│   │   └── SKILL.md       # 代码质量
+│   ├── multi-ai/
+│   │   └── SKILL.md       # 多AI协调
+│   ├── codex/
+│   │   └── SKILL.md       # Codex集成 (占位)
+│   ├── gemini/
+│   │   └── SKILL.md       # Gemini集成 (占位)
+│   ├── sou/
+│   │   └── SKILL.md       # 语义搜索
+│   └── thinking/
+│       └── SKILL.md       # 深度推理
 │
-├── workflows/          # 路径流程
-│   ├── path-a.md       # 快速修复
-│   ├── path-b.md       # 计划开发
-│   └── path-c.md       # 系统开发
+├── workflows/             # 工作流路径
+│   ├── path-a.md          # 快速修复
+│   ├── path-b.md          # 计划开发
+│   └── path-c.md          # 系统开发
 │
-├── commands/           # 指令定义
+├── commands/              # 指令定义
 │   ├── _index.md
 │   ├── vibe-init.md
 │   ├── vibe-code.md
+│   ├── vibe-plan.md
+│   ├── vibe-design.md
 │   └── control.md
 │
-├── hooks/              # 钩子函数
-│   └── hooks.md
+├── agents/                # 角色定义
+│   ├── _index.md
+│   ├── orchestrator.md
+│   ├── architect.md
+│   ├── developer.md
+│   ├── reviewer.md
+│   └── product.md
 │
-└── templates/          # 模板
+├── references/            # 参考资料
+│   ├── _index.md
+│   ├── mcp-tools.md
+│   ├── frontend-standards.md
+│   ├── backend-standards.md
+│   └── official-skills.md
+│
+├── hooks/
+│   └── hooks.md           # 生命周期钩子
+│
+└── templates/
     ├── kanban.md
     └── active_context.md
 ```
 
----
+## 🎯 指令一览
 
-## 🚀 快速开始
-
-### 1. 复制到项目
-
-```bash
-cp -r .claude your-project/
-```
-
-### 2. 初始化
-
-```bash
-/vibe-init
-```
-
-### 3. 开始工作
-
-```bash
-/vibe-code 实现用户登录功能
-```
-
----
-
-## 🔴 核心铁律
-
-1. **启动必检查** → session.lock
-2. **任务必 TODO** → 无论大小
-3. **执行必更新** → kanban 三态
-4. **完成必核对** → 逐项对照
-5. **结束必寸止** → 调用 cunzhi
-6. **纠正必记录** → forbidden_action
-7. **文件是真理** → .ai_state/
-
----
-
-## 📋 指令
-
-| 指令           | 作用       |
-| :------------- | :--------- |
-| `/vibe-init`   | 初始化项目 |
-| `/vibe-plan`   | 生成 TODO  |
-| `/vibe-code`   | 执行编码   |
-| `/vibe-status` | 查看状态   |
-| `/vibe-pause`  | 暂停工作流 |
+| 指令 | 说明 |
+|:---|:---|
+| `/vibe-init` | 初始化项目 |
+| `/vibe-code <desc>` | 执行编码 (自动选择路径) |
+| `/vibe-plan <desc>` | 仅生成计划 |
+| `/vibe-design <desc>` | 架构设计 |
+| `/vibe-status` | 查看状态 |
+| `/vibe-pause` | 暂停工作流 |
 | `/vibe-resume` | 恢复工作流 |
+| `/vibe-abort` | 中止工作流 |
 
----
+## 🛤️ 工作流路径
 
-## 🔧 按需加载
+| 路径 | 条件 | 流程 |
+|:---|:---|:---|
+| Path A | 单文件 & <30行 | R→P→E→R |
+| Path B | 2-10 文件 | R→I→P→E→R |
+| Path C | >10 文件或跨模块 | R→I→P→[E→R]×n |
 
-核心理念：**AI 不需要一次读完所有文档**
+## 🔧 MCP 工具集成
 
-```
-CLAUDE.md (铁律) → 加载
-         ↓
-选择路径 → 加载 workflows/path-x.md
-         ↓
-执行阶段 → 加载 skills/xxx.md
-```
+| 工具 | 用途 | 状态 |
+|:---|:---|:---|
+| memory | 知识持久化 | 必需 |
+| sequential-thinking | 深度推理 | 必需 |
+| sou | 语义搜索 | 推荐 |
+| context7 | 需求分析 | 推荐 |
+| playwright | E2E 测试 | 推荐 |
 
-这样每次只加载需要的部分，避免注意力衰减。
+## 📖 核心理念
 
----
+### 7 条铁律
+1. **先读后写** - 修改前必须读取目标文件
+2. **强制TODO** - 任何开发必须先生成 TODO.md
+3. **寸止等待** - 关键节点调用寸止工具暂停
+4. **状态同步** - 变更后更新 .ai_state/
+5. **验证闭环** - 执行后必须验证结果
+6. **错误学习** - 失败记录到 errors.md
+7. **能力增强** - 优先使用 MCP 工具和官方 Skills
 
-## 📞 寸止机制
+### Linus 品味清单
+- 这是最简单的实现方式吗？
+- 有没有更直接的方法？
+- 三个月后我能理解这段代码吗？
+- 这个抽象真的需要吗？
 
-```
-优先: cunzhi MCP
-降级: mcp-feedback-enhanced
+## 🔗 相关资源
 
-每个寸止点都必须调用工具，
-真正暂停等待用户确认，
-不是只输出文字！
-```
+- [Claude Code 官方文档](https://docs.anthropic.com/claude-code)
+- [MCP 协议](https://modelcontextprotocol.io)
+- [官方技能市场](https://claude.ai/skills)
 
----
+## 📝 版本历史
 
-**版本**: v7.6 | **架构**: 按需加载 + 真寸止
+### v7.6.2
+- Skills 采用标准文件夹结构 `skill-name/SKILL.md`
+- RIPER 合并为一个复杂 skill，包含子技能文件
+- 更新所有 workflows 中的路径引用
+- 更新 orchestrator.yaml 中的 skills 配置
+
+### v7.6.1
+- 恢复丢失的 references/、agents/ 目录
+- skills/ 采用扁平结构
+- 增加外部技能占位符
+- 恢复 vibe-plan、vibe-design 指令
+
+### v7.6.0
+- 按需加载架构
+- 真寸止实现
+- 模块合并精简
+
+## 📄 License
+
+MIT
