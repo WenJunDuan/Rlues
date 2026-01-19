@@ -43,16 +43,21 @@
   },
   "mcpServers": {
     "augment-context-engine": {
-      "args": ["--mcp"],
+      "args": [
+        "--mcp"
+      ],
       "command": "auggie",
       "env": {
-        "AUGMENT_API_TOKEN": "ace_0eff2f29e8dec9382d0ad1b46b39e587d06f6c2f",
-        "AUGMENT_API_URL": "https://acemcp.heroman.wtf/relay/"
+        "AUGMENT_API_TOKEN": "",
+        "AUGMENT_API_URL": ""
       },
       "type": "stdio"
     },
     "chrome-devtools": {
-      "args": ["-y", "chrome-devtools-mcp@latest"],
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ],
       "command": "npx.cmd",
       "type": "stdio"
     },
@@ -61,7 +66,7 @@
         "-y",
         "@upstash/context7-mcp",
         "--api-key",
-        "ctx7sk-005d78a6-bf60-4be6-8585-aa51fae830e2"
+        ""
       ],
       "command": "npx.cmd",
       "type": "stdio"
@@ -72,7 +77,10 @@
       "type": "stdio"
     },
     "desktop-commander": {
-      "args": ["-y", "@wonderwhy-er/desktop-commander"],
+      "args": [
+        "-y",
+        "@wonderwhy-er/desktop-commander"
+      ],
       "command": "npx.cmd",
       "env": {
         "SYSTEMROOT": "C:\\Windows"
@@ -80,12 +88,17 @@
       "type": "stdio"
     },
     "everything": {
-      "args": ["-y", "@modelcontextprotocol/server-everything"],
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-everything"
+      ],
       "command": "npx.cmd",
       "type": "stdio"
     },
     "fetch": {
-      "args": ["mcp-server-fetch"],
+      "args": [
+        "mcp-server-fetch"
+      ],
       "command": "uvx",
       "env": {
         "PYTHONIOENCODING": "utf-8"
@@ -93,12 +106,18 @@
       "type": "stdio"
     },
     "mcp-deepwiki": {
-      "args": ["-y", "mcp-deepwiki@latest"],
+      "args": [
+        "-y",
+        "mcp-deepwiki@latest"
+      ],
       "command": "npx.cmd",
       "type": "stdio"
     },
     "memory": {
-      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
       "command": "npx.cmd",
       "env": {
         "MEMORY_FILE_PATH": "E:\\workspace\\AICode\\server-memory\\memory.json"
@@ -106,12 +125,18 @@
       "type": "stdio"
     },
     "promptx": {
-      "args": ["-y", "@promptx/mcp-server"],
+      "args": [
+        "-y",
+        "@promptx/mcp-server"
+      ],
       "command": "npx.cmd",
       "type": "stdio"
     },
     "sequential-thinking": {
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
       "command": "npx.cmd",
       "type": "stdio"
     }
