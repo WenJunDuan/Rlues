@@ -1,0 +1,190 @@
+# VibeCoding Kernel v7.7.1 - Orchestrator Configuration
+
+version: "7.7.1"
+
+# 核心原则
+principle: "VibeCoding 增强官方能力，而非替代"
+
+# 五层架构
+architecture:
+  layers:
+    - user         # 用户层
+    - command      # Command层 (增强官方 + 纯自定义)
+    - agent        # Agent决策层
+    - skill        # Skill执行层
+    - storage      # 数据存储层
+
+# 指令配置
+commands:
+  # 增强官方指令 (先调用官方，再增强)
+  enhanced:
+    vibe-init:
+      base: /init
+      skills: [knowledge-base]
+      creates: [.ai_state/, .knowledge/]
+    vibe-plan:
+      base: /plan
+      skills: [knowledge-base, experience, riper/plan]
+      cunzhi: [PLAN_READY]
+    vibe-todos:
+      base: /todos
+      skills: []
+      enhances: [kanban, progress]
+    vibe-review:
+      base: /review
+      skills: [knowledge-base, experience, riper/review, code-quality]
+      optional_base: /security-review
+    vibe-status:
+      base: /status
+      enhances: [task-status, workflow-progress]
+    vibe-resume:
+      base: /resume
+      skills: []
+      restores: [.ai_state/]
+  
+  # 纯自定义指令 (无官方对应)
+  custom:
+    vibe-dev:
+      router: phase-router
+      agents: [requirement-mgr, design-mgr, impl-executor]
+      calls: [vibe-plan, vibe-todos, vibe-review]  # 内部调用增强指令
+    vibe-service:
+      skills: [service-analysis]
+    vibe-exp:
+      skills: [experience]
+    vibe-kb:
+      skills: [knowledge-base]
+    vibe-pause:
+      saves: [session.lock, kanban.md]
+    vibe-abort:
+      cleans: [session.lock]
+
+# Agent 配置 (功能导向)
+agents:
+  phase-router:
+    path: agents/phase-router.md
+    role: 意图识别与路由
+  requirement-mgr:
+    path: agents/requirement-mgr.md
+    role: 需求全生命周期管理
+  design-mgr:
+    path: agents/design-mgr.md
+    role: 方案全生命周期管理
+  impl-executor:
+    path: agents/impl-executor.md
+    role: 开发实施执行
+  experience-mgr:
+    path: agents/experience-mgr.md
+    role: 经验沉淀与管理
+
+# 路径配置
+paths:
+  A:
+    name: "快速修复"
+    condition: "单文件 & <30行"
+    steps: [1, 6, 7, 9]
+    cunzhi_points: [TASK_DONE]
+  B:
+    name: "计划开发"
+    condition: "2-10文件"
+    steps: [1, 2, 3, 4, 6, 7, 9]
+    cunzhi_points: [REQ_READY, DESIGN_READY, PLAN_READY, TASK_DONE]
+  C:
+    name: "系统开发"
+    condition: ">10文件或跨模块"
+    steps: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    cunzhi_points: [REQ_READY, DESIGN_READY, PLAN_READY, PHASE_DONE, RELEASE_READY, TASK_DONE]
+
+# Skills 配置
+skills:
+  # 核心技能
+  phase-router:
+    path: skills/phase-router/SKILL.md
+  knowledge-base:
+    path: skills/knowledge-base/SKILL.md
+  experience:
+    path: skills/experience/SKILL.md
+  service-analysis:
+    path: skills/service-analysis/SKILL.md
+  
+  # RIPER 技能
+  riper:
+    path: skills/riper/SKILL.md
+    sub_skills:
+      research: skills/riper/research.md
+      innovate: skills/riper/innovate.md
+      plan: skills/riper/plan.md
+      execute: skills/riper/execute.md
+      review: skills/riper/review.md
+  
+  # 系统技能
+  cunzhi:
+    path: skills/cunzhi/SKILL.md
+  memory:
+    path: skills/memory/SKILL.md
+  code-quality:
+    path: skills/code-quality/SKILL.md
+  multi-ai:
+    path: skills/multi-ai/SKILL.md
+  
+  # 外部技能
+  codex:
+    path: skills/codex/SKILL.md
+    placeholder: true
+  gemini:
+    path: skills/gemini/SKILL.md
+    placeholder: true
+  sou:
+    path: skills/sou/SKILL.md
+  thinking:
+    path: skills/thinking/SKILL.md
+
+# 知识库配置
+knowledge_base:
+  enabled: true
+  path: .knowledge/
+  index: index.md
+  auto_load:
+    - standards/code-style.md
+    - company/security.md
+
+# 经验库配置
+experience:
+  enabled: true
+  storage:
+    local: .ai_state/experience/
+    mcp: memory
+  auto_search: true
+  auto_deposit: true
+
+# 寸止配置
+cunzhi:
+  tokens:
+    - REQ_READY
+    - DESIGN_READY
+    - PLAN_READY
+    - PHASE_DONE
+    - RELEASE_READY
+    - TASK_DONE
+    - VERIFICATION_FAILED
+    - CLARIFY
+
+# MCP 工具
+mcp_tools:
+  required:
+    - memory
+    - sequential-thinking
+  recommended:
+    - sou
+    - context7
+    - playwright
+
+# 数据存储
+storage:
+  base: ".ai_state"
+  structure:
+    requirements: "requirements/"
+    designs: "designs/"
+    context: "context/"
+    experience: "experience/"
+    meta: "meta/"
