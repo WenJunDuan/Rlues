@@ -237,10 +237,41 @@ proxy-groups:
     type: select
     proxies:
       - 智能选择
+      - 🔗 链式中继
       - 手动选择
       - DIRECT
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Static.png
 
+  # ========== 链式代理配置 ==========
+  - name: 🔗 链式中继
+    type: relay
+    proxies:
+      - 🛫 前置节点
+      - 🏁 落地节点
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Relay.png
+
+  - name: 🛫 前置节点
+    type: select
+    proxies:
+      - 🇭🇰 香港 - Auto
+      - 🇸🇬 狮城 - Auto
+      - 🇭🇰 香港节点
+      - 🇸🇬 狮城节点
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Departure.png
+
+  - name: 🏁 落地节点
+    type: select
+    proxies:
+      - 🇺🇸 美国 - Auto
+      - 🇯🇵 日本 - Auto
+      - 🇺🇸 美国节点
+      - 🇯🇵 日本节点
+      - 🇰🇷 韩国节点
+      - 🇹🇼 台湾节点
+      - 🌏 其他节点
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Arrival.png
+
+  # ========== 原有策略组 ==========
   - name: 手动选择
     type: select
     proxies:
@@ -269,6 +300,7 @@ proxy-groups:
   - name: 🤖 人工智能
     type: select
     proxies:
+      - 🔗 链式中继
       - 🇺🇸 美国 - Auto
       - 🇯🇵 日本 - Auto
       - 🇸🇬 狮城 - Auto
@@ -280,6 +312,7 @@ proxy-groups:
     type: select
     proxies:
       - 🎯 节点选择
+      - 🔗 链式中继
       - 🇭🇰 香港 - Auto
       - 🇯🇵 日本 - Auto
       - 🇸🇬 狮城 - Auto
@@ -290,6 +323,7 @@ proxy-groups:
     type: select
     proxies:
       - 🎯 节点选择
+      - 🔗 链式中继
       - 🇭🇰 香港 - Auto
       - 🇯🇵 日本 - Auto
       - 🇺🇸 美国 - Auto
@@ -309,6 +343,7 @@ proxy-groups:
     type: select
     proxies:
       - 🎯 节点选择
+      - 🔗 链式中继
       - 🇭🇰 香港 - Auto
       - 🇯🇵 日本 - Auto
       - 🇺🇸 美国 - Auto
@@ -346,6 +381,7 @@ proxy-groups:
     type: select
     proxies:
       - 🎯 节点选择
+      - 🔗 链式中继
       - 🇭🇰 香港 - Auto
       - 🇯🇵 日本 - Auto
       - 🇺🇸 美国 - Auto
@@ -356,6 +392,7 @@ proxy-groups:
     type: select
     proxies:
       - 🎯 节点选择
+      - 🔗 链式中继
       - 🇭🇰 香港 - Auto
       - 🇺🇸 美国 - Auto
       - DIRECT
@@ -429,7 +466,7 @@ proxy-groups:
       - 🌏 其他 - 负载均衡
       - 🌏 其他 - 自动回退
 
-  # ========== Smart 自动选择策略组 ==========
+  # ========== Smart 自动选择策略组 (保持不变) ==========
   - name: 🇭🇰 香港 - 自动选择
     <<: *SmartAuto
     filter: "港|HK|(?i)Hong"
@@ -465,7 +502,7 @@ proxy-groups:
     filter: "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|Taiwan|Wan|台|湾|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|United States|America|美国|🇰🇷|KR|Korea|韩国|韓)).*$"
     policy-priority: "Premium:1.1"
 
-  # ========== Smart 负载均衡策略组 ==========
+  # ========== Smart 负载均衡策略组 (保持不变) ==========
   - name: 🇭🇰 香港 - 负载均衡
     <<: *SmartBalance
     filter: "港|HK|(?i)Hong"
@@ -501,7 +538,7 @@ proxy-groups:
     filter: "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|Taiwan|Wan|台|湾|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|United States|America|美国|🇰🇷|KR|Korea|韩国|韓)).*$"
     policy-priority: "Premium:1.1"
 
-  # ========== 传统自动回退策略组（保险机制）==========
+  # ========== 传统自动回退策略组 (保持不变) ==========
   - name: 🇭🇰 香港 - 自动回退
     <<: *FallBack
     filter: "港|HK|(?i)Hong"
@@ -530,7 +567,7 @@ proxy-groups:
     <<: *FallBack
     filter: "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|台|湾|Taiwan|Wan|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|United States|America|美国|🇰🇷|KR|Korea|韩国|韓)).*$"
 
-  # ========== 地区节点 - 手动选择 ==========
+  # ========== 地区节点 - 手动选择 (保持不变) ==========
   - name: 🇭🇰 香港节点
     type: select
     filter: "港|HK|(?i)Hong"
