@@ -1,195 +1,118 @@
-# VibeCoding Kernel v7.7.1
+# VibeCoding Kernel v7.8
 
-> AI 驱动的智能编程框架，**增强官方 Claude Code 能力**而非替代。
+> **"Talk is cheap. Show me the code."** — Linus Torvalds
 
-## ✨ v7.7.1 核心改进
+AI 编程协作系统，支持 Claude Code / Codex CLI / Gemini CLI 多引擎调度。
 
-### 官方指令增强原则
-```
-VibeCoding 指令 = 官方指令 + 增强能力
+## 🚀 Quick Install
 
-增强内容:
-├── 知识库检索 (knowledge-base)
-├── 经验库检索 (experience)
-├── MCP 工具调用
-├── Workflow 执行
-└── Skills 加载
+### Linux / macOS
+```bash
+git clone https://github.com/your-repo/vibecoding-kernel.git
+cd vibecoding-kernel
+./install.sh
 ```
 
-**这确保**:
-- ✅ 官方功能正常工作
-- ✅ 官方统计正确记录
-- ✅ 官方更新自动继承
-- ✅ VibeCoding 增强叠加
+### Windows (PowerShell)
+```powershell
+git clone https://github.com/your-repo/vibecoding-kernel.git
+cd vibecoding-kernel
+.\install.ps1
+```
 
-## 🎯 指令分类
+## ✨ v7.8 New Features
 
-### 🔷 增强官方指令
-这些指令**先调用官方指令**，再叠加增强：
-
-| VibeCoding | 官方基础 | 增强内容 |
-|:---|:---|:---|
-| `vibe-init` | `/init` | + .ai_state + 知识库 |
-| `vibe-plan` | `/plan` | + KB + EXP + 九步流程 |
-| `vibe-todos` | `/todos` | + Kanban + 进度追踪 |
-| `vibe-review` | `/review` | + 规范检索 + 质量检查 |
-| `vibe-status` | `/status` | + 任务状态 + 流程进度 |
-| `vibe-resume` | `/resume` | + .ai_state 恢复 |
-
-### 🔶 纯自定义指令
-全新指令，无官方对应：
-
-| 指令 | 用途 |
+| Feature | Description |
 |:---|:---|
-| `vibe-dev` | 智能研发入口（内部调用增强指令）|
-| `vibe-service` | 服务上下文加载 |
-| `vibe-exp` | 经验库操作 |
-| `vibe-kb` | 知识库操作 |
-| `vibe-pause/abort` | 流程控制 |
+| **Context7 Skill** | 智能库文档获取，替代 MCP 按需加载 |
+| **Continuous Learning** | 从会话自动提取可复用模式 |
+| **Verification Loop** | 检查点式验证，确保代码质量 |
+| **Strategic Compact** | 智能上下文压缩建议 |
+| **Dynamic Contexts** | 开发/审查/研究模式动态注入 |
 
-### ⚪ 直接使用官方
-无需增强，直接使用：
-```
-/config  /permissions  /model   /plugin  /mcp     /hooks
-/cost    /context      /stats   /usage   /help    /doctor
-/clear   /compact      /rewind  /sandbox /security-review
-```
-
-## 🚀 快速开始
+## 📋 Quick Start
 
 ```bash
-# 1. 安装
-cp -r config-agent_v7.7.1/.claude /your/project/
+# 1. Initialize project
+cd your-project
+vibe-init
 
-# 2. 初始化 (增强 /init)
-vibe-init my-project --with-kb
+# 2. Start development
+vibe-dev "implement user authentication"
 
-# 3. 开始开发
-vibe-dev "添加用户登录功能"
-
-# 或直接使用增强指令
-vibe-plan "重构认证模块"    # → /plan + 增强
-vibe-review                 # → /review + 增强
+# 3. Key commands
+vibe-plan      # Enhanced planning with KB + Experience
+vibe-review    # Code review with quality checks
+/learn         # Extract patterns from session
+/checkpoint    # Save verification state
+/verify        # Run verification loop
 ```
 
-## 📁 目录结构
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  用户层        用户输入 / vibe-dev "新功能"                      │
+├─────────────────────────────────────────────────────────────────┤
+│  Command层     增强官方 + 纯自定义                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Agent决策层   phase-router → 功能导向 Agents                    │
+├─────────────────────────────────────────────────────────────────┤
+│  Skill执行层   context7 / knowledge-base / experience / riper   │
+├─────────────────────────────────────────────────────────────────┤
+│  数据存储层    .ai_state/ + .knowledge/                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 📁 Directory Structure
 
 ```
 .claude/
-├── CLAUDE.md                      # 核心铁律
-├── orchestrator.yaml              # 调度配置
-│
-├── commands/                      # 指令定义
-│   ├── _index.md                  # 分类说明
-│   ├── vibe-init.md               # 🔷 增强 /init
-│   ├── vibe-plan.md               # 🔷 增强 /plan
-│   ├── vibe-todos.md              # 🔷 增强 /todos
-│   ├── vibe-review.md             # 🔷 增强 /review
-│   ├── vibe-dev.md                # 🔶 纯自定义
-│   └── control.md                 # 控制指令
-│
-├── skills/                        # 技能模块
-│   ├── phase-router/SKILL.md
-│   ├── knowledge-base/SKILL.md    # 外部知识库
-│   ├── experience/SKILL.md        # 经验沉淀
-│   ├── service-analysis/SKILL.md
-│   ├── riper/                     # RIPER 核心
+├── CLAUDE.md              # Core principles (7 rules)
+├── orchestrator.yaml      # Multi-AI configuration
+├── skills/                # 13 skills
+│   ├── context7/          # Smart library docs
+│   ├── continuous-learning/
+│   ├── verification-loop/
+│   ├── strategic-compact/
+│   ├── phase-router/
+│   ├── knowledge-base/
+│   ├── experience/
 │   └── ...
-│
-├── agents/                        # 功能导向 Agent
-│   ├── phase-router.md
-│   ├── requirement-mgr.md
-│   ├── design-mgr.md
-│   ├── impl-executor.md
-│   └── experience-mgr.md
-│
-├── references/
-│   ├── official-commands.md       # 🆕 官方指令映射
-│   └── ...
-│
-└── workflows/
-    ├── nine-steps.md
-    └── path-{a,b,c}.md
+├── agents/                # 5 functional agents
+├── commands/              # vibe-* commands
+├── workflows/             # PACE + Nine-steps
+├── contexts/              # dev / review / research
+└── templates/             # Project templates
 ```
 
-## 📊 调用示例
+## 🔧 Skills Overview
 
-### vibe-plan (增强 /plan)
-```bash
-vibe-plan "实现搜索功能"
+| Skill | Purpose |
+|:---|:---|
+| `context7` | 智能获取库文档，无需 "use context7" |
+| `continuous-learning` | 从会话提取可复用模式 |
+| `verification-loop` | 检查点验证和质量门控 |
+| `strategic-compact` | 智能上下文压缩建议 |
+| `phase-router` | 意图识别和工作流路由 |
+| `knowledge-base` | 外部知识库读取 |
+| `experience` | 经验检索和沉淀 |
+| `riper` | RIPER 五步工作流 |
+| `cunzhi` | 寸止协议（暂停确认） |
 
-# 执行流程:
-# 1. → /plan                    # 调用官方
-# 2. → knowledge-base skill     # 检索知识
-# 3. → experience skill         # 检索经验
-# 4. → riper/plan skill         # 增强计划
-# 5. → [PLAN_READY]             # 寸止等待
-```
+## 📚 Documentation
 
-### vibe-review (增强 /review)
-```bash
-vibe-review
+- [CLAUDE.md](.claude/CLAUDE.md) - Core architecture
+- [orchestrator.yaml](.claude/orchestrator.yaml) - Configuration
+- [Skills Index](.claude/skills/) - All skills
 
-# 执行流程:
-# 1. → /review                  # 调用官方
-# 2. → knowledge-base skill     # 审查规范
-# 3. → experience skill         # 常见问题
-# 4. → code-quality skill       # 质量检查
-# 5. → 经验沉淀                 # 记录发现
-```
+## 🤝 Credits
 
-## 🛤️ 九步工作流
-
-```
-需求创建 → 需求审查 → 方案设计 → 方案审查 
-    → 环境搭建 → 开发实施 → 代码提交 → 版本发布 → 完成归档
-```
-
-## 📚 知识库
-```
-.knowledge/
-├── index.md          # 索引
-├── project/          # 项目文档
-├── standards/        # 开发规范
-├── company/          # 公司要求
-└── tech/             # 技术栈
-```
-
-## 🔮 后续完善方向
-
-```yaml
-VibeCoding 专注于增强，持续完善:
-  - 完善 skills (知识库、经验、服务分析)
-  - 扩展 MCP 工具集成
-  - 补充知识库模板
-  - 优化 workflow 流程
-
-官方能力依赖:
-  - 官方指令更新 → 自动继承
-  - 官方新功能 → 评估增强可能
-  - 保持兼容性
-```
-
-## 📝 版本历史
-
-### v7.7.1 (当前)
-- **核心改进**: 增强官方指令，而非替代
-- 新增 official-commands.md 映射文档
-- 明确指令分类 (增强/自定义/官方)
-- vibe-plan → /plan + 增强
-- vibe-review → /review + 增强
-- vibe-todos → /todos + 增强
-
-### v7.7
-- 五层架构
-- 知识库技能
-- 经验沉淀技能
-- 服务分析技能
-- 九步工作流
-
-### v7.6.2
-- Skills 标准文件夹结构
-- RIPER 合并为复杂 skill
+Integrated best practices from:
+- [everything-claude-code](https://github.com/affaan-m/everything-claude-code) by @affaanmustafa
+- [Context7](https://github.com/upstash/context7) by Upstash
+- Linus Torvalds' engineering philosophy
+- Boris Cherny's Claude Code techniques
 
 ## 📄 License
 

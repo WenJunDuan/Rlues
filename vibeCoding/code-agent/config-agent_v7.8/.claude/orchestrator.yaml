@@ -1,0 +1,48 @@
+# VibeCoding Kernel v7.8 - Orchestrator Configuration
+
+version: "7.8.0"
+principle: "VibeCoding 增强官方能力，而非替代"
+
+# 五层架构
+architecture:
+  layers: [user, command, agent, skill, storage]
+
+# 指令配置
+commands:
+  enhanced:
+    vibe-init: { base: /init, skills: [knowledge-base] }
+    vibe-plan: { base: /plan, skills: [knowledge-base, experience, context7, riper] }
+    vibe-todos: { base: /todos }
+    vibe-review: { base: /review, skills: [code-quality, verification-loop] }
+  custom:
+    vibe-dev: { router: phase-router }
+    learn: { skills: [continuous-learning, experience] }
+    checkpoint: { skills: [verification-loop] }
+    verify: { skills: [verification-loop, code-quality] }
+
+# 技能配置
+skills:
+  core: [phase-router, knowledge-base, experience, riper, cunzhi]
+  enhanced: [context7, continuous-learning, verification-loop, strategic-compact]
+  support: [memory, code-quality, service-analysis, multi-ai]
+
+# Agent配置
+agents:
+  phase-router: { role: 意图识别与路由 }
+  requirement-mgr: { role: 需求生命周期管理, skills: [knowledge-base, experience] }
+  design-mgr: { role: 方案生命周期管理, skills: [knowledge-base, context7] }
+  impl-executor: { role: 开发实施执行, skills: [context7, code-quality] }
+  experience-mgr: { role: 经验沉淀管理, skills: [experience, continuous-learning] }
+
+# 数据存储
+storage:
+  ai_state: .ai_state/
+  knowledge: .knowledge/
+  checkpoints: .ai_state/checkpoints/
+  experience: .ai_state/experience/
+
+# 多AI引擎
+engines:
+  claude: { priority: 1, capabilities: [reasoning, planning, review] }
+  codex: { priority: 2, capabilities: [code_generation, completion] }
+  gemini: { priority: 3, capabilities: [long_context, multimodal] }
