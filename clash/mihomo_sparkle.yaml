@@ -1,0 +1,553 @@
+# ==========================================
+# Mihomo (Clash Meta) 终极优化配置
+# 整合内容：Tailscale 兼容 + 全量分流规则 + 移除 Smart 内核
+# Date: 2026-01-24
+# ==========================================
+
+# **=============================== 全局设置 ===============================**
+port: 7893
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7890
+tproxy-port: 7894
+allow-lan: true
+mode: rule
+bind-address: "*"
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+log-level: warning
+find-process-mode: strict
+global-client-fingerprint: chrome
+
+# **=============================== DNS 配置 ===============================**
+dns:
+  enable: true
+  ipv6: false
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  respect-rules: true
+  prefer-h3: true
+
+  fake-ip-filter:
+    - "*.lan"
+    - "localhost.ptlogin2.qq.com"
+    - "+.srv.nintendo.net"
+    - "+.stun.playstation.net"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
+    - "+.xboxlive.com"
+    - "msftconnecttest.com"
+    - "xbox.*.microsoft.com"
+    - "*.battlenet.com.cn"
+    - "*.battlenet.com"
+    - "*.blzstatic.cn"
+    - "*.battle.net"
+    - "*.ts.net"
+    - "100.65.0.0/10"
+    - "tailscale.com"
+    - "+.local"
+    - "+.home.arpa"
+
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+
+  nameserver-policy:
+    "*.ts.net,tailscale.com": system
+    "geosite:cn,private":
+      - https://dns.alidns.com/dns-query
+      - https://doh.pub/dns-query
+
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+
+# **=============================== TUN 配置 ===============================**
+tun:
+  enable: true
+  stack: mixed
+  device: Mihomo
+  auto-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+  strict-route: true
+  dns-hijack:
+    - any:53
+  mtu: 1500
+  gso: true
+  skip-proxy-interfaces:
+    - tailscale0
+    - utun*
+    - "Tailscale*"
+
+# **=============================== GEO 数据 ===============================**
+geodata-mode: true
+geo-auto-update: true
+geo-update-interval: 48
+geox-url:
+  geoip: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+  geosite: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+  mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
+
+# **=============================== 策略组模板 ===============================**
+UrlTest: &UrlTest
+  type: url-test
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  tolerance: 50
+  lazy: true
+  include-all: true
+
+# **=============================== 策略组配置 ===============================**
+proxy-groups:
+  - name: 🎯 节点选择
+    type: select
+    proxies: [🚀 自动选择, 手动选择, DIRECT]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Static.png
+
+  - name: 手动选择
+    type: select
+    proxies:
+      [
+        🇭🇰 香港节点,
+        🇯🇵 日本节点,
+        🇸🇬 狮城节点,
+        🇺🇸 美国节点,
+        🇹🇼 台湾节点,
+        🌏 其他节点,
+      ]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Cylink.png
+
+  - name: 🚀 自动选择
+    <<: *UrlTest
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Urltest.png
+
+  - name: 🤖 人工智能
+    type: select
+    proxies: [🇺🇸 美国 - 自动, 🇯🇵 日本 - 自动, 🇸🇬 狮城 - 自动, 🎯 节点选择]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/OpenAI.png
+
+  - name: ✈️ 电报消息
+    type: select
+    proxies: [🇸🇬 狮城 - 自动, 🇭🇰 香港 - 自动, 🎯 节点选择]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Telegram.png
+
+  - name: 🎬 国际媒体
+    type: select
+    proxies: [🎯 节点选择, 🇭🇰 香港 - 自动, 🇯🇵 日本 - 自动, DIRECT]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Streaming.png
+
+  - name: 📺 哔哩哔哩
+    type: select
+    proxies: [DIRECT, 🇭🇰 香港 - 自动, 🇹🇼 台湾 - 自动]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/bilibili.png
+
+  - name: 🍎 苹果服务
+    type: select
+    proxies: [DIRECT, 🎯 节点选择, 🇺🇸 美国 - 自动]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png
+
+  - name: Ⓜ️ 微软服务
+    type: select
+    proxies: [DIRECT, 🎯 节点选择, 🇭🇰 香港 - 自动]
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png
+
+  - name: 🌍 全球加速
+    type: select
+    proxies: [🎯 节点选择, 🚀 自动选择, DIRECT]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Global.png
+
+  - name: 🎮 游戏平台
+    type: select
+    proxies: [DIRECT, 🚀 自动选择, 🎯 节点选择]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/GAME.png
+
+  - name: 🎯 兜底分流
+    type: select
+    proxies: [🎯 节点选择, DIRECT]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Final.png
+
+  # 区域自动选择 (Url-Test)
+  - { name: 🇭🇰 香港 - 自动, <<: *UrlTest, filter: "港|HK|Hong" }
+  - { name: 🇯🇵 日本 - 自动, <<: *UrlTest, filter: "日|JP|Japan" }
+  - { name: 🇸🇬 狮城 - 自动, <<: *UrlTest, filter: "新|坡|SG|Singapore" }
+  - { name: 🇺🇸 美国 - 自动, <<: *UrlTest, filter: "美|US|States" }
+  - { name: 🇹🇼 台湾 - 自动, <<: *UrlTest, filter: "台|TW|Taiwan" }
+
+  # 区域手动选择
+  - { name: 🇭🇰 香港节点, type: select, filter: "港|HK|Hong", include-all: true }
+  - {
+      name: 🇯🇵 日本节点,
+      type: select,
+      filter: "日|JP|Japan",
+      include-all: true,
+    }
+  - {
+      name: 🇸🇬 狮城节点,
+      type: select,
+      filter: "新|坡|SG|Singapore",
+      include-all: true,
+    }
+  - {
+      name: 🇺🇸 美国节点,
+      type: select,
+      filter: "美|US|States",
+      include-all: true,
+    }
+  - {
+      name: 🇹🇼 台湾节点,
+      type: select,
+      filter: "台|TW|Taiwan",
+      include-all: true,
+    }
+  - {
+      name: 🌏 其他节点,
+      type: select,
+      filter: "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|Taiwan|台|湾|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|美国|韩|KR|Korea|韩国)).*$",
+      include-all: true,
+    }
+
+# **=============================== 规则集 ===============================**
+RuleSet_Classical:
+  &RuleSet_Classical {
+    type: http,
+    behavior: classical,
+    interval: 86400,
+    format: text,
+  }
+RuleSet_Domain:
+  &RuleSet_Domain {
+    type: http,
+    behavior: domain,
+    interval: 86400,
+    format: text,
+  }
+RuleSet_IpCidr:
+  &RuleSet_IpCidr {
+    type: http,
+    behavior: ipcidr,
+    interval: 86400,
+    format: text,
+  }
+RuleSet_Yaml:
+  &RuleSet_Yaml {
+    type: http,
+    behavior: classical,
+    interval: 86400,
+    format: yaml,
+  }
+
+rule-providers:
+  # 广告拦截
+  reject_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/reject.txt",
+      path: ./ruleset/reject_non_ip.txt,
+    }
+  reject_domainset:
+    {
+      <<: *RuleSet_Domain,
+      url: "https://ruleset.skk.moe/Clash/domainset/reject.txt",
+      path: ./ruleset/reject_domainset.txt,
+    }
+  reject_non_ip_drop:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/reject-drop.txt",
+      path: ./ruleset/reject_non_ip_drop.txt,
+    }
+  reject_non_ip_no_drop:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/reject-no-drop.txt",
+      path: ./ruleset/reject_non_ip_no_drop.txt,
+    }
+  reject_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/ip/reject.txt",
+      path: ./ruleset/reject_ip.txt,
+    }
+
+  # CDN与下载
+  cdn_domainset:
+    {
+      <<: *RuleSet_Domain,
+      url: "https://ruleset.skk.moe/Clash/domainset/cdn.txt",
+      path: ./ruleset/cdn_domainset.txt,
+    }
+  cdn_non_ip:
+    {
+      <<: *RuleSet_Domain,
+      url: "https://ruleset.skk.moe/Clash/non_ip/cdn.txt",
+      path: ./ruleset/cdn_non_ip.txt,
+    }
+  download_domainset:
+    {
+      <<: *RuleSet_Domain,
+      url: "https://ruleset.skk.moe/Clash/domainset/download.txt",
+      path: ./ruleset/download_domainset.txt,
+    }
+  download_non_ip:
+    {
+      <<: *RuleSet_Domain,
+      url: "https://ruleset.skk.moe/Clash/non_ip/download.txt",
+      path: ./ruleset/download_non_ip.txt,
+    }
+
+  # AI
+  OpenAi:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI.yaml",
+      path: ./ruleset/OpenAi.yaml,
+    }
+  Claude:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Claude/Claude.yaml",
+      path: ./ruleset/Claude.yaml,
+    }
+  Gemini:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Gemini/Gemini.yaml",
+      path: ./ruleset/Gemini.yaml,
+    }
+  Copilot:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Copilot/Copilot.yaml",
+      path: ./ruleset/Copilot.yaml,
+    }
+  Anthropic:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Anthropic/Anthropic.yaml",
+      path: ./ruleset/Anthropic.yaml,
+    }
+  ai_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/ai.txt",
+      path: ./ruleset/ai_non_ip.txt,
+    }
+
+  # 社交媒体
+  telegram_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/ip/telegram.txt",
+      path: ./ruleset/telegram_ip.txt,
+    }
+  telegram_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/telegram.txt",
+      path: ./ruleset/telegram_non_ip.txt,
+    }
+
+  # 流媒体
+  BiliBili:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/BiliBili/BiliBili.yaml",
+      path: ./ruleset/BiliBili.yaml,
+    }
+  Bahamut:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Bahamut/Bahamut.yaml",
+      path: ./ruleset/Bahamut.yaml,
+    }
+  stream_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/stream.txt",
+      path: ./ruleset/stream_non_ip.txt,
+    }
+  stream_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/ip/stream.txt",
+      path: ./ruleset/stream_ip.txt,
+    }
+
+  # 基础服务
+  Github:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GitHub/GitHub.yaml",
+      path: ./ruleset/Github.yaml,
+    }
+  microsoft_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/microsoft.txt",
+      path: ./ruleset/microsoft.txt,
+    }
+  microsoft_cdn_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/microsoft_cdn.txt",
+      path: ./ruleset/microsoft_cdn_non_ip.txt,
+    }
+  apple_services:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/apple_services.txt",
+      path: ./ruleset/apple_services.txt,
+    }
+  apple_cdn:
+    {
+      <<: *RuleSet_Domain,
+      url: "https://ruleset.skk.moe/Clash/domainset/apple_cdn.txt",
+      path: ./ruleset/apple_cdn.txt,
+    }
+  apple_cn_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/apple_cn.txt",
+      path: ./ruleset/apple_cn_non_ip.txt,
+    }
+
+  # 游戏、国内与全球
+  Game:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Game/Game.yaml",
+      path: ./ruleset/Game.yaml,
+    }
+  lan_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/lan.txt",
+      path: ./ruleset/lan_non_ip.txt,
+    }
+  lan_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/ip/lan.txt",
+      path: ./ruleset/lan_ip.txt,
+    }
+  domestic_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/ip/domestic.txt",
+      path: ./ruleset/domestic_ip.txt,
+    }
+  domestic_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/domestic.txt",
+      path: ./ruleset/domestic_non_ip.txt,
+    }
+  direct_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/direct.txt",
+      path: ./ruleset/direct_non_ip.txt,
+    }
+  china_ip:
+    {
+      <<: *RuleSet_IpCidr,
+      url: "https://ruleset.skk.moe/Clash/ip/china_ip.txt",
+      path: ./ruleset/china_ip.txt,
+    }
+  global_non_ip:
+    {
+      <<: *RuleSet_Classical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/global.txt",
+      path: ./ruleset/global_non_ip.txt,
+    }
+
+# **=============================== 分流规则 ===============================**
+rules:
+  - PROCESS-NAME,tailscale.exe,DIRECT
+  - PROCESS-NAME,tailscaled.exe,DIRECT
+  - PROCESS-NAME,tailscaled,DIRECT
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,ts.net,DIRECT
+  - DOMAIN-KEYWORD,tailscale,DIRECT
+
+  # --- 自定义直连 ---
+  - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,guoker.org,DIRECT
+  - DOMAIN-SUFFIX,gying.net,DIRECT
+  - DOMAIN-SUFFIX,yunwu.ai,DIRECT
+  - DOMAIN-SUFFIX,smardaten.com,DIRECT
+  - DOMAIN-SUFFIX,openrouter.ai,DIRECT
+  - DOMAIN-SUFFIX,right.codes,DIRECT
+  - DOMAIN-SUFFIX,juejin.cn,DIRECT
+
+  # --- 自定义代理 ---
+  - DOMAIN-SUFFIX,coze.com,🌍 全球加速
+  - DOMAIN-SUFFIX,ouonetwork.com,🌍 全球加速
+  - DOMAIN-SUFFIX,linux.do,🌍 全球加速
+  - DOMAIN-SUFFIX,marketplace.jetbrains.com,🌍 全球加速
+
+  # --- 广告拦截 ---
+  - RULE-SET,reject_non_ip,REJECT
+  - RULE-SET,reject_domainset,REJECT
+  - RULE-SET,reject_non_ip_drop,REJECT-DROP
+  - RULE-SET,reject_non_ip_no_drop,REJECT
+  - RULE-SET,reject_ip,REJECT
+
+  # --- AI 服务 (整合关键字) ---
+  - DOMAIN-KEYWORD,antigravity,🤖 人工智能
+  - DOMAIN-SUFFIX,deepseek.com,🤖 人工智能
+  - DOMAIN-SUFFIX,grok.com,🤖 人工智能
+  - DOMAIN-SUFFIX,cici.com,🤖 人工智能
+  - DOMAIN-SUFFIX,trae.ai,🤖 人工智能
+  - RULE-SET,OpenAi,🤖 人工智能
+  - RULE-SET,Copilot,🤖 人工智能
+  - RULE-SET,Anthropic,🤖 人工智能
+  - RULE-SET,Claude,🤖 人工智能
+  - RULE-SET,Gemini,🤖 人工智能
+  - RULE-SET,ai_non_ip,🤖 人工智能
+
+  # --- 核心服务分流 ---
+  - RULE-SET,cdn_domainset,🎯 节点选择
+  - RULE-SET,cdn_non_ip,🎯 节点选择
+  - RULE-SET,download_domainset,🎯 节点选择
+  - RULE-SET,telegram_non_ip,✈️ 电报消息
+  - RULE-SET,telegram_ip,✈️ 电报消息
+
+  # Apple & Microsoft
+  - RULE-SET,apple_cdn,DIRECT
+  - RULE-SET,apple_cn_non_ip,DIRECT
+  - RULE-SET,apple_services,🍎 苹果服务
+  - RULE-SET,microsoft_cdn_non_ip,DIRECT
+  - RULE-SET,microsoft_non_ip,Ⓜ️ 微软服务
+
+  - RULE-SET,Github,🌍 全球加速
+  - RULE-SET,Game,🎮 游戏平台
+
+  # 流媒体
+  - RULE-SET,BiliBili,📺 哔哩哔哩
+  - RULE-SET,Bahamut,📺 哔哩哔哩
+  - RULE-SET,stream_non_ip,🎬 国际媒体
+  - RULE-SET,stream_ip,🎬 国际媒体
+
+  # --- 兜底与国内 ---
+  - RULE-SET,global_non_ip,🌍 全球加速
+  - RULE-SET,domestic_non_ip,DIRECT
+  - RULE-SET,direct_non_ip,DIRECT
+  - RULE-SET,lan_non_ip,DIRECT
+  - RULE-SET,lan_ip,DIRECT
+  - RULE-SET,domestic_ip,DIRECT
+  - RULE-SET,china_ip,DIRECT
+  - GEOIP,private,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,🎯 兜底分流
