@@ -1,0 +1,51 @@
+# VibeCoding Kernel v7.8 for Codex CLI - Orchestrator Configuration
+
+version: "7.8.0-codex"
+platform: "codex-cli"
+principle: "VibeCoding 增强 Codex 能力"
+
+# 五层架构
+architecture:
+  layers: [user, command, agent, skill, storage]
+
+# 指令配置 (纯自定义)
+commands:
+  vibe-dev: { router: phase-router }
+  vibe-init: { skills: [knowledge-base] }
+  vibe-plan: { skills: [knowledge-base, experience, context7, riper] }
+  vibe-review: { skills: [code-quality, verification-loop] }
+  learn: { skills: [continuous-learning, experience] }
+  checkpoint: { skills: [verification-loop] }
+  verify: { skills: [verification-loop, code-quality] }
+
+# 技能配置
+skills:
+  core: [phase-router, knowledge-base, experience, riper, cunzhi]
+  enhanced: [context7, continuous-learning, verification-loop, strategic-compact]
+  support: [memory, code-quality, service-analysis, multi-ai]
+
+# Agent配置
+agents:
+  phase-router: { role: 意图识别与路由 }
+  requirement-mgr: { role: 需求生命周期管理 }
+  design-mgr: { role: 方案生命周期管理 }
+  impl-executor: { role: 开发实施执行 }
+  experience-mgr: { role: 经验沉淀管理 }
+
+# 数据存储
+storage:
+  ai_state: .ai_state/
+  knowledge: .knowledge/
+  checkpoints: .ai_state/checkpoints/
+  experience: .ai_state/experience/
+
+# MCP 工具 (Codex 兼容)
+mcp:
+  context7:
+    command: npx
+    args: ["-y", "@upstash/context7-mcp@latest"]
+    optional: true
+  memory:
+    command: npx
+    args: ["-y", "@anthropic/memory-mcp"]
+    optional: true
