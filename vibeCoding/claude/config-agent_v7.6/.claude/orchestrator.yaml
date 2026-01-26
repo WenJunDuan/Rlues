@@ -1,0 +1,99 @@
+# VibeCoding Orchestrator v7.6
+# AI 调度配置
+
+version: "7.6"
+name: "VibeCoding Kernel"
+
+# 默认引擎
+default_engine: claude
+
+# 引擎配置
+engines:
+  claude:
+    type: native
+    priority: 1
+    capabilities:
+      - reasoning
+      - design
+      - review
+    best_for:
+      - R1_RESEARCH
+      - I_INNOVATE
+      - P_PLAN
+      - R2_REVIEW
+
+  codex:
+    type: external
+    priority: 2
+    capabilities:
+      - coding
+      - completion
+    best_for:
+      - E_EXECUTE
+      - quick_fix
+
+  gemini:
+    type: external
+    priority: 3
+    capabilities:
+      - large_context
+      - analysis
+    best_for:
+      - code_review
+      - large_file_analysis
+
+# 路径配置
+paths:
+  A:
+    name: "Quick Fix"
+    condition: "files <= 1 AND lines < 30"
+    phases: [R1, P, E, R2]
+    skip_design: true
+    
+  B:
+    name: "Planned Development"
+    condition: "2 <= files <= 10 OR 30 <= lines <= 300"
+    phases: [R1, I, P, E, R2]
+    checkpoints: [DESIGN_FREEZE, PLAN_READY, TASK_DONE]
+    
+  C:
+    name: "System Development"
+    condition: "files > 10 OR lines > 300"
+    phases: [R1, I, P, E, R2]
+    checkpoints: [DESIGN_FREEZE, PLAN_READY, PHASE_DONE, TASK_DONE]
+    use_phases: true
+
+# 寸止配置
+cunzhi:
+  primary_tool: cunzhi
+  fallback_tool: mcp-feedback-enhanced
+  tokens:
+    - PLAN_READY
+    - DESIGN_FREEZE
+    - PHASE_DONE
+    - TASK_DONE
+    - VERIFICATION_FAILED
+    - CLARIFY
+
+# Memory 配置
+memory:
+  categories:
+    - user_preference
+    - forbidden_action
+    - code_pattern
+    - lesson_learned
+    - high_freq_action
+  auto_load:
+    - user_preference
+    - forbidden_action
+
+# 状态文件
+state_files:
+  root: ".ai_state"
+  files:
+    - session.lock
+    - active_context.md
+    - kanban.md
+    - conventions.md
+    - decisions.md
+    - handoff.md

@@ -1,0 +1,209 @@
+# VibeCoding Kernel v7.7 - Orchestrator Configuration
+
+version: "7.7"
+
+# 五层架构
+architecture:
+  layers:
+    - user         # 用户层
+    - command      # Command层
+    - agent        # Agent决策层
+    - skill        # Skill执行层
+    - storage      # 数据存储层
+
+# AI 引擎配置
+engines:
+  primary: claude
+  available:
+    - name: claude
+      model: claude-sonnet-4-20250514
+      strengths: [reasoning, coding, architecture]
+    - name: codex
+      model: codex-latest
+      strengths: [code-generation, refactoring]
+      skill_path: skills/codex/SKILL.md
+    - name: gemini
+      model: gemini-2.0-flash
+      strengths: [long-context, multimodal]
+      skill_path: skills/gemini/SKILL.md
+
+# Agent 配置 (功能导向)
+agents:
+  phase-router:
+    path: agents/phase-router.md
+    role: 意图识别与路由
+  requirement-mgr:
+    path: agents/requirement-mgr.md
+    role: 需求全生命周期管理
+  design-mgr:
+    path: agents/design-mgr.md
+    role: 方案全生命周期管理
+  impl-executor:
+    path: agents/impl-executor.md
+    role: 开发实施执行
+  experience-mgr:
+    path: agents/experience-mgr.md
+    role: 经验沉淀与管理
+
+# 路径配置
+paths:
+  A:
+    name: "快速修复"
+    condition: "单文件 & <30行"
+    steps: [1, 6, 7, 9]
+    cunzhi_points: [TASK_DONE]
+  B:
+    name: "计划开发"
+    condition: "2-10文件"
+    steps: [1, 2, 3, 4, 6, 7, 9]
+    cunzhi_points: [REQ_READY, DESIGN_READY, PLAN_READY, TASK_DONE]
+  C:
+    name: "系统开发"
+    condition: ">10文件或跨模块"
+    steps: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    cunzhi_points: [REQ_READY, DESIGN_READY, PLAN_READY, PHASE_DONE, RELEASE_READY, TASK_DONE]
+
+# Skills 配置
+skills:
+  # 新增核心技能
+  phase-router:
+    path: skills/phase-router/SKILL.md
+    description: 意图识别与智能路由
+  knowledge-base:
+    path: skills/knowledge-base/SKILL.md
+    description: 外部知识库读取
+  experience:
+    path: skills/experience/SKILL.md
+    description: 经验沉淀与检索
+  service-analysis:
+    path: skills/service-analysis/SKILL.md
+    description: 服务理解与分析
+  
+  # RIPER 核心技能
+  riper:
+    path: skills/riper/SKILL.md
+    sub_skills:
+      research: skills/riper/research.md
+      innovate: skills/riper/innovate.md
+      plan: skills/riper/plan.md
+      execute: skills/riper/execute.md
+      review: skills/riper/review.md
+  
+  # 系统技能
+  cunzhi:
+    path: skills/cunzhi/SKILL.md
+  memory:
+    path: skills/memory/SKILL.md
+  code-quality:
+    path: skills/code-quality/SKILL.md
+  multi-ai:
+    path: skills/multi-ai/SKILL.md
+  
+  # 外部技能
+  codex:
+    path: skills/codex/SKILL.md
+    placeholder: true
+  gemini:
+    path: skills/gemini/SKILL.md
+    placeholder: true
+  sou:
+    path: skills/sou/SKILL.md
+  thinking:
+    path: skills/thinking/SKILL.md
+
+# 知识库配置
+knowledge_base:
+  enabled: true
+  path: .knowledge/
+  index: index.md
+  auto_load:
+    - standards/code-style.md
+    - company/security.md
+  search_engine: sou
+
+# 经验库配置
+experience:
+  enabled: true
+  storage:
+    local: .ai_state/experience/
+    mcp: memory
+  auto_search:
+    enabled: true
+    phases: [research, innovate, execute]
+  auto_deposit:
+    enabled: true
+    on_complete: true
+    on_correction: true
+
+# 寸止配置
+cunzhi:
+  skill_path: skills/cunzhi/SKILL.md
+  tool_priority:
+    - cunzhi_mcp
+    - mcp_feedback
+    - text_output
+  tokens:
+    - REQ_READY
+    - DESIGN_READY
+    - PLAN_READY
+    - PHASE_DONE
+    - RELEASE_READY
+    - TASK_DONE
+    - VERIFICATION_FAILED
+    - CLARIFY
+
+# MCP 工具集成
+mcp_tools:
+  required:
+    - name: memory
+      purpose: "知识持久化"
+      fallback: ".ai_state/"
+    - name: sequential-thinking
+      purpose: "深度推理"
+      fallback: "skills/thinking/SKILL.md"
+  recommended:
+    - name: sou
+      purpose: "语义搜索"
+      fallback: "grep/ripgrep"
+    - name: context7
+      purpose: "需求分析"
+      fallback: "手动分析"
+    - name: playwright
+      purpose: "浏览器测试"
+      fallback: "手动测试"
+    - name: mcp-shrimp-task-manager
+      purpose: "任务管理"
+      fallback: "TODO.md"
+
+# 数据存储配置
+storage:
+  base: ".ai_state"
+  structure:
+    requirements: "requirements/"
+    designs: "designs/"
+    context: "context/"
+    experience: "experience/"
+    meta: "meta/"
+  files:
+    session: "meta/session.lock"
+    kanban: "meta/kanban.md"
+    errors: "meta/errors.md"
+
+# 钩子配置
+hooks:
+  enabled: true
+  path: hooks/hooks.md
+  triggers:
+    - onSessionStart
+    - beforePhase
+    - afterPhase
+    - onError
+    - onUserCorrection
+    - onComplete
+    - afterComplete
+
+# 多AI协调
+multi_ai:
+  enabled: true
+  skill_path: skills/multi-ai/SKILL.md
+  coordination_file: .ai_state/meta/handoff.md
