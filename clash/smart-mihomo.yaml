@@ -1,12 +1,7 @@
 # ==========================================
-# Mihomo/Clash Meta Smart 优化配置文件
-# 整合 Smart 策略组 + 传统策略组双重保障
-# 参考墨鱼配置 + yyhhyyyyyy配置
-# @ConfigUrl         https://github.com/ddgksf2013/Profile/raw/master/MihomoParty.yaml
-# @ConfigUrl         https://github.com/yyhhyyyyyy/selfproxy/refs/heads/main/Mihomo/mihomo_single.yaml
-# 整合 Smart 策略组 + 传统策略组双重保障
-# 优化内容：添加 antigravity 关键字至 AI 分流
-# Date: 2025-12-31
+# Mihomo/Clash Meta Smart 终极优化配置
+# 整合内容：Smart 智能分流 + 全量规则集 + 社交/金融精细化
+# Date: 2026-01-28
 # ==========================================
 
 # **=============================== 全局设置 ===============================**
@@ -680,6 +675,37 @@ rule-providers:
     url: https://ruleset.skk.moe/Clash/ip/telegram.txt
     path: ./ruleset/telegram_ip.txt
 
+  # ========== 社交与谷歌 (补全) ==========
+  Twitter:
+    <<: *RuleSet_Yaml
+    url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Twitter/Twitter.yaml"
+    path: ./ruleset/Twitter.yaml
+
+  Google:
+    <<: *RuleSet_Yaml
+    url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Google/Google.yaml"
+    path: ./ruleset/Google.yaml
+
+  YouTube:
+    <<: *RuleSet_Yaml
+    url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTube/YouTube.yaml"
+    path: ./ruleset/YouTube.yaml
+
+  YouTubeMusic:
+    <<: *RuleSet_Yaml
+    url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTubeMusic/YouTubeMusic.yaml"
+    path: ./ruleset/YouTubeMusic.yaml
+
+  PayPal:
+    <<: *RuleSet_Yaml
+    url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/PayPal/PayPal.yaml"
+    path: ./ruleset/PayPal.yaml
+
+  Netflix:
+    <<: *RuleSet_Yaml
+    url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Netflix/Netflix.yaml"
+    path: ./ruleset/Netflix.yaml
+
   # ========== 苹果服务规则 ==========
   apple_cdn:
     <<: *RuleSet_Domain
@@ -814,8 +840,14 @@ rules:
   - DOMAIN-SUFFIX,makerworld.com,🌍 全球加速
   - DOMAIN-SUFFIX,openlist.team,🌍 全球加速
 
+  # ========== 广告拦截规则 ==========
+  - RULE-SET,reject_non_ip,REJECT
+  - RULE-SET,reject_domainset,REJECT
+  - RULE-SET,reject_non_ip_drop,REJECT-DROP
+  - RULE-SET,reject_non_ip_no_drop,REJECT
+  - RULE-SET,reject_ip,REJECT
+
   # ========== AI 服务规则 ==========
-  # 新增：antigravity 关键字分流
   - DOMAIN-KEYWORD,antigravity,🤖 人工智能
   - DOMAIN-SUFFIX,grok.com,🤖 人工智能
   - DOMAIN-SUFFIX,cici.com,🤖 人工智能
@@ -831,60 +863,51 @@ rules:
   - RULE-SET,Claude,🤖 人工智能
   - RULE-SET,ai_non_ip,🤖 人工智能
 
-  # ========== 广告拦截规则 ==========
-  - RULE-SET,reject_non_ip,REJECT
-  - RULE-SET,reject_domainset,REJECT
-  - RULE-SET,reject_non_ip_drop,REJECT-DROP
-  - RULE-SET,reject_non_ip_no_drop,REJECT
-  - RULE-SET,reject_ip,REJECT
-
-  # ========== CDN 规则 ==========
-  - RULE-SET,cdn_domainset,🎯 节点选择
-  - RULE-SET,cdn_non_ip,🎯 节点选择
-
-  # ========== 下载规则 ==========
-  - RULE-SET,download_domainset,🎯 节点选择
-  - RULE-SET,download_non_ip,🎯 节点选择
-
-  # ========== 电报规则 ==========
+  # ========== 社交与核心服务 ==========
+  - RULE-SET,Twitter,🐦 推特服务
   - RULE-SET,telegram_non_ip,✈️ 电报消息
   - RULE-SET,telegram_ip,✈️ 电报消息
+  - RULE-SET,PayPal,💳 PayPal
+  - RULE-SET,Google,🔍 谷歌服务
+  - RULE-SET,YouTube,🎬 国际媒体
+  - RULE-SET,YouTubeMusic,🎬 国际媒体
 
-  # ========== 苹果服务规则 ==========
+  # ========== 微软与苹果服务 ==========
   - RULE-SET,apple_cdn,DIRECT
   - RULE-SET,apple_cn_non_ip,DIRECT
   - RULE-SET,apple_services,🍎 苹果服务
-
-  # ========== 微软服务规则 ==========
   - RULE-SET,microsoft_cdn_non_ip,DIRECT
   - RULE-SET,microsoft_non_ip,Ⓜ️ 微软服务
 
-  # ========== 其他服务规则 ==========
+  # ========== 其他服务 ==========
   - RULE-SET,Github,🌍 全球加速
   - RULE-SET,Game,🎮 游戏平台
 
-  # ========== 流媒体规则（优先级靠后）==========
+  # ========== 流媒体规则 ==========
   - RULE-SET,BiliBili,📺 哔哩哔哩
   - RULE-SET,Bahamut,📺 哔哩哔哩
+  - RULE-SET,Netflix,🎬 国际媒体
   - RULE-SET,stream_non_ip,🎬 国际媒体
   - RULE-SET,stream_ip,🎬 国际媒体
+
+  # ========== CDN与下载 (后置防误杀) ==========
+  - RULE-SET,cdn_domainset,🎯 节点选择
+  - RULE-SET,cdn_non_ip,🎯 节点选择
+  - RULE-SET,download_domainset,🎯 节点选择
+  - RULE-SET,download_non_ip,🎯 节点选择
 
   # ========== 全球代理规则 ==========
   - RULE-SET,global_non_ip,🌍 全球加速
 
-  # ========== 国内规则 ==========
+  # ========== 国内与直连规则 ==========
   - RULE-SET,domestic_non_ip,DIRECT
   - RULE-SET,direct_non_ip,DIRECT
-
-  # ========== 局域网规则 ==========
   - RULE-SET,lan_non_ip,DIRECT
   - RULE-SET,lan_ip,DIRECT
-
-  # ========== IP 规则 ==========
   - RULE-SET,domestic_ip,DIRECT
   - RULE-SET,china_ip,DIRECT
-  - GEOIP,private,DIRECT
-  - GEOIP,CN,DIRECT
+  - GEOIP,private,DIRECT,no-resolve
+  - GEOIP,CN,DIRECT,no-resolve
 
   # ========== 兜底规则 ==========
   - MATCH,🎯 兜底分流

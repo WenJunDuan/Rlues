@@ -1,6 +1,7 @@
 # VibeCoding Kernel v7.8 for Codex
 
 > **"Talk is cheap. Show me the code."** — Linus Torvalds
+> **"Claude不是聊天机器人，而是可并行调度、可验证的工程资源。"** — Boris Cherny
 
 ## Working Agreements
 
@@ -34,8 +35,7 @@
 ## Intent Routing (phase-router)
 
 ```yaml
-Routing Rules:
-  No task ID → New task (requirement creation)
+Routing Rules: No task ID → New task (requirement creation)
   Task ID + "change/modify" → Change management
   Task ID + "design/architecture" → Solution design
   Task ID + "develop/implement" → Development execution
@@ -45,42 +45,42 @@ Routing Rules:
 
 ## Nine-Step Workflow
 
-| Step | Phase | Cunzhi Point |
-|:---|:---|:---|
-| 1 | Requirement Creation | - |
-| 2 | Requirement Review | `[REQ_READY]` |
-| 3 | Solution Design | - |
-| 4 | Design Review | `[DESIGN_READY]` |
-| 5 | Environment Setup | - |
-| 6 | Development | `[PHASE_DONE]` |
-| 7 | Code Commit | - |
-| 8 | Release | `[RELEASE_READY]` |
-| 9 | Archive | `[TASK_DONE]` |
+| Step | Phase                | Cunzhi Point      |
+| :--- | :------------------- | :---------------- |
+| 1    | Requirement Creation | -                 |
+| 2    | Requirement Review   | `[REQ_READY]`     |
+| 3    | Solution Design      | -                 |
+| 4    | Design Review        | `[DESIGN_READY]`  |
+| 5    | Environment Setup    | -                 |
+| 6    | Development          | `[PHASE_DONE]`    |
+| 7    | Code Commit          | -                 |
+| 8    | Release              | `[RELEASE_READY]` |
+| 9    | Archive              | `[TASK_DONE]`     |
 
 ## P.A.C.E. Complexity Router
 
-| Path | Criteria | Workflow | Duration |
-|:---|:---|:---|:---|
-| A | Single file, <30 lines | R1→E→R2 | 30-60 min |
-| B | 2-10 files | R1→I→P→E→R2 | 2-8 hours |
-| C | >10 files, cross-module | Full nine-steps | Days+ |
+| Path | Criteria                | Workflow        | Duration  |
+| :--- | :---------------------- | :-------------- | :-------- |
+| A    | Single file, <30 lines  | R1→E→R2         | 30-60 min |
+| B    | 2-10 files              | R1→I→P→E→R2     | 2-8 hours |
+| C    | >10 files, cross-module | Full nine-steps | Days+     |
 
 ## Skills Reference
 
 Invoke skills with `$skill-name` syntax:
 
-| Skill | Purpose |
-|:---|:---|
-| `$context7` | Fetch up-to-date library documentation |
-| `$knowledge-base` | Query project knowledge |
-| `$experience` | Search and deposit experience |
-| `$verification-loop` | Run verification checks |
-| `$continuous-learning` | Extract reusable patterns |
-| `$strategic-compact` | Context optimization |
-| `$phase-router` | Intent recognition and routing |
-| `$riper` | RIPER workflow execution |
-| `$cunzhi` | Pause protocol |
-| `$code-quality` | Quality checks |
+| Skill                  | Purpose                                |
+| :--------------------- | :------------------------------------- |
+| `$context7`            | Fetch up-to-date library documentation |
+| `$knowledge-base`      | Query project knowledge                |
+| `$experience`          | Search and deposit experience          |
+| `$verification-loop`   | Run verification checks                |
+| `$continuous-learning` | Extract reusable patterns              |
+| `$strategic-compact`   | Context optimization                   |
+| `$phase-router`        | Intent recognition and routing         |
+| `$riper`               | RIPER workflow execution               |
+| `$cunzhi`              | Pause protocol                         |
+| `$code-quality`        | Quality checks                         |
 
 ## Data Storage
 
@@ -124,4 +124,5 @@ Please review the above plan:
 - [ ] **Error Handling**: Complete error handling?
 
 ---
+
 **Version**: v7.8.0 | **Architecture**: VibeCoding Modular | **For**: Codex CLI

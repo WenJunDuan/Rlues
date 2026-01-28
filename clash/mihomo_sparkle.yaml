@@ -139,15 +139,15 @@ proxy-groups:
 
   - name: ✈️ 电报消息
     type: select
-    proxies: [🇸🇬 狮城 - 自动, 🇭🇰 香港 - 自动, 🎯 节点选择]
+    proxies: [🌏 其他节点, 🇸🇬 狮城 - 自动, 🇭🇰 香港 - 自动, 🎯 节点选择]
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Telegram.png
 
   - name: 🎬 国际媒体
     type: select
-    proxies: [🎯 节点选择, 🇭🇰 香港 - 自动, 🇯🇵 日本 - 自动, DIRECT]
+    proxies: [🎯 节点选择, 🇭🇰 香港 - 自动, 🇯🇵 日本 - 自动, 🌏 其他节点, DIRECT]
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Streaming.png
 
-  - name: 📺 哔哩哔哩
+  - name: 📺 巴哈姆特
     type: select
     proxies: [DIRECT, 🇭🇰 香港 - 自动, 🇹🇼 台湾 - 自动]
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/bilibili.png
@@ -162,9 +162,19 @@ proxy-groups:
     proxies: [DIRECT, 🎯 节点选择, 🇭🇰 香港 - 自动]
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png
 
+  - name: 🔍 谷歌服务
+    type: select
+    proxies: [🇺🇸 美国 - 自动, 🇯🇵 日本 - 自动, 🇸🇬 狮城 - 自动, 🎯 节点选择]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Google.png
+
+  - name: 💳 PayPal
+    type: select
+    proxies: [DIRECT, 🇺🇸 美国 - 自动, 🇯🇵 日本 - 自动, 🇸🇬 狮城 - 自动]
+    icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Paypal.png
+
   - name: 🌍 全球加速
     type: select
-    proxies: [🎯 节点选择, 🚀 自动选择, DIRECT]
+    proxies: [🎯 节点选择, 🚀 自动选择, 🌏 其他节点, DIRECT]
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Global.png
 
   - name: 🎮 游戏平台
@@ -174,7 +184,7 @@ proxy-groups:
 
   - name: 🎯 兜底分流
     type: select
-    proxies: [🎯 节点选择, DIRECT]
+    proxies: [🎯 节点选择, 🌏 其他节点, DIRECT]
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/Final.png
 
   # 区域自动选择 (Url-Test)
@@ -344,6 +354,26 @@ rule-providers:
       path: ./ruleset/ai_non_ip.txt,
     }
 
+  # 谷歌
+  Google:
+    {
+      <<: *RuleSet_Yaml,
+      url: " https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Google/Google.yaml",
+      path: ./ruleset/Google.yaml,
+    }
+  YouTube:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/YouTube/YouTube.yaml",
+      path: ./ruleset/YouTube.yaml,
+    }
+  YouTubeMusic:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/YouTubeMusic/YouTubeMusic.yaml",
+      path: ./ruleset/YouTubeMusic.yaml,
+    }
+
   # 社交媒体
   telegram_ip:
     {
@@ -356,6 +386,33 @@ rule-providers:
       <<: *RuleSet_Classical,
       url: "https://ruleset.skk.moe/Clash/non_ip/telegram.txt",
       path: ./ruleset/telegram_non_ip.txt,
+    }
+
+  Twitter:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Twitter/Twitter.yaml",
+      path: ./ruleset/Twitter.yaml,
+    }
+  Netflix:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Netflix/Netflix.yaml",
+      path: ./ruleset/Netflix.yaml,
+    }
+
+  # 基础服务
+  Github:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GitHub/GitHub.yaml",
+      path: ./ruleset/Github.yaml,
+    }
+  PayPal:
+    {
+      <<: *RuleSet_Yaml,
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/PayPal/PayPal.yaml",
+      path: ./ruleset/PayPal.yaml,
     }
 
   # 流媒体
@@ -384,13 +441,6 @@ rule-providers:
       path: ./ruleset/stream_ip.txt,
     }
 
-  # 基础服务
-  Github:
-    {
-      <<: *RuleSet_Yaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GitHub/GitHub.yaml",
-      path: ./ruleset/Github.yaml,
-    }
   microsoft_non_ip:
     {
       <<: *RuleSet_Classical,
@@ -474,6 +524,7 @@ rule-providers:
 
 # **=============================== 分流规则 ===============================**
 rules:
+  # --- 1. 本地/局域网/VPN 防泄漏 ---
   - PROCESS-NAME,tailscale.exe,DIRECT
   - PROCESS-NAME,tailscaled.exe,DIRECT
   - PROCESS-NAME,tailscaled,DIRECT
@@ -481,7 +532,7 @@ rules:
   - DOMAIN-SUFFIX,ts.net,DIRECT
   - DOMAIN-KEYWORD,tailscale,DIRECT
 
-  # --- 自定义直连 ---
+  # --- 2. 用户自定义直连 ---
   - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
   - DOMAIN-SUFFIX,guoker.org,DIRECT
   - DOMAIN-SUFFIX,gying.net,DIRECT
@@ -491,20 +542,20 @@ rules:
   - DOMAIN-SUFFIX,right.codes,DIRECT
   - DOMAIN-SUFFIX,juejin.cn,DIRECT
 
-  # --- 自定义代理 ---
+  # --- 3. 用户自定义代理 ---
   - DOMAIN-SUFFIX,coze.com,🌍 全球加速
   - DOMAIN-SUFFIX,ouonetwork.com,🌍 全球加速
   - DOMAIN-SUFFIX,linux.do,🌍 全球加速
   - DOMAIN-SUFFIX,marketplace.jetbrains.com,🌍 全球加速
 
-  # --- 广告拦截 ---
+  # --- 4. 广告拦截 ---
   - RULE-SET,reject_non_ip,REJECT
   - RULE-SET,reject_domainset,REJECT
   - RULE-SET,reject_non_ip_drop,REJECT-DROP
   - RULE-SET,reject_non_ip_no_drop,REJECT
   - RULE-SET,reject_ip,REJECT
 
-  # --- AI 服务 (整合关键字) ---
+  # --- 5. AI 服务 ---
   - DOMAIN-KEYWORD,antigravity,🤖 人工智能
   - DOMAIN-SUFFIX,deepseek.com,🤖 人工智能
   - DOMAIN-SUFFIX,grok.com,🤖 人工智能
@@ -517,30 +568,40 @@ rules:
   - RULE-SET,Gemini,🤖 人工智能
   - RULE-SET,ai_non_ip,🤖 人工智能
 
-  # --- 核心服务分流 ---
-  - RULE-SET,cdn_domainset,🎯 节点选择
-  - RULE-SET,cdn_non_ip,🎯 节点选择
-  - RULE-SET,download_domainset,🎯 节点选择
+  # --- 6. 核心应用分流 ---
   - RULE-SET,telegram_non_ip,✈️ 电报消息
   - RULE-SET,telegram_ip,✈️ 电报消息
+  - RULE-SET,Twitter,🌍 全球加速
+  - RULE-SET,Github,🌍 全球加速
+  - RULE-SET,Google,🔍 谷歌服务
+  - RULE-SET,PayPal,💳 PayPal
 
-  # Apple & Microsoft
+  # --- 7. 流媒体服务 ---
+  - RULE-SET,Bahamut,📺 巴哈姆特
+  - RULE-SET,BiliBili,📺 巴哈姆特
+  - RULE-SET,Netflix,🎬 国际媒体
+  - RULE-SET,stream_non_ip,🎬 国际媒体
+  - RULE-SET,stream_ip,🎬 国际媒体
+  - RULE-SET,YouTube,🎬 国际媒体
+  - RULE-SET,YouTubeMusic,🎬 国际媒体
+
+  # --- 8. 游戏 ---
+  - RULE-SET,Game,🎮 游戏平台
+
+  # --- 9. 微软与苹果 ---
   - RULE-SET,apple_cdn,DIRECT
   - RULE-SET,apple_cn_non_ip,DIRECT
   - RULE-SET,apple_services,🍎 苹果服务
   - RULE-SET,microsoft_cdn_non_ip,DIRECT
   - RULE-SET,microsoft_non_ip,Ⓜ️ 微软服务
 
-  - RULE-SET,Github,🌍 全球加速
-  - RULE-SET,Game,🎮 游戏平台
+  # --- 10. 下载与CDN  ---
+  - RULE-SET,cdn_domainset,🎯 节点选择
+  - RULE-SET,cdn_non_ip,🎯 节点选择
+  - RULE-SET,download_domainset,DIRECT
+  - RULE-SET,download_non_ip,DIRECT
 
-  # 流媒体
-  - RULE-SET,BiliBili,📺 哔哩哔哩
-  - RULE-SET,Bahamut,📺 哔哩哔哩
-  - RULE-SET,stream_non_ip,🎬 国际媒体
-  - RULE-SET,stream_ip,🎬 国际媒体
-
-  # --- 兜底与国内 ---
+  # --- 11. 兜底与国内直连规则 ---
   - RULE-SET,global_non_ip,🌍 全球加速
   - RULE-SET,domestic_non_ip,DIRECT
   - RULE-SET,direct_non_ip,DIRECT
@@ -548,6 +609,6 @@ rules:
   - RULE-SET,lan_ip,DIRECT
   - RULE-SET,domestic_ip,DIRECT
   - RULE-SET,china_ip,DIRECT
-  - GEOIP,private,DIRECT
-  - GEOIP,CN,DIRECT
+  - GEOIP,private,DIRECT,no-resolve
+  - GEOIP,CN,DIRECT,no-resolve
   - MATCH,🎯 兜底分流
