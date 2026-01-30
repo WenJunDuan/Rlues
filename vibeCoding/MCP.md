@@ -5,10 +5,6 @@
 ```json
 {
   "mcpServers": {
-    "context7": {
-      "command": "npx.cmd",
-      "args": ["-y", "@upstash/context7-mcp", "--api-key", ""]
-    },
     "sequential-thinking": {
       "command": "npx.cmd",
       "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
@@ -30,12 +26,6 @@
       "env": {
         "MEMORY_FILE_PATH": "E:\\workspace\\AICode\\server-memory\\memory.json"
       }
-    },
-    "mcp-feedback-enhanced": {
-      "command": "uvx",
-      "args": ["mcp-feedback-enhanced@latest"],
-      "timeout": 600,
-      "autoApprove": ["interactive_feedback"]
     },
     "desktop-commander": {
       "command": "npx.cmd",
@@ -60,14 +50,6 @@
       "command": "npx.cmd",
       "args": ["-y", "mcp-deepwiki@latest"]
     },
-    "skills": {
-      "command": "uvx",
-      "args": [
-        "agentskill-mcp",
-        "--skills-dir",
-        "C:\\Users\\Mi_Manchi\\.claude\\skills"
-      ]
-    },
     "chrome-devtools": {
       "command": "npx.cmd",
       "args": ["-y", "chrome-devtools-mcp@latest"]
@@ -79,10 +61,6 @@
         "AUGMENT_API_TOKEN": "",
         "AUGMENT_API_URL": ""
       }
-    },
-    "promptx": {
-      "command": "npx.cmd",
-      "args": ["-y", "@promptx/mcp-server"]
     },
     "寸止": {
       "command": "E:\\CodeTool\\AICode\\cunzhi-cli\\寸止.exe",
