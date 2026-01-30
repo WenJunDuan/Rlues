@@ -1,0 +1,80 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node scripts/hooks/session-start.js",
+        "timeout": 10,
+        "description": "Load session context and instincts"
+      }
+    ],
+    
+    "SessionEnd": [
+      {
+        "type": "command", 
+        "command": "node scripts/hooks/session-end.js",
+        "timeout": 15,
+        "description": "Save session state and extract patterns"
+      }
+    ],
+    
+    "PreCompact": [
+      {
+        "type": "command",
+        "command": "node scripts/hooks/pre-compact.js",
+        "timeout": 10,
+        "description": "Save state before compaction"
+      }
+    ],
+    
+    "PreToolUse": [
+      {
+        "matcher": "tool == 'Write' && tool_input.file_path matches '\\.(md|txt)$' && !(tool_input.file_path matches 'README\\.md|CLAUDE\\.md')",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.error('[Hook] Consider: Is this doc file necessary?')\"",
+            "description": "Warn about unnecessary doc files"
+          }
+        ]
+      },
+      {
+        "matcher": "tool == 'Write' && tool_input.file_path matches '\\.(ts|tsx|js|jsx)$'",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const p=process.env.file_path||'';if(fs.existsSync(p)){const c=fs.readFileSync(p,'utf8');if(/console\\.log/.test(c))console.error('[Hook] Remove console.log before commit')}\"",
+            "description": "Warn about console.log"
+          }
+        ]
+      }
+    ],
+    
+    "PostToolUse": [
+      {
+        "matcher": "tool == 'Write' && tool_input.file_path matches '\\.(ts|tsx)$'",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.error('[Hook] Consider running: npx tsc --noEmit')\"",
+            "async": true,
+            "description": "Suggest type check"
+          }
+        ]
+      }
+    ],
+    
+    "Stop": [
+      {
+        "matcher": "stop_reason == 'user_interrupt'",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/session-end.js",
+            "description": "Save state on interrupt"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,144 @@
+# VibeCoding Kernel v7.9 - Orchestrator Configuration
+
+version: "7.9.1-codex"
+platform: "codex-cli"
+principle: "VibeCoding 增强官方能力而非替代"
+
+# 五层架构
+architecture:
+  layers: [user, command, agent, skill, storage]
+
+# 指令配置
+commands:
+  # 增强官方指令 (先调用官方，再增强)
+  enhanced:
+    vibe-init: { official: /init, skills: [knowledge-base] }
+    vibe-plan: { official: /plan, skills: [knowledge-base, experience, context7, riper] }
+    vibe-todos: { official: /todos, skills: [memory] }
+    vibe-review: { official: /review, skills: [code-quality, verification-loop] }
+  
+  # 纯自定义指令 (无官方对应)
+  custom:
+    vibe-dev: { router: phase-router }
+    learn: { skills: [continuous-learning-v2, experience] }
+    checkpoint: { skills: [verification-loop] }
+    verify: { skills: [verification-loop, code-quality, eval-harness] }
+    instinct-status: { skills: [continuous-learning-v2] }
+    instinct-export: { skills: [continuous-learning-v2] }
+    instinct-import: { skills: [continuous-learning-v2] }
+    evolve: { skills: [continuous-learning-v2] }
+
+# 技能配置
+skills:
+  core:
+    - phase-router        # 意图路由
+    - knowledge-base      # 知识库
+    - experience          # 经验库
+    - riper               # RIPER 工作流
+    - cunzhi              # 寸止协议 (cunzhi MCP)
+  
+  enhanced:
+    - context7            # 库文档 (CLI)
+    - continuous-learning # 持续学习 v1
+    - continuous-learning-v2  # Instinct-based 学习
+    - verification-loop   # 验证循环
+    - strategic-compact   # 智能压缩
+    - iterative-retrieval # 渐进式上下文
+    - eval-harness        # 评估框架
+  
+  support:
+    - memory              # 双轨记忆
+    - code-quality        # 代码质量
+    - service-analysis    # 服务分析
+    - multi-ai            # 多AI协调
+
+# Agent配置
+agents:
+  phase-router:
+    role: 意图识别与路由
+    skills: [phase-router]
+  
+  requirement-mgr:
+    role: 需求生命周期管理
+    skills: [knowledge-base, experience]
+  
+  design-mgr:
+    role: 方案生命周期管理
+    skills: [knowledge-base, context7]
+  
+  impl-executor:
+    role: 开发实施执行
+    skills: [context7, code-quality]
+  
+  experience-mgr:
+    role: 经验沉淀管理
+    skills: [experience, continuous-learning-v2]
+  
+  planner:
+    role: 实现计划制定
+    skills: [knowledge-base, experience, riper]
+    model: sonnet
+  
+  security-reviewer:
+    role: 安全审查
+    skills: [code-quality]
+    tools: [Read, Grep, Glob, Bash]
+
+# Rules (始终遵循的规则)
+rules:
+  - security.md
+  - coding-style.md
+  - testing.md
+  - git-workflow.md
+  - agents.md
+  - performance.md
+
+# 数据存储
+storage:
+  ai_state: .ai_state/
+  knowledge: .knowledge/
+  checkpoints: .ai_state/checkpoints/
+  experience: .ai_state/experience/
+  instincts: .ai_state/instincts/
+
+# MCP 工具配置 (需要安装的)
+mcp:
+  cunzhi:
+    description: 寸止确认 MCP
+    required: true
+  
+  sequential-thinking:
+    command: npx
+    args: ["-y", "@anthropic/sequential-thinking-mcp"]
+    optional: true
+  
+  memory:
+    command: npx
+    args: ["-y", "@anthropic/memory-mcp"]
+    optional: true
+
+# CLI 工具 (非 MCP)
+cli_tools:
+  context7:
+    command: npx ctx7
+    description: Context7 Skills Registry CLI
+    usage: |
+      npx ctx7 skills search <keyword>
+      npx ctx7 skills install /org/project <skill>
+      npx ctx7 skills generate
+
+# Hooks 配置
+hooks:
+  session_lifecycle: true
+  pre_compact: true
+  post_tool_use: true
+  async_support: true
+
+# 新特性 (v7.9)
+features:
+  instinct_learning: true      # Instinct-based 学习
+  iterative_retrieval: true    # 渐进式上下文
+  eval_harness: true           # 评估框架
+  cross_platform_hooks: true   # Node.js 跨平台 hooks
+  context_fork: true           # Skills forked context
+  wildcard_permissions: true   # 通配符权限
