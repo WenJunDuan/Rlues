@@ -556,8 +556,7 @@ rules:
   - RULE-SET,reject_ip,REJECT
 
   # --- 5. AI 服务 ---
-  - DOMAIN-KEYWORD,antigravity,🤖 人工智能
-  - DOMAIN-SUFFIX,deepseek.com,🤖 人工智能
+  - DOMAIN-KEYWORD,antigravity,🇺🇸 美国 - 自动
   - DOMAIN-SUFFIX,grok.com,🤖 人工智能
   - DOMAIN-SUFFIX,cici.com,🤖 人工智能
   - DOMAIN-SUFFIX,trae.ai,🤖 人工智能
@@ -565,7 +564,7 @@ rules:
   - RULE-SET,Copilot,🤖 人工智能
   - RULE-SET,Anthropic,🤖 人工智能
   - RULE-SET,Claude,🤖 人工智能
-  - RULE-SET,Gemini,🤖 人工智能
+  - RULE-SET,Gemini,🇺🇸 美国 - 自动
   - RULE-SET,ai_non_ip,🤖 人工智能
 
   # --- 6. 核心应用分流 ---

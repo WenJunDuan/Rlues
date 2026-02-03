@@ -1,7 +1,7 @@
 # ==========================================
 # Mihomo/Clash Meta Smart 终极优化配置
 # 整合内容：Smart 智能分流 + 全量规则集 + 社交/金融精细化
-# Date: 2026-01-28
+# Date: 2026-02-03
 # ==========================================
 
 # **=============================== 全局设置 ===============================**
@@ -47,7 +47,7 @@ sniffer:
     - "+.baidu.com"
     - "+.bilibili.com"
 
-# **=============================== TUN 配置 ===============================**
+# **=============================== TUN 配置 (Tailscale 优化) ===============================**
 tun:
   enable: true
   stack: mixed
@@ -63,8 +63,13 @@ tun:
   gso: true
   gso-max-size: 65536
   udp-timeout: 300
+  # Tailscale 接口排除
+  exclude-interface:
+    - tailscale0
+    - utun*
+    - "Tailscale*"
 
-# **=============================== DNS 配置 ===============================**
+# **=============================== DNS 配置 (Tailscale 兼容) ===============================**
 dns:
   enable: true
   ipv6: true
@@ -107,8 +112,10 @@ dns:
     - "10.0.0.0/8"
     - "172.16.0.0/12"
     - "100.64.0.0/10"
+    # Tailscale 专用
     - "*.ts.net"
     - "tailscale.com"
+    - "+.home.arpa"
 
   default-nameserver:
     - 223.5.5.5
@@ -124,7 +131,9 @@ dns:
   direct-nameserver:
     - https://doh.pub/dns-query
 
+  # Tailscale 域名策略
   nameserver-policy:
+    "*.ts.net,tailscale.com": system
     "geosite:cn,private":
       - https://doh.pub/dns-query
       - https://dns.alidns.com/dns-query
@@ -158,6 +167,7 @@ geox-url:
   geoip: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
   geosite: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
   mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
+  asn: "https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb"
 
 # **=============================== 控制面板 ===============================**
 external-controller: 127.0.0.1:9090
@@ -228,6 +238,16 @@ SmartBalance: &SmartBalance
   strategy: round-robin
   sample-rate: 1
 
+# 节点筛选正则 (台湾增强，韩国移入冷门)
+FilterHK: &FilterHK "港|HK|(?i)Hong"
+FilterJP: &FilterJP "日|东京|JP|(?i)Japan"
+FilterSG: &FilterSG "新|坡|SG|(?i)Singapore"
+FilterUS: &FilterUS "美|US|(?i)States|American"
+# 台湾正则增强：覆盖繁体、城市名、机场代码
+FilterTW: &FilterTW "台|臺|湾|灣|TW|(?i)Taiwan|Taipei|Taichung|Tainan|Kaohsiung|TPE|TSA|KHH|RMQ|TNN|新竹|桃园|桃園|彰化|高雄|台北|台中|台南|Hsinchu|Taoyuan"
+# 冷门节点：排除主流地区（韩国已移入冷门，不再排除）
+FilterOT: &FilterOT "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|Taiwan|台|臺|湾|灣|Taipei|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|United States|America|美国)).*$"
+
 proxy-groups:
   # ========== 主要策略组 ==========
   - name: 🎯 节点选择
@@ -243,7 +263,6 @@ proxy-groups:
     proxies:
       - 🇭🇰 香港节点
       - 🇯🇵 日本节点
-      - 🇰🇷 韩国节点
       - 🇸🇬 狮城节点
       - 🇺🇸 美国节点
       - 🇹🇼 台湾节点
@@ -255,7 +274,6 @@ proxy-groups:
     proxies:
       - 🇭🇰 香港 - Auto
       - 🇯🇵 日本 - Auto
-      - 🇰🇷 韩国 - Auto
       - 🇸🇬 狮城 - Auto
       - 🇺🇸 美国 - Auto
       - 🇹🇼 台湾 - Auto
@@ -391,13 +409,6 @@ proxy-groups:
       - 🇯🇵 日本 - 负载均衡
       - 🇯🇵 日本 - 自动回退
 
-  - name: 🇰🇷 韩国 - Auto
-    type: select
-    proxies:
-      - 🇰🇷 韩国 - 自动选择
-      - 🇰🇷 韩国 - 负载均衡
-      - 🇰🇷 韩国 - 自动回退
-
   - name: 🇸🇬 狮城 - Auto
     type: select
     proxies:
@@ -429,144 +440,124 @@ proxy-groups:
   # ========== Smart 自动选择策略组 ==========
   - name: 🇭🇰 香港 - 自动选择
     <<: *SmartAuto
-    filter: "港|HK|(?i)Hong"
+    filter: *FilterHK
     policy-priority: "Premium:1.2;IPLC:1.3"
 
   - name: 🇯🇵 日本 - 自动选择
     <<: *SmartAuto
-    filter: "日|东京|JP|(?i)Japan"
+    filter: *FilterJP
     policy-priority: "Premium:1.2;IPLC:1.3"
-
-  - name: 🇰🇷 韩国 - 自动选择
-    <<: *SmartAuto
-    filter: "韩国|韩|KR|🇰🇷|(?i)Korea"
-    policy-priority: "Premium:1.2"
 
   - name: 🇸🇬 狮城 - 自动选择
     <<: *SmartAuto
-    filter: "新|坡|SG|(?i)Singapore"
+    filter: *FilterSG
     policy-priority: "Premium:1.2;IPLC:1.3"
 
   - name: 🇺🇸 美国 - 自动选择
     <<: *SmartAuto
-    filter: "美|US|(?i)States|American"
+    filter: *FilterUS
     policy-priority: "Premium:1.2"
 
   - name: 🇹🇼 台湾 - 自动选择
     <<: *SmartAuto
-    filter: "台|湾|TW|(?i)Taiwan"
+    filter: *FilterTW
     policy-priority: "Premium:1.2"
 
   - name: 🌏 其他 - 自动选择
     <<: *SmartAuto
-    filter: "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|Taiwan|Wan|台|湾|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|United States|America|美国|🇰🇷|KR|Korea|韩国|韓)).*$"
+    filter: *FilterOT
     policy-priority: "Premium:1.1"
 
   # ========== Smart 负载均衡策略组 ==========
   - name: 🇭🇰 香港 - 负载均衡
     <<: *SmartBalance
-    filter: "港|HK|(?i)Hong"
+    filter: *FilterHK
     policy-priority: "Premium:1.2;IPLC:1.3"
 
   - name: 🇯🇵 日本 - 负载均衡
     <<: *SmartBalance
-    filter: "日|东京|JP|(?i)Japan"
+    filter: *FilterJP
     policy-priority: "Premium:1.2;IPLC:1.3"
-
-  - name: 🇰🇷 韩国 - 负载均衡
-    <<: *SmartBalance
-    filter: "韩国|韩|KR|🇰🇷|(?i)Korea"
-    policy-priority: "Premium:1.2"
 
   - name: 🇸🇬 狮城 - 负载均衡
     <<: *SmartBalance
-    filter: "新|坡|SG|(?i)Singapore"
+    filter: *FilterSG
     policy-priority: "Premium:1.2;IPLC:1.3"
 
   - name: 🇺🇸 美国 - 负载均衡
     <<: *SmartBalance
-    filter: "美|US|(?i)States|American"
+    filter: *FilterUS
     policy-priority: "Premium:1.2"
 
   - name: 🇹🇼 台湾 - 负载均衡
     <<: *SmartBalance
-    filter: "台|湾|TW|(?i)Taiwan"
+    filter: *FilterTW
     policy-priority: "Premium:1.2"
 
   - name: 🌏 其他 - 负载均衡
     <<: *SmartBalance
-    filter: "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|Taiwan|Wan|台|湾|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|United States|America|美国|🇰🇷|KR|Korea|韩国|韓)).*$"
+    filter: *FilterOT
     policy-priority: "Premium:1.1"
 
   # ========== 传统自动回退策略组（保险机制）==========
   - name: 🇭🇰 香港 - 自动回退
     <<: *FallBack
-    filter: "港|HK|(?i)Hong"
+    filter: *FilterHK
 
   - name: 🇯🇵 日本 - 自动回退
     <<: *FallBack
-    filter: "日|东京|JP|(?i)Japan"
-
-  - name: 🇰🇷 韩国 - 自动回退
-    <<: *FallBack
-    filter: "韩国|韩|KR|🇰🇷|(?i)Korea"
+    filter: *FilterJP
 
   - name: 🇸🇬 狮城 - 自动回退
     <<: *FallBack
-    filter: "新|坡|SG|(?i)Singapore"
+    filter: *FilterSG
 
   - name: 🇺🇸 美国 - 自动回退
     <<: *FallBack
-    filter: "美|US|(?i)States|American"
+    filter: *FilterUS
 
   - name: 🇹🇼 台湾 - 自动回退
     <<: *FallBack
-    filter: "台|湾|TW|(?i)Taiwan"
+    filter: *FilterTW
 
   - name: 🌏 其他 - 自动回退
     <<: *FallBack
-    filter: "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|台|湾|Taiwan|Wan|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|United States|America|美国|🇰🇷|KR|Korea|韩国|韓)).*$"
+    filter: *FilterOT
 
   # ========== 地区节点 - 手动选择 ==========
   - name: 🇭🇰 香港节点
     type: select
-    filter: "港|HK|(?i)Hong"
+    filter: *FilterHK
     include-all: true
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/HK.png
 
   - name: 🇯🇵 日本节点
     type: select
-    filter: "日|东京|JP|(?i)Japan"
+    filter: *FilterJP
     include-all: true
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/JP.png
 
-  - name: 🇰🇷 韩国节点
-    type: select
-    filter: "韩国|韩|KR|🇰🇷|(?i)Korea"
-    include-all: true
-    icon: https://raw.githubusercontent.com/Centralmatrix3/Matrix-io/master/Gallery/Color/KR.png
-
   - name: 🇸🇬 狮城节点
     type: select
-    filter: "新|坡|SG|(?i)Singapore"
+    filter: *FilterSG
     include-all: true
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/SG.png
 
   - name: 🇺🇸 美国节点
     type: select
-    filter: "美|US|(?i)States|American"
+    filter: *FilterUS
     include-all: true
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/US.png
 
   - name: 🇹🇼 台湾节点
     type: select
-    filter: "台|湾|TW|(?i)Taiwan"
+    filter: *FilterTW
     include-all: true
     icon: https://raw.githubusercontent.com/Orz-3/mini/master/Color/TW.png
 
   - name: 🌏 其他节点
     type: select
-    filter: "^(?!.*(🇭🇰|HK|Hong|香港|🇹🇼|TW|Taiwan|Wan|台|湾|🇯🇵|JP|Japan|日本|🇸🇬|SG|Singapore|狮城|🇺🇸|US|United States|America|美国|🇰🇷|KR|Korea|韩国|韓)).*$"
+    filter: *FilterOT
     include-all: true
     icon: https://raw.githubusercontent.com/Centralmatrix3/Matrix-io/master/Gallery/Color/Area.png
 
@@ -633,7 +624,7 @@ rule-providers:
     url: https://ruleset.skk.moe/Clash/non_ip/cdn.txt
     path: ./ruleset/cdn_non_ip.txt
 
-  # ========== AI 服务规则 ==========
+  # ========== AI 服务规则 (细化) ==========
   ai_non_ip:
     <<: *RuleSet_Classical
     url: https://ruleset.skk.moe/Clash/non_ip/ai.txt
@@ -675,7 +666,7 @@ rule-providers:
     url: https://ruleset.skk.moe/Clash/ip/telegram.txt
     path: ./ruleset/telegram_ip.txt
 
-  # ========== 社交与谷歌 (补全) ==========
+  # ========== 社交与谷歌 ==========
   Twitter:
     <<: *RuleSet_Yaml
     url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Twitter/Twitter.yaml"
@@ -733,12 +724,7 @@ rule-providers:
     url: https://ruleset.skk.moe/Clash/non_ip/microsoft.txt
     path: ./ruleset/microsoft_non_ip.txt
 
-  # ========== 哔哩哔哩规则 ==========
-  BiliBili:
-    <<: *RuleSet_Yaml
-    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/BiliBili/BiliBili.yaml
-    path: ./ruleset/BiliBili.yaml
-
+  # ========== Bahamut规则 ==========
   Bahamut:
     <<: *RuleSet_Yaml
     url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Bahamut/Bahamut.yaml
@@ -817,20 +803,24 @@ rule-providers:
 
 # **=============================== 分流规则 ===============================**
 rules:
-  # ========== 自定义直连规则 ==========
-  - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
+  # ========== 1. Tailscale 防泄漏 (完整配置) ==========
+  - PROCESS-NAME,tailscale.exe,DIRECT
+  - PROCESS-NAME,tailscaled.exe,DIRECT
+  - PROCESS-NAME,tailscaled,DIRECT
   - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
   - DOMAIN-SUFFIX,ts.net,DIRECT
   - DOMAIN-KEYWORD,tailscale,DIRECT
+
+  # ========== 2. 用户自定义直连规则 ==========
+  - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
   - DOMAIN-SUFFIX,guoker.org,DIRECT
   - DOMAIN-SUFFIX,gying.net,DIRECT
-  - DOMAIN-SUFFIX,yunwu.ai,DIRECT
   - DOMAIN-SUFFIX,smardaten.com,DIRECT
   - DOMAIN-SUFFIX,openrouter.ai,DIRECT
   - DOMAIN-SUFFIX,right.codes,DIRECT
   - DOMAIN-SUFFIX,juejin.cn,DIRECT
 
-  # ========== 自定义代理规则 ==========
+  # ========== 3. 用户自定义代理规则 ==========
   - DOMAIN-SUFFIX,coze.com,🌍 全球加速
   - DOMAIN-SUFFIX,ouonetwork.com,🌍 全球加速
   - DOMAIN-SUFFIX,cauenvao.click,🌍 全球加速
@@ -839,15 +829,16 @@ rules:
   - DOMAIN-SUFFIX,qinzhiai.com,🌍 全球加速
   - DOMAIN-SUFFIX,makerworld.com,🌍 全球加速
   - DOMAIN-SUFFIX,openlist.team,🌍 全球加速
+  - DOMAIN-SUFFIX,marketplace.jetbrains.com,🌍 全球加速
 
-  # ========== 广告拦截规则 ==========
+  # ========== 4. 广告拦截规则 ==========
   - RULE-SET,reject_non_ip,REJECT
   - RULE-SET,reject_domainset,REJECT
   - RULE-SET,reject_non_ip_drop,REJECT-DROP
   - RULE-SET,reject_non_ip_no_drop,REJECT
   - RULE-SET,reject_ip,REJECT
 
-  # ========== AI 服务规则 ==========
+  # ========== 5. AI 服务规则 (细化保留) ==========
   - DOMAIN-KEYWORD,antigravity,🤖 人工智能
   - DOMAIN-SUFFIX,grok.com,🤖 人工智能
   - DOMAIN-SUFFIX,cici.com,🤖 人工智能
@@ -856,14 +847,20 @@ rules:
   - DOMAIN-SUFFIX,trae.ai,🤖 人工智能
   - DOMAIN-SUFFIX,marscode.com,🤖 人工智能
   - DOMAIN-SUFFIX,lmarena.ai,🤖 人工智能
+  - DOMAIN-SUFFIX,perplexity.ai,🤖 人工智能
+  - DOMAIN-SUFFIX,poe.com,🤖 人工智能
+  - DOMAIN-SUFFIX,cursor.sh,🤖 人工智能
+  - DOMAIN-SUFFIX,cursor.com,🤖 人工智能
+  - DOMAIN-SUFFIX,suno.ai,🤖 人工智能
+  - DOMAIN-SUFFIX,midjourney.com,🤖 人工智能
   - RULE-SET,OpenAi,🤖 人工智能
   - RULE-SET,Copilot,🤖 人工智能
-  - RULE-SET,Gemini,🤖 人工智能
+  - RULE-SET,Gemini,🔍 谷歌服务
   - RULE-SET,Anthropic,🤖 人工智能
   - RULE-SET,Claude,🤖 人工智能
   - RULE-SET,ai_non_ip,🤖 人工智能
 
-  # ========== 社交与核心服务 ==========
+  # ========== 6. 社交与核心服务 ==========
   - RULE-SET,Twitter,🐦 推特服务
   - RULE-SET,telegram_non_ip,✈️ 电报消息
   - RULE-SET,telegram_ip,✈️ 电报消息
@@ -872,34 +869,33 @@ rules:
   - RULE-SET,YouTube,🎬 国际媒体
   - RULE-SET,YouTubeMusic,🎬 国际媒体
 
-  # ========== 微软与苹果服务 ==========
+  # ========== 7. 微软与苹果服务 ==========
   - RULE-SET,apple_cdn,DIRECT
   - RULE-SET,apple_cn_non_ip,DIRECT
   - RULE-SET,apple_services,🍎 苹果服务
   - RULE-SET,microsoft_cdn_non_ip,DIRECT
   - RULE-SET,microsoft_non_ip,Ⓜ️ 微软服务
 
-  # ========== 其他服务 ==========
+  # ========== 8. 其他服务 ==========
   - RULE-SET,Github,🌍 全球加速
   - RULE-SET,Game,🎮 游戏平台
 
-  # ========== 流媒体规则 ==========
-  - RULE-SET,BiliBili,📺 哔哩哔哩
+  # ========== 9. 流媒体规则 ==========
   - RULE-SET,Bahamut,📺 哔哩哔哩
   - RULE-SET,Netflix,🎬 国际媒体
   - RULE-SET,stream_non_ip,🎬 国际媒体
   - RULE-SET,stream_ip,🎬 国际媒体
 
-  # ========== CDN与下载 (后置防误杀) ==========
+  # ========== 10. CDN与下载 (后置防误杀) ==========
   - RULE-SET,cdn_domainset,🎯 节点选择
   - RULE-SET,cdn_non_ip,🎯 节点选择
   - RULE-SET,download_domainset,🎯 节点选择
   - RULE-SET,download_non_ip,🎯 节点选择
 
-  # ========== 全球代理规则 ==========
+  # ========== 11. 全球代理规则 ==========
   - RULE-SET,global_non_ip,🌍 全球加速
 
-  # ========== 国内与直连规则 ==========
+  # ========== 12. 国内与直连规则 ==========
   - RULE-SET,domestic_non_ip,DIRECT
   - RULE-SET,direct_non_ip,DIRECT
   - RULE-SET,lan_non_ip,DIRECT
@@ -909,5 +905,5 @@ rules:
   - GEOIP,private,DIRECT,no-resolve
   - GEOIP,CN,DIRECT,no-resolve
 
-  # ========== 兜底规则 ==========
+  # ========== 13. 兜底规则 ==========
   - MATCH,🎯 兜底分流
