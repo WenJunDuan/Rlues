@@ -724,7 +724,7 @@ rule-providers:
     url: https://ruleset.skk.moe/Clash/non_ip/microsoft.txt
     path: ./ruleset/microsoft_non_ip.txt
 
-  # ========== Bahamut规则 ==========
+  # ========== 哔哩哔哩规则 ==========
   Bahamut:
     <<: *RuleSet_Yaml
     url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Bahamut/Bahamut.yaml
@@ -839,7 +839,7 @@ rules:
   - RULE-SET,reject_ip,REJECT
 
   # ========== 5. AI 服务规则 (细化保留) ==========
-  - DOMAIN-KEYWORD,antigravity,🤖 人工智能
+  - DOMAIN-KEYWORD,antigravity,🔍 谷歌服务
   - DOMAIN-SUFFIX,grok.com,🤖 人工智能
   - DOMAIN-SUFFIX,cici.com,🤖 人工智能
   - DOMAIN-SUFFIX,instcopilot-api.com,🤖 人工智能
@@ -887,10 +887,10 @@ rules:
   - RULE-SET,stream_ip,🎬 国际媒体
 
   # ========== 10. CDN与下载 (后置防误杀) ==========
-  - RULE-SET,cdn_domainset,🎯 节点选择
-  - RULE-SET,cdn_non_ip,🎯 节点选择
-  - RULE-SET,download_domainset,🎯 节点选择
-  - RULE-SET,download_non_ip,🎯 节点选择
+  - RULE-SET,cdn_domainset,DIRECT
+  - RULE-SET,cdn_non_ip,DIRECT
+  - RULE-SET,download_domainset,DIRECT
+  - RULE-SET,download_non_ip,DIRECT
 
   # ========== 11. 全球代理规则 ==========
   - RULE-SET,global_non_ip,🌍 全球加速
