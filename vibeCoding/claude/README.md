@@ -1,214 +1,122 @@
-# VibeCoding Kernel v7.9.1
+# VibeCoding Kernel v8.0
 
 > **"Talk is cheap. Show me the code."** — Linus Torvalds
 
-AI 编程协作系统，整合 everything-claude-code 精华特性。
+AI 编程协作系统。支持 Claude Code / Codex CLI 双平台，Agent Teams 并行协作。
 
-## 🚀 Quick Install
-
-### Linux / macOS
-```bash
-git clone https://github.com/your-repo/vibecoding-kernel.git
-cd vibecoding-kernel
-./install.sh
-```
-
-### Windows (PowerShell)
-```powershell
-git clone https://github.com/your-repo/vibecoding-kernel.git
-cd vibecoding-kernel
-.\install.ps1
-```
-
-## ✨ v7.9 New Features
-
-| Feature | Description |
-|:---|:---|
-| **Instinct-based Learning** | 自动学习编码模式，带置信度评分 |
-| **Cunzhi MCP** | 使用 cunzhi MCP 进行寸止确认 |
-| **Context7 CLI** | 使用 `npx ctx7` 替代 MCP |
-| **Rules System** | 6 个核心规则文件 |
-| **Iterative Retrieval** | 渐进式上下文加载 |
-| **Eval Harness** | 验证循环评估框架 |
-| **Cross-platform Hooks** | Node.js 跨平台 hooks |
-
-## 📋 Quick Start
+## 快速开始
 
 ```bash
-# 1. Initialize project
+# 安装
+./install.sh          # Linux/macOS
+.\install.ps1         # Windows
+
+# 在项目中使用
 cd your-project
-vibe-init
-
-# 2. Start development
-vibe-dev "implement user authentication"
-
-# 3. Core commands
-vibe-plan       # 任务规划 (知识库 + 经验)
-vibe-review     # 代码审查 (质量 + 安全)
-learn           # 提取会话模式
-checkpoint      # 保存验证状态
-verify          # 运行验证循环
-
-# 4. Instinct commands (NEW)
-instinct-status    # 查看学习的 instincts
-instinct-export    # 导出 instincts
-instinct-import    # 导入团队 instincts
-evolve             # 将 instincts 演化为 skills
+vibe-init              # 初始化
+vibe-dev "任务描述"     # 开发
+vibe-plan "功能需求"    # 规划
+vibe-review            # 审查
+vibe-todos             # 查看看板
+vibe-dev --team "大型重构"  # Agent Teams 并行
 ```
 
-## 🏗️ Architecture
+## v8.0 核心变更
+
+### 对比 v7.9.1
+
+| 特性 | v7.9.1 | v8.0 |
+|:---|:---|:---|
+| 上下文 | 200K | 1M (beta) |
+| 思维模式 | Extended Thinking (手动 budget) | Adaptive Thinking (4 档 effort) |
+| 并行 | 单 Agent | Agent Teams (多 Agent 协作) |
+| 路由 | P.A.C.E. 3 路径 | P.A.C.E. v2.0 (4 路径 + Path D) |
+| 状态管理 | active_context.md 单文件 | plan/todo/doing/done/archive 五文件 |
+| 压缩策略 | 紧急 compact | Smart Archive + 服务端 Compaction |
+| sequential-thinking | MCP 依赖 | 已移除，Adaptive Thinking 替代 |
+| 模型路由 | 手动选择 | Model Router 自动路由 |
+
+### .ai_state 状态体系
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  用户层        用户输入 / vibe-dev "新功能"                      │
-├─────────────────────────────────────────────────────────────────┤
-│  Command层     vibe-* 增强官方 / 纯自定义指令                    │
-├─────────────────────────────────────────────────────────────────┤
-│  Agent决策层   phase-router → 功能导向 Agents                    │
-├─────────────────────────────────────────────────────────────────┤
-│  Skill执行层   context7 / knowledge-base / experience / riper   │
-├─────────────────────────────────────────────────────────────────┤
-│  数据存储层    .ai_state/ + .knowledge/ + instincts/            │
-└─────────────────────────────────────────────────────────────────┘
+project_root/.ai_state/
+├── plan.md          # 方案计划
+├── todo.md          # 待办任务
+├── doing.md         # 进行中 (max 3 并行)
+├── done.md          # 已完成
+├── archive.md       # 历史归档
+├── decisions.md     # 架构决策 (ADR)
+├── conventions.md   # 项目约定 + 用户纠正
+└── session.md       # 会话状态
 ```
 
-## 📁 Directory Structure
+### P.A.C.E. v2.0 路由
 
-```
-.claude/
-├── CLAUDE.md              # 核心原则 (7条铁律)
-├── orchestrator.yaml      # 配置
-├── skills/                # 16 个 Skills
-│   ├── context7/          # 库文档 (CLI)
-│   ├── continuous-learning-v2/  # Instinct 学习
-│   ├── iterative-retrieval/     # 渐进式上下文
-│   ├── eval-harness/      # 评估框架
-│   ├── cunzhi/            # 寸止 (MCP)
-│   └── ...
-├── agents/                # 7 个 Agents
-│   ├── planner.md         # 计划制定
-│   ├── security-reviewer.md  # 安全审查
-│   └── ...
-├── commands/              # 11 个命令
-├── rules/                 # 6 个规则
-│   ├── security.md
-│   ├── coding-style.md
-│   ├── testing.md
-│   ├── git-workflow.md
-│   ├── agents.md
-│   └── performance.md
-├── contexts/              # 动态上下文
-├── workflows/             # PACE + 九步流程
-├── hooks/                 # Hook 配置
-│   └── hooks.json
-└── templates/             # 项目模板
+| 路径 | 条件 | effort | 执行方式 |
+|:---|:---|:---|:---|
+| A | 单文件, <30行 | low | 快速修复 |
+| B | 2-10文件 | medium | 计划开发 |
+| C | >10文件 | high/max | 完整九步 |
+| D | 架构级, 可并行 | max | Agent Teams |
 
-scripts/
-├── lib/
-│   └── utils.js           # 跨平台工具
-└── hooks/
-    ├── session-start.js
-    ├── session-end.js
-    └── pre-compact.js
-```
+### MCP 工具
 
-## 🔧 Skills Overview
+Claude Code: `augment-context-engine`, `cunzhi`, `mcp-deepwiki`
 
-### Core Skills
-| Skill | Purpose |
+Codex CLI: 上述 + `chrome-devtools`, `desktop-commander`
+
+## 指令体系
+
+### 增强官方 (先调用官方再增强)
+
+| 指令 | 官方基础 | 增强 |
+|:---|:---|:---|
+| vibe-init | /init | + .ai_state + .knowledge |
+| vibe-plan | /plan | + KB + EXP + effort |
+| vibe-todos | /todos | + 三态流转 |
+| vibe-review | /review | + 质量 + 安全 |
+| vibe-status | /status | + 全状态汇报 |
+| vibe-resume | /resume | + 上下文恢复 |
+
+### 纯自定义
+
+| 指令 | 用途 |
 |:---|:---|
-| `phase-router` | 意图识别和路由 |
-| `knowledge-base` | 外部知识库读取 |
-| `experience` | 经验检索和沉淀 |
-| `riper` | RIPER 五步工作流 |
-| `cunzhi` | 寸止协议 (MCP) |
+| vibe-dev | 智能开发入口 |
+| vibe-verify | 验证循环 |
+| vibe-learn | 模式学习 |
+| vibe-checkpoint | 检查点 |
+| vibe-exp | 经验操作 |
+| vibe-kb | 知识库操作 |
+| vibe-pause | 暂停 |
+| vibe-archive | 归档 |
 
-### Enhanced Skills (v7.9)
-| Skill | Purpose |
-|:---|:---|
-| `context7` | 库文档获取 (CLI) |
-| `continuous-learning-v2` | Instinct-based 学习 |
-| `iterative-retrieval` | 渐进式上下文 |
-| `eval-harness` | 评估框架 |
-| `verification-loop` | 检查点验证 |
-| `strategic-compact` | 智能压缩建议 |
+## 按需加载架构
 
-## 📜 Rules System
-
-v7.9 引入完整的 Rules 系统：
-
-| Rule | Purpose |
-|:---|:---|
-| `security.md` | 安全检查（无硬编码密钥、输入验证） |
-| `coding-style.md` | 代码风格（不可变性、小函数） |
-| `testing.md` | 测试规范（TDD、80%覆盖率） |
-| `git-workflow.md` | Git 流程（提交格式、PR 要求） |
-| `agents.md` | Agent 委托规则 |
-| `performance.md` | 性能优化（模型选择、上下文管理） |
-
-## 🔄 Instinct System
-
-### 什么是 Instincts?
-
-Instincts 是从编码会话中自动学习的微模式：
-- 轻量级 - 单一模式，最小上下文
-- 置信度评分 - 跟踪成功率
-- 可演化 - 成熟后聚类为 skills
-
-### Workflow
-
-```bash
-# 1. 自动学习（会话中自动捕获）
-
-# 2. 查看状态
-instinct-status
-
-# 3. 导出分享
-instinct-export --min-confidence=0.8
-
-# 4. 团队导入
-instinct-import team-patterns.json
-
-# 5. 演化为 skill
-evolve --tags=authentication
+```
+CLAUDE.md (铁律) → P.A.C.E. 路由 → 对应 skill → 专项 skill
 ```
 
-## 🔗 MCP Configuration
+每次只加载需要的部分，不预加载，不堆积。
 
-v7.9 需要的 MCP：
+## 版本历史
 
-```json
-{
-  "mcpServers": {
-    "cunzhi": {
-      "command": "your-cunzhi-mcp-command",
-      "description": "寸止确认 MCP"
-    },
-    "sequential-thinking": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/sequential-thinking-mcp"],
-      "optional": true
-    }
-  }
-}
-```
+### v8.0 (当前)
+- Adaptive Thinking 替代 sequential-thinking
+- Agent Teams 并行协作 (Path D)
+- Model Router 智能路由
+- .ai_state 五文件状态体系
+- Smart Archive 替代 strategic-compact
+- 所有自定义指令统一 vibe- 前缀
+- 增强指令必须先调用官方版本
+- P.A.C.E. v2.0 四路径路由
 
-## 🔀 Migration from v7.8
+### v7.9.1
+- Instinct-based Learning
+- Cunzhi MCP Integration
+- Context7 CLI Support
+- Cross-platform Hooks
 
-主要变更：
-1. **移除 context7 MCP** → 改用 `npx ctx7` CLI
-2. **移除 mcp-feedback-enhanced** → 改用 cunzhi MCP
-3. **移除 promptx** → 不再需要
-4. **新增 Rules** → 6 个规则文件
-5. **新增 Instincts** → continuous-learning-v2
-
-## 📚 Credits
-
-- [everything-claude-code](https://github.com/affaan-m/everything-claude-code) - Instinct 系统、Rules 概念
-- [Context7](https://context7.com) - 库文档系统
-- Linus Torvalds - 工程哲学
-- Boris Cherny - Claude Code 技术
-
-## 📄 License
+## License
 
 MIT

@@ -1,0 +1,96 @@
+{
+  "codemossProviderId": "",
+  "disabledMcpServers": [],
+  "enabledPlugins": {
+    "claude-opus-4-5-migration@claude-official": true,
+    "code-review@claude-official": true,
+    "commit-commands@claude-official": true,
+    "explanatory-output-style@claude-official": false,
+    "feature-dev@claude-official": true,
+    "frontend-design@claude-official": true,
+    "hookify@claude-official": true,
+    "learning-output-style@claude-official": false,
+    "plugin-dev@claude-official": true,
+    "pr-review-toolkit@claude-official": true,
+    "ralph-wiggum@claude-official": false,
+    "security-guidance@claude-official": true
+  },
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "",
+    "ANTHROPIC_BASE_URL": "",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "",
+    "ANTHROPIC_MODEL": "",
+    "API_TIMEOUT_MS": "3000000",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "LANGUAGE": "zh-Hans",
+    "LC_ALL": "zh-Hans"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npx ctx7*)",
+      "Bash(cunzhi *)",
+      "Bash(npm *)",
+      "Bash(node scripts/*)",
+      "Bash(git *)",
+      "Bash(grep *)",
+      "Bash(find *)"
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "claude-community": {
+      "source": {
+        "repo": "anthropics/claude-code-community-plugins",
+        "source": "github"
+      }
+    },
+    "claude-official": {
+      "source": {
+        "repo": "anthropics/claude-code-plugins",
+        "source": "github"
+      }
+    },
+    "claude-local": {
+      "source": {
+        "path": "~/claude-plugins/official",
+        "source": "local"
+      }
+    }
+  },
+  "mcpServers": {
+    "augment-context-engine": {
+      "args": [
+        "ace-tool-rs",
+        "--base-url",
+        "https://acemcp.heroman.wtf/relay/",
+        "--token",
+        ""
+      ],
+      "command": "npx"
+    },
+    "context7": {
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        ""
+      ],
+      "command": "npx",
+      "type": "stdio"
+    },
+    "cunzhi": {
+      "args": [],
+      "command": "E:\\CodeTool\\AICode\\cunzhi-cli\\寸止.exe",
+      "type": "stdio"
+    },
+    "mcp-deepwiki": {
+      "args": [
+        "-y",
+        "mcp-deepwiki@latest"
+      ],
+      "command": "npx",
+      "type": "stdio"
+    }
+  }
+}

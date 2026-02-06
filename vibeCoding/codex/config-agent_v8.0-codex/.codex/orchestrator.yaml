@@ -1,0 +1,122 @@
+version: "8.0.0"
+platform: "codex-cli"
+codename: "VibeCoding Kernel"
+
+# Model Configuration
+model:
+  primary: "gpt-5.3-codex"
+  thinking: "adaptive"   # adaptive replaces extended thinking
+  effort_default: "high"
+  max_output_tokens: 128000
+  context_window: "1M-beta"
+
+# MCP Tools (Claude Code)
+mcp:
+  enabled:
+    - augment-context-engine   # sou: semantic code search
+    - cunzhi                   # 寸止: confirmation points
+    - mcp-deepwiki             # tech documentation
+  removed:
+    - sequential-thinking      # replaced by adaptive thinking effort=max
+    - memory                   # replaced by .ai_state file system
+    - mcp-feedback-enhanced    # replaced by cunzhi
+    - context7-mcp             # replaced by context7 CLI skill
+    - promptx                  # replaced by skills system
+
+# .ai_state Schema
+state:
+  directory: ".ai_state"
+  files:
+    plan: "plan.md"           # RIPER-I output: solution design
+    todo: "todo.md"           # task backlog
+    doing: "doing.md"         # work in progress
+    done: "done.md"           # completed tasks
+    archive: "archive.md"     # historical archive
+    decisions: "decisions.md" # ADR records
+    conventions: "conventions.md" # project rules + user corrections
+    session: "session.md"     # session lock + context summary
+
+# P.A.C.E. v2.0 Routing
+pace:
+  path_a:
+    condition: "single file, <30 lines"
+    effort: "low"
+    workflow: "R1 → E → R2"
+    cunzhi: "end only"
+  path_b:
+    condition: "2-10 files"
+    effort: "medium"
+    workflow: "R1 → I → P → E → R2"
+    cunzhi: "plan + end"
+  path_c:
+    condition: ">10 files, cross-module"
+    effort: "high"
+    workflow: "full nine-step"
+    cunzhi: "each phase"
+  path_d:
+    condition: "architecture-level, parallelizable"
+    effort: "max"
+    workflow: "Agent Teams orchestration"
+    cunzhi: "lead agent gates"
+    requires: "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1"
+
+# Context Management (1M era)
+context:
+  thresholds:
+    normal: "0-200K"
+    monitor: "200K-500K"    # enable compaction monitoring
+    archive: "500K-800K"    # smart-archive skill triggers
+    split: "800K+"          # auto-split to Agent Teams
+  compaction: "server-side"  # use API compaction, not manual
+
+# Agent Teams (Research Preview)
+agent_teams:
+  enabled: true
+  experimental: true
+  config_dir: "~/.claude/teams"
+  max_teammates: 5
+  lead_cunzhi: true         # lead agent must cunzhi at key points
+
+# Skills (18 total)
+skills:
+  core:
+    - phase-router           # P.A.C.E. routing
+    - riper                  # RIPER execution cycle
+    - cunzhi                 # confirmation points
+    - verification-loop      # verify-fix-retry loop
+  knowledge:
+    - knowledge-base         # project knowledge
+    - experience             # learned patterns
+    - context7               # library docs (CLI)
+  learning:
+    - continuous-learning    # v1 basic
+    - continuous-learning-v2 # v2 instinct system
+  quality:
+    - code-quality           # Linus taste check
+    - eval-harness           # evaluation framework
+  context:
+    - smart-archive          # intelligent archiving (was strategic-compact)
+    - iterative-retrieval    # large context retrieval
+  orchestration:
+    - agent-teams            # Agent Teams coordination
+    - model-router           # Claude/Codex task routing
+    - service-analysis       # service boundary analysis
+
+# Commands (14 total, all vibe- prefixed)
+commands:
+  enhanced_official:
+    - vibe-init              # /init + .ai_state + .knowledge
+    - vibe-plan              # /plan + KB + EXP + effort
+    - vibe-todos             # /todos + three-state flow
+    - vibe-review            # /review + quality + security
+    - vibe-status            # /status + full state report
+    - vibe-resume            # /resume + context restore
+  custom:
+    - vibe-dev               # smart entry (P.A.C.E. routing)
+    - vibe-verify            # verification loop
+    - vibe-learn             # pattern extraction
+    - vibe-checkpoint        # manual checkpoint
+    - vibe-exp               # experience operations
+    - vibe-kb                # knowledge base operations
+    - vibe-pause             # pause workflow
+    - vibe-archive           # manual archive done→archive

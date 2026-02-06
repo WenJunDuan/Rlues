@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "tool == 'Write' && tool_input.file_path matches '\\.(ts|tsx|js|jsx)$'",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const p=process.env.file_path||'';if(fs.existsSync(p)){const c=fs.readFileSync(p,'utf8');if(/console\\.log/.test(c))console.error('[Hook] Remove console.log before commit')}\"",
+            "description": "Warn about console.log in source files"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "tool == 'Write' && tool_input.file_path matches '\\.(ts|tsx)$'",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.error('[Hook] Consider running: npx tsc --noEmit')\"",
+            "async": true,
+            "description": "Suggest type check after TypeScript write"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "stop_reason == 'user_interrupt'",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/session-end.js",
+            "description": "Save state on session interrupt"
+          }
+        ]
+      }
+    ]
+  }
+}
