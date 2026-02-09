@@ -1,5 +1,6 @@
 ---
 name: brainstorm
+description: "R/D phase enhancement: Socratic questioning, ADR writing, and design confirmation via cunzhi"
 ---
 
 # Brainstorm (R/D 阶段增强)

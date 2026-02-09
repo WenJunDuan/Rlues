@@ -1,5 +1,6 @@
 ---
 name: verification
+description: "Path-conditional verification checklist (basic/standard/strict) with retry loop"
 ---
 
 # 验证循环

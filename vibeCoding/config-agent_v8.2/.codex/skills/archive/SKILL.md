@@ -1,5 +1,6 @@
 ---
 name: archive
+description: "Context threshold management and done task archival for long sessions"
 ---
 
 # 归档与上下文管理

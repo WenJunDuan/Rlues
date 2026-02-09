@@ -1,5 +1,6 @@
 ---
 name: context7
+description: "Library documentation query via ctx7 CLI with deepwiki fallback"
 context: fork
 allowed-tools:
   - Bash(npx ctx7*)

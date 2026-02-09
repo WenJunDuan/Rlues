@@ -1,5 +1,6 @@
 ---
 name: debugging
+description: "Systematic four-phase debugging: reproduce, locate, fix, verify with chrome-devtools"
 ---
 
 # 系统化调试

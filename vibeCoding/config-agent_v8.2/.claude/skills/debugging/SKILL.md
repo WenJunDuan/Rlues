@@ -1,5 +1,6 @@
 ---
 name: debugging
+description: "Systematic four-phase debugging: reproduce, locate, fix, verify"
 ---
 
 # 系统化调试

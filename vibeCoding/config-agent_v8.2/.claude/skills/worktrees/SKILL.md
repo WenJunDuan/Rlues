@@ -1,5 +1,6 @@
 ---
 name: worktrees
+description: "Git worktree isolation for Path C/D development with branch strategy"
 ---
 
 # Git Worktrees

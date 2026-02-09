@@ -1,5 +1,6 @@
 ---
 name: knowledge
+description: "Experience extraction and knowledge base management with instinct scoring"
 ---
 
 # 知识与经验管理

@@ -1,5 +1,6 @@
 ---
 name: tdd
+description: "Test-Driven Development with RED-GREEN-REFACTOR cycle and commit strategy per Path"
 ---
 
 # TDD (RED-GREEN-REFACTOR)

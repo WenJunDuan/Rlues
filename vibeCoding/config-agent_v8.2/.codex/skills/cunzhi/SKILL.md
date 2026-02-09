@@ -1,5 +1,6 @@
 ---
 name: cunzhi
+description: "Checkpoint-based pause and confirm system using cunzhi MCP for quality gates"
 ---
 
 # 寸止 (Cunzhi)

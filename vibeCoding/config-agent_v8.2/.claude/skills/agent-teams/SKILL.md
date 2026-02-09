@@ -1,5 +1,6 @@
 ---
 name: agent-teams
+description: "Path D parallel execution with Lead-Teammate architecture and context handoff"
 ---
 
 # Agent Teams (Path D)

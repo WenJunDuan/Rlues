@@ -1,5 +1,6 @@
 ---
 name: code-quality
+description: "Linus-style six-dimension code review with official plugins and security scanning"
 ---
 
 # Code Quality (Linus Taste)
