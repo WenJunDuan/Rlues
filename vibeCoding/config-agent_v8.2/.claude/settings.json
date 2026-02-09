@@ -1,0 +1,49 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "API_TIMEOUT_MS": "3000000",
+    "LANGUAGE": "zh-Hans"
+  },
+  "permissions": {
+    "allow": [
+      "npx ctx7*",
+      "cunzhi *",
+      "npm *",
+      "node .claude/scripts/*",
+      "git *",
+      "grep *",
+      "find *"
+    ]
+  },
+  "plugins": {
+    "enabled": [
+      "code-review",
+      "commit-commands",
+      "feature-dev",
+      "frontend-design",
+      "hookify",
+      "plugin-dev",
+      "pr-review-toolkit",
+      "security-guidance",
+      "superpowers@superpowers-marketplace"
+    ],
+    "marketplaces": [
+      {
+        "name": "claude-official",
+        "url": "registry:claude-plugins-official"
+      },
+      {
+        "name": "claude-community",
+        "url": "registry:claude-plugins-community"
+      },
+      {
+        "name": "claude-local",
+        "url": "local:.claude/plugins"
+      },
+      {
+        "name": "superpowers-marketplace",
+        "url": "github:obra/superpowers-marketplace"
+      }
+    ]
+  }
+}

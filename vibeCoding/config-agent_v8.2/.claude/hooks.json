@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "session_start": [
+      { "command": "node .claude/scripts/hooks/session-start.js" }
+    ],
+    "session_end": [
+      { "command": "node .claude/scripts/hooks/session-end.js" }
+    ],
+    "pre_commit": [
+      { "command": "node .claude/scripts/hooks/pre-commit.js" }
+    ],
+    "context_monitor": [
+      { "command": "node .claude/scripts/hooks/context-monitor.js" }
+    ]
+  }
+}
