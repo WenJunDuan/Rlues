@@ -56,17 +56,17 @@ R(Require) → D(Discuss) → P(Plan) → C(Confirm) → E(Execute) → V(Verify
 
 ## 指令
 
-| 指令 | 用途 |
-|:---|:---|
-| `vibe-dev` | 智能开发入口 (自动路由+编排) |
-| `vibe-brainstorm` | 需求讨论+方案探索 (R+D) |
-| `vibe-plan` | 微任务拆解 (P) |
-| `vibe-review` | 质量审查 (Rev) |
-| `vibe-verify` | 验证循环 (V) |
-| `vibe-debug` | 系统化调试 |
-| `vibe-init` | 项目初始化 |
-| `vibe-status` | 全状态汇报 |
-| `vibe-resume` | 恢复上下文 |
+| 指令              | 用途                         |
+| :---------------- | :--------------------------- |
+| `vibe-dev`        | 智能开发入口 (自动路由+编排) |
+| `vibe-brainstorm` | 需求讨论+方案探索 (R+D)      |
+| `vibe-plan`       | 微任务拆解 (P)               |
+| `vibe-review`     | 质量审查 (Rev)               |
+| `vibe-verify`     | 验证循环 (V)                 |
+| `vibe-debug`      | 系统化调试                   |
+| `vibe-init`       | 项目初始化                   |
+| `vibe-status`     | 全状态汇报                   |
+| `vibe-resume`     | 恢复上下文                   |
 
 ### 官方指令直接使用
 
@@ -78,25 +78,25 @@ R(Require) → D(Discuss) → P(Plan) → C(Confirm) → E(Execute) → V(Verify
 
 ## MCP 工具
 
-| 工具 | 用途 | 调用方式 |
-|:---|:---|:---|
-| augment-context-engine | 语义搜索 (sou) | `sou.search("关键词")` |
-| cunzhi | 寸止确认 | `cunzhi.confirm({checkpoint})` |
-| mcp-deepwiki | 技术文档 | `deepwiki.query("主题")` |
+| 工具                   | 用途           | 调用方式                       |
+| :--------------------- | :------------- | :----------------------------- |
+| augment-context-engine | 语义搜索 (sou) | `sou.search("关键词")`         |
+| cunzhi                 | 寸止确认       | `cunzhi.confirm({checkpoint})` |
+| mcp-deepwiki           | 技术文档       | `deepwiki.query("主题")`       |
 
 ## 官方 Plugins
 
-| Plugin | 用途 | 调用方式 |
-|:---|:---|:---|
-| superpowers | 方法论引擎 | 自动: skill 内部触发 |
-| code-review | 代码审查 | 手动: `/review` |
-| commit-commands | Git 提交规范 | 自动: `git commit` 时 |
-| feature-dev | 功能开发工作流 | 自动: P 阶段 |
-| frontend-design | 前端 UI 设计 | 自动: 检测前端文件 |
-| hookify | React Hooks | 自动: 检测 React 组件 |
-| pr-review-toolkit | PR 级审查 | 手动: `/pr-review` |
-| security-guidance | 安全检查 | 自动: 审查时扫描 |
-| plugin-dev | 插件开发 | 自动: 检测 plugin 代码 |
+| Plugin            | 用途           | 调用方式               |
+| :---------------- | :------------- | :--------------------- |
+| superpowers       | 方法论引擎     | 自动: skill 内部触发   |
+| code-review       | 代码审查       | 手动: `/review`        |
+| commit-commands   | Git 提交规范   | 自动: `git commit` 时  |
+| feature-dev       | 功能开发工作流 | 自动: P 阶段           |
+| frontend-design   | 前端 UI 设计   | 自动: 检测前端文件     |
+| hookify           | React Hooks    | 自动: 检测 React 组件  |
+| pr-review-toolkit | PR 级审查      | 手动: `/pr-review`     |
+| security-guidance | 安全检查       | 自动: 审查时扫描       |
+| plugin-dev        | 插件开发       | 自动: 检测 plugin 代码 |
 
 具体调用时机: `workflows/pace.md` 工具激活矩阵。
 具体用法: 各 `skills/*/SKILL.md`。
