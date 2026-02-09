@@ -1,0 +1,44 @@
+model_provider = "custom"
+model = "gpt-5.3-codex"
+disable_response_storage = true
+model_reasoning_effort = "xhigh"
+personality = "pragmatic"
+
+[features]
+collab = true
+collaboration_modes = true
+unified_exec = true
+shell_snapshot = true
+powershell_utf8 = true
+steer = true
+
+[model_providers.custom]
+name = "custom"
+wire_api = "responses"
+requires_openai_auth = true
+base_url = "https://right.codes/codex/v1"
+
+[mcp_servers]
+
+[mcp_servers.mcp-deepwiki]
+type = "stdio"
+command = "npx"
+args = ["-y", "mcp-deepwiki@latest"]
+
+[mcp_servers.augment-context-engine]
+type = "stdio"
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", ""]
+
+[mcp_servers.augment-context-engine.env]
+AUGMENT_API_TOKEN = ""
+AUGMENT_API_URL = "https://acemcp.heroman.wtf/relay/"
+
+[mcp_servers."cunzhi"]
+type = "stdio"
+command = "寸止"
+
+[mcp_servers.chrome-devtools]
+type = "stdio"
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
