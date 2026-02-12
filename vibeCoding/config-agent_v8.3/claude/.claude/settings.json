@@ -1,0 +1,89 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash(npm test)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx eslint .)",
+      "Bash(npx ctx7 resolve *)",
+      "Bash(git *)",
+      "Bash(mkdir *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "mcp__cunzhi__*",
+      "mcp__augment-context-engine__*",
+      "mcp__mcp-deepwiki__*"
+    ],
+    "deny": ["Bash(rm -rf /)", "Bash(sudo *)"]
+  },
+  "plugins": {
+    "enabled": [
+      "code-review",
+      "commit-commands",
+      "feature-dev",
+      "frontend-design",
+      "hookify",
+      "plugin-dev",
+      "pr-review-toolkit",
+      "security-guidance",
+      "superpowers@superpowers-marketplace"
+    ],
+    "marketplaces": [
+      {
+        "name": "claude-official",
+        "url": "registry:claude-plugins-official"
+      },
+      {
+        "name": "claude-community",
+        "url": "registry:claude-plugins-community"
+      },
+      {
+        "name": "claude-local",
+        "url": "local:.claude/plugins"
+      },
+      {
+        "name": "superpowers-marketplace",
+        "url": "github:obra/superpowers-marketplace"
+      }
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node .claude/hooks/context-loader.js"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node .claude/hooks/delivery-gate.js",
+        "exitOnFailure": false
+      }
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "VIBECODING_VERSION": "8.3.5",
+    "VIBECODING_HOOKS_DISABLED": "0"
+  },
+  "mcpServers": {
+    "augment-context-engine": {
+      "type": "stdio",
+      "command": "augment-context-engine",
+      "note": "语义代码搜索 — R/D/E 阶段"
+    },
+    "cunzhi": {
+      "type": "stdio",
+      "command": "cunzhi",
+      "note": "人工确认检查点 — 全阶段, 不可降级"
+    },
+    "mcp-deepwiki": {
+      "type": "stdio",
+      "command": "mcp-deepwiki",
+      "note": "开源库文档查询 — R/D 阶段"
+    }
+  }
+}

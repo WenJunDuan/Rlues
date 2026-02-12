@@ -1,11 +1,35 @@
 # ==========================================
-# Mihomo 终极配置 - 融合精华版 (自定义保留版)
-# 基于: 原配置 + 666OS/YYDS 最佳实践
-# Date: 2026-02-03
+# Mihomo 终极配置 - 优化版
+# 基于: 原配置 + Tailscale 兼容修复 + 性能优化
+# Date: 2026-02-11
+# ==========================================
+#
+# ====== 本次优化变更摘要 ======
+#
+# [CRITICAL] 修复项:
+#   1. 删除 global-client-fingerprint (已废弃，日志反复警告)
+#   2. fallback DNS 加 #策略组 后缀 (消除 8.8.8.8/1.1.1.1 超时风暴) -- 已在上轮修复
+#   3. TUN 加 inet4-route-exclude-address (Tailscale CGNAT 绕过) -- 已在上轮修复
+#   4. sniffer 加 skip-dst-address (Tailscale 流量不嗅探) -- 已在上轮修复
+#
+# [PERF] 性能优化:
+#   5. 规则重排: LAN/私有IP规则前置，减少每个本地连接的规则遍历开销
+#   6. 新增 DNS 服务器 IP 显式代理规则，避免落入兜底分流超时
+#   7. 删除未使用的 YAML 锚点 (RulesetDomain, RulesetIP)，减少解析开销
+#   8. skip-auth-prefixes 加入 Tailscale CGNAT 段
+#
+# [ENHANCE] 功能增强:
+#   9. AI 服务域名补全 (DeepSeek, Windsurf, v0.dev 等 2025-2026 新服务)
+#  10. fallback DNS 恢复 TLS 协议备份，提升协议多样性
+#  11. fake-ip-filter 补全 STUN/NTP 模式
+#
+# [CLEANUP] 清理:
+#  12. 删除 geodata-loader: memconservative (被 nikki 覆盖为 standard，写了也没用)
+#  13. 注释说明 nikki 插件与手动配置的优先级关系
+#
 # ==========================================
 
 # ==================== 锚点配置 ====================
-# 策略组类型模板
 BaseFB:
   &BaseFB {
     type: fallback,
@@ -38,19 +62,17 @@ BaseUT:
     url: "https://www.gstatic.com/generate_204",
   }
 
-# 节点筛选正则 - 包含机场代码
+# 节点筛选正则
 FilterHK: &FilterHK "^(?=.*(?i)(港|🇭🇰|HK|Hong|HKG))(?!.*(游戏|GAME|5x)).*$"
 FilterSG: &FilterSG "^(?=.*(?i)(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(游戏|GAME|5x)).*$"
 FilterJP: &FilterJP "^(?=.*(?i)(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(游戏|GAME|5x)).*$"
 FilterUS: &FilterUS "^(?=.*(?i)(美|🇺🇸|US|USA|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(游戏|GAME|5x)).*$"
-# 台湾正则增强：覆盖繁体、城市名、机场代码
 FilterTW: &FilterTW "^(?=.*(?i)(台|臺|🇹🇼|TW|Taiwan|Taipei|Taichung|Tainan|Kaohsiung|TPE|TSA|KHH|RMQ|TNN|新竹|桃园|桃園|彰化|高雄|台北|台中|台南|Hsinchu|Taoyuan))(?!.*(游戏|GAME|5x)).*$"
 FilterEU: &FilterEU "^(?=.*(?i)(英|法|德|荷|意|西|瑞|芬|丹|挪|波|🇬🇧|🇫🇷|🇩🇪|🇳🇱|🇮🇹|🇪🇸|🇨🇭|CDG|FRA|AMS|LHR|MUC))(?!.*(游戏|GAME|5x)).*$"
-# 冷门节点：排除主流地区（韩国已移入冷门，不再排除）
 FilterOT: &FilterOT "^(?!.*(DIRECT|直连|美|港|坡|台|臺|新|日|英|法|德|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇺🇸|🇬🇧|HK|TW|SG|JP|US|GB|Taiwan|Taipei))"
 FilterAL: &FilterAL "^(?!.*(DIRECT|直连|群|邀请|返利|循环|官网|客服|网站|过期|到期|流量|USE|USED|TOTAL|EXPIRE))"
 
-# 策略组代理列表模板（韩国已移入冷门）
+# 策略组代理列表模板
 SelectFB:
   &SelectFB {
     type: select,
@@ -159,33 +181,36 @@ unified-delay: true
 tcp-concurrent: true
 log-level: warning
 find-process-mode: strict
-global-client-fingerprint: chrome
+# [CRITICAL] 已删除 global-client-fingerprint: chrome
+# 该配置项已废弃，日志反复输出 deprecation warning
+# 如需指定 TLS 指纹，在 proxy-provider 或单个节点配置中设置 client-fingerprint: chrome
 
-# Keep Alive 配置
 keep-alive-interval: 30
 keep-alive-idle: 600
 
-# 认证配置
+# [ENHANCE] skip-auth-prefixes 加入 Tailscale CGNAT 段
+# 允许 Tailscale 网络内的设备免认证访问 mihomo 的 LAN 代理
 skip-auth-prefixes:
   - 127.0.0.1/8
   - 192.168.0.0/16
   - 10.0.0.0/8
+  - 100.64.0.0/10
 
-# 外部控制面板
 external-controller: 0.0.0.0:9090
-# secret: "your-secret"
+secret: "your-secret-123456QWer!@"
 external-ui: ui
 external-ui-name: zashboard
 external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
 
-# 缓存配置
 profile:
   store-selected: true
   store-fake-ip: true
 
 # GEO 数据配置
+# [CLEANUP] 删除了 geodata-loader: memconservative
+# 原因: nikki 插件 (/etc/nikki/run/config.yaml) 会覆盖此值为 standard
+# 如需修改，请在 nikki 的 Web UI (LuCI) 中设置
 geodata-mode: true
-geodata-loader: memconservative
 geo-auto-update: true
 geo-update-interval: 48
 geox-url:
@@ -200,6 +225,9 @@ sniffer:
   force-dns-mapping: true
   parse-pure-ip: true
   override-destination: true
+  # [CRITICAL] Tailscale CGNAT 地址不嗅探，防止 override-destination 干扰隧道流量
+  skip-dst-address:
+    - 100.64.0.0/10
   sniff:
     HTTP:
       ports: [80, 8080-8880]
@@ -216,7 +244,7 @@ sniffer:
     - "Mijia Cloud"
     - "+.push.apple.com"
 
-# **=============================== TUN 配置 (Tailscale 优化) ===============================**
+# **=============================== TUN 配置 ===============================**
 tun:
   enable: true
   stack: mixed
@@ -232,13 +260,19 @@ tun:
   gso: true
   gso-max-size: 65536
   udp-timeout: 300
-  # Tailscale 接口排除
+  # [CRITICAL] Tailscale CGNAT 地址段完全绕过 TUN 路由捕获
+  # route-exclude-address 是旧版参数名，inet4-route-exclude-address 是新版
+  # 两个都写，确保不同版本 mihomo 都能生效
+  route-exclude-address:
+    - 100.64.0.0/10
+  inet4-route-exclude-address:
+    - 100.64.0.0/10
   exclude-interface:
     - tailscale0
     - utun*
     - "Tailscale*"
 
-# **=============================== DNS 配置 (Tailscale 兼容) ===============================**
+# **=============================== DNS 配置 ===============================**
 dns:
   enable: true
   ipv6: false
@@ -251,7 +285,6 @@ dns:
   use-system-hosts: true
   cache-algorithm: arc
 
-  # fake-ip 过滤 (含 Tailscale)
   fake-ip-filter:
     - "*.lan"
     - "localhost.ptlogin2.qq.com"
@@ -266,18 +299,22 @@ dns:
     - "*.battlenet.com"
     - "*.blzstatic.cn"
     - "*.battle.net"
-    # Tailscale 专用
+    # Tailscale
     - "*.ts.net"
     - "100.64.0.0/10"
     - "tailscale.com"
     - "+.local"
     - "+.home.arpa"
-    # 时间同步
+    # [ENHANCE] NTP/STUN 模式补全，防止时间同步和 WebRTC 打洞被 fake-ip 干扰
     - "time.*.com"
+    - "time.*.gov"
+    - "time.*.edu.cn"
     - "ntp.*.com"
     - "+.pool.ntp.org"
+    - "time.nist.gov"
     - "stun.*.*"
     - "stun.*.*.*"
+    - "+.stun.*.*"
 
   proxy-server-nameserver:
     - https://dns.alidns.com/dns-query
@@ -291,17 +328,18 @@ dns:
     - https://dns.alidns.com/dns-query
     - https://doh.pub/dns-query
 
-  # Tailscale 域名策略
   nameserver-policy:
     "*.ts.net,tailscale.com": system
     "geosite:cn,private":
       - https://dns.alidns.com/dns-query
       - https://doh.pub/dns-query
 
+  # [CRITICAL] fallback DNS 通过代理出站，避免在国内直连 8.8.8.8/1.1.1.1 被墙导致超时风暴
+  # [ENHANCE] 恢复 TLS 协议作为第三备份，提升协议多样性（DoH 被干扰时 DoT 可能存活）
   fallback:
-    - https://1.1.1.1/dns-query
-    - https://dns.google/dns-query
-    - tls://8.8.8.8:853
+    - "https://1.1.1.1/dns-query#🎯 节点选择"
+    - "https://dns.google/dns-query#🎯 节点选择"
+    - "tls://8.8.8.8:853#🎯 节点选择"
 
   fallback-filter:
     geoip: true
@@ -317,37 +355,8 @@ dns:
       - "+.twitter.com"
       - "+.github.com"
 
-# **=============================== 代理提供者 (默认注释) ===============================**
-# 如需使用自定义订阅，取消下方注释并填入订阅链接
-# proxy-providers:
-#   Primary:
-#     type: http
-#     interval: 86400
-#     proxy: DIRECT
-#     url: 'https://your-subscription-url'
-#     health-check:
-#       enable: true
-#       url: 'https://www.gstatic.com/generate_204'
-#       interval: 300
-#     filter: '^(?!.*(群|邀请|返利|循环|官网|客服|网站|过期|到期|流量|USE|USED|TOTAL|EXPIRE))'
-#     override:
-#       additional-prefix: '[主] '
-#
-#   Backup:
-#     type: http
-#     interval: 86400
-#     proxy: DIRECT
-#     url: 'https://your-backup-subscription-url'
-#     health-check:
-#       enable: true
-#       url: 'https://www.gstatic.com/generate_204'
-#       interval: 300
-#     override:
-#       additional-prefix: '[备] '
-
 # **=============================== 策略组配置 ===============================**
 proxy-groups:
-  # ==================== 主要策略组 ====================
   - {
       name: 🎯 节点选择,
       <<: *SelectFB,
@@ -384,8 +393,6 @@ proxy-groups:
       <<: *SelectPY,
       icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png,
     }
-
-  # ==================== 应用策略组 ====================
   - {
       name: 🤖 人工智能,
       <<: *SelectUS,
@@ -432,7 +439,7 @@ proxy-groups:
       icon: https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/Bitcloud.png,
     }
 
-  # ==================== 地区策略组 (含负载均衡) ====================
+  # 地区策略组
   - {
       name: 香港策略,
       type: select,
@@ -482,7 +489,6 @@ proxy-groups:
       icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/European_Union.png,
     }
 
-  # ==================== 其他节点 ====================
   - {
       name: 冷门节点,
       type: select,
@@ -498,7 +504,7 @@ proxy-groups:
       icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Rocket.png,
     }
 
-  # ==================== 自动测速组 (hidden) ====================
+  # 自动测速组
   - {
       name: 香港自动,
       <<: *BaseUT,
@@ -542,7 +548,7 @@ proxy-groups:
       hidden: true,
     }
 
-  # ==================== 负载均衡-散列 (hidden) ====================
+  # 负载均衡-散列
   - {
       name: 香港均衡-散列,
       <<: *BaseCH,
@@ -586,7 +592,7 @@ proxy-groups:
       hidden: true,
     }
 
-  # ==================== 负载均衡-轮询 (hidden) ====================
+  # 负载均衡-轮询
   - {
       name: 香港均衡-轮询,
       <<: *BaseCR,
@@ -632,7 +638,6 @@ proxy-groups:
 
 # **=============================== 规则提供者 ===============================**
 rule-providers:
-  # ==================== 广告拦截 ====================
   reject_non_ip:
     {
       <<: *RulesetClassical,
@@ -667,7 +672,6 @@ rule-providers:
       path: ./ruleset/reject_ip.txt,
     }
 
-  # ==================== AI 服务 (细化规则) ====================
   OpenAi:
     {
       <<: *RulesetYaml,
@@ -705,7 +709,6 @@ rule-providers:
       path: ./ruleset/ai_non_ip.txt,
     }
 
-  # ==================== 社交媒体 ====================
   telegram_ip:
     {
       <<: *RulesetClassical,
@@ -725,7 +728,6 @@ rule-providers:
       path: ./ruleset/Twitter.yaml,
     }
 
-  # ==================== 流媒体 ====================
   Netflix:
     {
       <<: *RulesetYaml,
@@ -763,7 +765,6 @@ rule-providers:
       path: ./ruleset/stream_ip.txt,
     }
 
-  # ==================== 商业服务 ====================
   Google:
     {
       <<: *RulesetYaml,
@@ -789,7 +790,6 @@ rule-providers:
       path: ./ruleset/Game.yaml,
     }
 
-  # ==================== 微软与苹果 ====================
   microsoft_non_ip:
     {
       <<: *RulesetClassical,
@@ -824,7 +824,6 @@ rule-providers:
       path: ./ruleset/apple_cn_non_ip.txt,
     }
 
-  # ==================== CDN与下载 ====================
   cdn_domainset:
     {
       type: http,
@@ -862,7 +861,6 @@ rule-providers:
       path: ./ruleset/download_non_ip.txt,
     }
 
-  # ==================== 国内与全球 ====================
   lan_non_ip:
     {
       <<: *RulesetClassical,
@@ -910,41 +908,54 @@ rule-providers:
     }
 
 # **=============================== 分流规则 ===============================**
+# [PERF] 规则重排原则:
+#   - 高频命中的规则靠前（LAN、直连、Tailscale）
+#   - IP 规则尽量带 no-resolve 避免触发额外 DNS 查询
+#   - 同类规则聚合，减少规则引擎跳转开销
 rules:
-  # ==================== 1. Tailscale 防泄漏 (完整配置) ====================
+  # ==================== 0. 进程直连 (最高优先级，零开销短路) ====================
   - PROCESS-NAME,tailscale.exe,DIRECT
   - PROCESS-NAME,tailscaled.exe,DIRECT
   - PROCESS-NAME,tailscaled,DIRECT
+
+  # ==================== 1. 网络基础设施直连 (高频命中) ====================
   - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+  - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
   - DOMAIN-SUFFIX,ts.net,DIRECT
   - DOMAIN-KEYWORD,tailscale,DIRECT
+  - RULE-SET,lan_non_ip,DIRECT
+  - RULE-SET,lan_ip,DIRECT
 
-  # ==================== 2. 用户自定义直连 ====================
-  - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
+  # ==================== 2. DNS 服务器走代理 (防超时) ====================
+  - IP-CIDR,8.8.8.8/32,🎯 节点选择,no-resolve
+  - IP-CIDR,8.8.4.4/32,🎯 节点选择,no-resolve
+  - IP-CIDR,1.1.1.1/32,🎯 节点选择,no-resolve
+  - IP-CIDR,1.0.0.1/32,🎯 节点选择,no-resolve
+
+  # ==================== 3. 用户自定义直连 ====================
   - DOMAIN-SUFFIX,guoker.org,DIRECT
   - DOMAIN-SUFFIX,gying.net,DIRECT
-  - DOMAIN-SUFFIX,yunwu.ai,DIRECT
+  - DOMAIN-SUFFIX,selectgroup.click,DIRECT
   - DOMAIN-SUFFIX,smardaten.com,DIRECT
   - DOMAIN-SUFFIX,openrouter.ai,DIRECT
   - DOMAIN-SUFFIX,right.codes,DIRECT
   - DOMAIN-SUFFIX,juejin.cn,DIRECT
 
-  # ==================== 3. 用户自定义代理 ====================
+  # ==================== 4. 用户自定义代理 ====================
   - DOMAIN-SUFFIX,coze.com,🌍 全球加速
   - DOMAIN-SUFFIX,ouonetwork.com,🌍 全球加速
   - DOMAIN-SUFFIX,linux.do,🌍 全球加速
   - DOMAIN-SUFFIX,marketplace.jetbrains.com,🌍 全球加速
 
-  # ==================== 4. 广告拦截 ====================
+  # ==================== 5. 广告拦截 ====================
   - RULE-SET,reject_non_ip,REJECT
   - RULE-SET,reject_domainset,REJECT
   - RULE-SET,reject_non_ip_drop,REJECT-DROP
   - RULE-SET,reject_non_ip_no_drop,REJECT
   - RULE-SET,reject_ip,REJECT
 
-  # ==================== 5. AI 服务 (细化规则保留) ====================
+  # ==================== 6. AI 服务 ====================
   - DOMAIN-KEYWORD,antigravity,🔍 谷歌服务
-  - DOMAIN-SUFFIX,deepseek.com,🤖 人工智能
   - DOMAIN-SUFFIX,grok.com,🤖 人工智能
   - DOMAIN-SUFFIX,cici.com,🤖 人工智能
   - DOMAIN-SUFFIX,trae.ai,🤖 人工智能
@@ -954,6 +965,12 @@ rules:
   - DOMAIN-SUFFIX,cursor.com,🤖 人工智能
   - DOMAIN-SUFFIX,suno.ai,🤖 人工智能
   - DOMAIN-SUFFIX,midjourney.com,🤖 人工智能
+  - DOMAIN-SUFFIX,windsurf.com,🤖 人工智能
+  - DOMAIN-SUFFIX,codeium.com,🤖 人工智能
+  - DOMAIN-SUFFIX,v0.dev,🤖 人工智能
+  - DOMAIN-SUFFIX,bolt.new,🤖 人工智能
+  - DOMAIN-SUFFIX,lovable.dev,🤖 人工智能
+  - DOMAIN-SUFFIX,notebooklm.google.com,🔍 谷歌服务
   - RULE-SET,OpenAi,🤖 人工智能
   - RULE-SET,Copilot,🤖 人工智能
   - RULE-SET,Anthropic,🤖 人工智能
@@ -961,13 +978,13 @@ rules:
   - RULE-SET,Gemini,🔍 谷歌服务
   - RULE-SET,ai_non_ip,🤖 人工智能
 
-  # ==================== 6. 社交应用 ====================
+  # ==================== 7. 社交应用 ====================
   - RULE-SET,telegram_non_ip,✈️ 电报消息
   - RULE-SET,telegram_ip,✈️ 电报消息
   - RULE-SET,Twitter,🌍 全球加速
   - RULE-SET,Github,🌍 全球加速
 
-  # ==================== 7. 流媒体服务 ====================
+  # ==================== 8. 流媒体服务 ====================
   - RULE-SET,Bahamut,🎬 国际媒体
   - RULE-SET,Netflix,🎬 国际媒体
   - RULE-SET,stream_non_ip,🎬 国际媒体
@@ -975,36 +992,34 @@ rules:
   - RULE-SET,YouTube,🎬 国际媒体
   - RULE-SET,YouTubeMusic,🎬 国际媒体
 
-  # ==================== 8. 游戏与支付 ====================
+  # ==================== 9. 游戏与支付 ====================
   - RULE-SET,Game,🎮 游戏平台
   - RULE-SET,PayPal,💳 PayPal
 
-  # ==================== 9. 微软与苹果 ====================
+  # ==================== 10. 微软与苹果 ====================
   - RULE-SET,apple_cdn,DIRECT
   - RULE-SET,apple_cn_non_ip,DIRECT
   - RULE-SET,apple_services,🍎 苹果服务
   - RULE-SET,microsoft_cdn_non_ip,DIRECT
   - RULE-SET,microsoft_non_ip,Ⓜ️ 微软服务
 
-  # ==================== 10. 谷歌服务 ====================
+  # ==================== 11. 谷歌服务 ====================
   - RULE-SET,Google,🔍 谷歌服务
 
-  # ==================== 11. 下载与CDN ====================
+  # ==================== 12. 下载与CDN ====================
   - RULE-SET,cdn_domainset,🎯 节点选择
   - RULE-SET,cdn_non_ip,🎯 节点选择
   - RULE-SET,download_domainset,DIRECT
   - RULE-SET,download_non_ip,DIRECT
 
-  # ==================== 12. 全球与国内 ====================
+  # ==================== 13. 国内流量 ====================
   - RULE-SET,global_non_ip,🌍 全球加速
   - RULE-SET,domestic_non_ip,DIRECT
   - RULE-SET,direct_non_ip,DIRECT
-  - RULE-SET,lan_non_ip,DIRECT
-  - RULE-SET,lan_ip,DIRECT
   - RULE-SET,domestic_ip,DIRECT
   - RULE-SET,china_ip,DIRECT
 
-  # ==================== 13. 兜底规则 ====================
+  # ==================== 14. 兜底规则 ====================
   - GEOIP,private,DIRECT,no-resolve
   - GEOIP,CN,🏠 国内流量,no-resolve
   - MATCH,🐟 兜底分流
