@@ -14,16 +14,22 @@ allowed-tools: Read, Write, Bash
    mkdir -p .ai_state/archive
    mkdir -p .knowledge
    ```
-3. 从模板创建初始文件:
-   - `.ai_state/session.md` — 空会话模板
-   - `.ai_state/conventions.md` — 项目规范 (从 README/package.json 推断)
-   - `.ai_state/doing.md` — 空任务追踪
-4. 扫描项目, 自动填充 conventions.md:
+3. 从 **`.claude/templates/ai-state/`** 复制模板文件到 `.ai_state/`:
+   ```bash
+   cp .claude/templates/ai-state/*.md .ai_state/
+   ```
+   模板文件: session.md, doing.md, design.md, plan.md, verified.md, review.md, conventions.md
+4. 初始化 `.knowledge/` 文件 (从 `.claude/templates/knowledge/` 复制):
+   ```bash
+   cp .claude/templates/knowledge/*.md .knowledge/
+   ```
+   文件: patterns.md, pitfalls.md, decisions.md, tools.md
+5. 扫描项目, 自动填充 `.ai_state/conventions.md`:
    - 语言/框架 (从 package.json / tsconfig / Cargo.toml 等)
    - 代码风格 (从 .eslintrc / .prettierrc 等)
    - 测试框架 (从 jest.config / vitest.config 等)
    - 构建工具 (从 vite.config / webpack.config 等)
-5. cunzhi: 确认 conventions 是否准确
+6. cunzhi: 确认 conventions 是否准确
 
 ## 幂等
 

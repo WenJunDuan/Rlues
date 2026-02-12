@@ -30,7 +30,7 @@ fi
 # 4. 复制 hooks (Node.js, 跨平台)
 if [ -d ".claude/hooks" ]; then
   mkdir -p .codex/hooks
-  cp .claude/hooks/*.js .codex/hooks/ 2>/dev/null
+  cp .claude/hooks/*.cjs .codex/hooks/ 2>/dev/null
   echo "✓ Hooks 已复制: .codex/hooks/"
 fi
 
@@ -75,6 +75,6 @@ echo "Codex CLI:"
 echo "  AGENTS.md: $([ -f AGENTS.md ] && echo '✓' || echo '✗')"
 echo "  config.toml: $([ -f .codex/config.toml ] && echo '✓' || echo '✗')"
 echo "  Skills (link): $([ -L .codex/skills ] && echo '✓' || echo '✗')"
-echo "  Hooks: $(ls .codex/hooks/*.js 2>/dev/null | wc -l | tr -d ' ') 个"
+echo "  Hooks: $(ls .codex/hooks/*.cjs 2>/dev/null | wc -l | tr -d ' ') 个"
 echo ""
 echo "=== 同步完成 ==="

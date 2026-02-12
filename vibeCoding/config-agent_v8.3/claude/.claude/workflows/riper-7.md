@@ -5,15 +5,15 @@
 
 ## 统一工具矩阵
 
-| 阶段           | MCP/工具           | Plugin (CC)                        | Skill                    | .ai_state            | cunzhi          |
-| :------------- | :----------------- | :--------------------------------- | :----------------------- | :------------------- | :-------------- |
-| **R** Research | augment + deepwiki | —                                  | brainstorm               | → session.md         | ○ C+            |
-| **D** Design   | augment + deepwiki | —                                  | brainstorm               | → design.md          | ● DESIGN_READY  |
-| **P** Plan     | augment            | feature-dev                        | —                        | → plan.md + doing.md | ● PLAN_APPROVED |
-| **E** Execute  | augment + context7 | commit-commands                    | tdd                      | ✎ doing.md           | ○ 大改动        |
-| **V** Verify   | —                  | —                                  | verification             | → verified.md        | ○ 3次失败       |
-| **Rev** Review | —                  | code-review + security + pr-review | code-quality + knowledge | → review.md          | ● REVIEW_DONE   |
-| **A** Archive  | —                  | —                                  | —                        | → archive/           | —               |
+| 阶段 | MCP/工具 | Plugin (CC) | Skill | .ai_state | cunzhi |
+|:---|:---|:---|:---|:---|:---|
+| **R** Research | augment + deepwiki | — | brainstorm | → session.md | ○ C+ |
+| **D** Design | augment + deepwiki | — | brainstorm | → design.md | ● DESIGN_READY |
+| **P** Plan | augment | feature-dev | — | → plan.md + doing.md | ● PLAN_APPROVED |
+| **E** Execute | augment + context7 | commit-commands | tdd | ✎ doing.md | ○ 大改动 |
+| **V** Verify | — | — | verification | → verified.md | ○ 3次失败 |
+| **Rev** Review | — | code-review + security + pr-review | code-quality + knowledge | → review.md | ● REVIEW_DONE |
+| **A** Archive | — | — | — | → archive/ | — |
 
 图例: ● 必须检查点 ○ 条件检查点 — 无
 
@@ -24,7 +24,6 @@ MCP 全称: augment = `augment-context-engine`, deepwiki = `mcp-deepwiki`, conte
 ## R (Research)
 
 **步骤:**
-
 1. `augment-context-engine` 搜现有代码 → 理解当前实现和模式
 2. `mcp-deepwiki` 查官方文档 → 确认 API/框架约束
 3. 读 `.knowledge/` 相关条目 → 复用历史经验
@@ -39,7 +38,6 @@ MCP 全称: augment = `augment-context-engine`, deepwiki = `mcp-deepwiki`, conte
 ## D (Design)
 
 **步骤:**
-
 1. 基于 R 阶段发现提出 2-3 方案
 2. `augment-context-engine` 搜索类似实现验证可行性
 3. 选定方案, 写 ADR (Architecture Decision Record)
@@ -54,7 +52,6 @@ MCP 全称: augment = `augment-context-engine`, deepwiki = `mcp-deepwiki`, conte
 ## P (Plan)
 
 **步骤:**
-
 1. 从 design.md 拆解为有序任务列表
 2. 每个任务: 目标 + 涉及文件 + 验收标准 + 预计时间
 3. 标注任务依赖关系和可并行项
@@ -62,7 +59,6 @@ MCP 全称: augment = `augment-context-engine`, deepwiki = `mcp-deepwiki`, conte
 5. Path D: 标注哪些任务可分给 subagent
 
 **写入:**
-
 - `.ai_state/plan.md` — 完整任务列表
 - `.ai_state/doing.md` — 当前执行任务 (初始化为第一个)
 
@@ -74,7 +70,6 @@ MCP 全称: augment = `augment-context-engine`, deepwiki = `mcp-deepwiki`, conte
 ## E (Execute)
 
 **步骤:**
-
 1. 读 `doing.md` 获取当前任务
 2. 需要库文档时: `npx ctx7 resolve <library>` 拉取
 3. 按 tdd Skill 分级策略:
@@ -95,15 +90,14 @@ MCP 全称: augment = `augment-context-engine`, deepwiki = `mcp-deepwiki`, conte
 **步骤:**
 按 verification Skill Path 分级清单执行:
 
-| Path | 检查项                                      |
-| :--- | :------------------------------------------ |
-| A    | `npm test` 通过                             |
-| B    | + `npx eslint .` clean + `npx tsc --noEmit` |
-| C    | + 覆盖率 ≥ 80% + 无 TODO/FIXME              |
-| D    | + 集成测试 + 性能基线 + 安全扫描            |
+| Path | 检查项 |
+|:---|:---|
+| A | `npm test` 通过 |
+| B | + `npx eslint .` clean + `npx tsc --noEmit` |
+| C | + 覆盖率 ≥ 80% + 无 TODO/FIXME |
+| D | + 集成测试 + 性能基线 + 安全扫描 |
 
 **失败处理:**
-
 ```
 失败 → 自动修复重试 (max 3)
   → 仍失败 → SP debugging 自动触发
@@ -118,7 +112,6 @@ MCP 全称: augment = `augment-context-engine`, deepwiki = `mcp-deepwiki`, conte
 ## Rev (Review)
 
 **步骤:**
-
 1. **CC Plugin 编排** (按顺序):
    - `code-review` plugin → 自动化审查 (6 个 sub-agent)
    - `security-guidance` plugin → 安全扫描 (Path C+)
@@ -140,7 +133,6 @@ MCP 全称: augment = `augment-context-engine`, deepwiki = `mcp-deepwiki`, conte
 ## A (Archive)
 
 **步骤:**
-
 1. 将 `.ai_state/` 当前文件移入 `.ai_state/archive/{日期}/`
 2. 更新 `.knowledge/` — 沉淀本次经验 (知识点、坑、决策)
 3. 清理 doing.md, session.md 为下一任务准备

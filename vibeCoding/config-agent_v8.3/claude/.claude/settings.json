@@ -4,14 +4,21 @@
       "Read",
       "Write",
       "Edit",
+      "Bash(node *)",
       "Bash(npm test)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
       "Bash(npx tsc --noEmit)",
-      "Bash(npx eslint .)",
+      "Bash(npx eslint *)",
       "Bash(npx ctx7 resolve *)",
       "Bash(git *)",
       "Bash(mkdir *)",
+      "Bash(cp *)",
       "Bash(cat *)",
       "Bash(ls *)",
+      "Bash(mv *)",
+      "Bash(wc *)",
+      "Bash(grep *)",
       "mcp__cunzhi__*",
       "mcp__augment-context-engine__*",
       "mcp__mcp-deepwiki__*"
@@ -53,13 +60,13 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "node .claude/hooks/context-loader.js"
+        "command": "node .claude/hooks/context-loader.cjs"
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "node .claude/hooks/delivery-gate.js",
+        "command": "node .claude/hooks/delivery-gate.cjs",
         "exitOnFailure": false
       }
     ]

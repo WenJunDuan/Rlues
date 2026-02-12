@@ -23,25 +23,25 @@
 ## Path 配置
 
 ```yaml
-Path_A: # 30 分钟内
+Path_A:  # 30 分钟内
   phases: [E, V]
   cunzhi: 无
   tdd: 跳过
   verification: npm test 通过即可
 
-Path_B: # 2-4 小时
+Path_B:  # 2-4 小时
   phases: [R, D, P, E, V, Rev]
   cunzhi: DESIGN_READY, REVIEW_DONE
   tdd: 推荐 (核心逻辑)
   verification: + lint + 类型检查
 
-Path_C: # 1-2 天
+Path_C:  # 1-2 天
   phases: [R, D, P, E, V, Rev, A]
   cunzhi: 全部必须检查点
   tdd: 强制 (全覆盖)
   verification: + 覆盖率 ≥ 80%, 无 TODO
 
-Path_D: # 1-3 周
+Path_D:  # 1-3 周
   phases: [R, D, P, E, V, Rev, A]
   cunzhi: 全部必须检查点 + 阶段间确认
   tdd: 强制 + 集成测试
@@ -52,7 +52,6 @@ Path_D: # 1-3 周
 ## 路径升级
 
 执行中发现复杂度被低估 → 立即升级路径:
-
 - 途中新增文件 > 3 个 → B 升 C
 - 发现架构影响 → 任意升 C/D
 - 需要并行开发 → 升 D

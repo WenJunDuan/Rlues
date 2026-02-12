@@ -282,7 +282,7 @@ Linus 四问:
 ### Phase 9: Delivery Gate (Stop Hook)
 
 ```
-delivery-gate.sh 自动检查:
+delivery-gate.cjs 自动检查:
   ☑ npm test 通过
   ☑ tsc --noEmit 通过
   ☑ doing.md 无 ☐
@@ -317,8 +317,8 @@ v8.3.5/
 │   ├── rules/rules.md                   (31L)    # 项目规则
 │   ├── settings.json                    (52L)    # CC 配置
 │   ├── hooks/
-│   │   ├── context-loader.sh            (35L)    # SessionStart
-│   │   └── delivery-gate.sh             (52L)    # Stop gate
+│   │   ├── context-loader.cjs            (78L)    # SessionStart
+│   │   └── delivery-gate.cjs             (109L)   # Stop gate
 │   └── templates/ai-state/              (6 files) # 模板
 │       ├── session.md / doing.md / design.md
 │       ├── plan.md / verified.md / review.md

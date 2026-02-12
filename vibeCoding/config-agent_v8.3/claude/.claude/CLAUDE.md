@@ -77,6 +77,14 @@ Plugin/MCP 不可用时, 用 AI 原生能力完成同等目标, 不报错不停�
 SP 不可用时, 按 `workflows/riper-7.md` 阶段步骤手动执行。
 cunzhi 检查点和 `.ai_state` 更新永不跳过。
 
+## 可选增强: planning-with-files
+
+如已安装 `OthmanAdi/planning-with-files`:
+- 其 PreToolUse hook 自动读 plan → 与 VibeCoding `.ai_state/plan.md` 互补
+- 其 Stop hook 阻止未完成交付 → 与 delivery-gate.cjs 互补
+- 其 `session-catchup.py` → 与 /vibe-resume 互补 (compaction 后恢复)
+- 不冲突: planning-with-files 管文件层, VibeCoding 管编排层
+
 ## 按需加载
 
 启动只读本文件 (~110 行)。需要路由读 `workflows/pace.md`。
