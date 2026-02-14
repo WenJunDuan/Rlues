@@ -21,7 +21,7 @@
 3. `npm test` / `npx tsc --noEmit` 通过
 4. commit + 更新 `.ai_state/session.md`
 
-不满足条件 → 走 PACE 路由, 读 `.claude/workflows/pace.md`。
+不满足条件 → 走 PACE 路由, 读 `.codex/workflows/pace.md`。
 
 ## MCP 工具
 
@@ -34,7 +34,7 @@
 
 ## Skills (编排参数, 按需加载)
 
-Skills 目录: `.claude/skills/` (与 Claude Code 共享)
+Skills 目录: `.codex/skills/` (与 codex Code 共享)
 
 | Skill | 内容 | 加载时机 |
 |:---|:---|:---|
@@ -52,7 +52,7 @@ Skills 目录: `.claude/skills/` (与 Claude Code 共享)
 MCP 不可用时, 用原生命令行工具完成同等目标, 不报错不停顿。
 cunzhi 检查点和 `.ai_state` 更新永不跳过。
 
-## 质量门控 (替代 Claude Code Stop Hook)
+## 质量门控 (替代 codex Code Stop Hook)
 
 完成任务前必须执行 `node .codex/hooks/delivery-gate.cjs`, 此脚本自动检查:
 1. `npm test` — 全部通过
@@ -71,6 +71,6 @@ Review 完成后, 将本次教训写入 `.knowledge/` 对应文件。
 
 ## 按需加载
 
-启动只读本文件。需要路由读 `.claude/workflows/pace.md`。
-进入阶段读 `.claude/workflows/riper-7.md`。
-触发 Skill 读 `.claude/skills/*/SKILL.md`。
+启动只读本文件。需要路由读 `.codex/workflows/pace.md`。
+进入阶段读 `.codex/workflows/riper-7.md`。
+触发 Skill 读 `.codex/skills/*/SKILL.md`。
