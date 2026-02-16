@@ -1,0 +1,48 @@
+model_provider = "custom"
+model = "gpt-5.3-codex"
+disable_response_storage = true
+model_reasoning_effort = "xhigh"
+personality = "pragmatic"
+network_access = true
+sandbox_mode = "workspace-write"
+web_search = "live"
+experimental_use_rmcp_client = true
+
+[features]
+plan_tool = true
+view_image_tool = true
+streamable_shell = false
+rmcp_client = true
+skills = true
+parallel = true
+unified_exec = true
+shell_snapshot = true
+collab = true
+steer = true
+
+[model_providers.custom]
+name = "custom"
+wire_api = "responses"
+requires_openai_auth = true
+base_url = ""
+
+[mcp_servers]
+
+[mcp_servers.mcp-deepwiki]
+type = "stdio"
+command = "npx"
+args = ["-y", "mcp-deepwiki@latest"]
+
+[mcp_servers."cunzhi"]
+type = "stdio"
+command = "寸止"
+
+[mcp_servers.chrome-devtools]
+type = "stdio"
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+
+[mcp_servers.augment-context-engine]
+type = "stdio"
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "", "--token", ""]
