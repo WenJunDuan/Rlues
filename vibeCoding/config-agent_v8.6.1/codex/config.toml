@@ -18,7 +18,7 @@ skills = true
 parallel = true
 unified_exec = true
 shell_snapshot = true
-collab = true
+multi_agent = true
 steer = true
 
 [model_providers.custom]
