@@ -19,13 +19,13 @@
 
 ### MCP
 
-| MCP | 用途 | 降级 |
-|:---|:---|:---|
-| augment-context-engine | 语义代码搜索 | grep + find |
-| chrome-devtools | 浏览器调试 | 手动测试 |
-| cunzhi | 人工确认检查点 | 对话确认 (不可跳过确认) |
-| desktop-commander | 桌面操作 | shell 命令 |
-| mcp-deepwiki | 开源库文档查询 | web search |
+| MCP                    | 用途           | 降级                    |
+| :--------------------- | :------------- | :---------------------- |
+| augment-context-engine | 语义代码搜索   | grep + find             |
+| chrome-devtools        | 浏览器调试     | 手动测试                |
+| cunzhi                 | 人工确认检查点 | 对话确认 (不可跳过确认) |
+| desktop-commander      | 桌面操作       | shell 命令              |
+| mcp-deepwiki           | 开源库文档查询 | web search              |
 
 ### 降级通则
 
@@ -39,26 +39,27 @@ MCP 不可用 → CLI 替代。全不可用 → AI 内置能力, 保持流程不
 
 ### 分级加载
 
-| Path | 加载 | 约行数 | 约 tokens |
-|:---|:---|:---|:---|
-| A | AGENTS.md | ~80L | ~150 |
-| B | + pace + riper-7 + 相关 skills | ~350L | ~600 |
-| C/D | + 全量 skills + collab parallel | ~500L | ~850 |
+| Path | 加载                            | 约行数 | 约 tokens |
+| :--- | :------------------------------ | :----- | :-------- |
+| A    | AGENTS.md                       | ~80L   | ~150      |
+| B    | + pace + riper-7 + 相关 skills  | ~350L  | ~600      |
+| C/D  | + 全量 skills + collab parallel | ~500L  | ~850      |
 
 ## 并行执行 (Path C+)
 
 Codex 使用 collab + parallel 模式实现并行分工:
+
 - `/collab` 启动协作模式
 - 并发 shell 命令 (Codex 原生支持)
 - 手动任务分配 (不支持自动子代理)
 
 ## 模型
 
-| 场景 | 模型 |
-|:---|:---|
-| 默认 | gpt-5.3-codex |
+| 场景           | 模型                |
+| :------------- | :------------------ |
+| 默认           | gpt-5.3-codex       |
 | 快速任务 (Pro) | gpt-5.3-codex-spark |
-| 切换 | /model |
+| 切换           | /model              |
 
 ## 状态管理
 
