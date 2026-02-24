@@ -1,0 +1,180 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "MultiEdit",
+      "Task",
+      "WebSearch",
+      "WebFetch",
+      "Bash(node *)",
+      "Bash(npm test)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(npx prettier *)",
+      "Bash(npx playwright *)",
+      "Bash(npx ctx7 resolve *)",
+      "Bash(git *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(grep *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(find *)",
+      "Bash(sort *)",
+      "Bash(sed *)",
+      "mcp__cunzhi__*",
+      "mcp__augment-context-engine__*",
+      "mcp__mcp-deepwiki__*"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(sudo *)",
+      "Bash(chmod 777 *)"
+    ]
+  },
+  "plugins": {
+    "enabled": [
+      "code-review",
+      "commit-commands",
+      "feature-dev",
+      "frontend-design",
+      "hookify",
+      "plugin-dev",
+      "pr-review-toolkit",
+      "security-guidance",
+      "superpowers@superpowers-marketplace"
+    ],
+    "marketplaces": [
+      {
+        "name": "claude-official",
+        "url": "registry:claude-plugins-official"
+      },
+      {
+        "name": "claude-community",
+        "url": "registry:claude-plugins-community"
+      },
+      {
+        "name": "claude-local",
+        "url": "local:.claude/plugins"
+      },
+      {
+        "name": "superpowers-marketplace",
+        "url": "github:obra/superpowers-marketplace"
+      }
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/session-start.cjs"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/delivery-gate.cjs",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/post-edit.cjs",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/pre-bash.cjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "子代理完成。检查: 1) 所有子任务完成? 2) 无未解决错误? 3) 符合 conventions.md? 通过→accept, 有问题→continue。"
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/teammate-idle.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/task-completed.cjs",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "LANGUAGE": "zh-Hans",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+    "API_TIMEOUT_MS": "3000000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-6",
+    "VIBECODING_VERSION": "8.6.5",
+    "VIBECODING_HOOKS_DISABLED": "0"
+  },
+  "mcpServers": {
+    "augment-context-engine": {
+      "type": "stdio",
+      "command": "augment-context-engine"
+    },
+    "cunzhi": {
+      "type": "stdio",
+      "command": "cunzhi"
+    },
+    "mcp-deepwiki": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-deepwiki@latest"
+      ]
+    }
+  }
+}
