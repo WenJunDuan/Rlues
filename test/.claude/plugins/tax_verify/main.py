@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 
@@ -52,13 +53,38 @@ def run(invoice_code: str, invoice_number: str, date: str, amount: float) -> dic
     data.update(
         {
             "status": status,
+            "authenticity": "verified" if matched else "needs_review",
             "matched": matched,
             "issues": issues,
-            "verified_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "source": "local-tax-mvp",
+            "verified_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "source": "local-tax-authority-mvp",
         }
     )
 
     code = "OK" if matched else "TAX_NEEDS_REVIEW"
     message = "tax verification passed" if matched else "tax verification needs review"
     return _resp(True, code, message, data)
+
+
+if __name__ == "__main__":
+    import sys
+
+    try:
+        args = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+        if not isinstance(args, dict):
+            args = {}
+        result = run(
+            invoice_code=args.get("invoice_code", ""),
+            invoice_number=args.get("invoice_number", ""),
+            date=args.get("date", ""),
+            amount=args.get("amount", 0),
+        )
+        print(json.dumps(result, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover
+        print(
+            json.dumps(
+                _resp(False, "TAX_RUNTIME_ERROR", "tax_verify runtime error", {"error": str(exc)}),
+                ensure_ascii=False,
+            )
+        )
+        raise SystemExit(1)

@@ -115,3 +115,44 @@ def summarize(text: str, max_tokens: int = 256) -> dict:
         "summary generated",
         {"summary": summary, "input_chars": len(compact), "output_chars": len(summary), "max_tokens": max_tokens},
     )
+
+
+if __name__ == "__main__":
+    import sys
+
+    try:
+        action = "complete"
+        raw_args = "{}"
+        if len(sys.argv) > 1:
+            first = sys.argv[1].strip()
+            if first.startswith("{"):
+                raw_args = first
+            else:
+                action = first
+                raw_args = sys.argv[2] if len(sys.argv) > 2 else "{}"
+
+        args = json.loads(raw_args) if raw_args else {}
+        if not isinstance(args, dict):
+            args = {}
+
+        if action == "complete":
+            result = complete(messages=args.get("messages", []), model=args.get("model"))
+        elif action == "extract_structured":
+            result = extract_structured(text=args.get("text", ""), schema=args.get("schema", {}))
+        elif action == "summarize":
+            max_tokens = args.get("max_tokens", 256)
+            if not isinstance(max_tokens, int):
+                max_tokens = 256
+            result = summarize(text=args.get("text", ""), max_tokens=max_tokens)
+        else:
+            result = _resp(False, "LLM_INVALID_ACTION", "supported actions: complete|extract_structured|summarize", {"action": action})
+
+        print(json.dumps(result, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover
+        print(
+            json.dumps(
+                _resp(False, "LLM_RUNTIME_ERROR", "llm_client runtime error", {"error": str(exc)}),
+                ensure_ascii=False,
+            )
+        )
+        raise SystemExit(1)

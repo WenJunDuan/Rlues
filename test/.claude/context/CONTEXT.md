@@ -20,4 +20,4 @@
 
 ## 边界
 - 本目录定义策略，不直接访问外部系统。
-- 具体读写由 `.claude/plugins/context_store.py` 承接。
+- 具体读写由 `.claude/plugins/context_store/main.py` 承接。

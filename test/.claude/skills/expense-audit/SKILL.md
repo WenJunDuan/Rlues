@@ -26,11 +26,12 @@
 
 插件侧补充字段（可选）：
 - `ocr.structured`
+- `ocr.parser`（`filename-mvp` 表示文件名模拟解析）
 - `tax_verify.status`
 - `history_check.hits[]`
 - `standard_query.limit`
 - `standard_query.allowed_categories[]`
-- `invoice_verify.verified/status/verify_id`
+- `invoice_verify.used_before/status/verify_id`
 
 ## 输出契约（规则层）
 规则层不直接返回 ResultEnvelope，而是返回可聚合中间结果：
@@ -55,10 +56,10 @@
 
 ## 与插件边界
 - `ocr`: 只负责结构化抽取，不做最终合规判定。
-- `tax_verify`: 只负责发票真伪/一致性结果。
+- `tax_verify`: 只负责税务验真与四要素一致性结果。
 - `history_check`: 只返回历史命中记录，不下最终结论。
 - `standard_query`: 只提供制度阈值和允许类目。
-- `invoice_verify`: 负责发票真伪/是否已使用核验；接口未接通时按第一关策略默认有效。
+- `invoice_verify`: 只负责企业内部“是否已使用”检查，不做税务真伪判定。
 
 ## 模板与样例
 - `templates/approve.md`

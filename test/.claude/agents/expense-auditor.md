@@ -1,6 +1,11 @@
 ---
 name: expense-auditor
-description: 报销审核专家
+description: >
+  报销审核专家。仅在 TaskEnvelope.command 为 /audit 时触发。
+  接收结构化报销数据、制度规则和上游插件结果，
+  产出包含 decision/confidence/issues/evidence 的审核结论。
+tools: Read, Grep, Bash(python3 .claude/plugins/*/main.py *)
+model: sonnet
 ---
 
 # expense-auditor
@@ -26,14 +31,15 @@ description: 报销审核专家
 
 ## Workflow (MVP)
 1. 预检查：校验 `expense_report` 关键字段完整性，缺失即降级 `needs_review`。
-2. OCR 阶段：调用 `plugins/ocr.py` 解析发票结构化信息（可部分成功）。
-3. 发票验真优先阶段：
-   - 先调用 `plugins/invoice_verify.py`。
-   - 外部验真接口未接通时，按第一关策略默认发票有效，不因接口不可用直接拒绝。
-4. 外部校验阶段：并行调用
-   - `plugins/tax_verify.py`
-   - `plugins/history_check.py`
-   - `plugins/standard_query.py`
+2. OCR 阶段：调用 `plugins/ocr/main.py` 解析发票结构化信息（可部分成功）。
+   - 当前 parser 为 `filename-mvp`，`confidence` 为模拟值，不单独作为拒绝依据。
+3. 发票复用检查阶段：调用 `plugins/invoice_verify/main.py`，仅用于“是否已使用”判断。
+   - 发票真伪一致性由 `plugins/tax_verify/main.py` 承接，避免职责重叠。
+4. 外部校验结果阶段：优先消费 Orchestrator 上游注入结果
+   - `plugins/tax_verify/main.py`
+   - `plugins/history_check/main.py`
+   - `plugins/standard_query/main.py`
+   - 如上游缺失，允许在 Subagent 内串行补拉；Subagent 不做并行 Task fan-out。
 5. 规则阶段：按顺序执行
    - `skills/expense-audit/rules/amount-check.md`
    - `skills/expense-audit/rules/duplicate.md`

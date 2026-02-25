@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import json
 from datetime import datetime
 from typing import Any, Dict
 
@@ -82,6 +83,7 @@ def run(file_path: str) -> dict:
         "file_path": file_path,
         "file_type": ext,
         "parser": "filename-mvp",
+        "confidence_source": "simulated",
         "confidence": 0.6 if not parsed.get("matched") else 0.85,
     }
 
@@ -100,3 +102,22 @@ def run(file_path: str) -> dict:
     }
     data["warnings"] = parsed.get("warnings", ["unable to parse file name pattern"])
     return _resp(True, "OCR_PARTIAL_PARSE", "ocr parse finished with warnings", data)
+
+
+if __name__ == "__main__":
+    import sys
+
+    try:
+        args = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+        if not isinstance(args, dict):
+            args = {}
+        result = run(file_path=args.get("file_path", ""))
+        print(json.dumps(result, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover
+        print(
+            json.dumps(
+                _resp(False, "OCR_RUNTIME_ERROR", "ocr runtime error", {"error": str(exc)}),
+                ensure_ascii=False,
+            )
+        )
+        raise SystemExit(1)

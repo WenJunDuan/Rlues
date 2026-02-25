@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List
 
 
@@ -73,3 +74,28 @@ def run(tenant_id: str, department: str, level: str, category: str, city: str | 
     code = "OK" if category_allowed else "STANDARD_CATEGORY_REVIEW"
     message = "policy matched" if category_allowed else "policy check completed with category warning"
     return _resp(True, code, message, data)
+
+
+if __name__ == "__main__":
+    import sys
+
+    try:
+        args = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+        if not isinstance(args, dict):
+            args = {}
+        result = run(
+            tenant_id=args.get("tenant_id", ""),
+            department=args.get("department", ""),
+            level=args.get("level", ""),
+            category=args.get("category", ""),
+            city=args.get("city"),
+        )
+        print(json.dumps(result, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover
+        print(
+            json.dumps(
+                _resp(False, "STANDARD_RUNTIME_ERROR", "standard_query runtime error", {"error": str(exc)}),
+                ensure_ascii=False,
+            )
+        )
+        raise SystemExit(1)

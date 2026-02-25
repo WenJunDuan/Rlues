@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 from typing import Any, Dict
 from uuid import uuid4
 
@@ -30,7 +31,7 @@ def run(task_id: str, status: str, summary: str) -> dict:
         "status": status,
         "summary": summary.strip()[:500],
         "callback_id": f"cb_{uuid4().hex[:12]}",
-        "sent_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "sent_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "endpoint": "mock://oa/workflow/callback",
     }
 
@@ -38,3 +39,26 @@ def run(task_id: str, status: str, summary: str) -> dict:
     if status == "failed":
         return _resp(True, "OA_CALLBACK_ACCEPTED_WITH_ALERT", "callback accepted for failed task", data)
     return _resp(True, "OK", "callback accepted", data)
+
+
+if __name__ == "__main__":
+    import sys
+
+    try:
+        args = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+        if not isinstance(args, dict):
+            args = {}
+        result = run(
+            task_id=args.get("task_id", ""),
+            status=args.get("status", ""),
+            summary=args.get("summary", ""),
+        )
+        print(json.dumps(result, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover
+        print(
+            json.dumps(
+                _resp(False, "OA_RUNTIME_ERROR", "oa_callback runtime error", {"error": str(exc)}),
+                ensure_ascii=False,
+            )
+        )
+        raise SystemExit(1)

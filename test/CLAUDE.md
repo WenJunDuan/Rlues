@@ -27,9 +27,9 @@
 4. 聚合输出结果
 
 参考实现路径：
-1. `adapter/gateway/`
-2. `adapter/core/`
-3. `adapter/sdk/`
+1. `adapter/gateway/http_server.py`
+2. `adapter/core/api_server.py`
+3. `adapter/sdk/bridge.py`
 
 ## 4) Input Contract
 `TaskEnvelope` 最低要求：
@@ -42,7 +42,8 @@
 
 命令级字段校验由：
 1. `adapter/core/validators.py`
-2. `.claude/commands/<command>.md`
+2. `.claude/plugins/utils/schema_validator.py`
+3. `.claude/commands/<command>.md`
 
 ## 5) Output Contract
 `ResultEnvelope` 必须包含：

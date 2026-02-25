@@ -5,8 +5,8 @@
       "Read(.claude/**)",
       "Read(CLAUDE.md)",
       "Read(adapter/**)",
-      "Read(SDK/**)",
-      "Bash(python3 .claude/plugins/*.py *)",
+      "Bash(python3 .claude/plugins/*/main.py *)",
+      "Bash(python3 .claude/plugins/utils/*.py *)",
       "Task"
     ],
     "deny": [
@@ -16,9 +16,47 @@
       "Read(.env*)"
     ]
   },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/plugins/utils/pre_check.py \"$TOOL_INPUT\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash(python3 .claude/plugins/*/main.py *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/plugins/event_reporter/main.py tool_call \"$TOOL_INPUT\" \"$TOOL_OUTPUT\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/plugins/utils/result_check.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
   "env": {
     "LOCAL_LLM_BASE_URL": "http://localhost:8080/v1",
-    "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY",
-    "ANTHROPIC_MODEL": "claude-sonnet-4-6"
+    "ANTHROPIC_MODEL": "claude-sonnet-4-6",
+    "CONTEXT_STORE_PATH": ".ai_state/runtime/context_store",
+    "EVENT_REPORTER_PATH": ".ai_state/runtime/events/events.jsonl"
   }
 }

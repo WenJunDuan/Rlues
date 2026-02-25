@@ -124,233 +124,42 @@ def validate_task_envelope(data: dict) -> dict:
             )
 
     command = data.get("command")
-    payload = data.get("payload", {})
-    allowed_commands = ["/audit"]
-    if command not in allowed_commands:
+    if not isinstance(command, str):
+        return _response(
+            False,
+            SCHEMA_TYPE_MISMATCH,
+            "command must be string",
+            [{"path": "command", "expected": "string", "actual": type(command).__name__}],
+            {"input_size": len(data)},
+        )
+    if not command.startswith("/"):
         return _response(
             False,
             SCHEMA_INVALID_VALUE,
-            "unsupported command",
-            [{"path": "command", "value": command, "allowed": allowed_commands}],
+            "command must start with '/'",
+            [{"path": "command", "value": command}],
             {"input_size": len(data)},
         )
 
-    if command == "/audit":
-        report = payload.get("expense_report")
-        if report is None:
-            return _response(
-                False,
-                SCHEMA_MISSING_FIELD,
-                "payload.expense_report required",
-                [{"path": "payload.expense_report", "reason": "missing"}],
-                {"input_size": len(data)},
-            )
-        if not isinstance(report, dict):
-            return _response(
-                False,
-                SCHEMA_TYPE_MISMATCH,
-                "payload.expense_report must be object",
-                [{"path": "payload.expense_report", "expected": "object", "actual": type(report).__name__}],
-                {"input_size": len(data)},
-            )
+    payload = data.get("payload")
+    if not isinstance(payload, dict):
+        return _response(
+            False,
+            SCHEMA_TYPE_MISMATCH,
+            "payload must be object",
+            [{"path": "payload", "expected": "object", "actual": type(payload).__name__}],
+            {"input_size": len(data)},
+        )
 
-        for field in ["report_id", "employee_id", "reason", "currency"]:
-            if field not in report:
-                return _response(
-                    False,
-                    SCHEMA_MISSING_FIELD,
-                    f"payload.expense_report.{field} required",
-                    [{"path": f"payload.expense_report.{field}", "reason": "missing"}],
-                    {"input_size": len(data)},
-                )
-            if not _is_non_empty_str(report.get(field)):
-                return _response(
-                    False,
-                    SCHEMA_INVALID_VALUE,
-                    f"payload.expense_report.{field} must be non-empty string",
-                    [{"path": f"payload.expense_report.{field}", "value": report.get(field)}],
-                    {"input_size": len(data)},
-                )
-
-        total_amount = report.get("total_amount")
-        if total_amount is None:
-            return _response(
-                False,
-                SCHEMA_MISSING_FIELD,
-                "payload.expense_report.total_amount required",
-                [{"path": "payload.expense_report.total_amount", "reason": "missing"}],
-                {"input_size": len(data)},
-            )
-        if not _is_number(total_amount):
-            return _response(
-                False,
-                SCHEMA_TYPE_MISMATCH,
-                "payload.expense_report.total_amount must be number",
-                [{"path": "payload.expense_report.total_amount", "expected": "number", "actual": type(total_amount).__name__}],
-                {"input_size": len(data)},
-            )
-        if float(total_amount) <= 0:
-            return _response(
-                False,
-                SCHEMA_INVALID_VALUE,
-                "payload.expense_report.total_amount must be > 0",
-                [{"path": "payload.expense_report.total_amount", "value": total_amount}],
-                {"input_size": len(data)},
-            )
-
-        invoices = report.get("invoices")
-        if invoices is None:
-            return _response(
-                False,
-                SCHEMA_MISSING_FIELD,
-                "payload.expense_report.invoices required",
-                [{"path": "payload.expense_report.invoices", "reason": "missing"}],
-                {"input_size": len(data)},
-            )
-        if not isinstance(invoices, list):
-            return _response(
-                False,
-                SCHEMA_TYPE_MISMATCH,
-                "payload.expense_report.invoices must be array",
-                [{"path": "payload.expense_report.invoices", "expected": "array", "actual": type(invoices).__name__}],
-                {"input_size": len(data)},
-            )
-        if not invoices:
-            return _response(
-                False,
-                SCHEMA_INVALID_VALUE,
-                "payload.expense_report.invoices must be non-empty",
-                [{"path": "payload.expense_report.invoices", "reason": "empty"}],
-                {"input_size": len(data)},
-            )
-        invoice_required_str = ["invoice_code", "invoice_number", "date", "category", "currency"]
-        for idx, invoice in enumerate(invoices):
-            base = f"payload.expense_report.invoices[{idx}]"
-            if not isinstance(invoice, dict):
-                return _response(
-                    False,
-                    SCHEMA_TYPE_MISMATCH,
-                    f"{base} must be object",
-                    [{"path": base, "expected": "object", "actual": type(invoice).__name__}],
-                    {"input_size": len(data)},
-                )
-            for field in invoice_required_str:
-                value = invoice.get(field)
-                if not _is_non_empty_str(value):
-                    return _response(
-                        False,
-                        SCHEMA_INVALID_VALUE,
-                        f"{base}.{field} must be non-empty string",
-                        [{"path": f"{base}.{field}", "value": value}],
-                        {"input_size": len(data)},
-                    )
-            amount = invoice.get("amount")
-            if not _is_number(amount):
-                return _response(
-                    False,
-                    SCHEMA_TYPE_MISMATCH,
-                    f"{base}.amount must be number",
-                    [{"path": f"{base}.amount", "expected": "number", "actual": type(amount).__name__}],
-                    {"input_size": len(data)},
-                )
-            if float(amount) <= 0:
-                return _response(
-                    False,
-                    SCHEMA_INVALID_VALUE,
-                    f"{base}.amount must be > 0",
-                    [{"path": f"{base}.amount", "value": amount}],
-                    {"input_size": len(data)},
-                )
-
-        applicant = payload.get("applicant")
-        if not isinstance(applicant, dict):
-            return _response(
-                False,
-                SCHEMA_MISSING_FIELD,
-                "payload.applicant required",
-                [{"path": "payload.applicant", "reason": "missing"}],
-                {"input_size": len(data)},
-            )
-        for field in ["employee_id", "name", "position"]:
-            value = applicant.get(field)
-            if not _is_non_empty_str(value):
-                return _response(
-                    False,
-                    SCHEMA_INVALID_VALUE,
-                    f"payload.applicant.{field} must be non-empty string",
-                    [{"path": f"payload.applicant.{field}", "value": value}],
-                    {"input_size": len(data)},
-                )
-
-        has_trip = "trip_application" in payload
-        has_outing = "outing_application" in payload
-        if not has_trip and not has_outing:
-            return _response(
-                False,
-                SCHEMA_MISSING_FIELD,
-                "payload.trip_application or payload.outing_application required",
-                [{"path": "payload.trip_application|payload.outing_application", "reason": "missing"}],
-                {"input_size": len(data)},
-            )
-        for key in ["trip_application", "outing_application"]:
-            if key not in payload:
-                continue
-            req = payload.get(key)
-            if not isinstance(req, dict):
-                return _response(
-                    False,
-                    SCHEMA_TYPE_MISMATCH,
-                    f"payload.{key} must be object",
-                    [{"path": f"payload.{key}", "expected": "object", "actual": type(req).__name__}],
-                    {"input_size": len(data)},
-                )
-            for field in ["request_id", "reason", "start_at", "end_at"]:
-                value = req.get(field)
-                if not _is_non_empty_str(value):
-                    return _response(
-                        False,
-                        SCHEMA_INVALID_VALUE,
-                        f"payload.{key}.{field} must be non-empty string",
-                        [{"path": f"payload.{key}.{field}", "value": value}],
-                        {"input_size": len(data)},
-                    )
-
-        policy_pack = payload.get("policy_pack")
-        if not isinstance(policy_pack, dict):
-            return _response(
-                False,
-                SCHEMA_MISSING_FIELD,
-                "payload.policy_pack required",
-                [{"path": "payload.policy_pack", "reason": "missing"}],
-                {"input_size": len(data)},
-            )
-        for field in ["policy_id", "policy_version"]:
-            value = policy_pack.get(field)
-            if not _is_non_empty_str(value):
-                return _response(
-                    False,
-                    SCHEMA_INVALID_VALUE,
-                    f"payload.policy_pack.{field} must be non-empty string",
-                    [{"path": f"payload.policy_pack.{field}", "value": value}],
-                    {"input_size": len(data)},
-                )
-        rules = policy_pack.get("rules")
-        if not isinstance(rules, list) or not rules:
-            return _response(
-                False,
-                SCHEMA_INVALID_VALUE,
-                "payload.policy_pack.rules must be non-empty array",
-                [{"path": "payload.policy_pack.rules", "value": rules}],
-                {"input_size": len(data)},
-            )
-        if any(not isinstance(rule, str) or not rule.strip() for rule in rules):
-            return _response(
-                False,
-                SCHEMA_INVALID_VALUE,
-                "payload.policy_pack.rules must be array of non-empty strings",
-                [{"path": "payload.policy_pack.rules", "value": rules}],
-                {"input_size": len(data)},
-            )
+    runtime = data.get("runtime")
+    if runtime is not None and not isinstance(runtime, dict):
+        return _response(
+            False,
+            SCHEMA_TYPE_MISMATCH,
+            "runtime must be object when provided",
+            [{"path": "runtime", "expected": "object", "actual": type(runtime).__name__}],
+            {"input_size": len(data)},
+        )
 
     return result
 

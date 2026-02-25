@@ -1,8 +1,9 @@
-"""Invoice authenticity verification plugin with reserved external API slot."""
+"""Invoice usage-check plugin with reserved internal API slot."""
 
 from __future__ import annotations
 
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
@@ -65,65 +66,95 @@ def run(
     base = {
         **data,
         "verify_id": verify_id,
-        "verify_time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "verify_time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "scope": "internal_usage_check",
     }
+    if verified is not None:
+        base["notes"] = ["verified parameter is deprecated in usage-check mode"]
 
     if channel == "reserved":
-        base.update(
-            {
-                "status": "verified",
-                "verified": True,
-                "used_before": False,
-                "verify_source": "reserved-external-api",
-                "risk_tags": ["assumed_valid_without_external_api"],
-            }
-        )
-        return _resp(
-            True,
-            "INVOICE_VERIFY_ASSUMED_VALID",
-            "external invoice verification API not connected; assume invoice valid in first-gate mode",
-            base,
-        )
-
-    if channel == "external":
-        ext_verified = True if verified is None else verified
-        ext_used_before = False if used_before is None else used_before
-        final_verified = ext_verified and not ext_used_before
+        reserved_used_before = False if used_before is None else used_before
+        status = "clear" if not reserved_used_before else "used_before"
+        code = "OK" if not reserved_used_before else "INVOICE_USED_BEFORE"
+        message = "invoice usage check passed" if not reserved_used_before else "invoice has already been used"
         risk_tags = []
-        if ext_used_before:
+        if used_before is None:
+            risk_tags.append("assumed_unused_without_internal_api")
+        if reserved_used_before:
             risk_tags.append("used_before")
-        if not ext_verified:
-            risk_tags.append("auth_failed")
         base.update(
             {
-                "status": "verified" if final_verified else "fake_or_used",
-                "verified": final_verified,
-                "used_before": ext_used_before,
-                "verify_source": "external-api",
+                "status": status,
+                "verified": not reserved_used_before,
+                "used_before": reserved_used_before,
+                "verify_source": "reserved-internal-usage-api",
                 "risk_tags": risk_tags,
             }
         )
-        code = "OK" if final_verified else "INVOICE_VERIFY_RISK"
-        message = "invoice authenticity check passed" if final_verified else "invoice authenticity check found risk"
         return _resp(True, code, message, base)
 
-    mock_verified = not invoice_number.strip().endswith(("98", "99"))
+    if channel == "external":
+        ext_used_before = False if used_before is None else used_before
+        final_verified = not ext_used_before
+        risk_tags = []
+        if ext_used_before:
+            risk_tags.append("used_before")
+        base.update(
+            {
+                "status": "clear" if final_verified else "used_before",
+                "verified": final_verified,
+                "used_before": ext_used_before,
+                "verify_source": "external-internal-usage-api",
+                "risk_tags": risk_tags,
+            }
+        )
+        code = "OK" if final_verified else "INVOICE_USED_BEFORE"
+        message = "invoice usage check passed" if final_verified else "invoice has already been used"
+        return _resp(True, code, message, base)
+
     mock_used_before = invoice_number.strip().endswith(("88", "77"))
-    final_verified = mock_verified and not mock_used_before
+    final_verified = not mock_used_before
     risk_tags = []
     if mock_used_before:
         risk_tags.append("used_before")
-    if not mock_verified:
-        risk_tags.append("mock_pattern_risk")
     base.update(
         {
-            "status": "verified" if final_verified else "fake_or_used",
+            "status": "clear" if final_verified else "used_before",
             "verified": final_verified,
             "used_before": mock_used_before,
-            "verify_source": "local-mock",
+            "verify_source": "local-usage-mock",
             "risk_tags": risk_tags,
         }
     )
-    code = "OK" if final_verified else "INVOICE_VERIFY_RISK"
-    message = "invoice authenticity check passed" if final_verified else "invoice authenticity check found risk"
+    code = "OK" if final_verified else "INVOICE_USED_BEFORE"
+    message = "invoice usage check passed" if final_verified else "invoice has already been used"
     return _resp(True, code, message, base)
+
+
+if __name__ == "__main__":
+    import sys
+
+    try:
+        args = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+        if not isinstance(args, dict):
+            args = {}
+        result = run(
+            tenant_id=args.get("tenant_id", ""),
+            invoice_code=args.get("invoice_code", ""),
+            invoice_number=args.get("invoice_number", ""),
+            date=args.get("date", ""),
+            amount=args.get("amount", 0),
+            seller_tax_no=args.get("seller_tax_no"),
+            channel=args.get("channel", "reserved"),
+            verified=args.get("verified"),
+            used_before=args.get("used_before"),
+        )
+        print(json.dumps(result, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover
+        print(
+            json.dumps(
+                _resp(False, "INVOICE_VERIFY_RUNTIME_ERROR", "invoice_verify runtime error", {"error": str(exc)}),
+                ensure_ascii=False,
+            )
+        )
+        raise SystemExit(1)

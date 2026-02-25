@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List
 
 
@@ -48,3 +49,26 @@ def run(tenant_id: str, invoice_number: str, employee_id: str) -> dict:
     code = "OK" if not hits else "HISTORY_DUPLICATE_FOUND"
     message = "no duplicate found" if not hits else "duplicate found in history"
     return _resp(True, code, message, data)
+
+
+if __name__ == "__main__":
+    import sys
+
+    try:
+        args = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+        if not isinstance(args, dict):
+            args = {}
+        result = run(
+            tenant_id=args.get("tenant_id", ""),
+            invoice_number=args.get("invoice_number", ""),
+            employee_id=args.get("employee_id", ""),
+        )
+        print(json.dumps(result, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover
+        print(
+            json.dumps(
+                _resp(False, "HISTORY_RUNTIME_ERROR", "history_check runtime error", {"error": str(exc)}),
+                ensure_ascii=False,
+            )
+        )
+        raise SystemExit(1)

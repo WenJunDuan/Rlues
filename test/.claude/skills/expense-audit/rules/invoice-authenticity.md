@@ -1,17 +1,18 @@
 # invoice-authenticity
 
 ## 规则目标
-基于发票验真结果判断票据真实性与可用性。
+基于税务验真与内部复用检查结果判断票据真实性与可用性。
 
 ## 规则清单
-1. `EXP-INV-001` 验真结果 `verified=false` 时，标记 `error`（不合规）。
-2. `EXP-INV-002` 验真结果 `used_before=true` 时，标记 `error`（疑似重复报销）。
-3. `EXP-INV-003` 验真接口未接通时，按第一关策略默认有效并记录 `info`，不直接降级。
+1. `EXP-INV-001` `tax_verify.status != verified` 时，标记 `error`（税务验真未通过）。
+2. `EXP-INV-002` `invoice_verify.used_before=true` 时，标记 `error`（疑似重复报销）。
+3. `EXP-INV-003` 税务验真接口未接通或回退策略命中时，记录 `info`，不直接拒绝。
 
 ## 输入字段
-- `invoice_verify.verified`
+- `tax_verify.status`
+- `tax_verify.issues[]`
+- `invoice_verify.used_before`
 - `invoice_verify.status`
-- `invoice_verify.risk_tags[]`
 - `invoice_verify.verify_id`
 
 ## 输出示例
@@ -20,12 +21,12 @@
   "rule_id": "EXP-INV-003",
   "severity": "info",
   "category": "invoice_authenticity",
-  "description": "invoice verification API unavailable; assumed valid in first-gate mode",
-  "evidence_ref": "invoice_verify://verify_id",
+  "description": "tax verification API unavailable; downgraded to first-gate mode",
+  "evidence_ref": "tax_verify://verified_at",
   "score_delta": -0.05
 }
 ```
 
 ## 决策影响
 - 发票真实性风险优先级高，命中 `error` 时直接进入拒绝路径。
-- 第一关模式下，接口不可用不作为拒绝或复核的直接触发条件。
+- 第一关模式下，接口不可用不作为拒绝的直接触发条件。
