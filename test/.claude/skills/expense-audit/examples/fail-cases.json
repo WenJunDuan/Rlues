@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "EXP-FAIL-001",
+    "input": {
+      "report_id": "RPT-2026-0099",
+      "employee_id": "E2001",
+      "department": "sales",
+      "level": "L2",
+      "total_amount": 1800.0,
+      "currency": "CNY",
+      "invoices": [
+        {
+          "invoice_code": "3100191100",
+          "invoice_number": "10088991",
+          "date": "2026-02-10",
+          "amount": 900.0,
+          "category": "gift"
+        },
+        {
+          "invoice_code": "3100191100",
+          "invoice_number": "10088991",
+          "date": "2026-02-10",
+          "amount": 900.0,
+          "category": "gift"
+        }
+      ],
+      "standard_query": {
+        "limit": 1200.0,
+        "allowed_categories": [
+          "transport",
+          "hotel",
+          "meal"
+        ]
+      },
+      "history_check": {
+        "hits": [
+          {
+            "record_id": "HX-2025-8831",
+            "invoice_number": "10088991",
+            "employee_id": "E2001"
+          }
+        ]
+      },
+      "tax_verify": {
+        "status": "ok"
+      }
+    },
+    "expected": {
+      "decision": "rejected",
+      "matched_rules": [
+        "EXP-AMT-003",
+        "EXP-DUP-001",
+        "EXP-DUP-002",
+        "EXP-CAT-001"
+      ]
+    }
+  }
+]

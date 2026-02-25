@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read(.claude/**)",
+      "Read(CLAUDE.md)",
+      "Read(adapter/**)",
+      "Read(SDK/**)",
+      "Bash(python3 .claude/plugins/*.py *)",
+      "Task"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Read(.env*)"
+    ]
+  },
+  "env": {
+    "LOCAL_LLM_BASE_URL": "http://localhost:8080/v1",
+    "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY",
+    "ANTHROPIC_MODEL": "claude-sonnet-4-6"
+  }
+}

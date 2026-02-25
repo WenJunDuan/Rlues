@@ -1,0 +1,52 @@
+[
+  {
+    "case_id": "EXP-PASS-001",
+    "input": {
+      "report_id": "RPT-2026-0001",
+      "employee_id": "E1024",
+      "department": "finance",
+      "level": "L3",
+      "total_amount": 368.5,
+      "currency": "CNY",
+      "invoices": [
+        {
+          "invoice_code": "1100191130",
+          "invoice_number": "00999123",
+          "date": "2026-02-18",
+          "amount": 168.5,
+          "category": "transport"
+        },
+        {
+          "invoice_code": "1100191130",
+          "invoice_number": "00999124",
+          "date": "2026-02-18",
+          "amount": 200.0,
+          "category": "hotel"
+        }
+      ],
+      "standard_query": {
+        "limit": 500.0,
+        "allowed_categories": [
+          "transport",
+          "hotel",
+          "meal"
+        ]
+      },
+      "history_check": {
+        "hits": []
+      },
+      "tax_verify": {
+        "status": "ok"
+      }
+    },
+    "expected": {
+      "decision": "approved",
+      "matched_rules": [
+        "EXP-AMT-001",
+        "EXP-AMT-002",
+        "EXP-AMT-003",
+        "EXP-CAT-001"
+      ]
+    }
+  }
+]
