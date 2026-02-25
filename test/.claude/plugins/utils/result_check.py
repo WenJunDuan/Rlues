@@ -76,6 +76,25 @@ def main() -> int:
     if not isinstance(summary, str) or not summary.strip():
         return _block("result.summary must be non-empty string", [{"path": "result.summary", "value": summary}])
 
+    issues = result.get("issues")
+    if not isinstance(issues, list):
+        return _block("result.issues must be array", [{"path": "result.issues", "expected": "array", "actual": type(issues).__name__}])
+
+    error_issue_paths: List[str] = []
+    for idx, issue in enumerate(issues):
+        if not isinstance(issue, dict):
+            return _block(
+                "result.issues entries must be objects",
+                [{"path": f"result.issues[{idx}]", "expected": "object", "actual": type(issue).__name__}],
+            )
+        if str(issue.get("severity", "")).strip().lower() == "error":
+            error_issue_paths.append(f"result.issues[{idx}].severity")
+
+    if decision == "approved" and error_issue_paths:
+        details: List[dict] = [{"path": "result.decision", "value": decision}]
+        details.extend([{"path": path, "value": "error"} for path in error_issue_paths])
+        return _block("business consistency failed: approved decision cannot contain error issues", details)
+
     return _pass("result check passed", True)
 
 

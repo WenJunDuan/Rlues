@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
+import threading
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -20,9 +20,9 @@ from ..core.error_codes import (
     SDK_RESULT_MAPPING_ERROR,
     error_payload,
 )
+from ..core.types import ResultEnvelope, TaskEnvelope
 from .access import SDK_ACCESS
 from .runtime import load_claude_sdk_runtime
-from ..core.types import ResultEnvelope, TaskEnvelope
 
 
 @dataclass
@@ -35,6 +35,9 @@ COMMAND_AGENT_MAP = {
     "/audit": ["expense-auditor"],
 }
 
+_RESULT_KEYS = {"decision", "confidence", "summary", "issues", "evidence"}
+_THREAD_LOCAL = threading.local()
+
 
 def _safe_str(value: Any, default: str = "") -> str:
     if value is None:
@@ -43,132 +46,27 @@ def _safe_str(value: Any, default: str = "") -> str:
     return text if text else default
 
 
+def _sanitize_summary(value: Any, default: str = "manual review required") -> str:
+    text = _safe_str(value, default=default)
+    if not text:
+        return default
+    return " ".join(text.split())[:180]
+
+
+def _is_number(value: Any) -> bool:
+    return (isinstance(value, int) and not isinstance(value, bool)) or isinstance(value, float)
+
+
 def _agents_for_command(command: str) -> List[str]:
     return COMMAND_AGENT_MAP.get(command, ["orchestrator-fallback"])
 
 
-def _sanitize_basis(value: Any, default: str = "insufficient evidence; manual review required") -> str:
-    text = _safe_str(value, default=default)
-    text = re.sub(r"\s+", " ", text).strip()
-    if not text:
-        text = default
-    return text[:180]
-
-
-def _audit_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
-    if not isinstance(payload, dict):
-        return {}
-    snapshot = dict(payload)
-    snapshot.setdefault("applicant", {})
-    snapshot.setdefault("trip_application", {})
-    snapshot.setdefault("outing_application", {})
-    snapshot.setdefault("expense_report", {})
-    snapshot.setdefault("policy_pack", {})
-    snapshot.setdefault("invoice_verify", None)
-    snapshot.setdefault("additional_documents", {})
-    return snapshot
-
-
-def _has_issue_category(issues: List[Dict[str, Any]], category: str) -> bool:
-    target = category.strip().lower()
-    for issue in issues:
-        if not isinstance(issue, dict):
-            continue
-        if _safe_str(issue.get("category"), "").lower() == target:
-            return True
-    return False
-
-
-def _ensure_proxy_reimbursement_warning(result: Dict[str, Any], payload: Optional[Dict[str, Any]]) -> None:
-    if not isinstance(payload, dict):
-        return
-    applicant = payload.get("applicant")
-    expense_report = payload.get("expense_report")
-    if not isinstance(applicant, dict) or not isinstance(expense_report, dict):
-        return
-
-    applicant_id = _safe_str(applicant.get("employee_id"))
-    report_id = _safe_str(expense_report.get("employee_id"))
-    if not applicant_id or not report_id or applicant_id == report_id:
-        return
-
-    issues = result.get("issues")
-    if not isinstance(issues, list):
-        issues = []
-        result["issues"] = issues
-    if _has_issue_category(issues, "proxy_reimbursement"):
-        return
-
-    issues.append(
-        {
-            "severity": "warning",
-            "category": "proxy_reimbursement",
-            "description": "applicant and reimbursement employee differ; suspected proxy reimbursement",
-            "evidence_ref": "proxy-check-001",
-        }
-    )
-
-    evidence = result.get("evidence")
-    if not isinstance(evidence, list):
-        evidence = []
-        result["evidence"] = evidence
-    evidence.append(
-        {
-            "id": "proxy-check-001",
-            "type": "consistency",
-            "source": "rule://proxy-reimbursement",
-            "content": f"applicant.employee_id={applicant_id}, expense_report.employee_id={report_id}",
-        }
-    )
-
-    downgraded_for_proxy = False
-    if result.get("decision") == "approved":
-        result["decision"] = "needs_review"
-        downgraded_for_proxy = True
-    if isinstance(result.get("confidence"), (int, float)) and float(result["confidence"]) > 0.69:
-        result["confidence"] = 0.69
-    proxy_warning_summary = "suspected proxy reimbursement; manual review recommended"
-    current_summary = _safe_str(result.get("summary"))
-    if not current_summary:
-        result["summary"] = proxy_warning_summary
-    elif downgraded_for_proxy and "proxy reimbursement" not in current_summary.lower():
-        result["summary"] = _sanitize_basis(f"{current_summary}; {proxy_warning_summary}")
-
-
-def _build_audit_prompt(task: TaskEnvelope) -> str:
-    snapshot = _audit_snapshot(task.payload)
-    serialized = json.dumps(snapshot, ensure_ascii=False, indent=2)
-    return (
-        "You are an enterprise reimbursement compliance reviewer.\n"
-        "Assess whether this reimbursement is compliant based on provided policy and documents.\n"
-        "This is the first-gate screening system.\n"
-        "Do not expose thought process, chain-of-thought, or calculation details.\n"
-        "Return EXACTLY one JSON object with fields:\n"
-        "{\n"
-        '  "decision": "approved|rejected|needs_review",\n'
-        '  "compliance": "compliant|non_compliant|needs_review",\n'
-        '  "confidence": 0.0,\n'
-        '  "basis": "single-sentence basis for the judgment",\n'
-        '  "issues": [{"severity":"error|warning|info","category":"...","description":"...","evidence_ref":"..."}],\n'
-        '  "evidence": [{"id":"...","type":"...","source":"...","content":"..."}]\n'
-        "}\n"
-        "Output constraints:\n"
-        "- basis must be concise and business-facing.\n"
-        "- Invoice number length is not a rejection criterion.\n"
-        "- If invoice verification API is unavailable, treat invoices as valid by default in first-gate mode.\n"
-        "- If applicant.employee_id != expense_report.employee_id, add a warning for suspected proxy reimbursement.\n"
-        "- If key documents are missing or conflicting, set decision=needs_review.\n"
-        "- Keep issues/evidence concise and traceable.\n\n"
-        f"TASK_ID: {task.task_id}\n"
-        "INPUT:\n"
-        f"{serialized}\n"
-    )
-
-
 def _build_prompt(task: TaskEnvelope) -> str:
-    if task.command == "/audit":
-        return _build_audit_prompt(task)
-    return f"{task.command} {task.payload}"
+    try:
+        payload_blob = json.dumps(task.payload, ensure_ascii=False)
+    except TypeError:
+        payload_blob = str(task.payload)
+    return f"{task.command} {payload_blob}"
 
 
 def _normalize_issue_item(item: Any, idx: int) -> Dict[str, Any]:
@@ -262,7 +160,7 @@ def _fallback(task: TaskEnvelope, code: str, reason: str, recoverable: bool = Tr
                 {
                     "id": "sdk-fallback-001",
                     "type": "system",
-                    "source": "adapter/sdk_bridge.py",
+                    "source": "adapter/sdk/bridge.py",
                     "content": reason,
                 }
             ],
@@ -305,9 +203,9 @@ def _message_to_dict(message: Any) -> Optional[Dict[str, Any]]:
         return message
     try:
         data = getattr(message, "__dict__", None)
-        return data if isinstance(data, dict) else None
     except Exception:
         return None
+    return data if isinstance(data, dict) else None
 
 
 def _extract_text(message: Any) -> Optional[str]:
@@ -328,139 +226,108 @@ def _extract_text(message: Any) -> Optional[str]:
     return None
 
 
-def _parse_json_candidate(text: str) -> Optional[Dict[str, Any]]:
-    text = text.strip()
-    if not text:
+def _looks_like_result_payload(candidate: Any) -> bool:
+    return isinstance(candidate, dict) and bool(_RESULT_KEYS.intersection(candidate.keys()))
+
+
+def _candidate_from_message(message: Any) -> Optional[Dict[str, Any]]:
+    msg_dict = _message_to_dict(message)
+    if not isinstance(msg_dict, dict):
         return None
 
-    try:
-        data = json.loads(text)
-        return data if isinstance(data, dict) else None
-    except Exception:
-        pass
+    if _looks_like_result_payload(msg_dict):
+        return msg_dict
 
-    block = re.search(r"```json\s*(\{.*?\})\s*```", text, flags=re.DOTALL)
-    if block:
-        try:
-            data = json.loads(block.group(1))
-            return data if isinstance(data, dict) else None
-        except Exception:
-            pass
+    result_field = msg_dict.get("result")
+    if _looks_like_result_payload(result_field):
+        return result_field
 
-    brace = re.search(r"(\{.*\})", text, flags=re.DOTALL)
-    if brace:
-        try:
-            data = json.loads(brace.group(1))
-            return data if isinstance(data, dict) else None
-        except Exception:
-            pass
+    output_field = msg_dict.get("output")
+    if _looks_like_result_payload(output_field):
+        return output_field
 
     return None
 
 
-def _default_result() -> Dict[str, Any]:
+def _parse_json_candidate(text: str) -> Optional[Dict[str, Any]]:
+    content = text.strip()
+    if not content:
+        return None
+
+    try:
+        data = json.loads(content)
+        return data if isinstance(data, dict) else None
+    except Exception:
+        pass
+
+    start = content.find("{")
+    end = content.rfind("}")
+    if start < 0 or end <= start:
+        return None
+
+    try:
+        data = json.loads(content[start : end + 1])
+    except Exception:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _default_result(summary: str = "manual review required") -> Dict[str, Any]:
     return {
         "decision": "needs_review",
-        "confidence": 0.5,
-        "summary": "manual review required",
+        "confidence": 0.0,
+        "summary": _sanitize_summary(summary),
         "issues": [],
         "evidence": [],
     }
 
 
-def _extract_result_payload(messages: List[Any], command: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    result = _default_result()
-    basis = ""
+def _normalize_result_payload(candidate: Dict[str, Any], fallback_summary: str) -> Dict[str, Any]:
+    result = _default_result(fallback_summary)
 
-    for msg in messages:
-        msg_dict = _message_to_dict(msg)
-        candidate: Optional[Dict[str, Any]] = None
+    if "decision" in candidate:
+        result["decision"] = _normalize_decision(candidate.get("decision"))
 
-        if msg_dict:
-            if isinstance(msg_dict.get("result"), dict):
-                candidate = msg_dict["result"]
-            elif isinstance(msg_dict.get("output"), dict):
-                candidate = msg_dict["output"]
+    confidence = candidate.get("confidence")
+    if _is_number(confidence):
+        result["confidence"] = max(0.0, min(1.0, float(confidence)))
 
-        if candidate is None:
-            text = _extract_text(msg)
-            if text:
-                candidate = _parse_json_candidate(text)
-                if candidate is None:
-                    result["summary"] = _sanitize_basis(text)
-
-        if not candidate:
-            continue
-
-        compliance = _safe_str(candidate.get("compliance"), "").lower()
-        if compliance in {"compliant", "non_compliant", "needs_review"}:
-            if compliance == "compliant":
-                result["decision"] = "approved"
-            elif compliance == "non_compliant":
-                result["decision"] = "rejected"
-            else:
-                result["decision"] = "needs_review"
-
-        if "compliant" in candidate:
-            compliant = candidate.get("compliant")
-            if isinstance(compliant, bool):
-                result["decision"] = "approved" if compliant else "rejected"
-
-        if "decision" in candidate:
-            result["decision"] = _normalize_decision(candidate.get("decision"))
-
-        if "confidence" in candidate:
-            try:
-                conf = float(candidate.get("confidence"))
-                result["confidence"] = max(0.0, min(1.0, conf))
-            except Exception:
-                pass
-
-        if isinstance(candidate.get("basis"), str) and candidate["basis"].strip():
-            basis = candidate["basis"].strip()
-
-        if isinstance(candidate.get("summary"), str) and candidate["summary"].strip():
-            result["summary"] = _sanitize_basis(candidate["summary"])
-
-        if "issues" in candidate:
-            result["issues"] = _normalize_issues(candidate.get("issues"))
-
-        if "evidence" in candidate:
-            result["evidence"] = _normalize_evidence(candidate.get("evidence"))
-
-    if result["confidence"] < 0.7 and result["decision"] != "rejected":
-        result["decision"] = "needs_review"
-
-    if basis:
-        result["summary"] = _sanitize_basis(basis)
-    elif result["issues"]:
-        result["summary"] = _sanitize_basis(result["issues"][0].get("description"))
+    summary = candidate.get("summary")
+    if isinstance(summary, str) and summary.strip():
+        result["summary"] = _sanitize_summary(summary)
     else:
-        result["summary"] = _sanitize_basis(result.get("summary"))
+        basis = candidate.get("basis")
+        if isinstance(basis, str) and basis.strip():
+            result["summary"] = _sanitize_summary(basis)
 
-    if command == "/audit":
-        _ensure_proxy_reimbursement_warning(result, payload)
-        if not result["issues"]:
-            severity = "info" if result["decision"] == "approved" else "error" if result["decision"] == "rejected" else "warning"
-            result["issues"] = [
-                {
-                    "severity": severity,
-                    "category": "compliance",
-                    "description": result["summary"],
-                    "evidence_ref": "audit-basis-001",
-                }
-            ]
-        if not result["evidence"]:
-            result["evidence"] = [
-                {
-                    "id": "audit-basis-001",
-                    "type": "policy-summary",
-                    "source": "ai://claude-audit",
-                    "content": result["summary"],
-                }
-            ]
+    if "issues" in candidate:
+        result["issues"] = _normalize_issues(candidate.get("issues"))
+
+    if "evidence" in candidate:
+        result["evidence"] = _normalize_evidence(candidate.get("evidence"))
 
     return result
+
+
+def _extract_result_payload(messages: List[Any]) -> Dict[str, Any]:
+    fallback_summary = "manual review required"
+
+    for message in reversed(messages):
+        candidate = _candidate_from_message(message)
+        if isinstance(candidate, dict):
+            return _normalize_result_payload(candidate, fallback_summary)
+
+        text = _extract_text(message)
+        if not text:
+            continue
+
+        parsed = _parse_json_candidate(text)
+        if isinstance(parsed, dict):
+            return _normalize_result_payload(parsed, fallback_summary)
+
+        fallback_summary = _sanitize_summary(text)
+
+    return _default_result(fallback_summary)
 
 
 async def execute_task_sdk(task: TaskEnvelope) -> SdkExecutionResult:
@@ -532,7 +399,7 @@ async def execute_task_sdk(task: TaskEnvelope) -> SdkExecutionResult:
         return _fallback(task, SDK_QUERY_ERROR, f"sdk query failed: {exc}", recoverable=True)
 
     try:
-        result_payload = _extract_result_payload(raw_messages, task.command, task.payload)
+        result_payload = _extract_result_payload(raw_messages)
     except Exception as exc:
         return _fallback(task, SDK_RESULT_MAPPING_ERROR, f"result mapping failed: {exc}", recoverable=True)
 
@@ -561,15 +428,31 @@ async def execute_task_sdk(task: TaskEnvelope) -> SdkExecutionResult:
     return SdkExecutionResult(envelope=envelope, events=events)
 
 
+def _get_thread_loop() -> asyncio.AbstractEventLoop:
+    loop = getattr(_THREAD_LOCAL, "loop", None)
+    if isinstance(loop, asyncio.AbstractEventLoop) and not loop.is_closed():
+        return loop
+
+    loop = asyncio.new_event_loop()
+    _THREAD_LOCAL.loop = loop
+    return loop
+
+
 def execute_task(task: TaskEnvelope) -> SdkExecutionResult:
     timeout_sec = task.runtime.timeout_sec if isinstance(task.runtime.timeout_sec, int) and task.runtime.timeout_sec > 0 else 300
 
-    async def _run_with_timeout() -> SdkExecutionResult:
-        return await asyncio.wait_for(execute_task_sdk(task), timeout=timeout_sec)
+    loop = _get_thread_loop()
+    if loop.is_running():
+        return _fallback(
+            task,
+            SDK_EVENT_LOOP_ERROR,
+            "thread-local event loop already running; use execute_task_sdk() in async context",
+            recoverable=True,
+        )
 
     try:
-        return asyncio.run(_run_with_timeout())
-    except TimeoutError:
+        return loop.run_until_complete(asyncio.wait_for(execute_task_sdk(task), timeout=timeout_sec))
+    except asyncio.TimeoutError:
         return _fallback(
             task,
             SDK_QUERY_ERROR,
@@ -577,12 +460,9 @@ def execute_task(task: TaskEnvelope) -> SdkExecutionResult:
             recoverable=True,
         )
     except RuntimeError as exc:
-        # Only downgrade to fallback for the known nested-loop case.
-        if "asyncio.run() cannot be called from a running event loop" not in str(exc):
-            raise
         return _fallback(
             task,
             SDK_EVENT_LOOP_ERROR,
-            "event loop already running; use execute_task_sdk() in async context",
+            f"event loop runtime error: {exc}",
             recoverable=True,
         )

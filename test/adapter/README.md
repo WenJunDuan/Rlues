@@ -65,6 +65,22 @@ uvicorn adapter.gateway.http_server:create_app --factory --host 0.0.0.0 --port 8
 - 内部接口必须使用 `internal_api_keys` 中的 key。
 - 默认配置不再内置示例 key，请在配置文件或环境变量显式设置。
 
+### Dev Quickstart (API Keys)
+
+开发环境可用以下命令生成并写入 key（仅用于本地联调）：
+
+```bash
+python3 adapter/gateway/init_dev_keys.py
+```
+
+强制轮换：
+
+```bash
+python3 adapter/gateway/init_dev_keys.py --rotate
+```
+
+脚本会更新 `adapter/gateway/http_access.json` 的 `auth.public_api_keys` 与 `auth.internal_api_keys`，并在 stdout 返回当前 key 摘要 JSON。
+
 ### Caller Context Headers
 
 - 提交与查询报销任务时，需要传：

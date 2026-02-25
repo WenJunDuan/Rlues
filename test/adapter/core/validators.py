@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List
 
 from .error_codes import (
@@ -13,6 +15,8 @@ from .error_codes import (
 
 
 ValidationResult = Dict[str, Any]
+_COMMANDS_DIR = Path(__file__).resolve().parents[2] / ".claude" / "commands"
+_DEFAULT_ALLOWED_COMMANDS = frozenset({"/audit"})
 
 
 def _ok() -> ValidationResult:
@@ -73,8 +77,249 @@ def _parse_timepoint(value: str) -> datetime | None:
     return None
 
 
+@lru_cache(maxsize=1)
+def _load_allowed_commands() -> frozenset[str]:
+    if not _COMMANDS_DIR.exists():
+        return _DEFAULT_ALLOWED_COMMANDS
+
+    commands: set[str] = set()
+    for path in sorted(_COMMANDS_DIR.glob("*.md")):
+        stem = path.stem.strip()
+        if not stem:
+            continue
+        commands.add(f"/{stem}")
+    return frozenset(commands or _DEFAULT_ALLOWED_COMMANDS)
+
+
+def _validate_audit_payload(payload: Dict[str, Any]) -> ValidationResult:
+    report = payload.get("expense_report")
+    if report is None:
+        return _fail(
+            VALIDATION_MISSING_FIELD,
+            "payload.expense_report is required for /audit",
+            [{"path": "payload.expense_report", "reason": "missing"}],
+        )
+    if not isinstance(report, dict):
+        return _fail(
+            VALIDATION_TYPE_MISMATCH,
+            "payload.expense_report must be object",
+            [{"path": "payload.expense_report", "expected": "object", "actual": _type_name(report)}],
+        )
+
+    report_required_str = ["report_id", "employee_id", "reason", "currency", "department", "level"]
+    for field in report_required_str:
+        if field not in report:
+            return _fail(
+                VALIDATION_MISSING_FIELD,
+                f"payload.expense_report.{field} is required for /audit",
+                [{"path": f"payload.expense_report.{field}", "reason": "missing"}],
+            )
+        if not _is_non_empty_str(report.get(field)):
+            return _fail(
+                VALIDATION_INVALID_VALUE,
+                f"payload.expense_report.{field} must be non-empty string",
+                [{"path": f"payload.expense_report.{field}", "value": report.get(field)}],
+            )
+
+    total_amount = report.get("total_amount")
+    if total_amount is None:
+        return _fail(
+            VALIDATION_MISSING_FIELD,
+            "payload.expense_report.total_amount is required for /audit",
+            [{"path": "payload.expense_report.total_amount", "reason": "missing"}],
+        )
+    if not _is_number(total_amount):
+        return _fail(
+            VALIDATION_TYPE_MISMATCH,
+            "payload.expense_report.total_amount must be number",
+            [{"path": "payload.expense_report.total_amount", "expected": "number", "actual": _type_name(total_amount)}],
+        )
+    if float(total_amount) <= 0:
+        return _fail(
+            VALIDATION_INVALID_VALUE,
+            "payload.expense_report.total_amount must be > 0",
+            [{"path": "payload.expense_report.total_amount", "value": total_amount}],
+        )
+
+    invoices = report.get("invoices")
+    if invoices is None:
+        return _fail(
+            VALIDATION_MISSING_FIELD,
+            "payload.expense_report.invoices is required for /audit",
+            [{"path": "payload.expense_report.invoices", "reason": "missing"}],
+        )
+    if not isinstance(invoices, list):
+        return _fail(
+            VALIDATION_TYPE_MISMATCH,
+            "payload.expense_report.invoices must be array",
+            [{"path": "payload.expense_report.invoices", "expected": "array", "actual": _type_name(invoices)}],
+        )
+    if not invoices:
+        return _fail(
+            VALIDATION_INVALID_VALUE,
+            "payload.expense_report.invoices must be non-empty",
+            [{"path": "payload.expense_report.invoices", "reason": "empty"}],
+        )
+
+    invoice_required_str = ["invoice_code", "invoice_number", "date", "category", "currency"]
+    for idx, invoice in enumerate(invoices):
+        base = f"payload.expense_report.invoices[{idx}]"
+        if not isinstance(invoice, dict):
+            return _fail(
+                VALIDATION_TYPE_MISMATCH,
+                f"{base} must be object",
+                [{"path": base, "expected": "object", "actual": _type_name(invoice)}],
+            )
+        for field in invoice_required_str:
+            if field not in invoice:
+                return _fail(
+                    VALIDATION_MISSING_FIELD,
+                    f"{base}.{field} is required for /audit",
+                    [{"path": f"{base}.{field}", "reason": "missing"}],
+                )
+            if not _is_non_empty_str(invoice.get(field)):
+                return _fail(
+                    VALIDATION_INVALID_VALUE,
+                    f"{base}.{field} must be non-empty string",
+                    [{"path": f"{base}.{field}", "value": invoice.get(field)}],
+                )
+        invoice_date = str(invoice.get("date", "")).strip()
+        if not _parse_invoice_date(invoice_date):
+            return _fail(
+                VALIDATION_INVALID_VALUE,
+                f"{base}.date must be YYYY-MM-DD",
+                [{"path": f"{base}.date", "value": invoice.get("date")}],
+            )
+        amount = invoice.get("amount")
+        if not _is_number(amount):
+            return _fail(
+                VALIDATION_TYPE_MISMATCH,
+                f"{base}.amount must be number",
+                [{"path": f"{base}.amount", "expected": "number", "actual": _type_name(amount)}],
+            )
+        if float(amount) <= 0:
+            return _fail(
+                VALIDATION_INVALID_VALUE,
+                f"{base}.amount must be > 0",
+                [{"path": f"{base}.amount", "value": amount}],
+            )
+
+    applicant = payload.get("applicant")
+    if applicant is None:
+        return _fail(
+            VALIDATION_MISSING_FIELD,
+            "payload.applicant is required for /audit",
+            [{"path": "payload.applicant", "reason": "missing"}],
+        )
+    if not isinstance(applicant, dict):
+        return _fail(
+            VALIDATION_TYPE_MISMATCH,
+            "payload.applicant must be object",
+            [{"path": "payload.applicant", "expected": "object", "actual": _type_name(applicant)}],
+        )
+    for field in ["employee_id", "name", "position"]:
+        if not _is_non_empty_str(applicant.get(field)):
+            return _fail(
+                VALIDATION_INVALID_VALUE,
+                f"payload.applicant.{field} must be non-empty string",
+                [{"path": f"payload.applicant.{field}", "value": applicant.get(field)}],
+            )
+
+    has_trip = "trip_application" in payload
+    has_outing = "outing_application" in payload
+    if not has_trip and not has_outing:
+        return _fail(
+            VALIDATION_MISSING_FIELD,
+            "payload.trip_application or payload.outing_application is required for /audit",
+            [{"path": "payload.trip_application|payload.outing_application", "reason": "missing"}],
+        )
+    for key in ["trip_application", "outing_application"]:
+        if key not in payload:
+            continue
+        req = payload.get(key)
+        if not isinstance(req, dict):
+            return _fail(
+                VALIDATION_TYPE_MISMATCH,
+                f"payload.{key} must be object",
+                [{"path": f"payload.{key}", "expected": "object", "actual": _type_name(req)}],
+            )
+        for field in ["request_id", "reason", "start_at", "end_at"]:
+            if not _is_non_empty_str(req.get(field)):
+                return _fail(
+                    VALIDATION_INVALID_VALUE,
+                    f"payload.{key}.{field} must be non-empty string",
+                    [{"path": f"payload.{key}.{field}", "value": req.get(field)}],
+                )
+        start_text = str(req.get("start_at", "")).strip()
+        end_text = str(req.get("end_at", "")).strip()
+        start_at = _parse_timepoint(start_text)
+        end_at = _parse_timepoint(end_text)
+        if start_at is None:
+            return _fail(
+                VALIDATION_INVALID_VALUE,
+                f"payload.{key}.start_at must be date or ISO datetime",
+                [{"path": f"payload.{key}.start_at", "value": req.get("start_at")}],
+            )
+        if end_at is None:
+            return _fail(
+                VALIDATION_INVALID_VALUE,
+                f"payload.{key}.end_at must be date or ISO datetime",
+                [{"path": f"payload.{key}.end_at", "value": req.get("end_at")}],
+            )
+        if end_at < start_at:
+            return _fail(
+                VALIDATION_INVALID_VALUE,
+                f"payload.{key}.end_at must be >= start_at",
+                [
+                    {"path": f"payload.{key}.start_at", "value": req.get("start_at")},
+                    {"path": f"payload.{key}.end_at", "value": req.get("end_at")},
+                ],
+            )
+
+    policy_pack = payload.get("policy_pack")
+    if policy_pack is None:
+        return _fail(
+            VALIDATION_MISSING_FIELD,
+            "payload.policy_pack is required for /audit",
+            [{"path": "payload.policy_pack", "reason": "missing"}],
+        )
+    if not isinstance(policy_pack, dict):
+        return _fail(
+            VALIDATION_TYPE_MISMATCH,
+            "payload.policy_pack must be object",
+            [{"path": "payload.policy_pack", "expected": "object", "actual": _type_name(policy_pack)}],
+        )
+    if not _is_non_empty_str(policy_pack.get("policy_id")):
+        return _fail(
+            VALIDATION_INVALID_VALUE,
+            "payload.policy_pack.policy_id must be non-empty string",
+            [{"path": "payload.policy_pack.policy_id", "value": policy_pack.get("policy_id")}],
+        )
+    if not _is_non_empty_str(policy_pack.get("policy_version")):
+        return _fail(
+            VALIDATION_INVALID_VALUE,
+            "payload.policy_pack.policy_version must be non-empty string",
+            [{"path": "payload.policy_pack.policy_version", "value": policy_pack.get("policy_version")}],
+        )
+    rules = policy_pack.get("rules")
+    if not isinstance(rules, list) or not rules:
+        return _fail(
+            VALIDATION_INVALID_VALUE,
+            "payload.policy_pack.rules must be non-empty array",
+            [{"path": "payload.policy_pack.rules", "value": rules}],
+        )
+    if any(not isinstance(rule, str) or not rule.strip() for rule in rules):
+        return _fail(
+            VALIDATION_INVALID_VALUE,
+            "payload.policy_pack.rules must be array of non-empty strings",
+            [{"path": "payload.policy_pack.rules", "value": rules}],
+        )
+
+    return _ok()
+
+
 def _validate_command_payload(command: str, payload: Dict[str, Any]) -> ValidationResult:
-    allowed_commands = {"/audit"}
+    allowed_commands = _load_allowed_commands()
     if command not in allowed_commands:
         return _fail(
             VALIDATION_INVALID_VALUE,
@@ -83,229 +328,7 @@ def _validate_command_payload(command: str, payload: Dict[str, Any]) -> Validati
         )
 
     if command == "/audit":
-        report = payload.get("expense_report")
-        if report is None:
-            return _fail(
-                VALIDATION_MISSING_FIELD,
-                "payload.expense_report is required for /audit",
-                [{"path": "payload.expense_report", "reason": "missing"}],
-            )
-        if not isinstance(report, dict):
-            return _fail(
-                VALIDATION_TYPE_MISMATCH,
-                "payload.expense_report must be object",
-                [{"path": "payload.expense_report", "expected": "object", "actual": _type_name(report)}],
-            )
-
-        report_required_str = ["report_id", "employee_id", "reason", "currency", "department", "level"]
-        for field in report_required_str:
-            if field not in report:
-                return _fail(
-                    VALIDATION_MISSING_FIELD,
-                    f"payload.expense_report.{field} is required for /audit",
-                    [{"path": f"payload.expense_report.{field}", "reason": "missing"}],
-                )
-            if not _is_non_empty_str(report.get(field)):
-                return _fail(
-                    VALIDATION_INVALID_VALUE,
-                    f"payload.expense_report.{field} must be non-empty string",
-                    [{"path": f"payload.expense_report.{field}", "value": report.get(field)}],
-                )
-
-        total_amount = report.get("total_amount")
-        if total_amount is None:
-            return _fail(
-                VALIDATION_MISSING_FIELD,
-                "payload.expense_report.total_amount is required for /audit",
-                [{"path": "payload.expense_report.total_amount", "reason": "missing"}],
-            )
-        if not _is_number(total_amount):
-            return _fail(
-                VALIDATION_TYPE_MISMATCH,
-                "payload.expense_report.total_amount must be number",
-                [{"path": "payload.expense_report.total_amount", "expected": "number", "actual": _type_name(total_amount)}],
-            )
-        if float(total_amount) <= 0:
-            return _fail(
-                VALIDATION_INVALID_VALUE,
-                "payload.expense_report.total_amount must be > 0",
-                [{"path": "payload.expense_report.total_amount", "value": total_amount}],
-            )
-
-        invoices = report.get("invoices")
-        if invoices is None:
-            return _fail(
-                VALIDATION_MISSING_FIELD,
-                "payload.expense_report.invoices is required for /audit",
-                [{"path": "payload.expense_report.invoices", "reason": "missing"}],
-            )
-        if not isinstance(invoices, list):
-            return _fail(
-                VALIDATION_TYPE_MISMATCH,
-                "payload.expense_report.invoices must be array",
-                [{"path": "payload.expense_report.invoices", "expected": "array", "actual": _type_name(invoices)}],
-            )
-        if not invoices:
-            return _fail(
-                VALIDATION_INVALID_VALUE,
-                "payload.expense_report.invoices must be non-empty",
-                [{"path": "payload.expense_report.invoices", "reason": "empty"}],
-            )
-
-        invoice_required_str = ["invoice_code", "invoice_number", "date", "category", "currency"]
-        for idx, invoice in enumerate(invoices):
-            base = f"payload.expense_report.invoices[{idx}]"
-            if not isinstance(invoice, dict):
-                return _fail(
-                    VALIDATION_TYPE_MISMATCH,
-                    f"{base} must be object",
-                    [{"path": base, "expected": "object", "actual": _type_name(invoice)}],
-                )
-            for field in invoice_required_str:
-                if field not in invoice:
-                    return _fail(
-                        VALIDATION_MISSING_FIELD,
-                        f"{base}.{field} is required for /audit",
-                        [{"path": f"{base}.{field}", "reason": "missing"}],
-                    )
-                if not _is_non_empty_str(invoice.get(field)):
-                    return _fail(
-                        VALIDATION_INVALID_VALUE,
-                        f"{base}.{field} must be non-empty string",
-                        [{"path": f"{base}.{field}", "value": invoice.get(field)}],
-                    )
-            invoice_date = str(invoice.get("date", "")).strip()
-            if not _parse_invoice_date(invoice_date):
-                return _fail(
-                    VALIDATION_INVALID_VALUE,
-                    f"{base}.date must be YYYY-MM-DD",
-                    [{"path": f"{base}.date", "value": invoice.get("date")}],
-                )
-            amount = invoice.get("amount")
-            if not _is_number(amount):
-                return _fail(
-                    VALIDATION_TYPE_MISMATCH,
-                    f"{base}.amount must be number",
-                    [{"path": f"{base}.amount", "expected": "number", "actual": _type_name(amount)}],
-                )
-            if float(amount) <= 0:
-                return _fail(
-                    VALIDATION_INVALID_VALUE,
-                    f"{base}.amount must be > 0",
-                    [{"path": f"{base}.amount", "value": amount}],
-                )
-
-        applicant = payload.get("applicant")
-        if applicant is None:
-            return _fail(
-                VALIDATION_MISSING_FIELD,
-                "payload.applicant is required for /audit",
-                [{"path": "payload.applicant", "reason": "missing"}],
-            )
-        if not isinstance(applicant, dict):
-            return _fail(
-                VALIDATION_TYPE_MISMATCH,
-                "payload.applicant must be object",
-                [{"path": "payload.applicant", "expected": "object", "actual": _type_name(applicant)}],
-            )
-        for field in ["employee_id", "name", "position"]:
-            if not _is_non_empty_str(applicant.get(field)):
-                return _fail(
-                    VALIDATION_INVALID_VALUE,
-                    f"payload.applicant.{field} must be non-empty string",
-                    [{"path": f"payload.applicant.{field}", "value": applicant.get(field)}],
-                )
-
-        has_trip = "trip_application" in payload
-        has_outing = "outing_application" in payload
-        if not has_trip and not has_outing:
-            return _fail(
-                VALIDATION_MISSING_FIELD,
-                "payload.trip_application or payload.outing_application is required for /audit",
-                [{"path": "payload.trip_application|payload.outing_application", "reason": "missing"}],
-            )
-        for key in ["trip_application", "outing_application"]:
-            if key not in payload:
-                continue
-            req = payload.get(key)
-            if not isinstance(req, dict):
-                return _fail(
-                    VALIDATION_TYPE_MISMATCH,
-                    f"payload.{key} must be object",
-                    [{"path": f"payload.{key}", "expected": "object", "actual": _type_name(req)}],
-                )
-            for field in ["request_id", "reason", "start_at", "end_at"]:
-                if not _is_non_empty_str(req.get(field)):
-                    return _fail(
-                        VALIDATION_INVALID_VALUE,
-                        f"payload.{key}.{field} must be non-empty string",
-                        [{"path": f"payload.{key}.{field}", "value": req.get(field)}],
-                    )
-            start_text = str(req.get("start_at", "")).strip()
-            end_text = str(req.get("end_at", "")).strip()
-            start_at = _parse_timepoint(start_text)
-            end_at = _parse_timepoint(end_text)
-            if start_at is None:
-                return _fail(
-                    VALIDATION_INVALID_VALUE,
-                    f"payload.{key}.start_at must be date or ISO datetime",
-                    [{"path": f"payload.{key}.start_at", "value": req.get("start_at")}],
-                )
-            if end_at is None:
-                return _fail(
-                    VALIDATION_INVALID_VALUE,
-                    f"payload.{key}.end_at must be date or ISO datetime",
-                    [{"path": f"payload.{key}.end_at", "value": req.get("end_at")}],
-                )
-            if end_at < start_at:
-                return _fail(
-                    VALIDATION_INVALID_VALUE,
-                    f"payload.{key}.end_at must be >= start_at",
-                    [
-                        {"path": f"payload.{key}.start_at", "value": req.get("start_at")},
-                        {"path": f"payload.{key}.end_at", "value": req.get("end_at")},
-                    ],
-                )
-
-        policy_pack = payload.get("policy_pack")
-        if policy_pack is None:
-            return _fail(
-                VALIDATION_MISSING_FIELD,
-                "payload.policy_pack is required for /audit",
-                [{"path": "payload.policy_pack", "reason": "missing"}],
-            )
-        if not isinstance(policy_pack, dict):
-            return _fail(
-                VALIDATION_TYPE_MISMATCH,
-                "payload.policy_pack must be object",
-                [{"path": "payload.policy_pack", "expected": "object", "actual": _type_name(policy_pack)}],
-            )
-        if not _is_non_empty_str(policy_pack.get("policy_id")):
-            return _fail(
-                VALIDATION_INVALID_VALUE,
-                "payload.policy_pack.policy_id must be non-empty string",
-                [{"path": "payload.policy_pack.policy_id", "value": policy_pack.get("policy_id")}],
-            )
-        if not _is_non_empty_str(policy_pack.get("policy_version")):
-            return _fail(
-                VALIDATION_INVALID_VALUE,
-                "payload.policy_pack.policy_version must be non-empty string",
-                [{"path": "payload.policy_pack.policy_version", "value": policy_pack.get("policy_version")}],
-            )
-        rules = policy_pack.get("rules")
-        if not isinstance(rules, list) or not rules:
-            return _fail(
-                VALIDATION_INVALID_VALUE,
-                "payload.policy_pack.rules must be non-empty array",
-                [{"path": "payload.policy_pack.rules", "value": rules}],
-            )
-        if any(not isinstance(rule, str) or not rule.strip() for rule in rules):
-            return _fail(
-                VALIDATION_INVALID_VALUE,
-                "payload.policy_pack.rules must be array of non-empty strings",
-                [{"path": "payload.policy_pack.rules", "value": rules}],
-            )
-
+        return _validate_audit_payload(payload)
     return _ok()
 
 
