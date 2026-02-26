@@ -19,6 +19,10 @@
    - 原始大文本仅保留引用，不整体入库
    - 摘要限制在 500 字以内
 3. 调用 `context_store.save_session` 写入会话与记忆。
+4. 分层落盘：
+   - 写 `MEMORY.md` 索引。
+   - 写 `memory/projects.md`、`memory/infra.md`、`memory/lessons.md`。
+   - 写当日日志 `memory/YYYY-MM-DD.md`。
 
 ## 失败策略
 1. 上下文写入失败不应阻断主流程结果返回。

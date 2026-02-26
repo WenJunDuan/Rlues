@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "persistence": {
+    "backend": "memory",
+    "redis": {
+      "url": "redis://192.168.31.10:16379/0",
+      "password": "1234QWer!@",
+      "event_ttl_seconds": 86400
+    }
+  },
+  "gateway": {
+    "auth": {
+      "header": "X-Adapter-Key",
+      "public_api_keys": [],
+      "internal_api_keys": []
+    },
+    "features": {
+      "audit": {
+        "command": "/audit",
+        "instruction": "review",
+        "enabled": true,
+        "expose_http": true,
+        "scope": "public"
+      }
+    },
+    "endpoints": {
+      "health": {
+        "enabled": true,
+        "scope": "public"
+      },
+      "feature_submit": {
+        "enabled": true,
+        "scope": "public"
+      },
+      "task_query": {
+        "enabled": true,
+        "scope": "public"
+      },
+      "task_events": {
+        "enabled": true,
+        "scope": "public"
+      },
+      "task_compliance": {
+        "enabled": true,
+        "scope": "public"
+      },
+      "feature_query": {
+        "enabled": true,
+        "scope": "public"
+      },
+      "feature_events": {
+        "enabled": true,
+        "scope": "public"
+      },
+      "feature_compliance": {
+        "enabled": true,
+        "scope": "public"
+      },
+      "history_list": {
+        "enabled": true,
+        "scope": "internal"
+      },
+      "history_delete": {
+        "enabled": true,
+        "scope": "internal"
+      },
+      "logs_list": {
+        "enabled": true,
+        "scope": "internal"
+      },
+      "logs_archive": {
+        "enabled": true,
+        "scope": "internal"
+      },
+      "runtime_queue": {
+        "enabled": true,
+        "scope": "internal"
+      },
+      "runtime_exposure": {
+        "enabled": true,
+        "scope": "internal"
+      },
+      "legacy_task_submit": {
+        "enabled": false,
+        "scope": "internal"
+      },
+      "legacy_task_query": {
+        "enabled": false,
+        "scope": "internal"
+      },
+      "legacy_task_events": {
+        "enabled": false,
+        "scope": "internal"
+      },
+      "legacy_task_compliance": {
+        "enabled": false,
+        "scope": "internal"
+      }
+    }
+  },
+  "sdk": {
+    "setting_sources": [
+      "project"
+    ],
+    "permission_mode": null,
+    "sandbox": true,
+    "allowed_tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Task"
+    ],
+    "enable_plugin_bash": false
+  }
+}

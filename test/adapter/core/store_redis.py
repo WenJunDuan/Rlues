@@ -28,8 +28,7 @@ class RedisStoreBackend(StoreBackend):
     - History logs (list)
 
     Task envelopes and result envelopes are stored in the inner memory
-    backend for simplicity; switch to PostgresStoreBackend for fully
-    durable task storage.
+    backend for simplicity.
     """
 
     def __init__(self, config: Dict[str, Any]) -> None:

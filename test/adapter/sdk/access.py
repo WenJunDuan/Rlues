@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from ..core.config_loader import load_adapter_config
 
 
 PLUGIN_BASH_TOOL = "Bash(python3 .claude/plugins/*/main.py *)"
@@ -28,16 +28,6 @@ class SdkAccessPolicy:
             "sandbox": self.sandbox,
             "allowed_tools": list(self.allowed_tools),
         }
-
-
-def _load_json(path: Path) -> Dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    return payload if isinstance(payload, dict) else {}
 
 
 def _str_list(value: Any, default: List[str]) -> List[str]:
@@ -82,9 +72,8 @@ def _env_csv(name: str) -> Optional[List[str]]:
 
 
 def load_sdk_access_policy() -> SdkAccessPolicy:
-    default_path = Path(__file__).resolve().parents[1] / "gateway" / "http_access.json"
-    config_path = Path(os.getenv("ADAPTER_HTTP_ACCESS_CONFIG", str(default_path)))
-    raw = _load_json(config_path)
+    config = load_adapter_config()
+    raw = config.data
     sdk = raw.get("sdk", {})
     sdk_map = sdk if isinstance(sdk, dict) else {}
 
@@ -116,7 +105,7 @@ def load_sdk_access_policy() -> SdkAccessPolicy:
     if not allowed_tools:
         allowed_tools = ["Read", "Grep", "Glob", "Task"]
 
-    source = str(config_path) if config_path.exists() else "defaults"
+    source = config.source
     return SdkAccessPolicy(
         setting_sources=setting_sources,
         permission_mode=permission_mode,

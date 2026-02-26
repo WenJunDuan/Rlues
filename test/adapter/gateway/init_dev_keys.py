@@ -1,9 +1,10 @@
-"""Generate development API keys for adapter gateway access policy."""
+"""Generate development API keys for unified adapter configuration."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import secrets
 from pathlib import Path
 from typing import Any, Dict, List
@@ -43,10 +44,17 @@ def _resolve_key(explicit_value: str | None, prefix: str) -> str:
     return _generate_key(prefix)
 
 
+def _default_config_path() -> Path:
+    configured = os.getenv("ADAPTER_CONFIG_PATH")
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[2] / "config.json"
+
+
 def _parse_args() -> argparse.Namespace:
-    default_path = Path(__file__).with_name("http_access.json")
+    default_path = _default_config_path()
     parser = argparse.ArgumentParser(description="Generate development API keys for adapter gateway.")
-    parser.add_argument("--config", default=str(default_path), help="Path to http_access.json")
+    parser.add_argument("--config", default=str(default_path), help="Path to config.json")
     parser.add_argument("--public-key", default=None, help="Optional explicit public key")
     parser.add_argument("--internal-key", default=None, help="Optional explicit internal key")
     parser.add_argument("--rotate", action="store_true", help="Rotate keys even if policy already has keys")
@@ -57,8 +65,9 @@ def main() -> int:
     args = _parse_args()
     config_path = Path(args.config).expanduser().resolve()
 
-    policy = _load_policy(config_path)
-    auth = policy.get("auth") if isinstance(policy.get("auth"), dict) else {}
+    config = _load_policy(config_path)
+    gateway = config.get("gateway") if isinstance(config.get("gateway"), dict) else {}
+    auth = gateway.get("auth") if isinstance(gateway.get("auth"), dict) else {}
 
     current_public = _clean_keys(auth.get("public_api_keys"))
     current_internal = _clean_keys(auth.get("internal_api_keys"))
@@ -73,13 +82,16 @@ def main() -> int:
     else:
         internal_keys = current_internal
 
-    auth["header"] = auth.get("header") if isinstance(auth.get("header"), str) and auth.get("header", "").strip() else "X-Adapter-Key"
+    header = auth.get("header")
+    auth["header"] = header if isinstance(header, str) and header.strip() else "X-Adapter-Key"
     auth["public_api_keys"] = public_keys
     auth["internal_api_keys"] = internal_keys
-    policy["auth"] = auth
+
+    gateway["auth"] = auth
+    config["gateway"] = gateway
 
     config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(json.dumps(policy, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print(
         json.dumps(

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Tuple
+
+from ..core.config_loader import load_adapter_config
 
 
 PUBLIC_SCOPE = "public"
@@ -178,16 +178,6 @@ def _merge_overrides(base: Dict[str, Dict[str, Any]], override: Any) -> Dict[str
     return merged
 
 
-def _load_json(path: Path) -> Dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    return payload if isinstance(payload, dict) else {}
-
-
 def _feature_access(values: Mapping[str, Any]) -> FeatureAccess:
     command = _str_value(values.get("command"), "/audit")
     if not command.startswith("/"):
@@ -212,10 +202,16 @@ def _endpoint_access(values: Mapping[str, Any]) -> EndpointAccess:
 
 
 def load_http_access_policy() -> HttpAccessPolicy:
-    default_path = Path(__file__).with_name("http_access.json")
-    configured_path = _str_value(os.getenv("ADAPTER_HTTP_ACCESS_CONFIG"), str(default_path))
-    config_path = Path(configured_path)
-    raw = _load_json(config_path)
+    config = load_adapter_config()
+    root = config.data
+    gateway_raw = root.get("gateway")
+    if isinstance(gateway_raw, dict):
+        raw = gateway_raw
+    elif any(key in root for key in ("auth", "features", "endpoints")):
+        # Backward compatible with legacy gateway-only JSON.
+        raw = root
+    else:
+        raw = {}
 
     feature_blob = _merge_overrides(DEFAULT_FEATURES, raw.get("features"))
     endpoint_blob = _merge_overrides(DEFAULT_ENDPOINTS, raw.get("endpoints"))
@@ -246,7 +242,7 @@ def load_http_access_policy() -> HttpAccessPolicy:
     if env_internal_keys:
         internal_api_keys = env_internal_keys
 
-    source = str(config_path) if config_path.exists() else "defaults"
+    source = config.source
     return HttpAccessPolicy(
         features=features,
         endpoints=endpoints,

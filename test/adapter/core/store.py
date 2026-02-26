@@ -1,9 +1,8 @@
 """Abstract store backend interface for adapter persistence.
 
 Provides a pluggable persistence layer. Concrete implementations:
-- MemoryStoreBackend  (store_memory.py)  — default, for dev/tests
-- PostgresStoreBackend (store_postgres.py) — durable production storage
-- RedisStoreBackend   (store_redis.py)   — hot event cache
+- MemoryStoreBackend (store_memory.py) — default, for dev/tests
+- RedisStoreBackend  (store_redis.py)  — event/meta cache
 """
 
 from __future__ import annotations
@@ -98,14 +97,9 @@ def create_store(backend_type: str, config: Dict[str, Any]) -> StoreBackend:
 
         return MemoryStoreBackend()
 
-    if backend_type == "postgres":
-        from .store_postgres import PostgresStoreBackend
-
-        return PostgresStoreBackend(config.get("postgres", {}))
-
     if backend_type == "redis":
         from .store_redis import RedisStoreBackend
 
         return RedisStoreBackend(config.get("redis", {}))
 
-    raise ValueError(f"unknown store backend: {backend_type!r} (supported: memory, postgres, redis)")
+    raise ValueError(f"unknown store backend: {backend_type!r} (supported: memory, redis)")

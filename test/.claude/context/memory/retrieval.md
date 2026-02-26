@@ -10,6 +10,9 @@
 - `top_k`
 
 ## 混合检索策略（MVP）
+0. 索引定位：
+   - 先读取 `MEMORY.md` 获取分层文件入口。
+   - 再按需读取 `memory/projects.md`、`memory/lessons.md`、`memory/YYYY-MM-DD.md`。
 1. Keyword 检索：
    - 对 `summary/issues/evidence` 文本做关键词匹配。
    - 计算命中词数量作为 `keyword_score`。

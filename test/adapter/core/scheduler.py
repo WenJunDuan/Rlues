@@ -279,8 +279,8 @@ def _drain_session_worker(session_key: str) -> None:
 def bootstrap_runtime() -> None:
     """Load persisted state and schedule pending workers on startup."""
     # For memory backend, nothing to restore from disk.
-    # For postgres/redis, tasks in 'queued'/'processing' state will be
-    # re-enqueued on next submit. The store already has the data.
+    # Redis backend is currently used for event/meta/history caching only;
+    # queue/task/result live in process memory and are not replayed on boot.
     state = get_state()
     pending = state.queue.total_pending()
     if pending > 0:

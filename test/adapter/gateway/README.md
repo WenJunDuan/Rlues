@@ -1,38 +1,19 @@
-# Gateway Layer
+# Gateway Docs
 
-网关层负责三件事：
+详见：`.ai_state/docs/project/modules/gateway.md`
 
-1. 接收 HTTP 请求并做鉴权/暴露策略检查
-2. 把请求标准化成 `TaskEnvelope` 并投递到 `core` 队列
-3. 提供任务查询、历史查询、日志查询与运行时诊断接口
+统一外部配置文件：`config.json`（`gateway` 段）
 
-## Files
+## 当前分层
 
-- `adapter/gateway/http_server.py`
-  - FastAPI 路由入口
-  - endpoint 级 access guard
-  - HTTP status 映射
-- `adapter/gateway/http_access.py`
-  - feature + endpoint + key scope 策略加载
-  - env 覆盖与脱敏导出
-- `adapter/gateway/http_access.json`
-  - 当前运行配置（仅 `audit`）
+- `http_server.py`：仅负责 FastAPI 路由注册、参数绑定、JSONResponse 输出。
+- `access_control.py`：鉴权与访问控制（endpoint scope、task owner 校验）。
+- `feature_service.py`：feature API 到 task envelope 的适配与 feature/task 匹配检查。
+- `response_mapper.py`：统一错误响应构造与 HTTP 状态码映射。
+- `http_access.py`：配置读取与访问策略模型。
 
-## HTTP -> SDK 调度链
+## 调用方向
 
-`POST /api/audit(/review)`
--> `gateway.http_server._submit_feature_command()`
--> `core.api_server.submit_task()`
--> `core` 队列线程调度
--> `sdk.bridge.execute_task()`
--> `sdk.runtime.load_claude_sdk_runtime()`
--> `claude_agent_sdk.query()`
+`http_server -> (access_control | feature_service | response_mapper) -> core.api_server`
 
-## 关键设计
-
-- 同 `tenant_id:operator_id` 串行
-- 跨会话并发受 `max_concurrent_sessions` 限制
-- 请求与执行解耦：提交返回 `202`，结果轮询查询
-- 内部接口通过 `scope=internal` + key 控制
-- 任务提交/查询绑定归属：`X-Tenant-Id` + `X-Operator-Id`
-- 查询阶段要求归属匹配且校验提交时 API key 指纹（内部 key 可用于运维诊断）
+Gateway 层不直接实现业务执行逻辑，执行链路由 `adapter/core` 与 `adapter/sdk` 负责。
