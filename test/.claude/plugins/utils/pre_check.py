@@ -12,7 +12,7 @@ from typing import Any
 ALLOWED_PATTERN = re.compile(
     r"^\s*python3\s+\.claude/plugins/(?:[A-Za-z0-9_.-]+/main\.py|utils/[A-Za-z0-9_.-]+\.py)(?:\s+[^;\n\r]*)?\s*$"
 )
-FORBIDDEN_TOKENS = ("&&", "||", "|", ";", "`", "$(", "\n", "\r")
+FORBIDDEN_TOKENS = ("&&", "||", "|", ";", "`", "$(", "\n", "\r", ">", "<")
 
 
 def _load_payload(raw: str) -> Any:

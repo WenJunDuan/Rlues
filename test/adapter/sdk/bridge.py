@@ -403,19 +403,27 @@ async def execute_task_sdk(task: TaskEnvelope) -> SdkExecutionResult:
     except Exception as exc:
         return _fallback(task, SDK_RESULT_MAPPING_ERROR, f"result mapping failed: {exc}", recoverable=True)
 
+    decision = _normalize_decision(result_payload.get("decision"))
+    confidence = result_payload.get("confidence")
+    if _is_number(confidence) and float(confidence) < 0.7 and decision != "rejected":
+        decision = "needs_review"
+    result_payload["decision"] = decision
+
+    envelope_status = "needs_review" if decision == "needs_review" else "completed"
+
     events.append({"type": "tool_call", "data": {"tool": "claude_agent_sdk.query", "status": "completed", "message_count": len(raw_messages)}})
     events.append(
         {
             "type": "decision_point",
-            "data": {"decision": result_payload.get("decision"), "confidence": result_payload.get("confidence")},
+            "data": {"decision": decision, "confidence": result_payload.get("confidence")},
         }
     )
-    events.append({"type": "task_end", "data": {"status": "completed"}})
+    events.append({"type": "task_end", "data": {"status": envelope_status}})
 
     envelope = ResultEnvelope(
         task_id=task.task_id,
         command=task.command,
-        status="completed",
+        status=envelope_status,
         result=result_payload,
         execution={
             "model_used": task.runtime.model or "sonnet",

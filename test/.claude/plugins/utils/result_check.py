@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 SIGNAL_KEYS = {"task_id", "command", "status", "result"}
 ALLOWED_STATUS = {"completed", "needs_review", "failed", "timeout"}
 ALLOWED_DECISIONS = {"approved", "rejected", "needs_review"}
+ALLOWED_ISSUE_SEVERITY = {"error", "warning", "info"}
 
 
 def _load_payload(raw: str) -> Any:
@@ -71,6 +72,9 @@ def main() -> int:
             "result.confidence must be number",
             [{"path": "result.confidence", "expected": "number", "actual": type(confidence).__name__}],
         )
+    confidence = float(confidence)
+    if confidence < 0.0 or confidence > 1.0:
+        return _block("result.confidence must be between 0 and 1", [{"path": "result.confidence", "value": confidence}])
 
     summary = result.get("summary")
     if not isinstance(summary, str) or not summary.strip():
@@ -87,13 +91,43 @@ def main() -> int:
                 "result.issues entries must be objects",
                 [{"path": f"result.issues[{idx}]", "expected": "object", "actual": type(issue).__name__}],
             )
-        if str(issue.get("severity", "")).strip().lower() == "error":
+        severity = str(issue.get("severity", "")).strip().lower()
+        if severity not in ALLOWED_ISSUE_SEVERITY:
+            return _block(
+                "result.issues severity invalid",
+                [
+                    {
+                        "path": f"result.issues[{idx}].severity",
+                        "value": issue.get("severity"),
+                        "allowed": sorted(ALLOWED_ISSUE_SEVERITY),
+                    }
+                ],
+            )
+        if severity == "error":
             error_issue_paths.append(f"result.issues[{idx}].severity")
 
     if decision == "approved" and error_issue_paths:
         details: List[dict] = [{"path": "result.decision", "value": decision}]
         details.extend([{"path": path, "value": "error"} for path in error_issue_paths])
         return _block("business consistency failed: approved decision cannot contain error issues", details)
+
+    if decision == "rejected" and not error_issue_paths:
+        return _block(
+            "business consistency failed: rejected decision requires at least one error issue",
+            [{"path": "result.decision", "value": decision}, {"path": "result.issues", "reason": "no_error_issue"}],
+        )
+
+    if confidence < 0.7 and decision not in {"rejected", "needs_review"}:
+        return _block(
+            "business consistency failed: confidence < 0.7 must downgrade decision to needs_review unless rejected",
+            [{"path": "result.decision", "value": decision}, {"path": "result.confidence", "value": confidence}],
+        )
+
+    if decision == "needs_review" and status == "completed":
+        return _block(
+            "business consistency failed: needs_review decision requires status=needs_review",
+            [{"path": "status", "value": status}, {"path": "result.decision", "value": decision}],
+        )
 
     return _pass("result check passed", True)
 

@@ -1,0 +1,20 @@
+# Adapter Persistence Configuration
+#
+# Supported backends: memory | postgres | redis
+# Override with env: ADAPTER_STORE_BACKEND
+#
+# For postgres passwords, prefer env var: ADAPTER_PG_PASSWORD
+
+backend: memory
+
+postgres:
+  host: localhost
+  port: 5432
+  database: adapter
+  user: adapter
+  password: ""
+  pool_size: 5
+
+redis:
+  url: redis://localhost:6379/0
+  event_ttl_seconds: 86400
