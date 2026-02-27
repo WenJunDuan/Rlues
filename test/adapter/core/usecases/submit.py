@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from ..error_codes import ADAPTER_PARSE_ERROR, VALIDATION_INVALID_VALUE, error_payload
+from ..error_codes import ADAPTER_PARSE_ERROR, VALIDATION_INVALID_VALUE, error_payload, hash_api_key
 from ..history import write_history_record
-from ..scheduler import _hash_api_key, schedule_workers, upsert_task_meta
+from ..scheduler import schedule_workers, upsert_task_meta
 from ..state import get_state
 from ..task_queue import QueueItem
 from ..types import from_dict
@@ -53,7 +53,7 @@ def submit_task(payload: Dict[str, Any], *, owner_api_key: Optional[str] = None)
             }
 
         session_key = state.queue.build_session_key(task.context.tenant_id, task.context.operator_id)
-        owner_hash = _hash_api_key(owner_api_key)
+        owner_hash = hash_api_key(owner_api_key)
         state.store.save_task(task.task_id, asdict(task))
         upsert_task_meta(
             task,

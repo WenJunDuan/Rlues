@@ -74,10 +74,12 @@ def delete_history(task_id: str, *, purge_events: bool = True) -> Dict[str, Any]
             }
 
         removed_from_queue = state.queue.remove_task(task_id)
-        deleted = state.store.delete_task(task_id)
-        removed_events = 0
+        deleted = state.store.delete_task(task_id, purge_events=purge_events)
+        removed_store_events = int(deleted.get("removed_events", 0) or 0)
+        removed_pipeline_events = 0
         if purge_events:
-            removed_events = state.events.remove_task(task_id)
+            removed_pipeline_events = state.events.remove_task(task_id)
+        removed_events = removed_store_events + removed_pipeline_events
         changed = any([
             removed_from_queue,
             deleted.get("removed_task"),

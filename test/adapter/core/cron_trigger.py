@@ -71,7 +71,8 @@ class CronTrigger:
 
     def _run_heartbeat(self) -> None:
         """Execute a system health check and log results."""
-        from .api_server import queue_runtime, submit_task
+        from .history import write_history_record
+        from .state import get_state
 
         task_id = f"heartbeat-{uuid.uuid4().hex[:12]}"
         now = datetime.now(timezone.utc).isoformat()
@@ -79,31 +80,32 @@ class CronTrigger:
         # Collect diagnostics
         diagnostics = self._collect_diagnostics()
 
-        # Submit as a heartbeat task
-        payload = {
-            "task_id": task_id,
-            "command": "/heartbeat",
-            "context": {
-                "tenant_id": self._tenant_id,
-                "operator_id": self._operator_id,
-            },
-            "payload": {
-                "check_time": now,
-                "diagnostics": diagnostics,
-            },
+        # Record heartbeat directly in history (bypass validator — /heartbeat is internal)
+        record_payload = {
+            "check_time": now,
+            "diagnostics": diagnostics,
+            "tenant_id": self._tenant_id,
+            "operator_id": self._operator_id,
         }
+        write_history_record("heartbeat", task_id, record_payload)
 
-        result = submit_task(payload)
-        status = result.get("status", "unknown")
+        # Also persist to store as an event for observability
+        try:
+            state = get_state()
+            with state.lock:
+                state.events.emit(task_id, "heartbeat", record_payload)
+        except Exception:
+            pass
+
         logger.info(
-            "heartbeat submitted: task_id=%s status=%s diagnostics=%s",
-            task_id, status, diagnostics,
+            "heartbeat completed: task_id=%s diagnostics=%s",
+            task_id, diagnostics,
         )
 
     def _collect_diagnostics(self) -> Dict[str, Any]:
         """Collect system health metrics."""
         try:
-            from .api_server import queue_runtime
+            from .usecases.runtime import queue_runtime
 
             runtime = queue_runtime()
             diagnostics: Dict[str, Any] = {

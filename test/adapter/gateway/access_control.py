@@ -6,7 +6,6 @@ stay focused on HTTP transport wiring.
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Dict, Optional
 
 from ..core.api_server import get_task_meta
@@ -19,6 +18,7 @@ from ..core.error_codes import (
     AUTH_INVALID_API_KEY,
     AUTH_MISSING_API_KEY,
     AUTH_TASK_ACCESS_DENIED,
+    hash_api_key,
 )
 from . import http_access
 from .response_mapper import failed_response
@@ -33,12 +33,6 @@ def clean_header_value(value: Optional[str]) -> Optional[str]:
     text = str(value).strip()
     return text if text else None
 
-
-def hash_api_key(token: Optional[str]) -> Optional[str]:
-    cleaned = clean_header_value(token)
-    if cleaned is None:
-        return None
-    return hashlib.sha256(cleaned.encode("utf-8")).hexdigest()
 
 
 def is_internal_api_key(token: Optional[str]) -> bool:

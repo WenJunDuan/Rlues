@@ -118,7 +118,8 @@ def write_history_record(action: str, task_id: str, payload: Dict[str, Any]) -> 
     # Store-backed history
     try:
         state = get_state()
-        state.store.save_history(record)
+        with state.lock:
+            state.store.save_history(record)
     except Exception:
         pass
 

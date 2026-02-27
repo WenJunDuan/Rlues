@@ -6,7 +6,6 @@ loop, and bootstrap logic.
 
 from __future__ import annotations
 
-import hashlib
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import asdict
@@ -19,6 +18,7 @@ from .error_codes import (
     ADAPTER_TASK_NOT_FOUND,
     VALIDATION_FAILED,
     error_payload,
+    hash_api_key,
 )
 from .history import LOGGER, write_history_record
 from .state import get_state
@@ -39,14 +39,6 @@ WORKER_POOL = ThreadPoolExecutor(
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-
-def _hash_api_key(token: Optional[str]) -> Optional[str]:
-    if not isinstance(token, str):
-        return None
-    value = token.strip()
-    if not value:
-        return None
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _emit_event(task_id: str, event_type: str, data: Dict[str, Any]) -> None:

@@ -122,12 +122,14 @@ class MemoryStoreBackend(StoreBackend):
 
     # ── Cascade delete ──
 
-    def delete_task(self, task_id: str) -> Dict[str, bool]:
+    def delete_task(self, task_id: str, *, purge_events: bool = True) -> Dict[str, Any]:
         had_task = self._tasks.pop(task_id, None) is not None
         had_result = self._results.pop(task_id, None) is not None
         had_meta = self._meta.pop(task_id, None) is not None
-        events_bucket = self._events.pop(task_id, None)
-        removed_events = len(events_bucket) if events_bucket else 0
+        removed_events = 0
+        if purge_events:
+            events_bucket = self._events.pop(task_id, None)
+            removed_events = len(events_bucket) if events_bucket else 0
         return {
             "removed_task": had_task,
             "removed_result": had_result,

@@ -1,5 +1,8 @@
 """Centralized error code definitions for adapter and SDK bridge."""
 
+import hashlib
+from typing import Optional
+
 # Validation layer
 VALIDATION_FAILED = "VALIDATION_FAILED"
 VALIDATION_MISSING_FIELD = "VALIDATION_MISSING_FIELD"
@@ -39,3 +42,13 @@ def error_payload(code: str, message: str, details: list | None = None, recovera
     if details:
         payload["details"] = details
     return payload
+
+
+def hash_api_key(token: Optional[str]) -> Optional[str]:
+    """SHA-256 hash of an API key for ownership comparison."""
+    if not isinstance(token, str):
+        return None
+    value = token.strip()
+    if not value:
+        return None
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()

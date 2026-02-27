@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 
 from ..core.api_server import (
     archive_logs,
+    bootstrap_on_import,
     delete_history,
     get_compliance_feedback,
     get_result,
@@ -33,6 +34,8 @@ from ..sdk.access import SDK_ACCESS
 
 def create_app():
     """Build FastAPI app lazily so module import does not require FastAPI."""
+    bootstrap_on_import()
+
     try:
         from fastapi import Body, FastAPI, Header, Query
         from fastapi.responses import JSONResponse

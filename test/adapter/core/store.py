@@ -80,7 +80,7 @@ class StoreBackend(ABC):
     # ── Cascade delete ──
 
     @abstractmethod
-    def delete_task(self, task_id: str) -> Dict[str, bool]:
+    def delete_task(self, task_id: str, *, purge_events: bool = True) -> Dict[str, Any]:
         """Delete all data for a task. Returns what was removed."""
         ...
 

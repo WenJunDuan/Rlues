@@ -4,7 +4,6 @@
     "backend": "memory",
     "redis": {
       "url": "redis://192.168.31.10:16379/0",
-      "password": "1234QWer!@",
       "event_ttl_seconds": 86400
     }
   },

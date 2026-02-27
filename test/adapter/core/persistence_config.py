@@ -71,9 +71,11 @@ def load_persistence_config() -> PersistenceConfig:
     redis_raw = raw.get("redis", {})
     if not isinstance(redis_raw, dict):
         redis_raw = {}
+    env_url = _str_env("ADAPTER_REDIS_URL")
+    env_ttl = _int_env("ADAPTER_REDIS_EVENT_TTL")
     redis_cfg = RedisConfig(
-        url=_str_env("ADAPTER_REDIS_URL") or str(redis_raw.get("url", "redis://localhost:6379/0")),
-        event_ttl_seconds=_int_env("ADAPTER_REDIS_EVENT_TTL") or int(redis_raw.get("event_ttl_seconds", 86400)),
+        url=env_url if env_url is not None else str(redis_raw.get("url", "redis://localhost:6379/0")),
+        event_ttl_seconds=env_ttl if env_ttl is not None else int(redis_raw.get("event_ttl_seconds", 86400)),
     )
 
     return PersistenceConfig(backend=backend, redis=redis_cfg)

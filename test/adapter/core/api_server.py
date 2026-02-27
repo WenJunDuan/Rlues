@@ -14,8 +14,9 @@ from .usecases.runtime import queue_runtime
 from .usecases.submit import submit_task
 
 
-# ── Bootstrap on import (backward compat) ──
-bootstrap_runtime()
+def bootstrap_on_import() -> None:
+    """Explicitly bootstrap the runtime. Called by gateway create_app()."""
+    bootstrap_runtime()
 
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "list_logs",
     "archive_logs",
     "queue_runtime",
+    "bootstrap_on_import",
 ]
