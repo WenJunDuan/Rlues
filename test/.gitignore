@@ -1,0 +1,21 @@
+.ace-tool/
+.ai_state/
+.knowledge/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.DS_Store
+**/__pycache__/
+*.pyc
+
+# Deleted plugins (source removed, __pycache__ lock remains)
+.claude/plugins/history_check/
+.claude/plugins/tax_verify/
+.claude/plugins/invoice_verify/
+.claude/plugins/llm_client/
+
+.claude/plugins/oa_callback/
+.claude/plugins/invoice_db/
+.claude/plugins/standard_query/
+.env

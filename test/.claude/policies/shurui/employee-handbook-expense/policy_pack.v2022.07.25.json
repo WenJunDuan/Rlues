@@ -1,0 +1,28 @@
+{
+  "policy_id": "employee-handbook-expense",
+  "policy_version": "v2022.07.25",
+  "rules": [
+    "amount-check",
+    "duplicate-detect",
+    "category-match",
+    "invoice-authenticity",
+    "tax-compliance"
+  ],
+  "standard_file": ".claude/policies/shurui/employee-handbook-expense/v2022.07.25.md",
+  "standard_data_file": ".claude/policies/shurui/employee-handbook-expense/policy_data.v2022.07.25.json",
+  "source_docs": [
+    {
+      "path": ".knowledge/数睿员工手册.pdf",
+      "title": "数睿员工手册",
+      "version": "unknown"
+    }
+  ],
+  "tags": [
+    "expense",
+    "travel",
+    "city-transport",
+    "entertainment",
+    "team-building",
+    "anti-fraud"
+  ]
+}

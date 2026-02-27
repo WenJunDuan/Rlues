@@ -54,7 +54,11 @@
     ]
   },
   "env": {
-    "ANTHROPIC_MODEL": "claude-sonnet-4-6",
+    "LANGUAGE": "zh-Hans",
+    "LC_ALL": "zh-Hans",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "API_TIMEOUT_MS": "3000000",
     "CONTEXT_STORE_PATH": ".ai_state/runtime/context_store",
     "EVENT_REPORTER_PATH": ".ai_state/runtime/events/events.jsonl"
   }
