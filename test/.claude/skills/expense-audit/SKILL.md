@@ -1,7 +1,8 @@
 # expense-audit
 
 ## 适用场景
-用于 `/audit` 流程中的规则判定阶段。输入来自 OCR、tax_api 插件产物与报销单数据，输出供 `expense-auditor` 汇总到 ResultEnvelope。
+用于 `/audit` 流程中的规则判定阶段。该 skill 仅提供通用审核能力，不内置任何租户专属报销制度数值。
+制度标准应来自你提供的原始文档，经解析后形成标准文件，再由 `payload.policy_pack` 输入。
 
 ## 输入契约（最小集）
 - `payload.expense_report.report_id`
@@ -15,6 +16,13 @@
 - `payload.applicant`
 - `payload.trip_application | payload.outing_application`
 - `payload.policy_pack`
+
+`payload.policy_pack` 推荐包含：
+- `policy_id`
+- `policy_version`
+- `rules[]`
+- `standard_file`（标准文件路径，如 `.claude/policies/<tenant>/<policy_id>/<version>.md`）
+- `source_docs[]`（制度原文路径或引用）
 
 `invoices[]` 最小字段：
 - `invoice_code`
@@ -49,7 +57,10 @@
 4. `rules/invoice-authenticity.md` — 综合验真结果与字段一致性
 5. `rules/tax-compliance.md` — 综合税务 API 结果与制度要求
 
-制度参考数据：`rules/policy-standards.md`
+制度来源优先级：
+1. `payload.policy_pack.standard_file`
+2. `payload.policy_pack` 内的结构化字段（如限额、类目、敏感项）
+3. `rules/policy-standards.md`（仅结构规范，不含业务固定值）
 
 ## 决策映射
 1. 任一 `error` -> `decision = rejected`。
@@ -65,5 +76,6 @@
 - `templates/approve.md`
 - `templates/reject.md`
 - `templates/needs-review.md`
+- `templates/policy-standard-template.md`
 - `examples/pass-cases.json`
 - `examples/fail-cases.json`

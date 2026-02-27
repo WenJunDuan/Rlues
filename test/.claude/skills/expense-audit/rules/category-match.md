@@ -2,9 +2,10 @@
 
 ## 规则目标
 确保报销项类目与公司制度和票据内容一致。
+该规则只执行匹配逻辑，不内置部门类目白名单。
 
 ## 规则清单
-1. `EXP-CAT-001` 发票类目必须落在部门允许类目范围内（参考 `policy-standards.md` 中的部门类目表）。
+1. `EXP-CAT-001` 发票类目必须落在部门允许类目范围内（优先使用 `payload.policy_pack.standard_file` 中的部门类目表）。
 2. `EXP-CAT-002` 报销单行项目类目与发票类目不一致时记为 `warning`。
 3. `EXP-CAT-003` 类目属于敏感项（如礼品、招待）时，要求备注业务场景；缺失则 `warning`。
 4. `EXP-CAT-004` 税务校验结果为异常时，类目结论降级为 `needs_review`，避免误拒。
@@ -14,9 +15,12 @@
 - `expense_report.items[].category`（可选）
 - `expense_report.department`（用于匹配部门允许类目）
 - `tax_api.status`（可选）
+- `payload.policy_pack.standard_file`（推荐）
+- `payload.policy_pack`（结构化制度字段，作为兜底）
 
 ## 制度参考
-参见 `rules/policy-standards.md` 中的「部门允许报销类目」和「敏感类目」。
+参见 `payload.policy_pack` 对应标准文件中的「部门允许报销类目」和「敏感类目」。
+`rules/policy-standards.md` 仅定义标准文件结构，不提供默认业务值。
 
 ## 输出示例
 ```json

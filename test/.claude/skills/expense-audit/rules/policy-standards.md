@@ -1,35 +1,73 @@
-# 报销制度标准参考
+# 报销审核标准文件规范（通用）
 
-> 本文件为规则层提供制度参考数据。规则（amount-check、category-match）在判定时引用此处的标准值。
+> 本文件只定义“标准文件”的结构规范，不提供任何租户业务阈值。  
+> 报销制度数据必须来自你提供的原始文档（PDF/Word/Markdown 等），由解析流程生成标准文件后输入审核链路。
 
-## 职级报销限额
+## 目标
+- 将非结构化制度文档转为可审核的结构化标准。
+- 让 `skills/expense-audit` 保持通用，不与具体企业制度耦合。
 
-| 职级 | 单次限额 (CNY) | 说明 |
-|------|--------------|------|
-| L1 | 500 | 初级员工 |
-| L2 | 1,200 | 中级员工 |
-| L3 | 2,000 | 高级员工 |
-| L4 | 3,500 | 管理层 |
+## 标准文件建议路径
+- `.claude/policies/<tenant_id>/<policy_id>/<policy_version>.md`
 
-未匹配到职级时，使用默认限额 **800 CNY** 并标记 `warning`。
+## 标准文件元数据（必填）
+| 字段 | 说明 |
+|---|---|
+| `policy_id` | 制度唯一标识 |
+| `policy_version` | 制度版本 |
+| `tenant_id` | 租户标识 |
+| `effective_from` | 生效日期 |
+| `effective_to` | 失效日期（可为空） |
+| `source_docs[]` | 原始制度文档引用（路径、标题、版本） |
+| `generated_at` | 标准文件生成时间（UTC） |
+| `generator` | 生成者（agent/model） |
 
-## 部门允许报销类目
+## 标准条目（建议）
+### 1. 职级限额
+| level | single_limit | currency | clause_ref |
+|---|---:|---|---|
+| `<Lx>` | `<number>` | `<CNY>` | `<文档条款引用>` |
 
-| 部门 | 允许类目 |
-|------|---------|
-| finance | transport, hotel, meal, office |
-| sales | transport, hotel, meal, client |
-| hr | transport, hotel, meal, training |
+### 2. 部门允许类目
+| department | allowed_categories[] | clause_ref |
+|---|---|---|
+| `<dept>` | `<cat1,cat2,...>` | `<文档条款引用>` |
 
-未匹配到部门时，使用默认类目集 `[transport, hotel, meal]` 并标记 `warning`。
+### 3. 敏感类目要求
+| category | required_note | required_attachment[] | severity_if_missing | clause_ref |
+|---|---|---|---|---|
+| `<gift>` | `<说明业务场景>` | `<审批单>` | `<warning/error>` | `<文档条款引用>` |
 
-## 敏感类目
+### 4. 税务合规约束
+| item | rule | severity | clause_ref |
+|---|---|---|---|
+| `<invoice_status>` | `<verified required>` | `<error/info>` | `<文档条款引用>` |
 
-以下类目需要额外备注说明业务场景，缺失则标记 `warning`：
-- gift（礼品）
-- entertainment（招待）
-- client（客户招待）
+### 5. 默认策略（未命中时）
+| scope | fallback | severity | clause_ref |
+|---|---|---|---|
+| `<unknown_level>` | `<limit value or manual review>` | `<warning>` | `<文档条款引用>` |
 
-## 引用方式
+## 与 `payload.policy_pack` 对齐
+建议在 `payload.policy_pack` 中附带：
 
-规则中引用格式：`policy://expense/limit`、`policy://expense/category`。
+```json
+{
+  "policy_id": "pol-xxx",
+  "policy_version": "v2026.02",
+  "rules": ["amount-check", "category-match", "duplicate-detect"],
+  "standard_file": ".claude/policies/t-1/pol-xxx/v2026.02.md",
+  "source_docs": [
+    {
+      "path": "docs/finance/reimbursement-policy-2026.pdf",
+      "title": "报销制度 2026 版",
+      "version": "2026.02"
+    }
+  ]
+}
+```
+
+## 生成要求
+1. 所有阈值都要可追溯到 `source_docs` 条款。
+2. 条款含糊或冲突时不猜测，标记为 `needs_review` 并保留冲突证据。
+3. 标准文件更新后必须同步提升 `policy_version`。

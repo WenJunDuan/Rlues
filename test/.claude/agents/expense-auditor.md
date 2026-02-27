@@ -19,6 +19,13 @@ model: sonnet
 - `payload.trip_application | payload.outing_application`
 - `payload.policy_pack`
 
+`payload.policy_pack` 约定：
+- `policy_id`
+- `policy_version`
+- `rules[]`
+- `standard_file`（推荐，制度标准文件路径）
+- `source_docs[]`（可选，制度原文证据）
+
 `payload.expense_report` 最小字段：
 - `report_id`
 - `employee_id`
@@ -40,6 +47,11 @@ model: sonnet
 ### Phase 2: 规则判定（Skill Rules — Claude 推理，不短路）
 所有规则**全部执行**后再聚合结果。不因某条规则命中 error 就跳过后续规则。
 
+先加载制度标准：
+1. 优先读取 `payload.policy_pack.standard_file`。
+2. 若 `standard_file` 缺失，则读取 `payload.policy_pack` 中可用的结构化制度字段。
+3. 若制度关键字段仍不足（限额、类目、敏感项），不拒绝，降级 `needs_review` 并记录缺失证据。
+
 执行顺序：
 1. `skills/expense-audit/rules/amount-check.md` — 金额结构与制度限额
 2. `skills/expense-audit/rules/duplicate-detect.md` — 同单内重复与连号检查
@@ -47,7 +59,7 @@ model: sonnet
 4. `skills/expense-audit/rules/invoice-authenticity.md` — 综合验真结果与字段一致性
 5. `skills/expense-audit/rules/tax-compliance.md` — 综合税务 API 结果与制度要求
 
-制度参考数据见：`skills/expense-audit/rules/policy-standards.md`
+制度结构规范见：`skills/expense-audit/rules/policy-standards.md`
 
 ### Phase 3: 决策聚合
 聚合 Phase 2 所有规则的 `issues/evidence`，按严重级别映射到 `decision`。
