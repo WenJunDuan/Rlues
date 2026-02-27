@@ -74,7 +74,8 @@ def load_persistence_config() -> PersistenceConfig:
     env_url = _str_env("ADAPTER_REDIS_URL")
     env_ttl = _int_env("ADAPTER_REDIS_EVENT_TTL")
     redis_cfg = RedisConfig(
-        url=env_url if env_url is not None else str(redis_raw.get("url", "redis://localhost:6379/0")),
+        # URL is sourced from env only to keep endpoints out of config.json.
+        url=env_url if env_url is not None else "redis://localhost:6379/0",
         event_ttl_seconds=env_ttl if env_ttl is not None else int(redis_raw.get("event_ttl_seconds", 86400)),
     )
 

@@ -6,7 +6,10 @@ Validation, access policy, and feature adaptation live in dedicated sub-layers.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, Optional
+
+_logger = logging.getLogger(__name__)
 
 from ..core.api_server import (
     archive_logs,
@@ -18,7 +21,6 @@ from ..core.api_server import (
     list_logs,
     queue_runtime,
     stream_events,
-    submit_task,
 )
 from .access_control import (
     CALLER_OPERATOR_HEADER,
@@ -48,6 +50,14 @@ def create_app():
         description="HTTP wrapper for adapter task submission and retrieval.",
     )
 
+    # P1-2: Warn on startup if no API keys are configured.
+    if not HTTP_ACCESS.public_api_keys and not HTTP_ACCESS.internal_api_keys:
+        _logger.warning(
+            "No API keys configured — all authenticated endpoints will return 403. "
+            "Set ADAPTER_PUBLIC_API_KEYS / ADAPTER_INTERNAL_API_KEYS in environment "
+            "(for example via .env), or run `python -m adapter.gateway.init_dev_keys`."
+        )
+
     @app.get("/health")
     async def health(api_key: Optional[str] = Header(default=None, alias=HTTP_ACCESS.auth_header)) -> Dict[str, str]:
         guard = endpoint_access_guard("health", api_key=api_key)
@@ -55,7 +65,7 @@ def create_app():
             return JSONResponse(status_code=status_for_generic(guard), content=guard)
         return {"status": "ok"}
 
-    @app.post("/api/{feature}")
+    @app.post("/api/features/{feature}")
     async def post_api_feature(
         feature: str,
         payload: Dict[str, Any] = Body(...),
@@ -75,7 +85,7 @@ def create_app():
         )
         return JSONResponse(status_code=status_for_submit(response), content=response)
 
-    @app.post("/api/{feature}/{instruction}")
+    @app.post("/api/features/{feature}/{instruction}")
     async def post_api_feature_instruction(
         feature: str,
         instruction: str,
@@ -253,7 +263,7 @@ def create_app():
         }
         return JSONResponse(status_code=200, content=response)
 
-    @app.get("/api/{feature}/{task_id}")
+    @app.get("/api/features/{feature}/{task_id}")
     async def get_api_feature_task(
         feature: str,
         task_id: str,
@@ -277,7 +287,7 @@ def create_app():
         response, status_code = check_task_feature_match(feature, task_id)
         return JSONResponse(status_code=status_code, content=response)
 
-    @app.get("/api/{feature}/{task_id}/events")
+    @app.get("/api/features/{feature}/{task_id}/events")
     async def get_api_feature_task_events(
         feature: str,
         task_id: str,
@@ -305,7 +315,7 @@ def create_app():
         response = stream_events(task_id)
         return JSONResponse(status_code=status_for_query(response), content=response)
 
-    @app.get("/api/{feature}/{task_id}/compliance")
+    @app.get("/api/features/{feature}/{task_id}/compliance")
     async def get_api_feature_task_compliance(
         feature: str,
         task_id: str,
@@ -329,88 +339,6 @@ def create_app():
         check, status_code = check_task_feature_match(feature, task_id)
         if status_code != 200:
             return JSONResponse(status_code=status_code, content=check)
-
-        response = get_compliance_feedback(task_id)
-        return JSONResponse(status_code=status_for_query(response), content=response)
-
-    # Legacy endpoints kept for compatibility but disabled by default.
-    @app.post("/task")
-    async def post_task(
-        payload: Dict[str, Any] = Body(...),
-        api_key: Optional[str] = Header(default=None, alias=HTTP_ACCESS.auth_header),
-    ):
-        guard = endpoint_access_guard("legacy_task_submit", api_key=api_key)
-        if guard is not None:
-            return JSONResponse(status_code=status_for_submit(guard), content=guard)
-
-        response = submit_task(payload, owner_api_key=api_key)
-        return JSONResponse(status_code=status_for_submit(response), content=response)
-
-    @app.get("/task/{task_id}")
-    async def get_task(
-        task_id: str,
-        api_key: Optional[str] = Header(default=None, alias=HTTP_ACCESS.auth_header),
-        caller_tenant_id: Optional[str] = Header(default=None, alias=CALLER_TENANT_HEADER),
-        caller_operator_id: Optional[str] = Header(default=None, alias=CALLER_OPERATOR_HEADER),
-    ):
-        guard = endpoint_access_guard("legacy_task_query", api_key=api_key, task_id=task_id)
-        if guard is not None:
-            return JSONResponse(status_code=status_for_query(guard), content=guard)
-
-        owner_guard = task_access_guard(
-            task_id=task_id,
-            api_key=api_key,
-            caller_tenant_id=caller_tenant_id,
-            caller_operator_id=caller_operator_id,
-        )
-        if owner_guard is not None:
-            return JSONResponse(status_code=status_for_query(owner_guard), content=owner_guard)
-
-        response = get_result(task_id)
-        return JSONResponse(status_code=status_for_query(response), content=response)
-
-    @app.get("/task/{task_id}/events")
-    async def get_task_events(
-        task_id: str,
-        api_key: Optional[str] = Header(default=None, alias=HTTP_ACCESS.auth_header),
-        caller_tenant_id: Optional[str] = Header(default=None, alias=CALLER_TENANT_HEADER),
-        caller_operator_id: Optional[str] = Header(default=None, alias=CALLER_OPERATOR_HEADER),
-    ):
-        guard = endpoint_access_guard("legacy_task_events", api_key=api_key, task_id=task_id)
-        if guard is not None:
-            return JSONResponse(status_code=status_for_query(guard), content=guard)
-
-        owner_guard = task_access_guard(
-            task_id=task_id,
-            api_key=api_key,
-            caller_tenant_id=caller_tenant_id,
-            caller_operator_id=caller_operator_id,
-        )
-        if owner_guard is not None:
-            return JSONResponse(status_code=status_for_query(owner_guard), content=owner_guard)
-
-        response = stream_events(task_id)
-        return JSONResponse(status_code=status_for_query(response), content=response)
-
-    @app.get("/task/{task_id}/compliance")
-    async def get_task_compliance(
-        task_id: str,
-        api_key: Optional[str] = Header(default=None, alias=HTTP_ACCESS.auth_header),
-        caller_tenant_id: Optional[str] = Header(default=None, alias=CALLER_TENANT_HEADER),
-        caller_operator_id: Optional[str] = Header(default=None, alias=CALLER_OPERATOR_HEADER),
-    ):
-        guard = endpoint_access_guard("legacy_task_compliance", api_key=api_key, task_id=task_id)
-        if guard is not None:
-            return JSONResponse(status_code=status_for_query(guard), content=guard)
-
-        owner_guard = task_access_guard(
-            task_id=task_id,
-            api_key=api_key,
-            caller_tenant_id=caller_tenant_id,
-            caller_operator_id=caller_operator_id,
-        )
-        if owner_guard is not None:
-            return JSONResponse(status_code=status_for_query(owner_guard), content=owner_guard)
 
         response = get_compliance_feedback(task_id)
         return JSONResponse(status_code=status_for_query(response), content=response)

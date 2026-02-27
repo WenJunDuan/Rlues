@@ -6,6 +6,7 @@ loop, and bootstrap logic.
 
 from __future__ import annotations
 
+import atexit
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import asdict
@@ -34,6 +35,9 @@ WORKER_POOL = ThreadPoolExecutor(
     max_workers=DEFAULT_CONFIG.max_concurrent_sessions,
     thread_name_prefix="adapter-session",
 )
+
+# P1-1: Ensure graceful shutdown — all in-flight SDK calls finish before exit.
+atexit.register(WORKER_POOL.shutdown, wait=True)
 
 
 def _utc_now() -> str:

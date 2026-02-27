@@ -38,10 +38,6 @@ DEFAULT_ENDPOINTS: Dict[str, Dict[str, Any]] = {
     "logs_archive": {"enabled": True, "scope": INTERNAL_SCOPE},
     "runtime_queue": {"enabled": True, "scope": INTERNAL_SCOPE},
     "runtime_exposure": {"enabled": True, "scope": INTERNAL_SCOPE},
-    "legacy_task_submit": {"enabled": False, "scope": INTERNAL_SCOPE},
-    "legacy_task_query": {"enabled": False, "scope": INTERNAL_SCOPE},
-    "legacy_task_events": {"enabled": False, "scope": INTERNAL_SCOPE},
-    "legacy_task_compliance": {"enabled": False, "scope": INTERNAL_SCOPE},
 }
 
 
@@ -150,13 +146,6 @@ def _str_value(value: Any, default: str) -> str:
     return default
 
 
-def _str_set(values: Any) -> frozenset[str]:
-    if not isinstance(values, list):
-        return frozenset()
-    cleaned = [str(item).strip() for item in values if isinstance(item, str) and item.strip()]
-    return frozenset(cleaned)
-
-
 def _parse_csv_keys(value: Optional[str]) -> frozenset[str]:
     if value is None:
         return frozenset()
@@ -232,15 +221,9 @@ def load_http_access_policy() -> HttpAccessPolicy:
     auth_map = auth if isinstance(auth, dict) else {}
     auth_header = _str_value(auth_map.get("header"), "X-Adapter-Key")
 
-    public_api_keys = _str_set(auth_map.get("public_api_keys"))
-    internal_api_keys = _str_set(auth_map.get("internal_api_keys"))
-
-    env_public_keys = _parse_csv_keys(os.getenv("ADAPTER_PUBLIC_API_KEYS"))
-    if env_public_keys:
-        public_api_keys = env_public_keys
-    env_internal_keys = _parse_csv_keys(os.getenv("ADAPTER_INTERNAL_API_KEYS"))
-    if env_internal_keys:
-        internal_api_keys = env_internal_keys
+    # Sensitive key material is sourced from env only.
+    public_api_keys = _parse_csv_keys(os.getenv("ADAPTER_PUBLIC_API_KEYS"))
+    internal_api_keys = _parse_csv_keys(os.getenv("ADAPTER_INTERNAL_API_KEYS"))
 
     source = config.source
     return HttpAccessPolicy(

@@ -2,7 +2,8 @@
 
 详见：`.ai_state/docs/project/modules/gateway.md`
 
-统一外部配置文件：`config.json`（`gateway` 段）
+统一外部配置文件：`config.json`（`gateway` 段，非敏感项）
+鉴权密钥：`.env`（`ADAPTER_PUBLIC_API_KEYS` / `ADAPTER_INTERNAL_API_KEYS`）
 
 ## 当前分层
 

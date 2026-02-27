@@ -32,7 +32,7 @@ class RedisStoreBackend(StoreBackend):
             ) from exc
 
         url = config.get("url", "redis://localhost:6379/0")
-        password = os.getenv("ADAPTER_REDIS_PASSWORD") or config.get("password") or None
+        password = os.getenv("ADAPTER_REDIS_PASSWORD") or None
         self._event_ttl = int(config.get("event_ttl_seconds", 86400))
         self._r = redis_lib.Redis.from_url(url, password=password, decode_responses=True)
         self._inner = MemoryStoreBackend()
@@ -61,6 +61,18 @@ class RedisStoreBackend(StoreBackend):
 
     def _history_key(self) -> str:
         return self._key("history")
+
+    def _meta_index_key(self) -> str:
+        """ZSET key used as a secondary index for list_meta() — scored by created_at."""
+        return self._key("meta", "_index")
+
+    @staticmethod
+    def _meta_score(meta: Dict[str, Any]) -> float:
+        created_at = meta.get("created_at", datetime.now(timezone.utc).isoformat())
+        try:
+            return datetime.fromisoformat(str(created_at).replace("Z", "+00:00")).timestamp()
+        except (ValueError, TypeError):
+            return datetime.now(timezone.utc).timestamp()
 
     @staticmethod
     def _load_json_dict(raw: Any) -> Optional[Dict[str, Any]]:
@@ -162,6 +174,13 @@ class RedisStoreBackend(StoreBackend):
         except Exception:
             logger.exception("redis hset failed: key=%s", key)
 
+        # P2-1: Maintain ZSET secondary index for O(log N) list_meta().
+        score = self._meta_score(meta)
+        try:
+            self._r.zadd(self._meta_index_key(), {task_id: score})
+        except Exception:
+            logger.exception("redis zadd meta index failed: task_id=%s", task_id)
+
     def get_meta(self, task_id: str) -> Optional[Dict[str, Any]]:
         key = self._meta_key(task_id)
         try:
@@ -192,29 +211,22 @@ class RedisStoreBackend(StoreBackend):
                 return True
             return str(val or "").strip() == target.strip()
 
-        rows: Dict[str, Dict[str, Any]] = {}
-        prefix = self._meta_key("")
-        keys: List[str] = []
+        # P2-1: Use ZSET secondary index for main path listing.
+        task_ids: List[str] = []
         try:
-            cursor = "0"
-            match_pattern = self._meta_key("*")
-            while cursor:
-                cursor, batch = self._r.scan(cursor=int(cursor), match=match_pattern, count=100)
-                keys.extend(batch)
-                if cursor == 0:
-                    break
+            # ZREVRANGE returns newest first (descending score).
+            task_ids = self._r.zrevrange(self._meta_index_key(), 0, -1)
         except Exception:
-            logger.exception("redis scan failed for meta listing")
-            keys = []
+            logger.exception("redis zrevrange failed for meta index")
 
-        for key in keys:
-            if not isinstance(key, str) or not key.startswith(prefix):
+        rows: Dict[str, Dict[str, Any]] = {}
+        for task_id in task_ids:
+            if not isinstance(task_id, str):
                 continue
-            task_id = key[len(prefix) :]
             try:
-                raw = self._r.hgetall(key)
+                raw = self._r.hgetall(self._meta_key(task_id))
             except Exception:
-                logger.exception("redis hgetall failed: key=%s", key)
+                logger.exception("redis hgetall failed: task_id=%s", task_id)
                 continue
             meta = self._parse_meta_map(raw)
             if not meta:
@@ -222,6 +234,40 @@ class RedisStoreBackend(StoreBackend):
             if "task_id" not in meta:
                 meta["task_id"] = task_id
             rows[task_id] = meta
+
+        # Backward compatibility:
+        # Existing deployments may have historical meta hashes without ZSET index.
+        # Scan hash keys and backfill index lazily so old records are visible.
+        try:
+            prefix = self._meta_key("")
+            cursor: Any = 0
+            while True:
+                cursor, batch = self._r.scan(cursor=cursor, match=self._meta_key("*"), count=200)
+                for key in batch:
+                    if not isinstance(key, str) or not key.startswith(prefix):
+                        continue
+                    task_id = key[len(prefix) :]
+                    if not task_id or task_id == "_index" or task_id in rows:
+                        continue
+                    try:
+                        raw = self._r.hgetall(self._meta_key(task_id))
+                    except Exception:
+                        logger.exception("redis hgetall failed: task_id=%s", task_id)
+                        continue
+                    meta = self._parse_meta_map(raw)
+                    if not meta:
+                        continue
+                    if "task_id" not in meta:
+                        meta["task_id"] = task_id
+                    rows[task_id] = meta
+                    try:
+                        self._r.zadd(self._meta_index_key(), {task_id: self._meta_score(meta)})
+                    except Exception:
+                        logger.exception("redis zadd meta index backfill failed: task_id=%s", task_id)
+                if cursor in (0, "0"):
+                    break
+        except Exception:
+            logger.exception("redis scan failed for legacy meta backfill")
 
         if not rows:
             return self._inner.list_meta(
@@ -249,7 +295,7 @@ class RedisStoreBackend(StoreBackend):
             ):
                 filtered.append(row)
 
-        filtered.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
+        filtered.sort(key=lambda x: self._meta_score(x), reverse=True)
         total = len(filtered)
         items = filtered[offset : offset + limit]
         return {"total": total, "limit": limit, "offset": offset, "items": items}
@@ -348,6 +394,8 @@ class RedisStoreBackend(StoreBackend):
             self._r.delete(self._task_key(task_id))
             self._r.delete(self._result_key(task_id))
             self._r.delete(self._meta_key(task_id))
+            # P2-1: Remove from ZSET secondary index.
+            self._r.zrem(self._meta_index_key(), task_id)
             redis_removed_events = int(self._r.delete(self._events_key(task_id))) if purge_events else 0
         except Exception:
             logger.exception("redis delete cascade failed: task_id=%s", task_id)

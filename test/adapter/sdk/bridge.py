@@ -474,3 +474,11 @@ def execute_task(task: TaskEnvelope) -> SdkExecutionResult:
             f"event loop runtime error: {exc}",
             recoverable=True,
         )
+    finally:
+        # P1-6: Close the thread-local event loop to prevent fd leaks
+        # when thread pool threads are recycled.
+        try:
+            loop.close()
+        except Exception:
+            pass
+        _THREAD_LOCAL.loop = None

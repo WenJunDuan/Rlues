@@ -1,4 +1,4 @@
-"""Generate development API keys for unified adapter configuration."""
+"""Generate development API keys into .env environment variables."""
 
 from __future__ import annotations
 
@@ -7,30 +7,7 @@ import json
 import os
 import secrets
 from pathlib import Path
-from typing import Any, Dict, List
-
-
-def _load_policy(path: Path) -> Dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    return payload if isinstance(payload, dict) else {}
-
-
-def _clean_keys(values: Any) -> List[str]:
-    if not isinstance(values, list):
-        return []
-    result: List[str] = []
-    for item in values:
-        if not isinstance(item, str):
-            continue
-        value = item.strip()
-        if value:
-            result.append(value)
-    return result
+from typing import List, Optional
 
 
 def _generate_key(prefix: str) -> str:
@@ -44,59 +21,89 @@ def _resolve_key(explicit_value: str | None, prefix: str) -> str:
     return _generate_key(prefix)
 
 
-def _default_config_path() -> Path:
-    configured = os.getenv("ADAPTER_CONFIG_PATH")
+def _default_env_path() -> Path:
+    configured = os.getenv("ADAPTER_ENV_PATH")
     if configured:
         return Path(configured)
-    return Path(__file__).resolve().parents[2] / "config.json"
+    return Path(__file__).resolve().parents[2] / ".env"
+
+
+def _split_csv(value: str | None) -> List[str]:
+    if value is None:
+        return []
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def _load_env_lines(path: Path) -> List[str]:
+    if not path.exists():
+        return []
+    try:
+        return path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return []
+
+
+def _read_env_value(lines: List[str], key: str) -> Optional[str]:
+    prefix = f"{key}="
+    for line in lines:
+        if line.startswith(prefix):
+            return line[len(prefix) :].strip()
+    return None
+
+
+def _upsert_env_value(lines: List[str], key: str, value: str) -> List[str]:
+    prefix = f"{key}="
+    next_line = f"{prefix}{value}"
+    for idx, line in enumerate(lines):
+        if line.startswith(prefix):
+            lines[idx] = next_line
+            return lines
+    lines.append(next_line)
+    return lines
 
 
 def _parse_args() -> argparse.Namespace:
-    default_path = _default_config_path()
-    parser = argparse.ArgumentParser(description="Generate development API keys for adapter gateway.")
-    parser.add_argument("--config", default=str(default_path), help="Path to config.json")
+    default_path = _default_env_path()
+    parser = argparse.ArgumentParser(description="Generate development API keys into .env.")
+    parser.add_argument("--env", default=str(default_path), help="Path to .env")
     parser.add_argument("--public-key", default=None, help="Optional explicit public key")
     parser.add_argument("--internal-key", default=None, help="Optional explicit internal key")
-    parser.add_argument("--rotate", action="store_true", help="Rotate keys even if policy already has keys")
+    parser.add_argument("--rotate", action="store_true", help="Rotate keys even if .env already has keys")
     return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
-    config_path = Path(args.config).expanduser().resolve()
+    env_path = Path(args.env).expanduser().resolve()
+    lines = _load_env_lines(env_path)
 
-    config = _load_policy(config_path)
-    gateway = config.get("gateway") if isinstance(config.get("gateway"), dict) else {}
-    auth = gateway.get("auth") if isinstance(gateway.get("auth"), dict) else {}
+    current_public = _split_csv(_read_env_value(lines, "ADAPTER_PUBLIC_API_KEYS"))
+    current_internal = _split_csv(_read_env_value(lines, "ADAPTER_INTERNAL_API_KEYS"))
 
-    current_public = _clean_keys(auth.get("public_api_keys"))
-    current_internal = _clean_keys(auth.get("internal_api_keys"))
-
-    if args.rotate or not current_public:
-        public_keys = [_resolve_key(args.public_key, "pub")]
+    if args.public_key is not None:
+        public_keys = [_resolve_key(args.public_key, "pk-dev")]
+    elif args.rotate or not current_public:
+        public_keys = [_generate_key("pk-dev")]
     else:
         public_keys = current_public
 
-    if args.rotate or not current_internal:
-        internal_keys = [_resolve_key(args.internal_key, "int")]
+    if args.internal_key is not None:
+        internal_keys = [_resolve_key(args.internal_key, "ik-dev")]
+    elif args.rotate or not current_internal:
+        internal_keys = [_generate_key("ik-dev")]
     else:
         internal_keys = current_internal
 
-    header = auth.get("header")
-    auth["header"] = header if isinstance(header, str) and header.strip() else "X-Adapter-Key"
-    auth["public_api_keys"] = public_keys
-    auth["internal_api_keys"] = internal_keys
+    lines = _upsert_env_value(lines, "ADAPTER_PUBLIC_API_KEYS", ",".join(public_keys))
+    lines = _upsert_env_value(lines, "ADAPTER_INTERNAL_API_KEYS", ",".join(internal_keys))
 
-    gateway["auth"] = auth
-    config["gateway"] = gateway
-
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(
         json.dumps(
             {
-                "config_path": str(config_path),
+                "env_path": str(env_path),
                 "public_api_key": public_keys[0] if public_keys else "",
                 "internal_api_key": internal_keys[0] if internal_keys else "",
                 "public_key_count": len(public_keys),
