@@ -39,14 +39,31 @@ _init_lock = threading.Lock()
 
 
 def get_state() -> AdapterState:
-    """Get or create the global AdapterState singleton."""
+    """Get or create the global AdapterState singleton.
+
+    Falls back to memory store if the configured backend fails to initialize.
+    """
     global _state
     if _state is not None:
         return _state
     with _init_lock:
         if _state is not None:
             return _state
-        _state = AdapterState()
+        try:
+            _state = AdapterState()
+        except Exception as exc:
+            import logging
+            logging.getLogger("adapter.core.state").warning(
+                "State init failed (%s), falling back to MemoryStoreBackend", exc,
+            )
+            from .store_memory import MemoryStoreBackend
+            fallback = AdapterState.__new__(AdapterState)
+            fallback.store = MemoryStoreBackend()
+            fallback.queue = TaskQueue(max_concurrent=DEFAULT_CONFIG.max_concurrent_sessions)
+            fallback.events = EventPipeline(max_events_per_task=DEFAULT_CONFIG.max_events_per_task)
+            fallback.running_tasks = set()
+            fallback.lock = threading.RLock()
+            _state = fallback
         return _state
 
 

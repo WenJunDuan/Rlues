@@ -7,6 +7,7 @@ loop, and bootstrap logic.
 from __future__ import annotations
 
 import atexit
+import logging
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import asdict
@@ -31,13 +32,24 @@ from ..sdk.bridge import execute_task
 
 SESSION_FUTURES: Dict[str, Future[None]] = {}
 
-WORKER_POOL = ThreadPoolExecutor(
-    max_workers=DEFAULT_CONFIG.max_concurrent_sessions,
-    thread_name_prefix="adapter-session",
-)
+_worker_pool: Optional[ThreadPoolExecutor] = None
+_pool_lock = threading.Lock()
 
-# P1-1: Ensure graceful shutdown — all in-flight SDK calls finish before exit.
-atexit.register(WORKER_POOL.shutdown, wait=True)
+
+def _get_worker_pool() -> ThreadPoolExecutor:
+    """Lazy-create the worker pool on first use, guarding against import-time failures."""
+    global _worker_pool
+    if _worker_pool is not None:
+        return _worker_pool
+    with _pool_lock:
+        if _worker_pool is not None:
+            return _worker_pool
+        _worker_pool = ThreadPoolExecutor(
+            max_workers=DEFAULT_CONFIG.max_concurrent_sessions,
+            thread_name_prefix="adapter-session",
+        )
+        atexit.register(_worker_pool.shutdown, wait=True)
+        return _worker_pool
 
 
 def _utc_now() -> str:
@@ -179,7 +191,7 @@ def schedule_workers() -> None:
             if session_key is None:
                 break
             state.queue.mark_session_start(session_key)
-            future = WORKER_POOL.submit(_drain_session_worker, session_key)
+            future = _get_worker_pool().submit(_drain_session_worker, session_key)
             SESSION_FUTURES[session_key] = future
             future.add_done_callback(lambda f, s=session_key: _on_session_done(s, f))
 

@@ -235,5 +235,56 @@ def load_http_access_policy() -> HttpAccessPolicy:
         source=source,
     )
 
+_http_access: Optional[HttpAccessPolicy] = None
+_http_access_lock = __import__("threading").Lock()
 
-HTTP_ACCESS = load_http_access_policy()
+
+def get_http_access() -> HttpAccessPolicy:
+    """Lazy-load HTTP access policy with graceful fallback."""
+    global _http_access
+    if _http_access is not None:
+        return _http_access
+    with _http_access_lock:
+        if _http_access is not None:
+            return _http_access
+        try:
+            _http_access = load_http_access_policy()
+        except Exception as exc:
+            import logging
+            logging.getLogger("adapter.gateway.http_access").error(
+                "Failed to load HTTP access policy (%s); using restrictive defaults", exc,
+            )
+            _http_access = HttpAccessPolicy(
+                features={
+                    "audit": FeatureAccess(
+                        command="/audit", instruction="review",
+                        enabled=True, expose_http=True, scope=PUBLIC_SCOPE,
+                    ),
+                },
+                endpoints={
+                    k: EndpointAccess(enabled=v.get("enabled", True), scope=v.get("scope", INTERNAL_SCOPE))
+                    for k, v in DEFAULT_ENDPOINTS.items()
+                },
+                auth_header="X-Adapter-Key",
+                public_api_keys=_parse_csv_keys(os.getenv("ADAPTER_PUBLIC_API_KEYS")),
+                internal_api_keys=_parse_csv_keys(os.getenv("ADAPTER_INTERNAL_API_KEYS")),
+                source="defaults (load failed)",
+            )
+        return _http_access
+
+
+def reset_http_access() -> None:
+    """Reset cached policy — for tests only."""
+    global _http_access
+    with _http_access_lock:
+        _http_access = None
+
+
+# Backward compatibility alias — existing code can still import HTTP_ACCESS
+# but it's now a lazy proxy evaluated on first attribute access.
+class _LazyHttpAccess:
+    """Lazy proxy that defers HTTP_ACCESS evaluation to first use."""
+    def __getattr__(self, name: str) -> Any:
+        return getattr(get_http_access(), name)
+
+HTTP_ACCESS = _LazyHttpAccess()

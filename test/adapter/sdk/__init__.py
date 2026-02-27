@@ -1,5 +1,8 @@
-"""SDK integration layer for Claude runtime calls."""
+"""SDK integration exports."""
 
-from .bridge import execute_task, execute_task_sdk
+from .bridge import execute_task
+
+# Backward-compatible alias for legacy imports.
+execute_task_sdk = execute_task
 
 __all__ = ["execute_task", "execute_task_sdk"]

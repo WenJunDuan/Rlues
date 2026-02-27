@@ -1,8 +1,8 @@
 """OCR plugin — invoice image recognition with Claude vision fallback.
 
 Recognition strategy (priority order):
-1. Claude Code Vision (default): When invoked via claude_agent_sdk, Claude can
-   directly read and analyze invoice images using its built-in vision capability.
+1. Claude Vision (default): When invoked via Anthropic Messages API, Claude can
+   directly read and analyze invoice images using built-in vision capability.
    The plugin provides file metadata and structural hints to assist.
 2. Filename Pattern Parsing: As a structural supplement, the filename is parsed
    for standardized patterns (invoice_code_number_date_amount_category.ext).
@@ -145,9 +145,23 @@ if __name__ == "__main__":
     import sys
 
     try:
-        args = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
-        if not isinstance(args, dict):
-            args = {}
+        # Handle multiple argument formats:
+        # 1. JSON object: python3 main.py '{"file_path": "..."}'
+        # 2. Bare file path: python3 main.py /path/to/file.pdf
+        # 3. No args: python3 main.py
+        raw = sys.argv[1] if len(sys.argv) > 1 else "{}"
+        raw = raw.strip()
+
+        # Try JSON first
+        try:
+            args = json.loads(raw)
+            if not isinstance(args, dict):
+                # If JSON but not a dict (e.g., a bare string), treat as file path
+                args = {"file_path": str(args)} if args else {}
+        except (json.JSONDecodeError, TypeError):
+            # Not JSON — treat as a bare file path string
+            args = {"file_path": raw} if raw else {}
+
         result = run(file_path=args.get("file_path", ""))
         print(json.dumps(result, ensure_ascii=False))
     except Exception as exc:  # pragma: no cover

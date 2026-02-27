@@ -79,6 +79,7 @@
     }
   },
   "sdk": {
+    "_comment": "Legacy fields below are kept for test_gateway_security.py compatibility",
     "setting_sources": ["project"],
     "permission_mode": null,
     "sandbox": true,

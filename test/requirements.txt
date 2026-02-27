@@ -1,0 +1,20 @@
+# ─── Core Server ───────────────────────────────
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# ─── Anthropic SDK (Messages API) ─────────────────
+anthropic>=0.40.0
+
+# ─── Storage (可选, 开发环境可不装) ────────────
+redis>=5.0.0
+
+# ─── Observability (可选) ──────────────────────
+langfuse>=2.0.0
+
+# ─── Plugins (按需) ───────────────────────────
+requests>=2.31.0
+
+# ─── Testing ───────────────────────────────────
+pytest>=7.0.0
+httpx>=0.24.0

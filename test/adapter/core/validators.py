@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import time
 from datetime import datetime
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -17,6 +17,11 @@ from .error_codes import (
 ValidationResult = Dict[str, Any]
 _COMMANDS_DIR = Path(__file__).resolve().parents[2] / ".claude" / "commands"
 _DEFAULT_ALLOWED_COMMANDS = frozenset({"/audit"})
+
+# TTL-based cache for allowed commands (E6 fix: replaces @lru_cache)
+_commands_cache: frozenset[str] | None = None
+_commands_cache_ts: float = 0.0
+_COMMANDS_CACHE_TTL = 60.0  # seconds
 
 
 def _ok() -> ValidationResult:
@@ -77,8 +82,8 @@ def _parse_timepoint(value: str) -> datetime | None:
     return None
 
 
-@lru_cache(maxsize=1)
-def _load_allowed_commands() -> frozenset[str]:
+def _scan_commands_dir() -> frozenset[str]:
+    """Scan .claude/commands/*.md and return allowed command names."""
     if not _COMMANDS_DIR.exists():
         return _DEFAULT_ALLOWED_COMMANDS
 
@@ -89,6 +94,17 @@ def _load_allowed_commands() -> frozenset[str]:
             continue
         commands.add(f"/{stem}")
     return frozenset(commands or _DEFAULT_ALLOWED_COMMANDS)
+
+
+def _load_allowed_commands() -> frozenset[str]:
+    """Load allowed commands with a TTL-based cache (60s)."""
+    global _commands_cache, _commands_cache_ts
+    now = time.monotonic()
+    if _commands_cache is not None and (now - _commands_cache_ts) < _COMMANDS_CACHE_TTL:
+        return _commands_cache
+    _commands_cache = _scan_commands_dir()
+    _commands_cache_ts = now
+    return _commands_cache
 
 
 def _validate_audit_payload(payload: Dict[str, Any]) -> ValidationResult:

@@ -31,7 +31,7 @@ from .access_control import (
 from .feature_service import check_task_feature_match, submit_feature_command
 from .http_access import HTTP_ACCESS
 from .response_mapper import status_for_generic, status_for_query, status_for_submit
-from ..sdk.access import SDK_ACCESS
+from ..sdk.runtime import load_runtime, is_messages_http_enabled
 
 
 def create_app():
@@ -253,12 +253,25 @@ def create_app():
         if guard is not None:
             return JSONResponse(status_code=status_for_generic(guard), content=guard)
 
+        try:
+            rt = load_runtime()
+            sdk_info = {
+                "provider": rt.provider,
+                "model": rt.model,
+                "max_tokens": rt.max_tokens,
+                "timeout_sec": rt.timeout_sec,
+                "max_retries": rt.max_retries,
+                "base_url": rt.base_url or "(anthropic cloud)",
+            }
+        except Exception as exc:
+            sdk_info = {"error": str(exc)}
+
         response = {
             "status": "ok",
             "mapping": HTTP_ACCESS.command_by_feature(),
             "config": {
                 "http": HTTP_ACCESS.redacted(),
-                "sdk": SDK_ACCESS.redacted(),
+                "sdk": sdk_info,
             },
         }
         return JSONResponse(status_code=200, content=response)

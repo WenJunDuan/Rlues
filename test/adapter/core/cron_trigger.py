@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import threading
 import uuid
+from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -216,7 +217,6 @@ class CronTrigger:
             )
 
             with state.lock:
-                from dataclasses import asdict
                 state.store.save_result(task_id, asdict(timeout_envelope))
                 state.events.emit(task_id, "stale_recovery", {
                     "elapsed_seconds": int(elapsed),

@@ -114,5 +114,46 @@ def load_sdk_access_policy() -> SdkAccessPolicy:
         source=source,
     )
 
+_sdk_access: Optional[SdkAccessPolicy] = None
+_sdk_access_lock = __import__("threading").Lock()
 
-SDK_ACCESS = load_sdk_access_policy()
+
+def get_sdk_access() -> SdkAccessPolicy:
+    """Lazy-load SDK access policy with graceful fallback."""
+    global _sdk_access
+    if _sdk_access is not None:
+        return _sdk_access
+    with _sdk_access_lock:
+        if _sdk_access is not None:
+            return _sdk_access
+        try:
+            _sdk_access = load_sdk_access_policy()
+        except Exception as exc:
+            import logging
+            logging.getLogger("adapter.sdk.access").error(
+                "Failed to load SDK access policy (%s); using safe defaults", exc,
+            )
+            _sdk_access = SdkAccessPolicy(
+                setting_sources=["project"],
+                permission_mode=None,
+                sandbox=True,
+                allowed_tools=["Read", "Grep", "Glob", "Task"],
+                source="defaults (load failed)",
+            )
+        return _sdk_access
+
+
+def reset_sdk_access() -> None:
+    """Reset cached policy — for tests only."""
+    global _sdk_access
+    with _sdk_access_lock:
+        _sdk_access = None
+
+
+# Backward compatibility: SDK_ACCESS is a lazy proxy.
+class _LazySdkAccess:
+    """Lazy proxy that defers SDK_ACCESS evaluation to first use."""
+    def __getattr__(self, name: str) -> Any:
+        return getattr(get_sdk_access(), name)
+
+SDK_ACCESS = _LazySdkAccess()
