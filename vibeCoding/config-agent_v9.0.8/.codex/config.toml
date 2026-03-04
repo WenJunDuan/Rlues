@@ -1,0 +1,80 @@
+# VibeCoding Kernel v9.0.8 — Codex CLI 配置
+
+model = "gpt-5.3-codex"         
+model_reasoning_effort = "high" 
+approval_policy = "on-request"  
+sandbox_mode = "workspace-write"
+danger-full-access
+
+[sandbox_workspace_write]
+writable_roots = []
+network_access = true 
+exclude_tmpdir_env_var = false
+exclude_slash_tmp = false
+web_search = "live" 
+
+[features]
+parallel = true                     
+multi_agent = true                  
+collaboration_modes = true          
+shell_snapshot = true               
+unified_exec = true                 
+view_image_tool = true              
+skills = true                       
+web_search_request = true           
+shell_tool = true                   
+apply_patch_freeform = true         
+
+[agents]
+max_threads = 6
+max_depth = 2
+job_max_runtime_seconds = 1800
+
+[agents.builder]
+description = "实现功能代码。限定文件范围内编写, 每个子任务完成后 commit。"
+
+[agents.reviewer]
+description = "代码审查: 安全、正确性、测试风险。"
+
+[agents.explorer]
+description = "只读搜索分析: 搜索代码库、分析依赖、查找模式。"
+
+[history]
+persistence = "save-all"
+
+[tui]
+notifications = true
+animations = true
+
+[model_providers.custom]
+name = "custom"
+wire_api = "responses"
+requires_openai_auth = true
+base_url = ""
+
+[mcp_servers]
+
+[mcp_servers.mcp-deepwiki]
+type = "stdio"
+command = "npx"
+args = ["-y", "mcp-deepwiki@latest"]
+
+[mcp_servers."cunzhi"]
+type = "stdio"
+command = "寸止"
+
+[mcp_servers.chrome-devtools]
+type = "stdio"
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+
+[mcp_servers.augment-context-engine]
+type = "stdio"
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", ""]
+
+[mcp_servers.desktop-commander]
+type = "stdio"
+command = "npx"
+args = ["-y", "@wonderwhy-er/desktop-commander"]
+
