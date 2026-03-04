@@ -1,29 +1,29 @@
 # VibeCoding Kernel v9.0.8 — Codex CLI 配置
+model = "gpt-5.3-codex"
+model_reasoning_effort = "high"
 
-model = "gpt-5.3-codex"         
-model_reasoning_effort = "high" 
-approval_policy = "on-request"  
-sandbox_mode = "workspace-write"
-danger-full-access
+# 危险，可开启 和下面的二选一，上面的代表绝对信任
+# approval_policy = "never"  
+# sandbox_mode = "danger-full-access" 
+approval_policy = "never"  
+sandbox_mode    = "workspace-write"  
 
 [sandbox_workspace_write]
-writable_roots = []
-network_access = true 
-exclude_tmpdir_env_var = false
-exclude_slash_tmp = false
-web_search = "live" 
+network_access = true    
+exclude_slash_tmp = true
+web_search = "live"  
 
 [features]
-parallel = true                     
-multi_agent = true                  
-collaboration_modes = true          
-shell_snapshot = true               
-unified_exec = true                 
-view_image_tool = true              
-skills = true                       
-web_search_request = true           
-shell_tool = true                   
-apply_patch_freeform = true         
+parallel = true
+multi_agent = true
+collaboration_modes = true
+shell_snapshot = true
+unified_exec = true
+view_image_tool = true
+skills = true
+web_search_request = true
+shell_tool = true
+apply_patch_freeform = true
 
 [agents]
 max_threads = 6
