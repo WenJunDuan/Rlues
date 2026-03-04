@@ -1,0 +1,51 @@
+# VibeCoding Kernel v9.0.5 — Codex CLI 配置
+model_provider = "custom"
+model = "gpt-5.3-codex"
+model_reasoning_effort = "xhigh"
+sandbox_mode = "workspace_write"
+personality = "pragmatic"
+
+[features]
+parallel = true
+collaboration_modes = true
+plan_tool = true
+shell_snapshot = true
+unified_exec = true
+view_image_tool = true
+skills = true
+rmcp_client = true
+
+[web_search]
+mode = "live" 
+
+[model_providers.custom]
+name = "custom"
+wire_api = "responses"
+requires_openai_auth = true
+base_url = ""
+
+[mcp_servers]
+
+[mcp_servers.mcp-deepwiki]
+type = "stdio"
+command = "npx"
+args = ["-y", "mcp-deepwiki@latest"]
+
+[mcp_servers."cunzhi"]
+type = "stdio"
+command = "寸止"
+
+[mcp_servers.chrome-devtools]
+type = "stdio"
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+
+[mcp_servers.augment-context-engine]
+type = "stdio"
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", ""]
+
+[mcp_servers.desktop-commander]
+type = "stdio"
+command = "npx"
+args = ["-y", "@wonderwhy-er/desktop-commander"]
