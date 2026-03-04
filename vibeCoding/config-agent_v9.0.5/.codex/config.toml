@@ -2,7 +2,7 @@
 model_provider = "custom"
 model = "gpt-5.3-codex"
 model_reasoning_effort = "xhigh"
-sandbox_mode = "workspace_write"
+sandbox_mode = "workspace-write"
 personality = "pragmatic"
 
 [features]
@@ -14,9 +14,7 @@ unified_exec = true
 view_image_tool = true
 skills = true
 rmcp_client = true
-
-[web_search]
-mode = "live" 
+web-search = true
 
 [model_providers.custom]
 name = "custom"
