@@ -25,11 +25,6 @@ web_search_request = true
 shell_tool = true
 apply_patch_freeform = true
 
-[agents]
-max_threads = 6
-max_depth = 2
-job_max_runtime_seconds = 1800
-
 [agents.builder]
 description = "实现功能代码。限定文件范围内编写, 每个子任务完成后 commit。"
 
