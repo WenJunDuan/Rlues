@@ -1,4 +1,5 @@
 # VibeCoding Kernel v9.0.8 — Codex CLI 配置
+model_provider = "custom"
 model = "gpt-5.3-codex"
 model_reasoning_effort = "high"
 web_search = "live"  
