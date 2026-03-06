@@ -28,6 +28,22 @@ shell_snapshot = true
 multi_agent = true
 steer = true
 
+[agents.builder]
+description = "实现功能代码。限定文件范围内编写, 每个子任务完成后 commit。"
+
+[agents.reviewer]
+description = "代码审查: 安全、正确性、测试风险。"
+
+[agents.explorer]
+description = "只读搜索分析: 搜索代码库、分析依赖、查找模式。"
+
+[history]
+persistence = "save-all"
+
+[tui]
+notifications = true
+animations = true
+
 [model_providers.custom]
 name = "custom"
 wire_api = "responses"
