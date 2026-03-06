@@ -1,6 +1,7 @@
 # VibeCoding Kernel v9.0.8 — Codex CLI 配置
 model = "gpt-5.3-codex"
 model_reasoning_effort = "high"
+web_search = "live"  
 
 # 危险，可开启 和下面的二选一，上面的代表绝对信任
 # approval_policy = "never"  

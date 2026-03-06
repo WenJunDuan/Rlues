@@ -1,15 +1,22 @@
 # VibeCoding Kernel v8.9 — Codex CLI 配置
+
 model_provider = "custom"
 disable_response_storage = true
 network_access = true
-sandbox_mode = "workspace-write"
 experimental_use_rmcp_client = true
-model = "gpt-5.3-codex"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.4"                  
+model_reasoning_effort = "xhigh"  
 personality = "pragmatic"
 web_search = "live"
 
+# 危险，可开启 和下面的二选一，上面的代表绝对信任
+# approval_policy = "never"  
+# sandbox_mode = "danger-full-access" 
+approval_policy = "never"  
+sandbox_mode    = "workspace-write"  
+
 [features]
+fast_mode = true
 plan_tool = true
 view_image_tool = true
 streamable_shell = true
@@ -20,6 +27,22 @@ unified_exec = true
 shell_snapshot = true
 multi_agent = true
 steer = true
+
+[agents.builder]
+description = "实现功能代码。限定文件范围内编写, 每个子任务完成后 commit。"
+
+[agents.reviewer]
+description = "代码审查: 安全、正确性、测试风险。"
+
+[agents.explorer]
+description = "只读搜索分析: 搜索代码库、分析依赖、查找模式。"
+
+[history]
+persistence = "save-all"
+
+[tui]
+notifications = true
+animations = true
 
 [model_providers.custom]
 name = "custom"
