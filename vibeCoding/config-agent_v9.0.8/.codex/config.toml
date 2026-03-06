@@ -11,7 +11,6 @@ sandbox_mode    = "workspace-write"
 [sandbox_workspace_write]
 network_access = true    
 exclude_slash_tmp = true
-web_search = "live"  
 
 [features]
 parallel = true
