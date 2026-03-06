@@ -1,15 +1,22 @@
 # VibeCoding Kernel v8.9 — Codex CLI 配置
+
 model_provider = "custom"
 disable_response_storage = true
 network_access = true
-sandbox_mode = "workspace-write"
 experimental_use_rmcp_client = true
-model = "gpt-5.3-codex"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.4"                  
+model_reasoning_effort = "xhigh"  
 personality = "pragmatic"
 web_search = "live"
 
+# 危险，可开启 和下面的二选一，上面的代表绝对信任
+# approval_policy = "never"  
+# sandbox_mode = "danger-full-access" 
+approval_policy = "never"  
+sandbox_mode    = "workspace-write"  
+
 [features]
+fast_mode = true
 plan_tool = true
 view_image_tool = true
 streamable_shell = true
