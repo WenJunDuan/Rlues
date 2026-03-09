@@ -124,8 +124,14 @@
     ]
   },
   "env": {
-    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
     "VIBECODING_VERSION": "9.1.0",
+    "LANGUAGE": "zh-Hans",
+    "LC_ALL": "zh-Hans",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "API_TIMEOUT_MS": "3000000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-6",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_BASE_URL": "",
     "VIBECODING_HOOKS_DISABLED": "0"
   }
 }
