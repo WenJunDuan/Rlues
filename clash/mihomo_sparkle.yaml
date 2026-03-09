@@ -937,9 +937,9 @@ rules:
   - DOMAIN-SUFFIX,gying.net,DIRECT
   - DOMAIN-SUFFIX,selectgroup.click,DIRECT
   - DOMAIN-SUFFIX,smardaten.com,DIRECT
-  - DOMAIN-SUFFIX,openrouter.ai,DIRECT
   - DOMAIN-SUFFIX,right.codes,DIRECT
   - DOMAIN-SUFFIX,juejin.cn,DIRECT
+  - DOMAIN-SUFFIX,acemcp.heroman.wtf,DIRECT
 
   # ==================== 4. 用户自定义代理 ====================
   - DOMAIN-SUFFIX,coze.com,🌍 全球加速
@@ -955,7 +955,8 @@ rules:
   - RULE-SET,reject_ip,REJECT
 
   # ==================== 6. AI 服务 ====================
-  - DOMAIN-KEYWORD,antigravity,🔍 谷歌服务
+  - DOMAIN-SUFFIX,antigravity,🔍 谷歌服务
+  - DOMAIN-SUFFIX,openrouter.ai,🤖 人工智能
   - DOMAIN-SUFFIX,grok.com,🤖 人工智能
   - DOMAIN-SUFFIX,cici.com,🤖 人工智能
   - DOMAIN-SUFFIX,trae.ai,🤖 人工智能
