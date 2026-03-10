@@ -22,10 +22,9 @@ multi_agent = true                     # stable; 多代理编排
 collaboration_modes = true             # stable; 协作模式
 shell_snapshot = true                  # beta; 加速重复命令
 unified_exec = true                    # beta; PTY-backed 执行
-web_search_request = true              # stable; 模型发起搜索
 shell_tool = true                      # stable; 默认 shell 工具
 apply_patch_freeform = true            # experimental; 自由 patch
-undo = all                             # 回滚 Codex 改动;
+undo = true                            # 回滚 Codex 改动;
 
 [tui]
 notifications = true
