@@ -35,7 +35,9 @@ persistence = "local"
 max_entries = 100
 
 [agents]
-enabled = true
+max_threads = 6
+max_depth = 2
+job_max_runtime_seconds = 1800
 
 [agents.builder]
 model = "gpt-5.4"
