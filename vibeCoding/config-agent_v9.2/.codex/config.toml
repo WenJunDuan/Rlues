@@ -34,23 +34,6 @@ animations = true
 persistence = "local"
 max_entries = 100
 
-[agents]
-max_threads = 6
-max_depth = 2
-job_max_runtime_seconds = 1800
-
-[agents.builder]
-model = "gpt-5.4"
-description = "实现代码 + 编写测试"
-
-[agents.validator]
-model = "gpt-5.4"
-description = "代码审查 + 质量验证"
-
-[agents.explorer]
-model = "gpt-5.4"
-description = "代码库调研 + 技术探索"
-
 [model_providers.custom]
 name = "custom"
 wire_api = "responses"
