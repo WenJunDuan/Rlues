@@ -1,0 +1,4 @@
+[agent]
+name = "explorer"
+model = "gpt-5.4"
+description = "调研+探索"
