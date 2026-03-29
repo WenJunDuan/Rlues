@@ -1,0 +1,77 @@
+# VibeCoding Kernel v9.3.1 — Codex CLI Config
+
+model_provider = "custom"
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+suppress_unstable_features_warning = true
+
+approval_policy = "never"
+sandbox_mode    = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = true
+web_search = "live"
+
+[features]
+multi_agent = true
+collaboration_modes = true
+shell_snapshot = true
+unified_exec = true
+shell_tool = true
+apply_patch_freeform = true
+undo = true
+
+[tui]
+notifications = true
+animations = true
+
+# ── Profiles ──
+
+[profiles.ci]
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+
+[profiles.review]
+model = "gpt-5.4"
+approval_policy = "on-request"
+
+[profiles.dev]
+model = "gpt-5.4"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+# ── Multi-Agent ──
+
+[agents]
+max_threads = 3
+
+[agents.builder]
+description = "实现代码 + 测试 (TDD: RED→GREEN→REFACTOR)"
+config_file = "./agents/builder.toml"
+
+[agents.validator]
+description = "代码审查 + Plan Review"
+config_file = "./agents/validator.toml"
+
+[agents.explorer]
+description = "代码库调研 + 文档查询 (只读)"
+config_file = "./agents/explorer.toml"
+
+# ── Model Provider ──
+
+[model_providers.custom]
+name = "custom"
+wire_api = "responses"
+requires_openai_auth = true
+base_url = ""
+
+# ── MCP Servers ──
+
+[mcp_servers."cunzhi"]
+type = "stdio"
+command = "寸止"
+
+[mcp_servers.augment-context-engine]
+type = "stdio"
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", ""]
