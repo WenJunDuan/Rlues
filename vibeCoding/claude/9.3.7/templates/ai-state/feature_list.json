@@ -1,0 +1,14 @@
+[
+  {
+    "id": "F001",
+    "sprint": 1,
+    "category": "functional",
+    "description": "[Planner D阶段生成, 生成后锁定]",
+    "acceptance_steps": [
+      "[步骤1]",
+      "[步骤2]"
+    ],
+    "passes": false,
+    "_verified_by": ""
+  }
+]

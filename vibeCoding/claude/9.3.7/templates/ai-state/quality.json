@@ -1,0 +1,20 @@
+{
+  "_comment": "Evaluator输出, delivery-gate验证",
+  "sprint": 0,
+  "timestamp": "",
+  "scores": {
+    "engineering_quality": 0,
+    "spec_compliance": 0,
+    "craft": 0,
+    "robustness": 0
+  },
+  "weighted_average": 0.0,
+  "verdict": "",
+  "issues": [],
+  "adversarial_review_summary": "",
+  "ecc_scan_result": "",
+  "e2e_results": {
+    "passed": 0,
+    "failed": 0
+  }
+}

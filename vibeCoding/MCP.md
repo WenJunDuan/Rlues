@@ -5,14 +5,6 @@
 ```json
 {
   "mcpServers": {
-    "mcp-deepwiki": {
-      "command": "npx.cmd",
-      "args": ["-y", "mcp-deepwiki@latest"]
-    },
-    "chrome-devtools": {
-      "command": "npx.cmd",
-      "args": ["-y", "chrome-devtools-mcp@latest"]
-    },
     "augment-context-engine": {
       "command": "auggie",
       "args": ["--mcp"],
@@ -37,26 +29,13 @@
 
 [mcp_servers]
 
-[mcp_servers.mcp-deepwiki]
+[mcp_servers."cunzhi"]
 type = "stdio"
-command = "npx.cmd"
-args = ["-y", "mcp-deepwiki@latest"]
+command = "寸止"
 
 [mcp_servers.augment-context-engine]
 type = "stdio"
-command = "auggie"
-args = ["--mcp"]
-
-[mcp_servers.augment-context-engine.env]
-AUGMENT_API_TOKEN = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-AUGMENT_API_URL = "https://acemcp.heroman.wtf/relay/"
-
-[mcp_servers."cunzhi"]
-type = "stdio"
-command = "自己的目录\\cunzhi-cli\\寸止.exe"
-
-[mcp_servers.chrome-devtools]
-command = "npx.cmd"
-args = ["-y", "chrome-devtools-mcp@latest"]
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", ""]
 
 ```

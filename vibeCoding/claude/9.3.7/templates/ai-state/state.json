@@ -1,0 +1,13 @@
+{
+  "_comment": "VibeCoding 状态",
+  "version": "9.3.7",
+  "path": "",
+  "current_phase": "",
+  "current_sprint": 0,
+  "total_sprints": 0,
+  "features_passing": 0,
+  "features_total": 0,
+  "last_verdict": "",
+  "last_session": "",
+  "context_resets": 0
+}
