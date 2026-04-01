@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/context-loader.cjs"
+            "command": "node -e \"try{require('./.claude/hooks/context-loader.cjs')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\""
           }
         ]
       }
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/pre-bash.cjs"
+            "command": "node -e \"try{require('./.claude/hooks/pre-bash.cjs')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\""
           }
         ]
       }
@@ -71,7 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/post-edit.cjs"
+            "command": "node -e \"try{require('./.claude/hooks/post-edit.cjs')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\""
           }
         ]
       }
@@ -81,7 +81,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/delivery-gate.cjs"
+            "command": "node -e \"try{require('./.claude/hooks/delivery-gate.cjs')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\""
           }
         ]
       },
@@ -89,7 +89,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/tdd-check.cjs"
+            "command": "node -e \"try{require('./.claude/hooks/tdd-check.cjs')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\""
           }
         ]
       }
@@ -99,7 +99,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/stop-failure.cjs"
+            "command": "node -e \"try{require('./.claude/hooks/stop-failure.cjs')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\""
           }
         ]
       }

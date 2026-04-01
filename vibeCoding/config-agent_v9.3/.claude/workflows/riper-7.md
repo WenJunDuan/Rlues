@@ -2,22 +2,21 @@
 
 ## 统一工具调度表
 
-| 阶段        | VibeCoding Skill                                | Plugin                                                                              | MCP             | 状态文件         |
-| ----------- | ----------------------------------------------- | ----------------------------------------------------------------------------------- | --------------- | ---------------- |
-| R₀ 头脑风暴 | —                                               | superpowers:brainstorm                                                              | augment-context | design.md        |
-| R 研究      | context7                                        | —                                                                                   | augment-context | design.md (更新) |
-| D 设计      | context7                                        | —                                                                                   | —               | design.md (终稿) |
-| P 规划      | —                                               | superpowers:write-plan, gstack /codex (审查)                                        | —               | plan.md          |
-| E 开发      | reflexion                                       | gstack /codex (委托), superpowers:execute-plan (次选), feature-dev, commit-commands | augment-context | doing.md         |
-| T 测试      | verification, code-review, security-review, e2e | code-review (官方), playwright-skill, ECC AgentShield                               | —               | quality.md       |
-| V 验收      | kaizen                                          | superpowers:finishing-branch, commit-commands                                       | cunzhi          | lessons.md       |
+| 阶段 | VibeCoding Skill | Plugin | MCP | 状态文件 |
+|------|-----------------|--------|-----|---------|
+| R₀ 头脑风暴 | — | superpowers:brainstorm | augment-context | design.md |
+| R 研究 | context7 | — | augment-context | design.md (更新) |
+| D 设计 | context7 | — | — | design.md (终稿) |
+| P 规划 | — | superpowers:write-plan, gstack /codex (审查) | — | plan.md |
+| E 开发 | reflexion | gstack /codex (委托), superpowers:execute-plan (次选), feature-dev, commit-commands | augment-context | doing.md |
+| T 测试 | verification, code-review, security-review, e2e | code-review (官方), playwright-skill, ECC AgentShield | — | quality.md |
+| V 验收 | kaizen | superpowers:finishing-branch, commit-commands | cunzhi | lessons.md |
 
 ## 阶段详情
 
 ---
 
 ### Path A (快速: bug/配置/<30min)
-
 直接执行修复 → 运行测试验证 → delivery-gate 检查 → 完成。
 不需要 design.md / plan.md / quality.md。
 
