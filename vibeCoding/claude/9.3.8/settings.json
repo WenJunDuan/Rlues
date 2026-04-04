@@ -1,0 +1,202 @@
+{
+  "environmentVariables": {
+    "VIBECODING_VERSION": "9.3.8",
+    "LANGUAGE": "zh-Hans",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": 1,
+    "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": 1,
+    "NEXT_TELEMETRY_DISABLED": 1,
+    "NUXT_TELEMETRY_DISABLED": 1,
+    "GATSBY_TELEMETRY_DISABLED": 1,
+    "ASTRO_TELEMETRY_DISABLED": 1,
+    "ANGULAR_CLI_ANALYTICS": false,
+    "API_TIMEOUT_MS": 3000000
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(python *)",
+      "Bash(pytest *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git stash *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(echo *)",
+      "Bash(which *)",
+      "Bash(pwd)",
+      "Bash(cd *)",
+      "Bash(npx ecc-agentshield *)",
+      "Bash(npx prettier *)",
+      "Bash(npx eslint *)",
+      "Bash(npx tsc *)",
+      "Bash(npx ctx7 *)",
+      "Bash(ctx7 *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /*)",
+      "Bash(> /dev/sda*)",
+      "Bash(mkfs.*)",
+      "Bash(dd if=*)",
+      "Bash(:(){ :|:& };:)",
+      "Bash(chmod -R 777 /)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | bash)",
+      "Bash(git push * --force)",
+      "Bash(git push origin main)",
+      "Bash(git push origin master)",
+      "Read(./.env.production)",
+      "Read(./.env.local)",
+      "Read(./secrets/**)",
+      "Read(./**/credentials*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-loader.cjs\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(rm *)",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.cjs\""
+          },
+          {
+            "type": "command",
+            "if": "Bash(git push *)",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.cjs\""
+          },
+          {
+            "type": "command",
+            "if": "Bash(curl *)",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.cjs\""
+          },
+          {
+            "type": "command",
+            "if": "Bash(wget *)",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.cjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-check.cjs\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "你是代码质量评审员。审查 assistant 最终回复的完整性:\n1. 用户的需求是否被完整解决?\n2. 代码是否有明显的边界情况遗漏?\n3. 是否遗留了 TODO 或未完成的占位符?\n如果全部通过则 approve。否则 reject 并说明原因。\n只回复纯 JSON，不加 markdown: {\"decision\":\"approve\"} 或 {\"decision\":\"reject\",\"reason\":\"...\"}",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/delivery-gate.cjs\""
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/permission-denied.cjs\""
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-failure.cjs\"",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    },
+    "everything-claude-code": {
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/everything-claude-code"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "playwright-skill": {
+      "source": {
+        "source": "github",
+        "repo": "lackeyjb/playwright-skill"
+      }
+    },
+    "context7-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "upstash/context7"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "everything-claude-code@everything-claude-code": true,
+    "codex@openai-codex": true,
+    "feature-dev@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "playwright-skill@playwright-skill": true,
+    "context7-plugin@context7-marketplace": true
+  }
+}
