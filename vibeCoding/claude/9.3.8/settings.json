@@ -76,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-loader.cjs\""
+            "command": "node \"$HOME/.claude/hooks/context-loader.cjs\""
           }
         ]
       }
@@ -88,22 +88,22 @@
           {
             "type": "command",
             "if": "Bash(rm *)",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.cjs\""
+            "command": "node \"$HOME/.claude/hooks/pre-bash-guard.cjs\""
           },
           {
             "type": "command",
             "if": "Bash(git push *)",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.cjs\""
+            "command": "node \"$HOME/.claude/hooks/pre-bash-guard.cjs\""
           },
           {
             "type": "command",
             "if": "Bash(curl *)",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.cjs\""
+            "command": "node \"$HOME/.claude/hooks/pre-bash-guard.cjs\""
           },
           {
             "type": "command",
             "if": "Bash(wget *)",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.cjs\""
+            "command": "node \"$HOME/.claude/hooks/pre-bash-guard.cjs\""
           }
         ]
       }
@@ -114,7 +114,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-check.cjs\""
+            "command": "node \"$HOME/.claude/hooks/post-edit-check.cjs\""
           }
         ]
       }
@@ -129,7 +129,7 @@
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/delivery-gate.cjs\""
+            "command": "node \"$HOME/.claude/hooks/delivery-gate.cjs\""
           }
         ]
       }
@@ -139,7 +139,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/permission-denied.cjs\""
+            "command": "node \"$HOME/.claude/hooks/permission-denied.cjs\""
           }
         ]
       }
@@ -149,7 +149,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-failure.cjs\"",
+            "command": "node \"$HOME/.claude/hooks/stop-failure.cjs\"",
             "async": true
           }
         ]
