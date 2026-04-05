@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VibeCoding v1.0-cursor — afterFileEdit: 编辑后质量检查
+// VibeCoding v3.0-cursor — afterFileEdit: 编辑后质量检查
 // 位置: ~/.cursor/hooks/post-edit-check.js
 //
 // Cursor afterFileEdit 协议：

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VibeCoding v1.0-cursor — beforeShellExecution: 危险命令拦截
+// VibeCoding v3.0-cursor — beforeShellExecution: 危险命令拦截
 // 位置: ~/.cursor/hooks/pre-bash-guard.js
 //
 // Cursor beforeShellExecution 协议：
