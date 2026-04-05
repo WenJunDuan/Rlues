@@ -56,7 +56,6 @@
       "Bash(> /dev/sda*)",
       "Bash(mkfs.*)",
       "Bash(dd if=*)",
-      "Bash(:(){ :|:& };:)",
       "Bash(chmod -R 777 /)",
       "Bash(curl * | bash)",
       "Bash(wget * | bash)",
