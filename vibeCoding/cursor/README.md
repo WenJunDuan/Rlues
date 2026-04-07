@@ -94,7 +94,7 @@ README.md                             本文件
 
 ## Review 记录
 
-5 轮 Review，共发现并修复 16 个 bug：
+5 轮 Review + 1 轮实测反馈，共发现并修复 19 个 bug：
 
 | 轮次 | 方法 | 发现 |
 |------|------|------|
@@ -103,10 +103,20 @@ README.md                             本文件
 | R3 平台兼容 | Cursor API/格式检查 | 0 个 |
 | R4 交叉一致 | 字段名/模板/版本号对齐 | 3 个 |
 | R5 环境模拟 | Skill 触发词冲突检测 | 1 个 |
+| R6 实测反馈 | 用户实际使用报告 | 3 个 |
+
+R6 修复（3 个 hook 全部重写）：
+- delivery-summary.js: aborted 噪音、无意义摘要输出
+- post-edit-check.js: 全文件扫描 → 只检查新增内容、移除 500 行检查
+- pre-bash-guard.js: rm -rf /tmp/build 误杀 → 精确匹配根目录和家目录
 
 关键修复：
 - beforeShellExecution 用 stdout JSON `{permission:"deny"}`（exit code 在 Cursor 无效）
-- afterFileEdit 路径拼接 workspace_roots（相对路径问题）
+- afterFileEdit 只检查 edits 中的 new_string（新增内容），不扫全文件，消除已有代码噪音
+- afterFileEdit 移除 500 行文件大小检查（正常大文件不该报警）
+- stop hook 只在 error 时警告，aborted 是正常操作不再报警
+- stop hook 只在有实质进度 (percent>0) 时输出摘要，静默保存时间戳
+- pre-bash-guard 精确匹配 `rm -rf /` 和 `rm -rf ~/`，不误杀 `rm -rf /tmp/build`
 - 所有 .ai_state/ 写入添加存在性检查（共 9 处）
 - Skill description 去除触发词冲突（execute/plan 加"不直接触发"语义）
 - R0 统一用 ASCII（与 state.json phase 字段值一致）
