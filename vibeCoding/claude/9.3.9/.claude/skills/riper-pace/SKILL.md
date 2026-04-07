@@ -10,10 +10,10 @@ description: >
 收到任务后: **PACE 选路径, RIPER 按路径执行。**
 
 ## 当前项目状态
-!`cat .ai_state/project.json 2>/dev/null || echo '{"path":"","stage":"","sprint":0,"conventions":[],"gotchas":[]}'`
+!`cat .ai_state/project.json 2>/dev/null`
 
 ## 待办任务
-!`cat .ai_state/tasks.md 2>/dev/null || echo '(无 tasks.md — 需要初始化)'`
+!`cat .ai_state/tasks.md 2>/dev/null`
 
 ---
 

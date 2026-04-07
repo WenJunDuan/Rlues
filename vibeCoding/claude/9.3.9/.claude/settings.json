@@ -2,6 +2,7 @@
   "environmentVariables": {
     "VIBECODING_VERSION": "9.3.9",
     "LANGUAGE": "zh-Hans",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
     "DISABLE_NON_ESSENTIAL_MODEL_CALLS": 1,
     "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": 1,
@@ -10,8 +11,11 @@
     "GATSBY_TELEMETRY_DISABLED": 1,
     "ASTRO_TELEMETRY_DISABLED": 1,
     "ANGULAR_CLI_ANALYTICS": false,
+    "ENABLE_TOOL_SEARCH": "true",
     "API_TIMEOUT_MS": 3000000
   },
+  "includeCoAuthoredBy": false,
+  "effortLevel": "high",
   "permissions": {
     "allow": [
       "Bash(npm test *)",

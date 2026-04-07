@@ -9,7 +9,7 @@ description: >
 
 ## 当前状态
 !`cat .ai_state/project.json 2>/dev/null | head -5`
-!`cat .ai_state/design.md 2>/dev/null | head -3 || echo '(design.md 不存在)'`
+!`head -5 .ai_state/design.md 2>/dev/null`
 
 ---
 

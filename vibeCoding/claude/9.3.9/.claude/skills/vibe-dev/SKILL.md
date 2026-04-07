@@ -10,7 +10,7 @@ description: >
 # /vibe-dev — 完整开发流程
 
 ## 项目状态
-!`cat .ai_state/project.json 2>/dev/null || echo '⚠️ 项目未初始化'`
+!`cat .ai_state/project.json 2>/dev/null`
 
 ## 流程
 

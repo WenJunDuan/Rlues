@@ -15,11 +15,11 @@ allowed-tools: Bash, Read, Grep, Glob
 !`cat .ai_state/project.json 2>/dev/null | head -5`
 
 ## 已完成的 Task
-!`grep "^\- \[x\]" .ai_state/tasks.md 2>/dev/null || echo '(无已完成 Task)'`
+!`grep -c "\[x\]" .ai_state/tasks.md 2>/dev/null`
 
 ## 可用审查工具
-!`command -v codex >/dev/null 2>&1 && echo "✅ codex-plugin-cc" || echo "❌ codex 不可用"`
-!`npx ecc-agentshield --version 2>/dev/null && echo "✅ ECC AgentShield" || echo "❌ ECC 不可用"`
+!`which codex 2>/dev/null`
+!`npx ecc-agentshield --version 2>/dev/null`
 
 ---
 

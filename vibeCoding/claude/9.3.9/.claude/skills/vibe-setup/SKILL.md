@@ -8,10 +8,10 @@ description: >
 # /vibe-setup — 安装和初始化
 
 ## 环境检测
-!`claude --version 2>/dev/null | head -1 || echo 'CC 版本未知'`
-!`command -v codex >/dev/null 2>&1 && echo "✅ codex CLI" || echo "❌ codex CLI 未安装"`
-!`npx ctx7 --version 2>/dev/null && echo "✅ context7" || echo "❌ context7 未安装"`
-!`npx ecc-agentshield --version 2>/dev/null && echo "✅ ECC AgentShield" || echo "❌ ECC 未安装"`
+!`claude --version 2>/dev/null`
+(用 Bash 工具运行 `which codex` 检测)
+(用 Bash 工具运行 `npx ctx7 --version` 检测)
+(用 Bash 工具运行 `npx ecc-agentshield --version` 检测)
 
 ## 安装插件 (如需要)
 

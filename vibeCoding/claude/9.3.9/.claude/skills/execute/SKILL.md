@@ -13,10 +13,10 @@ allowed-tools: Bash, Read, Write, Edit, MultiEdit, Grep, Glob, Task
 !`cat .ai_state/project.json 2>/dev/null | head -5`
 
 ## 待办任务
-!`grep "^\- \[ \]" .ai_state/tasks.md 2>/dev/null || echo '(无待办 Task)'`
+!`grep -c "\[ \]" .ai_state/tasks.md 2>/dev/null`
 
 ## 项目注意事项
-!`cat .ai_state/project.json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); [print(f'⚠️ {g}') for g in d.get('gotchas',[])]" 2>/dev/null || true`
+!`cat .ai_state/project.json 2>/dev/null`
 
 ---
 
