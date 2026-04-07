@@ -130,6 +130,23 @@
       }
     ]
   },
+  "mcpServers": {
+    "cunzhi": {
+      "command": "寸止",
+      "disabled": false
+    },
+    "augment-context-engine": {
+      "command": "npx",
+      "args": [
+        "ace-tool-rs",
+        "--base-url",
+        "https://acemcp.heroman.wtf/relay/",
+        "--token",
+        ""
+      ],
+      "disabled": false
+    }
+  },
   "extraKnownMarketplaces": {
     "superpowers-marketplace": {
       "source": { "source": "github", "repo": "obra/superpowers-marketplace" }

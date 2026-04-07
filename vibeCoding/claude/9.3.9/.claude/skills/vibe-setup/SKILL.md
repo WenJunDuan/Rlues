@@ -7,13 +7,15 @@ description: >
 
 # /vibe-setup — 安装和初始化
 
-## 环境检测
-!`claude --version 2>/dev/null`
-(用 Bash 工具运行 `which codex` 检测)
-(用 Bash 工具运行 `npx ctx7 --version` 检测)
-(用 Bash 工具运行 `npx ecc-agentshield --version` 检测)
+## 第一步: 环境检测
 
-## 安装插件 (如需要)
+用 Bash 工具逐个检查以下命令, 记录哪些可用:
+- `claude --version`
+- `which codex`
+- `npx ctx7 --version`
+- `npx ecc-agentshield --version`
+
+## 第二步: 安装缺失的插件
 
 ```bash
 # superpowers
@@ -36,20 +38,24 @@ description: >
 /reload-plugins
 ```
 
-## 初始化项目
+## 第三步: 初始化项目
 
 ```bash
-mkdir -p .ai_state
-# 从 skill templates 复制
+mkdir -p .ai_state/reviews
 ```
 
-复制 riper-pace/templates/ 下所有模板到 .ai_state/。
+从 riper-pace/templates/ 复制所有模板到 .ai_state/:
+- project.json
+- tasks.md
+- design.md
+- lessons.md
 
 如果项目有 .gitignore → 建议添加 `.ai_state/`
 
-## 验证
+## 第四步: 验证
 
-- `/codex:review` → 应能执行
+用 Bash 工具运行以下命令确认插件可用:
 - `npx ctx7 resolve express` → 应输出文档
 - `npx ecc-agentshield scan` → 应输出报告
-- 说 "帮我分析需求" → superpowers brainstorming 应激活
+
+全部通过 → 告知用户: "VibeCoding 安装完成, 用 /vibe-dev 开始开发。"

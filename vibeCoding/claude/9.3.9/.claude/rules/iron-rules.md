@@ -39,4 +39,4 @@
 - **P0 必须**: 无 hardcoded secrets · 输入验证 · SQL 参数化 · 错误处理 · 无 XSS
 - **P1 应该**: 函数 <50 行 · 有意义命名 · 无重复代码 · 单一职责
 - **P2 推荐**: JSDoc/docstring · 一致代码风格 · 完整类型注解
-  </important>
+</important>
