@@ -55,7 +55,7 @@ mkdir -p .ai_state/reviews
 ## 第四步: 验证
 
 用 Bash 工具运行以下命令确认插件可用:
-- `npx ctx7 resolve express` → 应输出文档
+- `ctx7 library express` → 应返回库信息
 - `npx ecc-agentshield scan` → 应输出报告
 
 全部通过 → 告知用户: "VibeCoding 安装完成, 用 /vibe-dev 开始开发。"

@@ -7,7 +7,7 @@ PACE 决定调什么工具。按表执行, 不要猜测。
 | 任务 | 工具 | 用法 | 降级 |
 |------|------|------|------|
 | 需求发散 | superpowers brainstorming | 自动激活 | 手动四步法 (定义→发散→追问→收敛) |
-| 查库文档 | context7 | `npx ctx7 resolve {{库名}}` | 搜索 + node_modules |
+| 查库文档 | context7 | `ctx7 library {{库名}}` → `ctx7 docs {{库ID}} "查询"` | 搜索 + node_modules |
 | 语义搜索 | augment-context-engine | MCP 工具自动调用 | Grep + Read |
 | 方案审查 | @evaluator | 委托 | `/review` |
 | 用户确认 | cunzhi MCP | DESIGN_READY / SPRINT_CONTRACT 检查点 | 直接问用户 |

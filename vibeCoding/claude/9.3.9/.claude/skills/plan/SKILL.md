@@ -39,7 +39,7 @@ description: >
 
 1. Grep 搜索项目中的相关实现
 2. augment-context-engine 做语义搜索 (如可用) — 跨文件关联分析
-3. `npx ctx7 resolve {{库名}}` 查关键库 API
+3. `ctx7 library {{库名}}` 搜索库 → `ctx7 docs {{库ID}} "关键API"` 查文档
 4. 读 .ai_state/lessons.md — 有没有踩过相关的坑
 5. 追加到 design.md: 接口签名 + 依赖版本 + 已知风险和缓解方案
 

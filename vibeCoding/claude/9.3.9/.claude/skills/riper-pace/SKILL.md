@@ -68,7 +68,7 @@ D: 同 C + 设计评审
 ### R₀ 需求精炼 (Path B+)
 
 **目标:** 模糊需求 → 可验收 Spec
-**工具:** superpowers brainstorming (自动激活) · `npx ctx7 resolve` (查库文档) · augment-context-engine (跨文件关联)
+**工具:** superpowers brainstorming (自动激活) · `ctx7 library` + `ctx7 docs` (查库文档) · augment-context-engine (跨文件关联)
 **产出:** .ai_state/design.md (MUST/SHOULD/COULD + 验收标准)
 **门控:** cunzhi DESIGN_READY 检查点 (如可用) 或直接问用户确认 → stage="R"
 **详细指引:** → plan/SKILL.md 阶段 R₀
@@ -78,7 +78,7 @@ D: 同 C + 设计评审
 ### R 技术调研 (Path B+)
 
 **目标:** 验证技术方案可行, 排除风险
-**工具:** Grep (搜项目代码) · `npx ctx7 resolve` (查库 API) · augment-context-engine (语义搜索) · Read (conventions/lessons)
+**工具:** Grep (搜项目代码) · `ctx7 library` + `ctx7 docs` (查库 API) · augment-context-engine (语义搜索) · Read (conventions/lessons)
 **产出:** design.md 追加技术方案段 (接口/依赖/风险)
 **门控:** 技术方案非空 → stage="D"
 **详细指引:** → plan/SKILL.md 阶段 R
