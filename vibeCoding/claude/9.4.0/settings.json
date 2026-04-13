@@ -1,8 +1,8 @@
 {
-  "environmentVariables": {
-    "VIBECODING_VERSION": "9.3.9",
+  "effortLevel": "high",
+  "env": {
+    "VIBECODING_VERSION": "9.4.0",
     "LANGUAGE": "zh-Hans",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
     "DISABLE_NON_ESSENTIAL_MODEL_CALLS": 1,
     "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": 1,
@@ -11,11 +11,9 @@
     "GATSBY_TELEMETRY_DISABLED": 1,
     "ASTRO_TELEMETRY_DISABLED": 1,
     "ANGULAR_CLI_ANALYTICS": false,
-    "ENABLE_TOOL_SEARCH": "true",
-    "API_TIMEOUT_MS": 3000000
+    "API_TIMEOUT_MS": 30000,
+    "ENABLE_TOOL_SEARCH": "true"
   },
-  "includeCoAuthoredBy": false,
-  "effortLevel": "high",
   "permissions": {
     "allow": [
       "Bash(npm test *)",
@@ -53,9 +51,7 @@
       "Bash(npx ecc-agentshield *)",
       "Bash(npx prettier *)",
       "Bash(npx eslint *)",
-      "Bash(npx tsc *)",
-      "Skill(codex:*)",
-      "Bash(mvn *:*)"
+      "Bash(npx tsc *)"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -110,11 +106,6 @@
       {
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "审查 assistant 回复: 1) 用户需求完整解决? 2) 有无遗漏边界? 3) 有 TODO 占位符? 纯 JSON: {\"decision\":\"approve\"} 或 {\"decision\":\"reject\",\"reason\":\"...\"}",
-            "timeout": 20
-          },
-          {
             "type": "command",
             "command": "test -f \"$HOME/.claude/hooks/delivery-gate.cjs\" && node \"$HOME/.claude/hooks/delivery-gate.cjs\" || true"
           }
@@ -130,28 +121,34 @@
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/pre-compact-save.cjs\" && node \"$HOME/.claude/hooks/pre-compact-save.cjs\" || true"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/post-compact-restore.cjs\" && node \"$HOME/.claude/hooks/post-compact-restore.cjs\" || true"
+          }
+        ]
+      }
     ]
-  },
-  "mcpServers": {
-    "cunzhi": {
-      "command": "寸止",
-      "disabled": false
-    },
-    "augment-context-engine": {
-      "command": "npx",
-      "args": [
-        "ace-tool-rs",
-        "--base-url",
-        "https://acemcp.heroman.wtf/relay/",
-        "--token",
-        ""
-      ],
-      "disabled": false
-    }
   },
   "extraKnownMarketplaces": {
     "superpowers-marketplace": {
-      "source": { "source": "github", "repo": "obra/superpowers-marketplace" }
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
     },
     "everything-claude-code": {
       "source": {
@@ -160,13 +157,22 @@
       }
     },
     "openai-codex": {
-      "source": { "source": "github", "repo": "openai/codex-plugin-cc" }
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
     },
     "playwright-skill": {
-      "source": { "source": "github", "repo": "lackeyjb/playwright-skill" }
+      "source": {
+        "source": "github",
+        "repo": "lackeyjb/playwright-skill"
+      }
     },
     "context7-marketplace": {
-      "source": { "source": "github", "repo": "upstash/context7" }
+      "source": {
+        "source": "github",
+        "repo": "upstash/context7"
+      }
     }
   },
   "enabledPlugins": {
