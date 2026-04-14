@@ -1,0 +1,27 @@
+---
+name: vibe-dev
+effort: high
+disable-model-invocation: true
+argument-hint: "<需求描述>"
+description: >
+  VibeCoding 主入口。从需求到交付的完整工程化开发流程。
+---
+
+# /vibe-dev
+
+.ai_state/ 不存在 → 提示 `/vibe-init`
+
+## Get-bearings
+
+1. 读 .ai_state/project.json → Path/Stage/Sprint
+2. 读 .ai_state/progress.md → 上次做了什么
+3. `git log --oneline -10`
+4. 读 .ai_state/tasks.md → 待办/完成/阻塞
+5. E/T 阶段 → `bash .ai_state/init.sh` → 基线测试
+
+## Dispatch
+
+有进行中的 stage → 从当前阶段继续
+新需求 → 触发 riper-pace skill，需求: $ARGUMENTS
+
+首次使用简短说明: "按流程帮你: 需求 → 设计 → 确认 → 实现+测试 → 审查 → 交付。"
