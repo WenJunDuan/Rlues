@@ -1,0 +1,30 @@
+[
+  {
+    "event": "SessionStart",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "node .codex/hooks/session-start.cjs"
+      }
+    ]
+  },
+  {
+    "event": "Stop",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "node .codex/hooks/stop-gate.cjs"
+      }
+    ]
+  },
+  {
+    "event": "PreToolUse",
+    "matcher": "Bash",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "node .codex/hooks/bash-guard.cjs"
+      }
+    ]
+  }
+]
