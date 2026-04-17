@@ -13,8 +13,30 @@ IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
 IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
 IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
 
-# > Dler Cloud
-DOMAIN-SUFFIX,dler.cloud
+# Unbreak
+# > General
+DOMAIN,app.adjust.com
+DOMAIN,app.appsflyer.com
+DOMAIN,bdtj.tagtic.cn
+# > Alibaba
+DOMAIN,log.mmstat.com
+DOMAIN,sycm.mmstat.com
+
+# >> Paramount+
+# DOMAIN,pubads.g.doubleclick.net
+
+# > Tencent
+DOMAIN,fairplay.l.qq.com
+DOMAIN,livew.l.qq.com
+DOMAIN,vd.l.qq.com
+DOMAIN,vi.l.qq.com
+
+# > Strava
+DOMAIN,analytics.strava.com
+
+# > Umeng
+DOMAIN,msg.umeng.com
+DOMAIN,msg.umengcloud.com
 
 # > Apple CDN
 PROCESS-NAME,storedownloadd
@@ -41,9 +63,13 @@ USER-AGENT,duet*
 DOMAIN-KEYWORD,epicgames
 
 # > Google
+DOMAIN-SUFFIX,blog.google // Google Blog
+DOMAIN-SUFFIX,googletraveladservices.com // Google Flights
+DOMAIN,clientservices.googleapis.com
 DOMAIN,safebrowsing.googleapis.com
 DOMAIN-SUFFIX,dl.google.com
-
+DOMAIN,update.googleapis.com
+DOMAIN,translate.googleapis.com
 # > Microsoft
 USER-AGENT,Microsoft%20Remote%20Desktop*
 DOMAIN-SUFFIX,msftconnecttest.com
