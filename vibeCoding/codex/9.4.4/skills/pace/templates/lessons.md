@@ -1,0 +1,18 @@
+# Lessons Learned
+
+<!--
+每个 Sprint 通过 Gate 后由 compound skill 追加。append-only，不删不改历史。
+格式:
+
+## [YYYY-MM-DD Sprint N] 一句话标题
+- **Pattern**: 解法描述 (文件:行号)
+- **Pitfall**: 坑点描述
+- **Constraint**: 新约束
+
+示例:
+
+## [2026-04-22 Sprint 1] JWT refresh 不能和 access 共享 secret
+- **Pattern**: 分开 secret + rotation key 在 env (src/auth/config.ts:15)
+- **Pitfall**: Authorization header 大小写处理不一致，用 lodash.toLower 前置
+- **Constraint**: Redis 需要 ≥256MB 才放得下 session cache
+-->

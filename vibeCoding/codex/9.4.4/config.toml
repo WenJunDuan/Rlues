@@ -1,0 +1,75 @@
+# VibeCoding Kernel v9.4.4
+model_provider = "OpenAI"
+model = "gpt-5.4"
+review_model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+windows_wsl_setup_acknowledged = true
+model_context_window = 1000000
+model_auto_compact_token_limit = 900000
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+web_search = "live"
+suppress_unstable_features_warning = true
+
+[sandbox_workspace_write]
+network_access = true
+
+[features]
+hooks = true
+multi_agent = true
+shell_tool = true
+shell_snapshot = true
+codex_hooks = true
+unified_exec = true
+apply_patch_freeform = true
+undo = true
+
+[memories]
+generate_memories = true
+use_memories = true
+
+[tui]
+notifications = true
+animations = true
+
+[agents]
+max_threads = 6
+max_depth = 1
+job_max_runtime_seconds = 1800
+
+[agents.evaluator]
+description = "独立质量评审, 按 Functionality/SpecCompliance/Craft/Robustness 四维打分"
+config_file = "~/.codex/agents/evaluator.toml"
+nickname_candidates = ["Athena", "Minerva", "Themis"]
+
+[agents.reviewer]
+description = "独立代码审查, 找 correctness/security/test gap"
+config_file = "~/.codex/agents/reviewer.toml"
+nickname_candidates = ["Argus", "Cassandra", "Tiresias"]
+
+[agents.generator]
+description = "隔离环境的代码生成 worker, 按 handoff.md 做 TDD 实现"
+config_file = "~/.codex/agents/generator.toml"
+nickname_candidates = ["Hephaestus", "Daedalus", "Prometheus"]
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.4.4-codex"
+
+project_root_markers = [".git", ".hg", ".sl"]
+project_doc_max_bytes = 65536
+
+[model_providers.OpenAI]
+name = "OpenAI"
+base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
+
+[mcp_servers.augment-context-engine]
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", ""]
+
+[mcp_servers.augment-context-engine.tools.search_context]
+approval_mode = "approve"

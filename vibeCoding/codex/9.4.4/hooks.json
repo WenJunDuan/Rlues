@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.codex/hooks/session-start.py",
+            "statusMessage": "Loading VibeCoding context"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.codex/hooks/pre-bash-guard.py",
+            "statusMessage": "Checking Bash command"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.codex/hooks/permission-request.py",
+            "statusMessage": "Evaluating permission request"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.codex/hooks/delivery-gate.py",
+            "statusMessage": "Running delivery-gate"
+          }
+        ]
+      }
+    ]
+  }
+}
