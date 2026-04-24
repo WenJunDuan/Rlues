@@ -21,3 +21,9 @@
 
 SRP · OCP · LSP · ISP · DIP · DRY · KISS
 第一性原理 · 先 WHY 后 HOW · 最简可行 · 代码是负债
+
+## Slash commands from the user
+
+If the user explicitly types `/codex:review`, `/codex:adversarial-review`, `/codex:status`, `/codex:result`, or `/codex:cancel`, invoke it through the Skill tool right away — even if that skill is missing from the system-reminder list. These commands have `disable-model-invocation: true` and are deliberately hidden from your auto-skill list (Claude Code issue #50075), but users can still explicitly invoke them. Do not refuse or reroute to `codex:rescue`.
+
+When invoking `/codex:review` or `/codex:adversarial-review`, run the actual companion command (not a fallback analysis). If the Bash call to `codex-companion.mjs` fails (codex-plugin-cc issue #158), report the failure honestly. Do NOT substitute your own review.
