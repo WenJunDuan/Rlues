@@ -1,4 +1,5 @@
 # > LAN
+RULE-SET,LAN,DIRECT
 DOMAIN-KEYWORD,announce,DIRECT
 DOMAIN-KEYWORD,torrent,DIRECT
 DOMAIN-KEYWORD,tracker,DIRECT
@@ -13,165 +14,197 @@ IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
 IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
 IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
 
+#银行
+DOMAIN-SUFFIX,icbc.com.cn,DIRECT
+DOMAIN-SUFFIX,ccb.com,DIRECT
+DOMAIN-SUFFIX,abchina.com,DIRECT
+DOMAIN-SUFFIX,abchina.com.cn,DIRECT
+DOMAIN-SUFFIX,boc.cn,DIRECT
+DOMAIN-SUFFIX,bankcomm.com,DIRECT
+DOMAIN-SUFFIX,cmbchina.com,DIRECT
+DOMAIN-SUFFIX,spdb.com.cn,DIRECT
+DOMAIN-SUFFIX,cmbc.com.cn,DIRECT
+DOMAIN-SUFFIX,citicbank.com,DIRECT
+DOMAIN-SUFFIX,pingan.com.cn,DIRECT
+DOMAIN-SUFFIX,psbc.com,DIRECT
+DOMAIN-SUFFIX,cib.com.cn,DIRECT
+DOMAIN-SUFFIX,hxb.com.cn,DIRECT
+DOMAIN-SUFFIX,bocomcc.com,DIRECT
+DOMAIN-SUFFIX,95588.com,DIRECT
+DOMAIN-SUFFIX,unionpay.com,DIRECT
+DOMAIN-SUFFIX,unionpayintl.com,DIRECT
+
+# 政务
+DOMAIN-SUFFIX,gov.cn,DIRECT
+DOMAIN-SUFFIX,12306.cn,DIRECT
+DOMAIN-SUFFIX,chsi.com.cn,DIRECT
+
+# 运营商/支付
+DOMAIN-SUFFIX,10086.cn,DIRECT
+DOMAIN-SUFFIX,10010.com,DIRECT
+DOMAIN-SUFFIX,189.cn,DIRECT
+DOMAIN-SUFFIX,t3go.cn,DIRECT
+
 # Unbreak
 # > General
-DOMAIN,app.adjust.com
-DOMAIN,app.appsflyer.com
-DOMAIN,bdtj.tagtic.cn
+DOMAIN,app.adjust.com,DIRECT
+DOMAIN,app.appsflyer.com,DIRECT
+DOMAIN,bdtj.tagtic.cn,DIRECT
 # > Alibaba
-DOMAIN,log.mmstat.com
-DOMAIN,sycm.mmstat.com
+DOMAIN,log.mmstat.com,DIRECT
+DOMAIN,sycm.mmstat.com,DIRECT
 
 # >> Paramount+
 # DOMAIN,pubads.g.doubleclick.net
 
 # > Tencent
-DOMAIN,fairplay.l.qq.com
-DOMAIN,livew.l.qq.com
-DOMAIN,vd.l.qq.com
-DOMAIN,vi.l.qq.com
+DOMAIN,fairplay.l.qq.com,DIRECT
+DOMAIN,livew.l.qq.com,DIRECT
+DOMAIN,vd.l.qq.com,DIRECT
+DOMAIN,vi.l.qq.com,DIRECT
 
 # > Strava
-DOMAIN,analytics.strava.com
+DOMAIN,analytics.strava.com,DIRECT
 
 # > Umeng
-DOMAIN,msg.umeng.com
-DOMAIN,msg.umengcloud.com
+DOMAIN,msg.umeng.com,DIRECT
+DOMAIN,msg.umengcloud.com,DIRECT
 
 # > Apple CDN
-PROCESS-NAME,storedownloadd
-USER-AGENT,com.apple.appstored*
-DOMAIN,aod.itunes.apple.com
-DOMAIN,api.smoot.apple.cn
-DOMAIN,appldnld.apple.com
-DOMAIN,apptrailers.itunes.apple.com
-DOMAIN,gs-loc-cn.apple.com
-DOMAIN,iosapps.itunes.apple.com
-DOMAIN,music.apple.com
-DOMAIN,mvod.itunes.apple.com
-DOMAIN,osxapps.itunes.apple.com
-DOMAIN,supportdownload.apple.com
-DOMAIN,swcdn.apple.com
-DOMAIN,updates-http.cdn-apple.com
-DOMAIN-SUFFIX,ls.apple.com
-DOMAIN-SUFFIX,mzstatic.com
+PROCESS-NAME,storedownloadd,DIRECT
+USER-AGENT,com.apple.appstored*,DIRECT
+DOMAIN,aod.itunes.apple.com,DIRECT
+DOMAIN,api.smoot.apple.cn,DIRECT
+DOMAIN,appldnld.apple.com,DIRECT
+DOMAIN,apptrailers.itunes.apple.com,DIRECT
+DOMAIN,gs-loc-cn.apple.com,DIRECT
+DOMAIN,iosapps.itunes.apple.com,DIRECT
+DOMAIN,music.apple.com,DIRECT
+DOMAIN,mvod.itunes.apple.com,DIRECT
+DOMAIN,osxapps.itunes.apple.com,DIRECT
+DOMAIN,supportdownload.apple.com,DIRECT
+DOMAIN,swcdn.apple.com,DIRECT
+DOMAIN,updates-http.cdn-apple.com,DIRECT
+DOMAIN-SUFFIX,ls.apple.com,DIRECT
+DOMAIN-SUFFIX,mzstatic.com,DIRECT
 
 # > Duet
-USER-AGENT,duet*
+USER-AGENT,duet*,DIRECT
 
 # > Epic
-DOMAIN-KEYWORD,epicgames
+DOMAIN-KEYWORD,epicgames,DIRECT
 
 # > Google
-DOMAIN-SUFFIX,blog.google // Google Blog
-DOMAIN-SUFFIX,googletraveladservices.com // Google Flights
-DOMAIN,clientservices.googleapis.com
-DOMAIN,safebrowsing.googleapis.com
-DOMAIN-SUFFIX,dl.google.com
-DOMAIN,update.googleapis.com
-DOMAIN,translate.googleapis.com
+DOMAIN-SUFFIX,blog.google,DIRECT
+DOMAIN-SUFFIX,googletraveladservices.com,DIRECT
+DOMAIN,clientservices.googleapis.com,DIRECT
+DOMAIN,safebrowsing.googleapis.com,DIRECT
+DOMAIN-SUFFIX,dl.google.com,DIRECT
+DOMAIN,update.googleapis.com,DIRECT
+DOMAIN,translate.googleapis.com,DIRECT
+
 # > Microsoft
-USER-AGENT,Microsoft%20Remote%20Desktop*
-DOMAIN-SUFFIX,msftconnecttest.com
+USER-AGENT,Microsoft%20Remote%20Desktop*,DIRECT
+DOMAIN-SUFFIX,msftconnecttest.com,DIRECT
 
 # > Proxy plugin
-PROCESS-NAME,v2ray
-PROCESS-NAME,ss-local
+PROCESS-NAME,v2ray,PROXY,Proxy
+PROCESS-NAME,ss-local,PROXY,Proxy
 
 # > Steam
-USER-AGENT,Steam*
-DOMAIN,cm.steampowered.com
-DOMAIN,ol.epicgames.com
-// DOMAIN,store.steampowered.com
-DOMAIN-SUFFIX,steamcontent.com
-DOMAIN-SUFFIX,steamserver.net
+USER-AGENT,Steam*,DIRECT
+DOMAIN,cm.steampowered.com,DIRECT
+DOMAIN,ol.epicgames.com,DIRECT
+# DOMAIN,store.steampowered.com,DIRECT
+DOMAIN-SUFFIX,steamcontent.com,DIRECT
+DOMAIN-SUFFIX,steamserver.net,DIRECT
 
-DOMAIN-SUFFIX,steamchina.com
+DOMAIN-SUFFIX,steamchina.com,DIRECT
 
-DOMAIN,csgo.wmsj.cn
-DOMAIN,dota2.wmsj.cn
-DOMAIN,wmsjsteam.com
+DOMAIN,csgo.wmsj.cn,DIRECT
+DOMAIN,dota2.wmsj.cn,DIRECT
+DOMAIN,wmsjsteam.com,DIRECT
 
-DOMAIN,dl.steam.clngaa.com
-DOMAIN,dl.steam.ksyna.com
+DOMAIN,dl.steam.clngaa.com,DIRECT
+DOMAIN,dl.steam.ksyna.com,DIRECT
 
-DOMAIN,st.dl.bscstorage.net
-DOMAIN,st.dl.eccdnx.com
-DOMAIN,st.dl.pinyuncloud.com
+DOMAIN,st.dl.bscstorage.net,DIRECT
+DOMAIN,st.dl.eccdnx.com,DIRECT
+DOMAIN,st.dl.pinyuncloud.com,DIRECT
 
-DOMAIN,steampipe.steamcontent.tnkjmec.com
+DOMAIN,steampipe.steamcontent.tnkjmec.com,DIRECT
 
-DOMAIN,steampowered.com.8686c.com
-DOMAIN,steamstatic.com.8686c.com
+DOMAIN,steampowered.com.8686c.com,DIRECT
+DOMAIN,steamstatic.com.8686c.com,DIRECT
 
-DOMAIN,steambroadcast.akamaized.net
-DOMAIN,steamcdn-a.akamaihd.net
-DOMAIN,steamcommunity-a.akamaihd.net
-DOMAIN,steamstore-a.akamaihd.net
-DOMAIN,steamusercontent-a.akamaihd.net
-DOMAIN,steamuserimages-a.akamaihd.net
+DOMAIN,steambroadcast.akamaized.net,DIRECT
+DOMAIN,steamcdn-a.akamaihd.net,DIRECT
+DOMAIN,steamcommunity-a.akamaihd.net,DIRECT
+DOMAIN,steamstore-a.akamaihd.net,DIRECT
+DOMAIN,steamusercontent-a.akamaihd.net,DIRECT
+DOMAIN,steamuserimages-a.akamaihd.net,DIRECT
 
 # > Tesla
-DOMAIN,tesla-cdn.thron.cn
-DOMAIN,tesla-cdn.thron.com
-DOMAIN-SUFFIX,solarcity.com
-DOMAIN-SUFFIX,tesla.cn
-DOMAIN-SUFFIX,tesla.com
-DOMAIN-SUFFIX,tesla.com.cn
-DOMAIN-SUFFIX,teslamotors.cn
-DOMAIN-SUFFIX,teslamotors.com
-DOMAIN-SUFFIX,teslamotors.com.cn
-DOMAIN-SUFFIX,ts.la
+DOMAIN,tesla-cdn.thron.cn,DIRECT
+DOMAIN,tesla-cdn.thron.com,DIRECT
+DOMAIN-SUFFIX,solarcity.com,DIRECT
+DOMAIN-SUFFIX,tesla.cn,DIRECT
+DOMAIN-SUFFIX,tesla.com,DIRECT
+DOMAIN-SUFFIX,tesla.com.cn,DIRECT
+DOMAIN-SUFFIX,teslamotors.cn,DIRECT
+DOMAIN-SUFFIX,teslamotors.com,DIRECT
+DOMAIN-SUFFIX,teslamotors.com.cn,DIRECT
+DOMAIN-SUFFIX,ts.la,DIRECT
 
 # > UUBooster
-PROCESS-NAME,UUBooster
+PROCESS-NAME,UUBooster,DIRECT
 
 # > WiFiman
-DOMAIN-SUFFIX,app-measurement.com
+DOMAIN-SUFFIX,app-measurement.com,DIRECT
 
 # > Xunlei
-USER-AGENT,%E8%BF%85%E9%9B%B7
-DOMAIN-SUFFIX,xunlei.com
+USER-AGENT,%E8%BF%85%E9%9B%B7,DIRECT
+DOMAIN-SUFFIX,xunlei.com,DIRECT
 
 # > Download
-PROCESS-NAME,aria2c
-PROCESS-NAME,fdm
-PROCESS-NAME,Folx
-PROCESS-NAME,NetTransport
-PROCESS-NAME,qbittorrent
-PROCESS-NAME,qbittorrent-nox
-PROCESS-NAME,Thunder
-PROCESS-NAME,Transmission
-PROCESS-NAME,uTorrent
-PROCESS-NAME,WebTorrent
-PROCESS-NAME,WebTorrent Helper
+PROCESS-NAME,aria2c,DIRECT
+PROCESS-NAME,fdm,DIRECT
+PROCESS-NAME,Folx,DIRECT
+PROCESS-NAME,NetTransport,DIRECT
+PROCESS-NAME,qbittorrent,DIRECT
+PROCESS-NAME,qbittorrent-nox,DIRECT
+PROCESS-NAME,Thunder,DIRECT
+PROCESS-NAME,Transmission,DIRECT
+PROCESS-NAME,uTorrent,DIRECT
+PROCESS-NAME,WebTorrent,DIRECT
+PROCESS-NAME,WebTorrent Helper,DIRECT
 
 # > Private Tracker
-DOMAIN-SUFFIX,audiences.me
-DOMAIN-SUFFIX,awesome-hd.me
-DOMAIN-SUFFIX,broadcasthe.net
-DOMAIN-SUFFIX,chdbits.co
-DOMAIN-SUFFIX,classix-unlimited.co.uk
-DOMAIN-SUFFIX,dmhy.best
-DOMAIN-SUFFIX,empornium.me
-DOMAIN-SUFFIX,gazellegames.net
-DOMAIN-SUFFIX,hdchina.org
-DOMAIN-SUFFIX,hdsky.me
-DOMAIN-SUFFIX,icetorrent.org
-DOMAIN-SUFFIX,jpopsuki.eu
-DOMAIN-SUFFIX,keepfrds.com
-DOMAIN-SUFFIX,madsrevolution.net
-DOMAIN-SUFFIX,m-team.cc
-DOMAIN-SUFFIX,nanyangpt.com
-DOMAIN-SUFFIX,ncore.cc
-DOMAIN-SUFFIX,open.cd
-DOMAIN-SUFFIX,ourbits.club
-DOMAIN-SUFFIX,passthepopcorn.me
-DOMAIN-SUFFIX,privatehd.to
-DOMAIN-SUFFIX,redacted.ch
-DOMAIN-SUFFIX,springsunday.net
-DOMAIN-SUFFIX,tjupt.org
-DOMAIN-SUFFIX,totheglory.im
+DOMAIN-SUFFIX,audiences.me,DIRECT
+DOMAIN-SUFFIX,awesome-hd.me,DIRECT
+DOMAIN-SUFFIX,broadcasthe.net,DIRECT
+DOMAIN-SUFFIX,chdbits.co,DIRECT
+DOMAIN-SUFFIX,classix-unlimited.co.uk,DIRECT
+DOMAIN-SUFFIX,dmhy.best,DIRECT
+DOMAIN-SUFFIX,empornium.me,DIRECT
+DOMAIN-SUFFIX,gazellegames.net,DIRECT
+DOMAIN-SUFFIX,hdchina.org,DIRECT
+DOMAIN-SUFFIX,hdsky.me,DIRECT
+DOMAIN-SUFFIX,icetorrent.org,DIRECT
+DOMAIN-SUFFIX,jpopsuki.eu,DIRECT
+DOMAIN-SUFFIX,keepfrds.com,DIRECT
+DOMAIN-SUFFIX,madsrevolution.net,DIRECT
+DOMAIN-SUFFIX,m-team.cc,DIRECT
+DOMAIN-SUFFIX,nanyangpt.com,DIRECT
+DOMAIN-SUFFIX,ncore.cc,DIRECT
+DOMAIN-SUFFIX,open.cd,DIRECT
+DOMAIN-SUFFIX,ourbits.club,DIRECT
+DOMAIN-SUFFIX,passthepopcorn.me,DIRECT
+DOMAIN-SUFFIX,privatehd.to,DIRECT
+DOMAIN-SUFFIX,redacted.ch,DIRECT
+DOMAIN-SUFFIX,springsunday.net,DIRECT
+DOMAIN-SUFFIX,tjupt.org,DIRECT
+DOMAIN-SUFFIX,totheglory.im,DIRECT
 
 # > UBI
-DOMAIN,uplaypc-s-ubisoft.cdn.ubi.com
+DOMAIN,uplaypc-s-ubisoft.cdn.ubi.com,DIRECT
