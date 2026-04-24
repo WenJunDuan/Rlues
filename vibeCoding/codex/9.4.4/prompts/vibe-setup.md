@@ -15,10 +15,10 @@ codex --version
 VibeCoding 强依赖 Stop hook 做 delivery-gate。Codex hooks 当前是实验性 feature, 默认关闭。
 
 ```bash
-codex features enable hooks
+codex features enable codex_hooks
 ```
 
-这会写入 `~/.codex/config.toml` 的 `[features]` 表。
+这会写入 `~/.codex/config.toml` 的 `[features]` 表 (字段名是 `codex_hooks`, 不是 `hooks`)。
 
 ## Step 2: 部署 VibeCoding 文件
 
@@ -58,9 +58,9 @@ ls ~/.codex/skills/compound/SKILL.md    # 经验沉淀
 ls ~/.codex/agents/evaluator.toml       # 评审 subagent
 ls ~/.codex/agents/reviewer.toml        # 审查 subagent
 ls ~/.codex/agents/generator.toml       # 生成 subagent
-ls ~/.codex/hooks/*.py                  # 4 个 hook 脚本
+ls ~/.codex/hooks/*.py                  # 3 个 hook 脚本 (session-start / pre-bash-guard / delivery-gate)
 cat ~/.codex/hooks.json | python3 -m json.tool   # hooks 注册有效
-grep "hooks = true" ~/.codex/config.toml         # features.hooks 已开
+grep "codex_hooks = true" ~/.codex/config.toml         # features.codex_hooks 已开
 npx ctx7 library express                         # context7 可用
 npx ecc-agentshield --version                    # ECC 可用 (npx, 无需 plugin)
 ```

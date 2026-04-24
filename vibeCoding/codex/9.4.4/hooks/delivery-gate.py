@@ -8,10 +8,13 @@ VibeCoding Stop hook — delivery-gate 质量门。
   - 是否有测试通过记录
   - VERDICT 状态 (REWORK/FAIL → 阻断; CONCERNS → 提示; PASS → 检查 lessons)
 
-Codex Stop hook 协议:
-- stdout JSON with {"continue": false, "stopReason": "..."} → 阻止 turn 结束, agent 继续
-- stdout JSON with {"systemMessage": "..."} → 显示系统消息
-- exit 0 = 放行
+Codex Stop hook 官方协议 (与 CC 不同):
+- exit 0 时 stdout 必须是 JSON (plain text 无效)
+- {"decision":"block","reason":"..."} → 让 Codex 用 reason 作为新 prompt 继续一轮
+  这**不是拒绝交付**, 而是"自动喂 Codex 修复指令继续干"——契合 VibeCoding 语义
+- {"continue":false,"stopReason":"..."} → 标记这次 hook 运行停止 (不是阻止 agent)
+- {"systemMessage":"..."} → 作为系统消息显示
+- stop_hook_active=true 时立即 exit 防递归
 """
 import json
 import os
@@ -26,7 +29,7 @@ def main():
     except Exception:
         event = {}
 
-    # 官方 Stop hook 支持 stop_hook_active 标志防递归
+    # 防递归: 上一轮 Stop hook 已经让 Codex 继续了, 这次不要再拦
     if event.get("stop_hook_active"):
         sys.exit(0)
 
@@ -104,16 +107,19 @@ def main():
                     "[delivery-gate] CONCERNS: 建议修复后重新评分\n"
                 )
 
-    # 有阻断问题 → continue=false, 让 agent 继续处理
+    # 有阻断问题 → decision:block, Codex 会用 reason 作为新 prompt 继续一轮
+    # 语义: "喂一条修复指令给 Codex 继续干"——正好是 VibeCoding 要的
     if issues:
         issue_list = "\n".join(f"• {i}" for i in issues)
         sys.stderr.write(
-            f"[delivery-gate] 阻断 {path}/{stage}: {', '.join(issues)}\n"
+            f"[delivery-gate] 要求继续修复 {path}/{stage}: {', '.join(issues)}\n"
         )
         print(json.dumps({
-            "continue": False,
-            "stopReason": f"[delivery-gate] 阻断:\n{issue_list}\n\n修复后再交付。",
-            "systemMessage": f"VibeCoding delivery-gate 阻断了本次交付 ({path}/{stage}):\n{issue_list}",
+            "decision": "block",
+            "reason": (
+                f"delivery-gate 检查未通过, 继续修复:\n{issue_list}\n\n"
+                f"修复完成后重新跑一次测试和 /review, 然后更新 .ai_state/reviews/sprint-{sprint}.md。"
+            ),
         }))
         sys.exit(0)
 
@@ -135,12 +141,14 @@ def main():
             sys.stderr.write(
                 f"[delivery-gate] PASS {path}/{stage} · {msg}\n"
             )
-            # soft warn: 只用 systemMessage, 不 continue=false
+            # soft warn: systemMessage 显示为警告, 不阻止 Codex 结束 turn
             print(json.dumps({"systemMessage": f"VibeCoding: {msg}"}))
         else:
             sys.stderr.write(
                 f"[delivery-gate] PASS {path}/{stage} · lessons ✓\n"
             )
+            # exit 0 无输出 = 放行 (Stop hook 可以接受 exit 0 + 无 JSON, 但官方说"plain text invalid"
+            # 所以最安全是输出 {} 或不输出; 实测无输出也能 work)
     else:
         sys.stderr.write(f"[delivery-gate] 放行 {path}/{stage}\n")
 

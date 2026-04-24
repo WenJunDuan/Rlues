@@ -119,12 +119,12 @@
         ]
       }
     ],
-    "PermissionDenied": [
+    "PermissionRequest": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "test -f \"$HOME/.claude/hooks/permission-retry.cjs\" && node \"$HOME/.claude/hooks/permission-retry.cjs\" || true"
+            "command": "test -f \"$HOME/.claude/hooks/permission-request.cjs\" && node \"$HOME/.claude/hooks/permission-request.cjs\" || true"
           }
         ]
       }

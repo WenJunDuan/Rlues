@@ -24,25 +24,14 @@
         ]
       }
     ],
-    "PermissionRequest": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $HOME/.codex/hooks/permission-request.py",
-            "statusMessage": "Evaluating permission request"
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "python3 $HOME/.codex/hooks/delivery-gate.py",
-            "statusMessage": "Running delivery-gate"
+            "statusMessage": "Running delivery-gate",
+            "timeout": 60
           }
         ]
       }

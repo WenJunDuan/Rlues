@@ -31,19 +31,22 @@ process.stdin.on('end',()=>{
   }
   if(issues.length>0){
     process.stderr.write('[delivery-gate] 阻断 '+p.path+'/'+p.stage+': '+issues.join(', ')+'\n');
-    process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'Stop',stopDecision:'block',
-      stopDecisionReason:'[delivery-gate] 阻断:\n'+issues.map(i=>'• '+i).join('\n')+'\n\n修复后再交付。'}}));
+    // Stop hook 官方 schema: 顶层 decision + reason (不是 hookSpecificOutput)
+    process.stdout.write(JSON.stringify({
+      decision:'block',
+      reason:'[delivery-gate] 阻断:\n'+issues.map(i=>'• '+i).join('\n')+'\n\n修复后再交付。'
+    }));
     process.exit(0);return;
   }
-  // Gate PASS: 检查本 Sprint 是否已沉淀经验 (soft warn, 不阻塞)
   if(verdict==='PASS'){
     let compounded=false;
     try{const lm=fs.readFileSync(path.join(sd,'lessons.md'),'utf8');
-      const tag='Sprint '+p.sprint;
-      compounded=lm.includes(tag);
+      compounded=lm.includes('Sprint '+p.sprint);
     }catch(e){}
     if(!compounded){
-      process.stderr.write('[delivery-gate] PASS '+p.path+'/'+p.stage+' · ⚠ lessons.md 无 Sprint '+p.sprint+' 条目, 建议运行 /compound 沉淀经验 (铁律 7)\n');
+      const msg='⚠ Sprint '+p.sprint+' 通过但 lessons.md 无条目, 建议运行 /compound 沉淀经验 (铁律 7)';
+      process.stderr.write('[delivery-gate] PASS '+p.path+'/'+p.stage+' · '+msg+'\n');
+      process.stdout.write(JSON.stringify({systemMessage:'VibeCoding: '+msg}));
     }else{
       process.stderr.write('[delivery-gate] PASS '+p.path+'/'+p.stage+' · lessons ✓\n');
     }

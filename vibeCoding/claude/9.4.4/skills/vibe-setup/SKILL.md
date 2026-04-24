@@ -42,7 +42,6 @@ cd ~/.claude/skills/gstack && ./setup
 ```
 
 官方插件 (claude-plugins-official 已内置):
-
 ```
 /plugin install feature-dev
 /plugin install code-review

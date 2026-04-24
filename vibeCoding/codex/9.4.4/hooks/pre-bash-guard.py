@@ -2,7 +2,14 @@
 """
 VibeCoding PreToolUse hook — 拦截危险 Bash 命令。
 Codex PreToolUse 当前只对 Bash 事件触发。
-输出 systemMessage JSON → Codex 显示为系统消息并阻止执行。
+
+阻断协议 (官方):
+  JSON on stdout (推荐):
+    {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"..."}}
+    或者旧格式: {"decision":"block","reason":"..."}
+  或者 exit 2 + stderr 写原因
+
+这里用官方 hookSpecificOutput 格式, 最兼容。
 """
 import json
 import re
@@ -38,13 +45,15 @@ def main():
             sys.stderr.write(
                 f"[bash-guard] deny: {reason} ({cmd[:60]})\n"
             )
-            # Codex PreToolUse: systemMessage 会显示给用户
-            # 但 block 语义需要通过 exit code (非 0 = 中止该 tool 调用, 但不中止整个 turn)
-            # 实际阻断效果靠 sandbox + approval_policy, 这里给出提示供用户拒绝 approval
+            # 官方 PreToolUse 阻断协议: hookSpecificOutput.permissionDecision = "deny"
             print(json.dumps({
-                "systemMessage": f"⛔ VibeCoding bash-guard 阻断: {reason}\n命令: {cmd[:120]}"
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": f"VibeCoding bash-guard 阻断: {reason}",
+                }
             }))
-            sys.exit(2)  # 非 0 退出, Codex 会把该 tool 调用标记为失败
+            sys.exit(0)  # exit 0 + JSON deny = 正确阻断 (不用 exit 2)
     sys.exit(0)
 
 

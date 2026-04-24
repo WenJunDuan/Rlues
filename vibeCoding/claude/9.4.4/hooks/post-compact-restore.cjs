@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 'use strict';
+// PostCompact hook (Claude Code v2.1.76+)
+// 触发: compaction 完成后
+// 作用: 重新注入 VibeCoding 核心规则 + 项目状态, 对抗 compaction 丢失
+// 输出策略: 用 plain stdout + exit 0 注入 context (比 hookSpecificOutput.additionalContext 更兼容)
 const fs=require('fs'),path=require('path');
 const pd=process.env.CLAUDE_PROJECT_DIR||process.cwd();
 const sd=path.join(pd,'.ai_state');
@@ -19,7 +23,9 @@ try{const t=fs.readFileSync(path.join(sd,'tasks.md'),'utf8');
   }
 }catch(e){}
 if(lines.length>0){
-  process.stderr.write('[compact-restore] injected '+lines.join('\n').length+' chars ('+source+')\n');
-  process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PostCompact',additionalContext:lines.join('\n')}}));
+  const payload=lines.join('\n');
+  process.stderr.write('[compact-restore] injected '+payload.length+' chars ('+source+')\n');
+  // plain stdout: exit 0 + 内容作为 developer context 追加
+  process.stdout.write(payload);
 }
 process.exit(0);
