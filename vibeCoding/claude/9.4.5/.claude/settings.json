@@ -1,0 +1,188 @@
+{
+  "model": "opusplan",
+  "effortLevel": "xhigh",
+  "env": {
+    "VIBECODING_VERSION": "9.4.5-hotfix",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-7",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-6",
+
+    // "HTTPS_PROXY": "http://127.0.0.1:6152",
+    // "HTTP_PROXY": "http://127.0.0.1:6152",
+    // "ALL_PROXY": "socks5://127.0.0.1:6153",
+    // "NO_PROXY": "localhost,127.0.0.1,.local",
+
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
+    "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
+    "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
+
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NUXT_TELEMETRY_DISABLED": "1",
+    "GATSBY_TELEMETRY_DISABLED": "1",
+    "ASTRO_TELEMETRY_DISABLED": "1",
+    "ANGULAR_CLI_ANALYTICS": "false",
+
+    "API_TIMEOUT_MS": "30000"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(node:*)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(pytest *)",
+      "Bash(uv run *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git stash *)",
+      "Bash(git worktree *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(echo *)",
+      "Bash(which *)",
+      "Bash(pwd)",
+      "Bash(codex:*)",
+      "Bash(ctx7 *)",
+      "Bash(npx ecc-agentshield *)",
+      "Bash(npx prettier *)",
+      "Bash(npx eslint *)",
+      "Bash(npx tsc *)",
+      "Bash(chmod *)",
+      "Bash(cargo *)",
+      "Bash(go *)",
+      "Bash(ruff *)"
+    ],
+    "deny": ["Bash(rm -rf /)", "Bash(rm -rf ~)", "Bash(rm -rf /*)"]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/session-start.cjs\" && node \"$HOME/.claude/hooks/session-start.cjs\" || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/pre-bash-guard.cjs\" && node \"$HOME/.claude/hooks/pre-bash-guard.cjs\" || true",
+            "if": "Bash(rm *)"
+          },
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/pre-bash-guard.cjs\" && node \"$HOME/.claude/hooks/pre-bash-guard.cjs\" || true",
+            "if": "Bash(git push *)"
+          },
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/pre-bash-guard.cjs\" && node \"$HOME/.claude/hooks/pre-bash-guard.cjs\" || true",
+            "if": "Bash(curl *)"
+          },
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/pre-bash-guard.cjs\" && node \"$HOME/.claude/hooks/pre-bash-guard.cjs\" || true",
+            "if": "Bash(wget *)"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/subagent-retry.cjs\" && node \"$HOME/.claude/hooks/subagent-retry.cjs\" || true"
+          },
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/lesson-drafter.cjs\" && node \"$HOME/.claude/hooks/lesson-drafter.cjs\" || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/delivery-gate.cjs\" && node \"$HOME/.claude/hooks/delivery-gate.cjs\" || true"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/permission-request.cjs\" && node \"$HOME/.claude/hooks/permission-request.cjs\" || true"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/pre-compact-save.cjs\" && node \"$HOME/.claude/hooks/pre-compact-save.cjs\" || true"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$HOME/.claude/hooks/post-compact-restore.cjs\" && node \"$HOME/.claude/hooks/post-compact-restore.cjs\" || true"
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "superpowers-marketplace": {
+      "source": { "source": "github", "repo": "obra/superpowers-marketplace" }
+    },
+    "openai-codex": {
+      "source": { "source": "github", "repo": "openai/codex-plugin-cc" }
+    },
+    "playwright-skill": {
+      "source": { "source": "github", "repo": "lackeyjb/playwright-skill" }
+    }
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "codex@openai-codex": true,
+    "playwright-skill@playwright-skill": true,
+    "feature-dev@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
+  }
+}
