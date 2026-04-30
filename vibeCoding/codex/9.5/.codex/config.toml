@@ -1,0 +1,113 @@
+# VibeCoding Hermes Kernel v9.5 · Codex Configuration
+# 位置: ~/.codex/config.toml
+
+model_provider = "OpenAI"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+windows_wsl_setup_acknowledged = true
+model_context_window = 1000000
+model_auto_compact_token_limit = 900000
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+suppress_unstable_features_warning = true
+
+[sandbox_workspace_write]
+network_access = true
+
+[features]
+hooks = true
+multi_agent = true
+shell_tool = true
+shell_snapshot = true
+codex_hooks = true
+unified_exec = true
+apply_patch_freeform = true
+undo = true
+
+[[hooks.SessionStart]]
+matcher = "^(startup|resume|clear)$"
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/session-start.py"'
+timeout = 10
+statusMessage = "Loading VibeCoding context"
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/user-prompt-submit.py"'
+timeout = 5
+statusMessage = "Hermes pre-check"
+
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/pre-bash-guard.py"'
+timeout = 10
+statusMessage = "Checking Bash command"
+
+[[hooks.PostToolUse]]
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/subagent-retry.py"'
+timeout = 10
+statusMessage = "Hermes retry-check"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/lesson-drafter.py"'
+timeout = 10
+statusMessage = "Hermes lesson-draft"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/output-evidence-augmentor.py"'
+timeout = 5
+statusMessage = "Hermes evidence-check"
+
+[[hooks.PermissionRequest]]
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/permission-request.py"'
+timeout = 5
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/delivery-gate.py"'
+timeout = 60
+statusMessage = "Running delivery-gate"
+
+[agents]
+max_threads = 6
+max_depth = 1
+job_max_runtime_seconds = 1800
+
+# Environment
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.5-codex"
+
+# 代理占位 (按需取消注释)
+# HTTPS_PROXY = "http://127.0.0.1:7890"
+# HTTP_PROXY = "http://127.0.0.1:7890"
+# ALL_PROXY = "socks5://127.0.0.1:7891"
+# NO_PROXY = "localhost,127.0.0.1,.local"
+
+[model_providers.OpenAI]
+name = "OpenAI"
+base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
+
+[mcp_servers.augment-context-engine]
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", ""]
+
+[mcp_servers.augment-context-engine.tools.search_context]
+approval_mode = "approve"
