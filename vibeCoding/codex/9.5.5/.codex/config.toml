@@ -1,0 +1,138 @@
+# VibeCoding Hermes Kernel v9.5.5 · Codex Configuration
+# 位置: ~/.codex/config.toml
+
+model_provider = "OpenAI"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+windows_wsl_setup_acknowledged = true
+model_context_window = 1000000
+model_auto_compact_token_limit = 900000
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+suppress_unstable_features_warning = true
+
+[sandbox_workspace_write]
+network_access = false
+
+[features]
+hooks = true
+multi_agent = true
+shell_tool = true
+shell_snapshot = true
+unified_exec = true
+apply_patch_freeform = true
+undo = true
+
+# SessionStart: 注入 essentials + lessons INDEX + project state
+# Codex SessionStart 支持 startup / resume / clear (没有 compact, Codex 无 compact 机制)
+[[hooks.SessionStart]]
+matcher = "^(startup|resume|clear)$"
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/session-start.py"'
+timeout = 10
+statusMessage = "Loading VibeCoding context"
+
+# UserPromptSubmit: Codex 独有, 每轮 prompt 时智能检测关键词注入 R₀ + 铁律 6 (完成度证据) 提醒
+# v0.116+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/user-prompt-submit.py"'
+timeout = 5
+statusMessage = "Hermes pre-check"
+
+# PreToolUse Bash: 拦截危险命令
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/pre-bash-guard.py"'
+timeout = 10
+statusMessage = "Checking Bash command"
+
+# PostToolUse: 治懒惰 (subagent-retry)
+# v9.5: 全局 lessons 系统已删除, 经验沉淀只在项目级 .ai_state/lessons.md (compound skill)
+[[hooks.PostToolUse]]
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/subagent-retry.py"'
+timeout = 10
+statusMessage = "Hermes retry-check"
+
+# PermissionRequest: 仅 systemMessage (Codex PermissionRequest 受限, 不能 ask/allow/deny)
+[[hooks.PermissionRequest]]
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/permission-request.py"'
+timeout = 5
+
+# Stop: delivery-gate 质量门
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'python3 "$HOME/.codex/hooks/delivery-gate.py"'
+timeout = 60
+statusMessage = "Running delivery-gate"
+
+# Subagents (用 instructions 字段引用 AGENTS.md 文件, 不内嵌字符串)
+
+[agents]
+max_threads = 6
+max_depth = 1
+job_max_runtime_seconds = 1800
+
+# Skills (v9.5: per-skill 启用控制, Codex 3/2026 新增)
+
+[[skills.config]]
+name = "pace"
+enabled = true
+
+[[skills.config]]
+name = "compound"
+enabled = true
+
+# 可选: 用户安装的第三方 skill 也用这个段控制
+[[skills.config]]
+name = "context7"
+enabled = true
+
+[[skills.config]]
+name = "superpowers"
+enabled = true
+
+# Environment
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.5.5-codex"
+
+# 代理占位 (按需取消注释)
+# HTTPS_PROXY = "http://127.0.0.1:7890"
+# HTTP_PROXY = "http://127.0.0.1:7890"
+# ALL_PROXY = "socks5://127.0.0.1:7891"
+# NO_PROXY = "localhost,127.0.0.1,.local"
+
+[model_providers.OpenAI]
+name = "OpenAI"
+base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
+
+[mcp_servers.augment-context-engine]
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", ""]
+
+[mcp_servers.augment-context-engine.tools.search_context]
+approval_mode = "approve"
+
+# Project Discovery
+project_root_markers = [".git", ".hg", ".sl"]
+
+# AGENTS.md 大小上限 (默认 32KiB, 扩到 64KiB 容纳铁律扩展)
+project_doc_max_bytes = 65536
