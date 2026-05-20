@@ -1,0 +1,162 @@
+# VibeCoding Athena v9.6 · Codex Configuration
+# 位置: ~/.codex/config.toml
+
+project_root_markers = [".git", ".hg", ".sl"]
+project_doc_max_bytes = 65536
+
+model_provider = "openai"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+
+windows_wsl_setup_acknowledged = true
+model_context_window = 1000000
+model_auto_compact_token_limit = 900000
+web_search = "live"
+suppress_unstable_features_warning = true
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false
+
+[features]
+hooks = true
+multi_agent = true
+shell_tool = true
+shell_snapshot = true
+unified_exec = true
+apply_patch_freeform = true
+undo = true
+memories = true
+
+[memories]
+generate_memories = true
+use_memories = true
+disable_on_external_context = true
+
+[[hooks.SessionStart]]
+matcher = "^(startup|resume|clear)$"
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = "python3 \"$HOME/.codex/hooks/session-start.py\""
+timeout = 10
+statusMessage = "Loading Athena context"
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "python3 \"$HOME/.codex/hooks/user-prompt-submit.py\""
+timeout = 5
+statusMessage = "Athena pre-check"
+
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "python3 \"$HOME/.codex/hooks/pre-bash-guard.py\""
+timeout = 10
+statusMessage = "Checking Bash command"
+
+[[hooks.PostToolUse]]
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "python3 \"$HOME/.codex/hooks/index-updater.py\""
+timeout = 10
+
+[[hooks.PostToolUse]]
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "python3 \"$HOME/.codex/hooks/subagent-retry.py\""
+timeout = 10
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = "python3 \"$HOME/.codex/hooks/delivery-gate.py\""
+timeout = 60
+statusMessage = "Athena delivery-gate"
+
+[agents]
+max_threads = 6
+max_depth = 1
+job_max_runtime_seconds = 1800
+
+[[skills.config]]
+name = "pace"
+enabled = true
+
+[[skills.config]]
+name = "compound"
+enabled = true
+
+[[skills.config]]
+name = "context7"
+enabled = true
+
+[[skills.config]]
+name = "superpowers"
+enabled = true
+
+[model_providers.OpenAI]
+name = "OpenAI"
+base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
+
+[shell_environment_policy]
+inherit = "core"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.6.0-codex"
+
+# 代理占位 (按需取消注释)
+HTTPS_PROXY = "http://127.0.0.1:6152"
+HTTP_PROXY = "http://127.0.0.1:6152"
+ALL_PROXY = "socks5://127.0.0.1:6152"
+NO_PROXY = "localhost,127.0.0.1,.local"
+
+[mcp_servers.augment-context-engine]
+command = "npx"
+args = [ "ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", "ace_0eff2f29e8dec9382d0ad1b46b39e587d06f6c2f" ]
+
+[mcp_servers.augment-context-engine.tools.search_context]
+approval_mode = "approve"
+
+[hooks.state]
+
+[hooks.state."/Users/mi_manchi/.codex/hooks.json:permission_request:0:0"]
+trusted_hash = "sha256:e382ceef7731e5209db2f0f63eee9fab4594f1d16d3f8829497c3012c7bbd517"
+
+[hooks.state."/Users/mi_manchi/.codex/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:8c721144048ffe3ab9795e01ecc325e655b300b61225ff82c45fe2803be19e05"
+
+[hooks.state."/Users/mi_manchi/.codex/hooks.json:stop:0:0"]
+trusted_hash = "sha256:53b7e6df2168f3c461cc63c95b8b166dc282206afe7168582f63c65bddd0b051"
+
+[hooks.state."/Users/mi_manchi/.codex/hooks.json:user_prompt_submit:0:0"]
+trusted_hash = "sha256:8060509df156dff90fcc33218984186285615366beb839b5549a6e8179f98f3e"
+
+[projects."/Users/mi_manchi/workspace/Tools/forward-fwd"]
+trust_level = "trusted"
+
+[projects."/Users/mi_manchi/workspace/quantum/quantum-cowork"]
+trust_level = "trusted"
+
+[projects."/Users/mi_manchi/workspace/无锡公务员管理系统"]
+trust_level = "trusted"
+
+[projects."/Users/mi_manchi/workspace/enterprise-agent-platform"]
+trust_level = "trusted"
+
+[projects."/Users/mi_manchi/workspace/无锡公务员管理系统/quantum_front"]
+trust_level = "trusted"
+
+[projects."/Users/mi_manchi/workspace/Rlues"]
+trust_level = "trusted"
