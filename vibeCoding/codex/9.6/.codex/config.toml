@@ -116,12 +116,6 @@ inherit = "core"
 [shell_environment_policy.set]
 VIBECODING_VERSION = "9.6.0-codex"
 
-# 代理占位 (按需取消注释)
-HTTPS_PROXY = "http://127.0.0.1:6152"
-HTTP_PROXY = "http://127.0.0.1:6152"
-ALL_PROXY = "socks5://127.0.0.1:6152"
-NO_PROXY = "localhost,127.0.0.1,.local"
-
 [mcp_servers.augment-context-engine]
 command = "npx"
 args = [ "ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", "ace_0eff2f29e8dec9382d0ad1b46b39e587d06f6c2f" ]
