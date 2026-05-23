@@ -1,0 +1,79 @@
+{
+  "_comment_athena": "VibeCoding Athena v9.6.1-hotfix2 · Codex hooks 配置. 位置: ~/.codex/hooks.json. 参考: https://developers.openai.com/codex/hooks",
+  "_comment_format": "hooks 配置必须放在 hooks.json (官方文档明确). config.toml 里的 [[hooks.*]] TOML 块不是官方支持的格式, v9.6.1 在那里写是错的.",
+  "_comment_command": "command 字段走 shell 解析, 支持 ~ 和 $HOME 展开 (官方示例使用 ~/.codex/hooks/...). 用 /usr/bin/env python3 兜底 PATH 问题 (macOS GUI 子进程 PATH 受限).",
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/session-start.py",
+            "timeout": 10,
+            "statusMessage": "Loading Athena context"
+          }
+        ]
+      }
+    ],
+
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/user-prompt-submit.py",
+            "timeout": 5,
+            "statusMessage": "Athena pre-check"
+          }
+        ]
+      }
+    ],
+
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/pre-bash-guard.py",
+            "timeout": 10,
+            "statusMessage": "Checking Bash command"
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/index-updater.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-retry.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",
+            "timeout": 60,
+            "statusMessage": "Athena delivery-gate"
+          }
+        ]
+      }
+    ]
+  }
+}
