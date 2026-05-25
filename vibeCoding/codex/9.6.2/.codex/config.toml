@@ -1,4 +1,4 @@
-# VibeCoding Athena v9.6.1 · Codex Configuration (hotfix-2)
+# VibeCoding Athena v9.6.2 · Codex Configuration
 # 位置: ~/.codex/config.toml
 
 project_root_markers = [".git", ".hg", ".sl"]
@@ -12,6 +12,7 @@ windows_wsl_setup_acknowledged = true
 model_context_window = 1000000
 model_auto_compact_token_limit = 900000
 web_search = "live"
+
 suppress_unstable_features_warning = true
 
 approval_policy = "on-request"
@@ -26,16 +27,12 @@ multi_agent = true
 shell_tool = true
 shell_snapshot = true
 unified_exec = true
-memories = true
+memories = true 
 
 [memories]
 generate_memories = true
 use_memories = true
 disable_on_external_context = true
-
-# ====== Hooks 配置 ======
-# 全部迁移到 ~/.codex/hooks.json
-# config.toml 不再含 [[hooks.*]] 段.
 
 [agents]
 max_threads = 6
@@ -43,19 +40,15 @@ max_depth = 1
 job_max_runtime_seconds = 1800
 
 [[skills.config]]
-name = "pace"
+path = "<USER_HOME>/.agents/skills/pace/SKILL.md"
 enabled = true
 
 [[skills.config]]
-name = "compound"
+path = "<USER_HOME>/.agents/skills/polish/SKILL.md"
 enabled = true
 
 [[skills.config]]
-name = "context7"
-enabled = true
-
-[[skills.config]]
-name = "superpowers"
+path = "<USER_HOME>/.agents/skills/compound/SKILL.md"
 enabled = true
 
 [model_providers.OpenAI]
@@ -71,12 +64,12 @@ requires_openai_auth = true
 inherit = "core"
 
 [shell_environment_policy.set]
-VIBECODING_VERSION = "9.6.1-codex-hotfix2"
+VIBECODING_VERSION = "9.6.2"
 
-# augment-context-engine: 语义代码检索
 [mcp_servers.augment-context-engine]
 command = "npx"
-args = [ "ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", "<YOUR_ACE_TOKEN>" ]
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", "<YOUR_ACE_TOKEN>"]
 
 [mcp_servers.augment-context-engine.tools.search_context]
 approval_mode = "approve"
+

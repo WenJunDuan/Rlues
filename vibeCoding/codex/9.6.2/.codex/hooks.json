@@ -22,6 +22,12 @@
             "command": "/usr/bin/env python3 ~/.codex/hooks/user-prompt-submit.py",
             "timeout": 5,
             "statusMessage": "Athena pre-check"
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/index-updater.py",
+            "timeout": 8,
+            "statusMessage": "Syncing _index.md counts"
           }
         ]
       }
@@ -45,11 +51,6 @@
       {
         "matcher": "Bash",
         "hooks": [
-          {
-            "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/index-updater.py",
-            "timeout": 10
-          },
           {
             "type": "command",
             "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-retry.py",
