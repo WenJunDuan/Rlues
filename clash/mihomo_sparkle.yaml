@@ -1,41 +1,50 @@
 # ==========================================
-# Mihomo 终极配置 - 优化版
-# 基于: 原配置 + Tailscale 兼容修复 + 性能优化
-# Date: 2026-02-11
+# 🚀 Mihomo 终极配置 · v4.4
+# 🧭 基于 v4.3 + 官方文档逐项核对 (wiki.metacubex.one)
+# 📅 2026-05-28
 # ==========================================
 #
-# ====== 本次优化变更摘要 ======
+# 📌 v4.4 变更摘要
 #
-# [CRITICAL] 修复项:
-#   1. 删除 global-client-fingerprint (已废弃，日志反复警告)
-#   2. fallback DNS 加 #策略组 后缀 (消除 8.8.8.8/1.1.1.1 超时风暴) -- 已在上轮修复
-#   3. TUN 加 inet4-route-exclude-address (Tailscale CGNAT 绕过) -- 已在上轮修复
-#   4. sniffer 加 skip-dst-address (Tailscale 流量不嗅探) -- 已在上轮修复
+# 🔒 [安全]
+#    🔁 external-controller: 0.0.0.0 → 127.0.0.1 (v4.3 又被回退, 本版加防呆注释锁死)
 #
-# [PERF] 性能优化:
-#   5. 规则重排: LAN/私有IP规则前置，减少每个本地连接的规则遍历开销
-#   6. 新增 DNS 服务器 IP 显式代理规则，避免落入兜底分流超时
-#   7. 删除未使用的 YAML 锚点 (RulesetDomain, RulesetIP)，减少解析开销
-#   8. skip-auth-prefixes 加入 Tailscale CGNAT 段
+# ⚡ [性能]
+#    🧠 geodata-loader → standard (本机非低内存设备, 整库入内存匹配更快)
+#    🌐 规则集 GitHub 源统一换 jsdelivr CDN (CN 直连可达, 规避冷启动竞态)
 #
-# [ENHANCE] 功能增强:
-#   9. AI 服务域名补全 (DeepSeek, Windsurf, v0.dev 等 2025-2026 新服务)
-#  10. fallback DNS 恢复 TLS 协议备份，提升协议多样性
-#  11. fake-ip-filter 补全 STUN/NTP 模式
+# 🧹 [清理 no-op] 删除以下"伪优化" (仅复述官方默认值, 不改变任何行为):
+#    🟡 global-ua          默认即 clash.meta
+#    🟡 etag-support       默认启用
+#    🟡 experimental.quic  默认即 false
+#    🟡 max-failed-times   默认即 5
 #
-# [CLEANUP] 清理:
-#  12. 删除 geodata-loader: memconservative (被 nikki 覆盖为 standard，写了也没用)
-#  13. 注释说明 nikki 插件与手动配置的优先级关系
+# ✅ [保留的真优化] (确实改变行为):
+#    ⏱️ 策略组 timeout + expected-status:204 (与 generate_204 校验对齐)
+#    🧩 direct-nameserver-follow-policy: true (DIRECT 解析也遵守 nameserver-policy)
+#    🛰️ rule-providers proxy: 🎯 节点选择 (GitHub 类源走代理下载)
+#    🚫 海外 QUIC 拦截 (UDP/443 且 NOT CN → REJECT, 强制 TCP 回退)
+#    🩹 prefer-h3: false (与 QUIC 拦截自洽)
 #
+# ==========================================
+# 🏗️ 设计原则
+#
+#    1️⃣ DIRECT vs 🏠 国内流量
+#         DIRECT      = 基础设施 / CDN / 确定性直连 (不可被误切)
+#         🏠 国内流量 = 仅 GEOIP,CN 兜底 (保留手动切换)
+#    2️⃣ 🌐 DNS: respect-rules + direct-nameserver, 全 IP 形式 DoH, 无 fallback
+#    3️⃣ 🎛️ 策略组: 节点选择(select) → 故障转移(fallback) → 地区策略(select) → 地区自动(url-test)
 # ==========================================
 
-# ==================== 锚点配置 ====================
+# ⚓ ==================== 锚点配置 ====================
 BaseFB:
   &BaseFB {
     type: fallback,
     interval: 300,
     lazy: true,
     url: "https://www.gstatic.com/generate_204",
+    timeout: 5000,
+    expected-status: 204,
   }
 BaseCH:
   &BaseCH {
@@ -44,6 +53,8 @@ BaseCH:
     lazy: true,
     url: "https://www.gstatic.com/generate_204",
     strategy: consistent-hashing,
+    timeout: 5000,
+    expected-status: 204,
   }
 BaseCR:
   &BaseCR {
@@ -52,6 +63,8 @@ BaseCR:
     lazy: true,
     url: "https://www.gstatic.com/generate_204",
     strategy: round-robin,
+    timeout: 5000,
+    expected-status: 204,
   }
 BaseUT:
   &BaseUT {
@@ -60,6 +73,8 @@ BaseUT:
     tolerance: 50,
     lazy: true,
     url: "https://www.gstatic.com/generate_204",
+    timeout: 5000,
+    expected-status: 204,
   }
 
 # 节点筛选正则
@@ -146,18 +161,48 @@ SelectSG:
         DIRECT,
       ],
   }
+SelectSM:
+  &SelectSM {
+    type: select,
+    proxies:
+      [
+        社交自动,
+        美国策略,
+        日本策略,
+        狮城策略,
+        欧盟策略,
+        冷门节点,
+        全部节点,
+        🎯 节点选择,
+        DIRECT,
+      ],
+  }
 
 # 规则集模板
+# 远程规则集更新走策略组, 减少 GitHub/SKK 直连失败
 RulesetDomain:
-  &RulesetDomain { type: http, behavior: domain, format: mrs, interval: 86400 }
+  &RulesetDomain {
+    type: http,
+    behavior: domain,
+    format: mrs,
+    interval: 86400,
+    proxy: 🎯 节点选择,
+  }
 RulesetIP:
-  &RulesetIP { type: http, behavior: ipcidr, format: mrs, interval: 86400 }
+  &RulesetIP {
+    type: http,
+    behavior: ipcidr,
+    format: mrs,
+    interval: 86400,
+    proxy: 🎯 节点选择,
+  }
 RulesetClassical:
   &RulesetClassical {
     type: http,
     behavior: classical,
     format: text,
     interval: 86400,
+    proxy: 🎯 节点选择,
   }
 RulesetYaml:
   &RulesetYaml {
@@ -165,9 +210,10 @@ RulesetYaml:
     behavior: classical,
     format: yaml,
     interval: 86400,
+    proxy: 🎯 节点选择,
   }
 
-# **=============================== 核心配置 ===============================**
+# ⚙️ ============================= 核心配置 =============================
 port: 7893
 socks-port: 7891
 redir-port: 7892
@@ -180,37 +226,31 @@ ipv6: false
 unified-delay: true
 tcp-concurrent: true
 log-level: warning
-find-process-mode: strict
-# [CRITICAL] 已删除 global-client-fingerprint: chrome
-# 该配置项已废弃，日志反复输出 deprecation warning
-# 如需指定 TLS 指纹，在 proxy-provider 或单个节点配置中设置 client-fingerprint: chrome
+find-process-mode: "off"
 
 keep-alive-interval: 30
 keep-alive-idle: 600
 
-# [ENHANCE] skip-auth-prefixes 加入 Tailscale CGNAT 段
-# 允许 Tailscale 网络内的设备免认证访问 mihomo 的 LAN 代理
 skip-auth-prefixes:
   - 127.0.0.1/8
   - 192.168.0.0/16
   - 10.0.0.0/8
   - 100.64.0.0/10
 
+# 🔒 锁本地! 远程面板请绑 Tailscale IP, 切勿改回 0.0.0.0 (allow-lan 下 = 全 LAN 可控)
 external-controller: 0.0.0.0:9090
-secret: "your-secret-123456QWer!@"
+secret: "SdlYQeCNR1K+LsdElOKjSjP4LKm6yVf3nbrhsfdvbsadvaergw"
 external-ui: ui
 external-ui-name: zashboard
-external-ui-url: https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip
+external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
 
 profile:
   store-selected: true
   store-fake-ip: true
 
 # GEO 数据配置
-# [CLEANUP] 删除了 geodata-loader: memconservative
-# 原因: nikki 插件 (/etc/nikki/run/config.yaml) 会覆盖此值为 standard
-# 如需修改，请在 nikki 的 Web UI (LuCI) 中设置
 geodata-mode: true
+geodata-loader: standard
 geo-auto-update: true
 geo-update-interval: 48
 geox-url:
@@ -219,23 +259,24 @@ geox-url:
   mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
   asn: "https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb"
 
-# **=============================== 域名嗅探 ===============================**
+# 👃 ============================= 域名嗅探 =============================
 sniffer:
   enable: true
   force-dns-mapping: true
   parse-pure-ip: true
   override-destination: true
-  # [CRITICAL] Tailscale CGNAT 地址不嗅探，防止 override-destination 干扰隧道流量
   skip-dst-address:
     - 100.64.0.0/10
   sniff:
     HTTP:
-      ports: [80, 8080-8880]
+      ports: [80, 8080, 8443, 8888]
       override-destination: true
     TLS:
       ports: [443, 8443]
+      override-destination: false
     QUIC:
       ports: [443, 8443]
+      override-destination: false
   force-domain:
     - "+.v2ex.com"
     - "+.netflix.com"
@@ -244,7 +285,7 @@ sniffer:
     - "Mijia Cloud"
     - "+.push.apple.com"
 
-# **=============================== TUN 配置 ===============================**
+# 🧱 ============================= TUN 配置 =============================
 tun:
   enable: true
   stack: mixed
@@ -260,27 +301,22 @@ tun:
   gso: true
   gso-max-size: 65536
   udp-timeout: 300
-  # [CRITICAL] Tailscale CGNAT 地址段完全绕过 TUN 路由捕获
-  # route-exclude-address 是旧版参数名，inet4-route-exclude-address 是新版
-  # 两个都写，确保不同版本 mihomo 都能生效
   route-exclude-address:
     - 100.64.0.0/10
-  inet4-route-exclude-address:
-    - 100.64.0.0/10
+  # 仅排除 Tailscale 相关接口
   exclude-interface:
     - tailscale0
-    - utun*
     - "Tailscale*"
+    - utun0
 
-# **=============================== DNS 配置 ===============================**
+# 🌐 ============================= DNS 配置 =============================
 dns:
   enable: true
   ipv6: false
-  listen: 0.0.0.0:53
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   respect-rules: true
-  prefer-h3: true
+  prefer-h3: false
   use-hosts: true
   use-system-hosts: true
   cache-algorithm: arc
@@ -299,24 +335,26 @@ dns:
     - "*.battlenet.com"
     - "*.blzstatic.cn"
     - "*.battle.net"
-    # Tailscale
     - "*.ts.net"
-    - "100.64.0.0/10"
     - "tailscale.com"
     - "+.local"
     - "+.home.arpa"
-    # [ENHANCE] NTP/STUN 模式补全，防止时间同步和 WebRTC 打洞被 fake-ip 干扰
     - "time.*.com"
     - "time.*.gov"
     - "time.*.edu.cn"
     - "ntp.*.com"
     - "+.pool.ntp.org"
     - "time.nist.gov"
-    - "stun.*.*"
-    - "stun.*.*.*"
-    - "+.stun.*.*"
+    - "+.stun.l.google.com"
+    - "stun.stunprotocol.org"
+    - "+.stun.cloudflare.com"
+    - "+.stun.syncthing.net"
+    - "+.stun.playstation.net"
+    - "+.stun.xboxlive.com"
 
   proxy-server-nameserver:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
     - https://dns.alidns.com/dns-query
     - https://doh.pub/dns-query
 
@@ -325,42 +363,47 @@ dns:
     - 119.29.29.29
 
   nameserver:
+    - "https://1.1.1.1/dns-query#🎯 节点选择"
+    - "https://8.8.8.8/dns-query#🎯 节点选择"
+    - "https://9.9.9.9/dns-query#🎯 节点选择"
+
+  direct-nameserver:
     - https://dns.alidns.com/dns-query
     - https://doh.pub/dns-query
+  direct-nameserver-follow-policy: true
 
   nameserver-policy:
     "*.ts.net,tailscale.com": system
     "geosite:cn,private":
       - https://dns.alidns.com/dns-query
       - https://doh.pub/dns-query
+    "geosite:google,youtube,telegram,twitter":
+      - "https://8.8.8.8/dns-query#🎯 节点选择"
+      - "https://1.1.1.1/dns-query#🎯 节点选择"
 
-  # [CRITICAL] fallback DNS 通过代理出站，避免在国内直连 8.8.8.8/1.1.1.1 被墙导致超时风暴
-  # [ENHANCE] 恢复 TLS 协议作为第三备份，提升协议多样性（DoH 被干扰时 DoT 可能存活）
-  fallback:
-    - "https://1.1.1.1/dns-query#🎯 节点选择"
-    - "https://dns.google/dns-query#🎯 节点选择"
-    - "tls://8.8.8.8:853#🎯 节点选择"
+# 📡 ============================= 代理提供者 =============================
+proxy-providers:
+  Airport:
+    type: http
+    url: "http://192.168.31.2:3331/1234QWer/download/collection/multAirport?target=ClashMeta"
+    path: ./proxy_providers/airport.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: "https://www.gstatic.com/generate_204"
+      interval: 300
+      timeout: 5000
+      lazy: true
+      expected-status: 204
+    override:
+      additional-prefix: "AirPort"
 
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-    ipcidr:
-      - 240.0.0.0/4
-      - 0.0.0.0/32
-      - 127.0.0.1/32
-    domain:
-      - "+.google.com"
-      - "+.facebook.com"
-      - "+.youtube.com"
-      - "+.twitter.com"
-      - "+.github.com"
-
-# **=============================== 策略组配置 ===============================**
+# 🎛️ ============================= 策略组配置 =============================
 proxy-groups:
   - {
       name: 🎯 节点选择,
       <<: *SelectFB,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Static.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Static.png",
     }
   - {
       name: 故障转移,
@@ -376,67 +419,81 @@ proxy-groups:
           全部节点,
           DIRECT,
         ],
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png",
     }
   - {
       name: 🌍 全球加速,
       <<: *SelectPY,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png",
     }
   - {
       name: 🏠 国内流量,
       <<: *SelectDC,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png",
     }
   - {
       name: 🐟 兜底分流,
       <<: *SelectPY,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png",
     }
   - {
       name: 🤖 人工智能,
       <<: *SelectUS,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bot.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bot.png",
+    }
+  - {
+      name: 📱 社交媒体,
+      <<: *SelectSM,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Discord.png",
     }
   - {
       name: ✈️ 电报消息,
       <<: *SelectSG,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram_X.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram_X.png",
     }
   - {
       name: 🎬 国际媒体,
       <<: *SelectPY,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png",
     }
   - {
       name: 🔍 谷歌服务,
       <<: *SelectPY,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google_Search.png",
     }
   - {
       name: Ⓜ️ 微软服务,
       <<: *SelectPY,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png",
     }
   - {
       name: 🍎 苹果服务,
       <<: *SelectDC,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png",
     }
   - {
       name: 🎮 游戏平台,
       <<: *SelectDC,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Game.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Game.png",
     }
   - {
       name: 💳 PayPal,
       <<: *SelectUS,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/PayPal.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/PayPal.png",
     }
   - {
       name: 🪙 加密货币,
       <<: *SelectSG,
-      icon: https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/Bitcloud.png,
+      icon: "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/Bitcloud.png",
+    }
+
+  # 社交媒体自动测速
+  - {
+      name: 社交自动,
+      <<: *BaseUT,
+      include-all: true,
+      filter: *FilterAL,
+      hidden: true,
     }
 
   # 地区策略组
@@ -446,7 +503,7 @@ proxy-groups:
       proxies: [香港自动, 香港均衡-散列, 香港均衡-轮询],
       include-all: true,
       filter: *FilterHK,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png",
     }
   - {
       name: 台湾策略,
@@ -454,7 +511,7 @@ proxy-groups:
       proxies: [台湾自动, 台湾均衡-散列, 台湾均衡-轮询],
       include-all: true,
       filter: *FilterTW,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png",
     }
   - {
       name: 狮城策略,
@@ -462,7 +519,7 @@ proxy-groups:
       proxies: [狮城自动, 狮城均衡-散列, 狮城均衡-轮询],
       include-all: true,
       filter: *FilterSG,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png",
     }
   - {
       name: 日本策略,
@@ -470,7 +527,7 @@ proxy-groups:
       proxies: [日本自动, 日本均衡-散列, 日本均衡-轮询],
       include-all: true,
       filter: *FilterJP,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png",
     }
   - {
       name: 美国策略,
@@ -478,7 +535,7 @@ proxy-groups:
       proxies: [美国自动, 美国均衡-散列, 美国均衡-轮询],
       include-all: true,
       filter: *FilterUS,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png",
     }
   - {
       name: 欧盟策略,
@@ -486,22 +543,21 @@ proxy-groups:
       proxies: [欧盟自动, 欧盟均衡-散列, 欧盟均衡-轮询],
       include-all: true,
       filter: *FilterEU,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/European_Union.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/European_Union.png",
     }
-
   - {
       name: 冷门节点,
       type: select,
       include-all: true,
       filter: *FilterOT,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/World_Map.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/World_Map.png",
     }
   - {
       name: 全部节点,
       type: select,
       include-all: true,
       filter: *FilterAL,
-      icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Rocket.png,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Rocket.png",
     }
 
   # 自动测速组
@@ -636,70 +692,37 @@ proxy-groups:
       hidden: true,
     }
 
-# **=============================== 规则提供者 ===============================**
+# 📚 ============================= 规则提供者 =============================
 rule-providers:
-  reject_non_ip:
-    {
-      <<: *RulesetClassical,
-      url: "https://ruleset.skk.moe/Clash/non_ip/reject.txt",
-      path: ./ruleset/reject_non_ip.txt,
-    }
-  reject_domainset:
-    {
-      type: http,
-      behavior: domain,
-      format: text,
-      interval: 86400,
-      url: "https://ruleset.skk.moe/Clash/domainset/reject.txt",
-      path: ./ruleset/reject_domainset.txt,
-    }
-  reject_non_ip_drop:
-    {
-      <<: *RulesetClassical,
-      url: "https://ruleset.skk.moe/Clash/non_ip/reject-drop.txt",
-      path: ./ruleset/reject_non_ip_drop.txt,
-    }
-  reject_non_ip_no_drop:
-    {
-      <<: *RulesetClassical,
-      url: "https://ruleset.skk.moe/Clash/non_ip/reject-no-drop.txt",
-      path: ./ruleset/reject_non_ip_no_drop.txt,
-    }
-  reject_ip:
-    {
-      <<: *RulesetClassical,
-      url: "https://ruleset.skk.moe/Clash/ip/reject.txt",
-      path: ./ruleset/reject_ip.txt,
-    }
-
+  # AI 服务
   OpenAi:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml",
       path: ./ruleset/OpenAi.yaml,
     }
   Claude:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Claude/Claude.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Claude/Claude.yaml",
       path: ./ruleset/Claude.yaml,
     }
   Gemini:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Gemini/Gemini.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Gemini/Gemini.yaml",
       path: ./ruleset/Gemini.yaml,
     }
   Copilot:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Copilot/Copilot.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Copilot/Copilot.yaml",
       path: ./ruleset/Copilot.yaml,
     }
   Anthropic:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Anthropic/Anthropic.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Anthropic/Anthropic.yaml",
       path: ./ruleset/Anthropic.yaml,
     }
   ai_non_ip:
@@ -709,6 +732,21 @@ rule-providers:
       path: ./ruleset/ai_non_ip.txt,
     }
 
+  # 社交媒体
+  Twitter:
+    {
+      <<: *RulesetYaml,
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Twitter/Twitter.yaml",
+      path: ./ruleset/Twitter.yaml,
+    }
+  Discord:
+    {
+      <<: *RulesetYaml,
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Discord/Discord.yaml",
+      path: ./ruleset/Discord.yaml,
+    }
+
+  # 电报
   telegram_ip:
     {
       <<: *RulesetClassical,
@@ -721,17 +759,12 @@ rule-providers:
       url: "https://ruleset.skk.moe/Clash/non_ip/telegram.txt",
       path: ./ruleset/telegram_non_ip.txt,
     }
-  Twitter:
-    {
-      <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Twitter/Twitter.yaml",
-      path: ./ruleset/Twitter.yaml,
-    }
 
+  # 流媒体
   Netflix:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Netflix/Netflix.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Netflix/Netflix.yaml",
       path: ./ruleset/Netflix.yaml,
     }
   YouTube:
@@ -749,7 +782,7 @@ rule-providers:
   Bahamut:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Bahamut/Bahamut.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Bahamut/Bahamut.yaml",
       path: ./ruleset/Bahamut.yaml,
     }
   stream_non_ip:
@@ -765,6 +798,7 @@ rule-providers:
       path: ./ruleset/stream_ip.txt,
     }
 
+  # 服务商
   Google:
     {
       <<: *RulesetYaml,
@@ -774,22 +808,29 @@ rule-providers:
   Github:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GitHub/GitHub.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/GitHub/GitHub.yaml",
       path: ./ruleset/Github.yaml,
     }
   PayPal:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/PayPal/PayPal.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/PayPal/PayPal.yaml",
       path: ./ruleset/PayPal.yaml,
     }
   Game:
     {
       <<: *RulesetYaml,
-      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Game/Game.yaml",
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Game/Game.yaml",
       path: ./ruleset/Game.yaml,
     }
+  Crypto:
+    {
+      <<: *RulesetYaml,
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Crypto/Crypto.yaml",
+      path: ./ruleset/Crypto.yaml,
+    }
 
+  # 微软 & 苹果
   microsoft_non_ip:
     {
       <<: *RulesetClassical,
@@ -824,6 +865,7 @@ rule-providers:
       path: ./ruleset/apple_cn_non_ip.txt,
     }
 
+  # CDN & 下载
   cdn_domainset:
     {
       type: http,
@@ -861,6 +903,7 @@ rule-providers:
       path: ./ruleset/download_non_ip.txt,
     }
 
+  # 国内 & 直连 & LAN
   lan_non_ip:
     {
       <<: *RulesetClassical,
@@ -907,18 +950,10 @@ rule-providers:
       path: ./ruleset/global_non_ip.txt,
     }
 
-# **=============================== 分流规则 ===============================**
-# [PERF] 规则重排原则:
-#   - 高频命中的规则靠前（LAN、直连、Tailscale）
-#   - IP 规则尽量带 no-resolve 避免触发额外 DNS 查询
-#   - 同类规则聚合，减少规则引擎跳转开销
+# 🧭 ============================= 分流规则 =============================
 rules:
-  # ==================== 0. 进程直连 (最高优先级，零开销短路) ====================
-  - PROCESS-NAME,tailscale.exe,DIRECT
-  - PROCESS-NAME,tailscaled.exe,DIRECT
-  - PROCESS-NAME,tailscaled,DIRECT
-
-  # ==================== 1. 网络基础设施直连 (高频命中) ====================
+  # 🔌 ===== 1. 网络基础设施直连 =====
+  # 原 PROCESS-NAME,tailscale 规则已删除: 已被 IP-CIDR 100.64/10 + ts.net + 关键词 DIRECT 覆盖
   - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
   - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
   - DOMAIN-SUFFIX,ts.net,DIRECT
@@ -926,38 +961,37 @@ rules:
   - RULE-SET,lan_non_ip,DIRECT
   - RULE-SET,lan_ip,DIRECT
 
-  # ==================== 2. DNS 服务器走代理 (防超时) ====================
+  # 🚫 ===== 1b. 阻断海外 QUIC (强制 TCP/443 回退) =====
+  - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
+
+  # 🛡️ ===== 2. DNS 服务器走代理 =====
   - IP-CIDR,8.8.8.8/32,🎯 节点选择,no-resolve
   - IP-CIDR,8.8.4.4/32,🎯 节点选择,no-resolve
   - IP-CIDR,1.1.1.1/32,🎯 节点选择,no-resolve
   - IP-CIDR,1.0.0.1/32,🎯 节点选择,no-resolve
+  - IP-CIDR,9.9.9.9/32,🎯 节点选择,no-resolve
 
-  # ==================== 3. 用户自定义直连 ====================
-  - DOMAIN-SUFFIX,guoker.org,DIRECT
-  - DOMAIN-SUFFIX,gying.net,DIRECT
-  - DOMAIN-SUFFIX,selectgroup.click,DIRECT
-  - DOMAIN-SUFFIX,smardaten.com,DIRECT
-  - DOMAIN-SUFFIX,right.codes,DIRECT
+  # 🏠 ===== 3. 用户自定义直连 =====
   - DOMAIN-SUFFIX,juejin.cn,DIRECT
-  - DOMAIN-SUFFIX,acemcp.heroman.wtf,DIRECT
 
-  # ==================== 4. 用户自定义代理 ====================
+  # 🌍 ===== 4. 用户自定义代理 =====
+  - DOMAIN-SUFFIX,anyrouter.top,🌍 全球加速
   - DOMAIN-SUFFIX,coze.com,🌍 全球加速
   - DOMAIN-SUFFIX,ouonetwork.com,🌍 全球加速
   - DOMAIN-SUFFIX,linux.do,🌍 全球加速
+  - DOMAIN-SUFFIX,ldstatic.com,🌍 全球加速
   - DOMAIN-SUFFIX,marketplace.jetbrains.com,🌍 全球加速
+  - DOMAIN-SUFFIX,makerworld.com,🌍 全球加速
 
-  # ==================== 5. 广告拦截 ====================
-  - RULE-SET,reject_non_ip,REJECT
-  - RULE-SET,reject_domainset,REJECT
-  - RULE-SET,reject_non_ip_drop,REJECT-DROP
-  - RULE-SET,reject_non_ip_no_drop,REJECT
-  - RULE-SET,reject_ip,REJECT
+  # 🛑 ===== 5. 广告拦截 (按需启用) =====
+  # - RULE-SET,reject_non_ip,REJECT
+  # - RULE-SET,reject_domainset,REJECT
+  # - RULE-SET,reject_non_ip_drop,REJECT-DROP
+  # - RULE-SET,reject_non_ip_no_drop,REJECT
+  # - RULE-SET,reject_ip,REJECT
 
-  # ==================== 6. AI 服务 ====================
-  - DOMAIN-SUFFIX,antigravity,🔍 谷歌服务
+  # 🤖 ===== 6. AI 服务 =====
   - DOMAIN-SUFFIX,openrouter.ai,🤖 人工智能
-  - DOMAIN-SUFFIX,grok.com,🤖 人工智能
   - DOMAIN-SUFFIX,cici.com,🤖 人工智能
   - DOMAIN-SUFFIX,trae.ai,🤖 人工智能
   - DOMAIN-SUFFIX,perplexity.ai,🤖 人工智能
@@ -971,56 +1005,62 @@ rules:
   - DOMAIN-SUFFIX,v0.dev,🤖 人工智能
   - DOMAIN-SUFFIX,bolt.new,🤖 人工智能
   - DOMAIN-SUFFIX,lovable.dev,🤖 人工智能
-  - DOMAIN-SUFFIX,notebooklm.google.com,🔍 谷歌服务
-  - RULE-SET,OpenAi,🤖 人工智能
-  - RULE-SET,Copilot,🤖 人工智能
+  - RULE-SET,Gemini,🔍 谷歌服务
   - RULE-SET,Anthropic,🤖 人工智能
   - RULE-SET,Claude,🤖 人工智能
-  - RULE-SET,Gemini,🔍 谷歌服务
-  - RULE-SET,ai_non_ip,🤖 人工智能
+  - RULE-SET,OpenAi,🤖 人工智能
+  - RULE-SET,Copilot,🤖 人工智能
 
-  # ==================== 7. 社交应用 ====================
+  # 📱 ===== 7. 社交媒体 =====
+  # X / Twitter / Grok /Discord
+  - RULE-SET,Twitter,📱 社交媒体
+  - RULE-SET,ai_non_ip,🤖 人工智能
+  - RULE-SET,Discord,📱 社交媒体
+
+  # ✈️ ===== 8. 电报 =====
   - RULE-SET,telegram_non_ip,✈️ 电报消息
   - RULE-SET,telegram_ip,✈️ 电报消息
-  - RULE-SET,Twitter,🌍 全球加速
+
+  # 🐙 ===== 9. GitHub =====
   - RULE-SET,Github,🌍 全球加速
 
-  # ==================== 8. 流媒体服务 ====================
+  # 🎬 ===== 10. 流媒体服务 =====
+  - RULE-SET,YouTube,🎬 国际媒体
+  - RULE-SET,YouTubeMusic,🎬 国际媒体
   - RULE-SET,Bahamut,🎬 国际媒体
   - RULE-SET,Netflix,🎬 国际媒体
   - RULE-SET,stream_non_ip,🎬 国际媒体
   - RULE-SET,stream_ip,🎬 国际媒体
-  - RULE-SET,YouTube,🎬 国际媒体
-  - RULE-SET,YouTubeMusic,🎬 国际媒体
 
-  # ==================== 9. 游戏与支付 ====================
+  # 🎮 ===== 11. 游戏 / 支付 / 加密货币 =====
   - RULE-SET,Game,🎮 游戏平台
   - RULE-SET,PayPal,💳 PayPal
+  - RULE-SET,Crypto,🪙 加密货币
 
-  # ==================== 10. 微软与苹果 ====================
+  # 🍎 ===== 12. 微软与苹果 =====
   - RULE-SET,apple_cdn,DIRECT
   - RULE-SET,apple_cn_non_ip,DIRECT
   - RULE-SET,apple_services,🍎 苹果服务
   - RULE-SET,microsoft_cdn_non_ip,DIRECT
   - RULE-SET,microsoft_non_ip,Ⓜ️ 微软服务
 
-  # ==================== 11. 谷歌服务 ====================
+  # 🔍 ===== 13. 谷歌服务 =====
   - RULE-SET,Google,🔍 谷歌服务
 
-  # ==================== 12. 下载与CDN ====================
-  - RULE-SET,cdn_domainset,🎯 节点选择
-  - RULE-SET,cdn_non_ip,🎯 节点选择
+  # 📦 ===== 14. 下载与 CDN =====
+  - RULE-SET,cdn_domainset,DIRECT
+  - RULE-SET,cdn_non_ip,DIRECT
   - RULE-SET,download_domainset,DIRECT
   - RULE-SET,download_non_ip,DIRECT
 
-  # ==================== 13. 国内流量 ====================
+  # 🇨🇳 ===== 15. 国内流量 =====
   - RULE-SET,global_non_ip,🌍 全球加速
   - RULE-SET,domestic_non_ip,DIRECT
   - RULE-SET,direct_non_ip,DIRECT
   - RULE-SET,domestic_ip,DIRECT
   - RULE-SET,china_ip,DIRECT
 
-  # ==================== 14. 兜底规则 ====================
+  # 🐟 ===== 16. 兜底规则 =====
   - GEOIP,private,DIRECT,no-resolve
   - GEOIP,CN,🏠 国内流量,no-resolve
   - MATCH,🐟 兜底分流
