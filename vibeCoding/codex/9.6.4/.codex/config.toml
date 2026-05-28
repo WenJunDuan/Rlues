@@ -81,9 +81,9 @@ inherit = "core"
 VIBECODING_VERSION = "9.6.4"
 
 # ============== MCP Servers (按需启用) ==============
-[mcp_servers.augment-context-engine]
-command = "npx"
-args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", "<YOUR_ACE_TOKEN>"]
-[mcp_servers.context7]
-command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
+# [mcp_servers.augment-context-engine]
+# command = "npx"
+# args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", "<YOUR_ACE_TOKEN>"]
+# [mcp_servers.context7]
+# command = "npx"
+# args = ["-y", "@upstash/context7-mcp"]

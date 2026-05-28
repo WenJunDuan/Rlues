@@ -111,17 +111,22 @@ def main() -> int:
         design_changed = fm.get("design_changed_after_impl", "false").lower() == "true"
         skip_arch = fm.get("skip_architecture_check", "false").lower() == "true"
 
-        # ============ v9.6.4 (3): review stage → spec-compliance 段必存在 ============
-        if stage == "review" and sprint_slug:
+        # ============ v9.6.4-hotfix2: spec-compliance 门禁挪到 ship stage ============
+        # 后台架构: review agent 后台跑, 主 agent 监控到完成才推进 stage=ship.
+        # review 阶段检查 pass1.md 永远跳过 (还没写完) → 门禁失效; 故移到 ship.
+        # Feature/Refactor/System 要求 (Hotfix/Bugfix/Quick 无 design.md, 跳过).
+        if path in ("Feature", "Refactor", "System") and stage == "ship" and sprint_slug:
             pass1 = ai_state / "sprints" / sprint_slug / "reviews" / "pass1.md"
-            if pass1.exists():
-                content_pass1 = pass1.read_text(encoding="utf-8")
-                if "## Spec Compliance" not in content_pass1:
-                    return block(
-                        "[delivery-gate] review stage 必须先跑 spec-compliance subagent.\n"
-                        "运行 spawn_agent ~/.codex/agents/spec-compliance.toml, "
-                        "它会对比 design.md vs git diff 找 MISSING/EXTRA/DEVIATED.\n"
-                    )
+            if not pass1.exists():
+                return block(
+                    f"[delivery-gate] {path} 路径 ship 前必须完成 review.\n"
+                    "reviews/pass1.md 不存在 — 等后台 review agent 写完再推进 stage=ship.\n"
+                )
+            if "## Spec Compliance" not in pass1.read_text(encoding="utf-8"):
+                return block(
+                    "[delivery-gate] pass1.md 缺 '## Spec Compliance' 段.\n"
+                    "spec-compliance subagent 未跑或未写完 — 检查后台 agent, 补齐后再 ship.\n"
+                )
 
         # ============ v9.6.4 (5): design_changed_after_impl + ship → block ============
         if design_changed and stage == "ship":

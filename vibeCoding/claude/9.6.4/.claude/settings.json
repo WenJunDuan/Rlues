@@ -68,8 +68,7 @@
       "Bash(npm publish*)",
       "Bash(pnpm publish*)"
     ]
-  },
-  "hooks": {
+  },"hooks": {
     "SessionStart": [
       {
         "matcher": "startup|resume",
@@ -187,11 +186,7 @@
         "matcher": "",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Read .ai_state/_index.md frontmatter. (1) If stage='review' AND latest sprints/{current_sprint_slug}/reviews/pass1.md exists but does NOT contain '## Spec Compliance' section, output {\"decision\":\"block\",\"reason\":\"spec-compliance check missing. Spawn spec-compliance subagent to compare design.md vs git diff before ending turn.\"}. (2) If design_changed_after_impl=true AND stage='ship', output {\"decision\":\"block\",\"reason\":\"design.md was modified after impl. Re-run review (spec-compliance + reviewer + evaluator) before ship.\"}. (3) Otherwise, evaluate current stage and determine if next_action should be set based on PACE state machine (review VERDICT PASS → polish for Refactor/System or ship for others; checklist.yaml all done → review; cleanup-pass.md exists → ship; etc.). Output {\"decision\":\"approve\"} otherwise.",
-            "timeout": 60
-          },
-          {
+            "_comment": "v9.6.4-hotfix2: 删除 prompt 类型 Stop hook. 后台架构下主 agent spawn 后即结束 turn, prompt 类型会让另一个 Claude 实例判断要不要拦主 agent, 等后台产物 → 必死锁. 所有门禁交给确定性的 delivery-gate.cjs (command 类型, 只看当下快照, 绝不等待).",
             "type": "command",
             "command": "node ~/.claude/hooks/delivery-gate.cjs",
             "timeout": 60
@@ -204,6 +199,43 @@
         ]
       }
     ],
+    "PermissionDenied": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/permission-retry.cjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/compact-snapshot.cjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/compact-restore.cjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  },
     "PermissionDenied": [
       {
         "matcher": "",
