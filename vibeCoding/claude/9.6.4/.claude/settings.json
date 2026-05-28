@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "opusplan",
+  "effortLevel": "xhigh",
+  "env": {
+    "VIBECODING_ATHENA_VERSION": "9.6.4",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-7",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-6",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
+    "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
+    "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NUXT_TELEMETRY_DISABLED": "1",
+    "GATSBY_TELEMETRY_DISABLED": "1",
+    "ASTRO_TELEMETRY_DISABLED": "1",
+    "ANGULAR_CLI_ANALYTICS": "false",
+    "API_TIMEOUT_MS": "30000"
+  },
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Write(**)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push:!--force*)",
+      "Bash(git worktree*)",
+      "Bash(npm test*)",
+      "Bash(npm run*)",
+      "Bash(npm install*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm run*)",
+      "Bash(pnpm install*)",
+      "Bash(npx playwright*)",
+      "Bash(npx ecc-agentshield*)",
+      "Bash(pytest*)",
+      "Bash(rg *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(grep *)",
+      "Bash(jq *)",
+      "Bash(make *)",
+      "Bash(cmake --build*)",
+      "Bash(./gradlew test*)",
+      "Bash(./gradlew build*)",
+      "Bash(mvn test*)",
+      "Bash(mvn compile*)",
+      "Bash(cargo test*)",
+      "Bash(cargo build*)",
+      "Bash(go test*)",
+      "Bash(go build*)",
+      "Bash(eslint *)",
+      "Bash(prettier --check*)",
+      "Bash(tsc --noEmit*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf $HOME*)",
+      "Bash(npm publish*)",
+      "Bash(pnpm publish*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/session-start.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/pre-bash-guard.cjs",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/subagent-worktree-check.cjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/index-updater.cjs",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/evidence-collector.cjs",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/design-change-detector.cjs",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/evidence-collector.cjs",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/subagent-retry.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/subagent-tracker.cjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/worktree-tracker.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/worktree-tracker.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Read .ai_state/_index.md frontmatter. (1) If stage='review' AND latest sprints/{current_sprint_slug}/reviews/pass1.md exists but does NOT contain '## Spec Compliance' section, output {\"decision\":\"block\",\"reason\":\"spec-compliance check missing. Spawn spec-compliance subagent to compare design.md vs git diff before ending turn.\"}. (2) If design_changed_after_impl=true AND stage='ship', output {\"decision\":\"block\",\"reason\":\"design.md was modified after impl. Re-run review (spec-compliance + reviewer + evaluator) before ship.\"}. (3) Otherwise, evaluate current stage and determine if next_action should be set based on PACE state machine (review VERDICT PASS → polish for Refactor/System or ship for others; checklist.yaml all done → review; cleanup-pass.md exists → ship; etc.). Output {\"decision\":\"approve\"} otherwise.",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/delivery-gate.cjs",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/pace-continuator.cjs",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/permission-retry.cjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/compact-snapshot.cjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/compact-restore.cjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "superpowers@anthropic-official": true,
+    "code-review@anthropic-official": true,
+    "feature-dev@anthropic-official": true,
+    "commit@anthropic-official": true,
+    "playwright-skill@anthropic-official": true,
+    "context7@anthropic-official": true,
+    "codex-plugin-cc@third-party-marketplace": true,
+    "ECC-AgentShield@third-party-marketplace": true
+  }
+}

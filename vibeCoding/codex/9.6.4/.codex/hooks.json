@@ -1,0 +1,79 @@
+{
+  "_comment_athena": "VibeCoding Athena v9.6.2 · Codex hooks 配置. 位置: ~/.codex/hooks.json. 源: https://developers.openai.com/codex/hooks",
+  "_comment_v962": "B3 修复: index-updater 从 PostToolUse(Bash) 改到 UserPromptSubmit. 因为 Codex 当前 PostToolUse matcher 只匹配 tool_name (官方文档明确), 而 .ai_state/details/*.md 由 apply_patch 写, 不是 Bash. 改用 UserPromptSubmit + mtime 比对触发 (代价: 每次发消息检查一次 mtime, 单次 IO < 5ms)",
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/session-start.py",
+            "timeout": 10,
+            "statusMessage": "Loading Athena context"
+          }
+        ]
+      }
+    ],
+
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/user-prompt-submit.py",
+            "timeout": 5,
+            "statusMessage": "Athena pre-check"
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/index-updater.py",
+            "timeout": 8,
+            "statusMessage": "Syncing _index.md counts"
+          }
+        ]
+      }
+    ],
+
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/pre-bash-guard.py",
+            "timeout": 10,
+            "statusMessage": "Checking Bash command"
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-retry.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",
+            "timeout": 60,
+            "statusMessage": "Athena delivery-gate"
+          }
+        ]
+      }
+    ]
+  }
+}

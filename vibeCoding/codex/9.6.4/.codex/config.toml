@@ -1,0 +1,89 @@
+# VibeCoding Athena v9.6.4 · Codex Configuration
+# 位置: ~/.codex/config.toml
+
+project_root_markers = [".git", ".hg", ".sl"]
+project_doc_max_bytes = 65536
+
+model_provider = "openai"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"         
+plan_mode_reasoning_effort = "xhigh"    
+
+windows_wsl_setup_acknowledged = true
+model_context_window = 1000000
+model_auto_compact_token_limit = 900000
+web_search = "live"
+
+suppress_unstable_features_warning = true
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false
+
+[features]
+hooks = true              
+multi_agent = true              
+shell_tool = true               
+shell_snapshot = true           
+unified_exec = true             
+memories = true 
+
+[memories]
+generate_memories = true
+use_memories = true
+disable_on_external_context = true
+
+[agents]
+max_threads = 6
+max_depth = 1
+job_max_runtime_seconds = 1800
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/pace/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/polish/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/compound/SKILL.md"
+enabled = true
+
+# 🆕 v9.6.4 新增 skills
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/brainstorm/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/roadmap/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/architect-doc/SKILL.md"
+enabled = true
+
+[model_providers.OpenAI]
+name = "OpenAI"
+base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.6.4"
+
+# ============== MCP Servers (按需启用) ==============
+[mcp_servers.augment-context-engine]
+command = "npx"
+args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", "<YOUR_ACE_TOKEN>"]
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
