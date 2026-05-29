@@ -68,7 +68,8 @@
       "Bash(npm publish*)",
       "Bash(pnpm publish*)"
     ]
-  },"hooks": {
+  },
+  "hooks": {
     "SessionStart": [
       {
         "matcher": "startup|resume",
@@ -186,7 +187,7 @@
         "matcher": "",
         "hooks": [
           {
-            "_comment": "v9.6.4-hotfix2: 删除 prompt 类型 Stop hook. 后台架构下主 agent spawn 后即结束 turn, prompt 类型会让另一个 Claude 实例判断要不要拦主 agent, 等后台产物 → 必死锁. 所有门禁交给确定性的 delivery-gate.cjs (command 类型, 只看当下快照, 绝不等待).",
+            "_comment": "v9.6.4-hotfix2: Stop hook 全部用确定性 command 类型 delivery-gate (只看当下快照, 不等后台产物, 不死锁)",
             "type": "command",
             "command": "node ~/.claude/hooks/delivery-gate.cjs",
             "timeout": 60
@@ -236,55 +237,12 @@
       }
     ]
   },
-    "PermissionDenied": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/permission-retry.cjs",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/compact-snapshot.cjs",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/compact-restore.cjs",
-            "timeout": 15
-          }
-        ]
-      }
-    ]
-  },
   "extraKnownMarketplaces": {
     "superpowers-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "obra/superpowers-marketplace"
-      }
+      "source": { "source": "github", "repo": "obra/superpowers-marketplace" }
     },
     "openai-codex": {
-      "source": {
-        "source": "github",
-        "repo": "openai/codex-plugin-cc"
-      }
+      "source": { "source": "github", "repo": "openai/codex-plugin-cc" }
     }
   },
   "enabledPlugins": {

@@ -1,4 +1,4 @@
-# VibeCoding Athena v9.6.4 · Codex Configuration
+# VibeCoding Athena v9.6.4 · Codex Configuration  (v9.6.4-hotfix3)
 # 位置: ~/.codex/config.toml
 
 project_root_markers = [".git", ".hg", ".sl"]
@@ -6,8 +6,8 @@ project_doc_max_bytes = 65536
 
 model_provider = "openai"
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"         
-plan_mode_reasoning_effort = "xhigh"    
+model_reasoning_effort = "xhigh"
+plan_mode_reasoning_effort = "xhigh"
 
 windows_wsl_setup_acknowledged = true
 model_context_window = 1000000
@@ -23,12 +23,12 @@ sandbox_mode = "workspace-write"
 network_access = false
 
 [features]
-hooks = true              
-multi_agent = true              
-shell_tool = true               
-shell_snapshot = true           
-unified_exec = true             
-memories = true 
+hooks = true
+multi_agent = true
+shell_tool = true
+shell_snapshot = true
+unified_exec = true
+memories = true
 
 [memories]
 generate_memories = true
@@ -41,6 +41,35 @@ max_depth = 1
 job_max_runtime_seconds = 1800
 
 [[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/athena-dev/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/athena-init/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/athena-setup/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/athena-migrate/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/athena-preferences/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/athena-review/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/athena-status/SKILL.md"
+enabled = true
+
+# --- workflow skills ---
+[[skills.config]]
 path = "<USER_HOME>/.agents/skills/_athena/pace/SKILL.md"
 enabled = true
 
@@ -52,7 +81,6 @@ enabled = true
 path = "<USER_HOME>/.agents/skills/_athena/compound/SKILL.md"
 enabled = true
 
-# 🆕 v9.6.4 新增 skills
 [[skills.config]]
 path = "<USER_HOME>/.agents/skills/_athena/brainstorm/SKILL.md"
 enabled = true
@@ -63,6 +91,19 @@ enabled = true
 
 [[skills.config]]
 path = "<USER_HOME>/.agents/skills/_athena/architect-doc/SKILL.md"
+enabled = true
+
+# --- tool-dispatch skills ---
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/context7/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/antigravity/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/_athena/deps-check/SKILL.md"
 enabled = true
 
 [model_providers.OpenAI]
@@ -79,11 +120,3 @@ inherit = "core"
 
 [shell_environment_policy.set]
 VIBECODING_VERSION = "9.6.4"
-
-# ============== MCP Servers (按需启用) ==============
-# [mcp_servers.augment-context-engine]
-# command = "npx"
-# args = ["ace-tool-rs", "--base-url", "https://acemcp.heroman.wtf/relay/", "--token", "<YOUR_ACE_TOKEN>"]
-# [mcp_servers.context7]
-# command = "npx"
-# args = ["-y", "@upstash/context7-mcp"]
