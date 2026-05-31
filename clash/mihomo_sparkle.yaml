@@ -1,8 +1,24 @@
 # ==========================================
-# 🚀 Mihomo 终极配置 · v4.4
-# 🧭 基于 v4.3 + 官方文档逐项核对 (wiki.metacubex.one)
-# 📅 2026-05-28
+# 🚀 Mihomo 终极配置 · v4.6
+# 🧭 基于 v4.5 + speedtest 语义修正 (改为独立测速分流组)
+# 📅 2026-05-30
 # ==========================================
+#
+# 📌 v4.6 变更 (speedtest 语义修正)
+#
+# 🔧 speedtest 由"全局 url-test 自动组" 改为 "独立 select 测速组":
+#       - 用途: 在 DIRECT / 各代理出口间手动切换, 对比测速
+#       - 默认出口 DIRECT (测真实物理线路)
+#       - 新增 Ookla Speedtest rule-set (fast.com/ooklaserver.net/speedtest 等) 指向本组
+#         → 在组里选什么出口, speedtest.net 实际就走什么, 名副其实
+# ↩️ 还原所有通用组默认出口回 🎯 节点选择 (v4.5 误设为 speedtest 的全部回退):
+#       🎯 节点选择 / 🌍 全球加速 / 🐟 兜底分流 / 🎬 国际媒体 / 🔍 谷歌 / ✈️ 电报 / 📱 社交
+# ✅ 优选链保持不变 (确认无误): 节点选择 → 故障转移(列表顺序兜底) → 地区策略 → 地区自动(url-test 选最快)
+#
+# 🤖 人工智能      → 狮城策略 优先 (保留 v4.5)
+# 🏠 默认直连组    → DIRECT 优先, 仍可手动切节点 (保留 v4.5):
+#       Ⓜ️ 微软 / 🍎 苹果 / 🎮 游戏 / 💳 PayPal / 🪙 加密货币
+#       ⚠️ 加密货币: 多数交易所 (Binance/OKX 等) 被墙, 直连会失败, 需手动切节点
 #
 # 📌 v4.4 变更摘要
 #
@@ -129,22 +145,6 @@ SelectDC:
     proxies:
       [DIRECT, 🎯 节点选择, 故障转移, 香港策略, 狮城策略, 日本策略, 美国策略],
   }
-SelectUS:
-  &SelectUS {
-    type: select,
-    proxies:
-      [
-        美国策略,
-        🎯 节点选择,
-        故障转移,
-        狮城策略,
-        日本策略,
-        香港策略,
-        台湾策略,
-        欧盟策略,
-        DIRECT,
-      ],
-  }
 SelectSG:
   &SelectSG {
     type: select,
@@ -166,7 +166,7 @@ SelectSM:
     type: select,
     proxies:
       [
-        社交自动,
+        🎯 节点选择,
         美国策略,
         日本策略,
         狮城策略,
@@ -178,8 +178,6 @@ SelectSM:
       ],
   }
 
-# 规则集模板
-# 远程规则集更新走策略组, 减少 GitHub/SKK 直连失败
 RulesetDomain:
   &RulesetDomain {
     type: http,
@@ -237,9 +235,8 @@ skip-auth-prefixes:
   - 10.0.0.0/8
   - 100.64.0.0/10
 
-# 🔒 锁本地! 远程面板请绑 Tailscale IP, 切勿改回 0.0.0.0 (allow-lan 下 = 全 LAN 可控)
 external-controller: 0.0.0.0:9090
-secret: "SdlYQeCNR1K+LsdElOKjSjP4LKm6yVf3nbrhsfdvbsadvaergw"
+secret: "SdlYQeCNR1K+LsdE23456789sdfghjklOKjSjP4LKm6yVf3"
 external-ui: ui
 external-ui-name: zashboard
 external-ui-url: "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip"
@@ -416,7 +413,7 @@ proxy-groups:
           美国策略,
           台湾策略,
           欧盟策略,
-          全部节点,
+          冷门节点,
           DIRECT,
         ],
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png",
@@ -438,7 +435,7 @@ proxy-groups:
     }
   - {
       name: 🤖 人工智能,
-      <<: *SelectUS,
+      <<: *SelectSG,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bot.png",
     }
   - {
@@ -448,7 +445,7 @@ proxy-groups:
     }
   - {
       name: ✈️ 电报消息,
-      <<: *SelectSG,
+      <<: *SelectPY,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram_X.png",
     }
   - {
@@ -463,7 +460,7 @@ proxy-groups:
     }
   - {
       name: Ⓜ️ 微软服务,
-      <<: *SelectPY,
+      <<: *SelectDC,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png",
     }
   - {
@@ -478,22 +475,30 @@ proxy-groups:
     }
   - {
       name: 💳 PayPal,
-      <<: *SelectUS,
+      <<: *SelectDC,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/PayPal.png",
     }
   - {
       name: 🪙 加密货币,
-      <<: *SelectSG,
+      <<: *SelectDC,
       icon: "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/Bitcloud.png",
     }
 
-  # 社交媒体自动测速
   - {
-      name: 社交自动,
-      <<: *BaseUT,
-      include-all: true,
-      filter: *FilterAL,
-      hidden: true,
+      name: speedtest,
+      type: select,
+      proxies:
+        [
+          DIRECT,
+          香港策略,
+          狮城策略,
+          日本策略,
+          美国策略,
+          台湾策略,
+          欧盟策略,
+          全部节点,
+        ],
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png",
     }
 
   # 地区策略组
@@ -732,6 +737,14 @@ rule-providers:
       path: ./ruleset/ai_non_ip.txt,
     }
 
+  # Ookla 测速
+  Speedtest:
+    {
+      <<: *RulesetYaml,
+      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Speedtest/Speedtest.yaml",
+      path: ./ruleset/Speedtest.yaml,
+    }
+
   # 社交媒体
   Twitter:
     {
@@ -953,7 +966,6 @@ rule-providers:
 # 🧭 ============================= 分流规则 =============================
 rules:
   # 🔌 ===== 1. 网络基础设施直连 =====
-  # 原 PROCESS-NAME,tailscale 规则已删除: 已被 IP-CIDR 100.64/10 + ts.net + 关键词 DIRECT 覆盖
   - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
   - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
   - DOMAIN-SUFFIX,ts.net,DIRECT
@@ -977,7 +989,6 @@ rules:
   # 🌍 ===== 4. 用户自定义代理 =====
   - DOMAIN-SUFFIX,anyrouter.top,🌍 全球加速
   - DOMAIN-SUFFIX,coze.com,🌍 全球加速
-  - DOMAIN-SUFFIX,ouonetwork.com,🌍 全球加速
   - DOMAIN-SUFFIX,linux.do,🌍 全球加速
   - DOMAIN-SUFFIX,ldstatic.com,🌍 全球加速
   - DOMAIN-SUFFIX,marketplace.jetbrains.com,🌍 全球加速
@@ -989,6 +1000,9 @@ rules:
   # - RULE-SET,reject_non_ip_drop,REJECT-DROP
   # - RULE-SET,reject_non_ip_no_drop,REJECT
   # - RULE-SET,reject_ip,REJECT
+
+  # 🚀 ===== 5b. Ookla 测速 =====
+  - RULE-SET,Speedtest,speedtest
 
   # 🤖 ===== 6. AI 服务 =====
   - DOMAIN-SUFFIX,openrouter.ai,🤖 人工智能
@@ -1005,6 +1019,7 @@ rules:
   - DOMAIN-SUFFIX,v0.dev,🤖 人工智能
   - DOMAIN-SUFFIX,bolt.new,🤖 人工智能
   - DOMAIN-SUFFIX,lovable.dev,🤖 人工智能
+  - DOMAIN-SUFFIX,notebooklm.google.com,🔍 谷歌服务
   - RULE-SET,Gemini,🔍 谷歌服务
   - RULE-SET,Anthropic,🤖 人工智能
   - RULE-SET,Claude,🤖 人工智能
