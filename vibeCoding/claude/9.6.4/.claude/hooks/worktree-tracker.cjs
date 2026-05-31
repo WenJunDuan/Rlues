@@ -133,33 +133,28 @@ function main() {
   const eventName = payload?.hook_event_name || payload?.event || "";
   const worktreePath = payload?.worktree_path || payload?.path || "";
 
-  // === WorktreeCreate: payload 已带 path 则 echo (raw path 不走 schema 校验) ===
-  // CC harness 调 generator 等 subagent (含 isolation: worktree) 时会调本 hook.
-  // 注意: 本 harness 的 hook 输出 schema 不接受 WorktreeCreate 的 hookSpecificOutput
-  // (仅 PreToolUse/UserPromptSubmit/PostToolUse/PostToolBatch 合法), 输出它会被拒
-  // 并阻断 worktree 创建. 故无 path 时不输出 JSON, 留空让 harness 走默认 provider.
+  // === WorktreeCreate: echo the worktree path to stdout ===
+  // CC harness calls this hook to determine WHERE to create the worktree.
+  // Contract: output a plain absolute path to stdout.
+  // If payload already contains worktree_path, echo it back.
+  // Otherwise generate a path as a sibling directory of the current repo.
   if (eventName === "WorktreeCreate") {
+    const cwd = process.cwd();
     if (worktreePath) {
-      // 直接 echo plain path (harness 接受这种形式, 不走 schema 校验)
       process.stdout.write(worktreePath);
     } else {
-      // payload 没给 path: hook 不当 provider. 检测项目根是否 git repo.
-      const cwd = process.cwd();
-      const cwdHasGit = fs.existsSync(path.join(cwd, ".git"));
-      if (!cwdHasGit) {
-        // monorepo / 多子仓库: 项目根非 git, harness 没有"默认 git repo"可建 worktree.
-        // 显式拒绝 + 提示用户走手动 worktree 路径.
-        process.stdout.write(
-          JSON.stringify({
-            hookSpecificOutput: { hookEventName: "WorktreeCreate" },
-            continue: false,
-            stopReason: `项目根 ${cwd} 非 git repo (monorepo 多子仓库结构), isolation:worktree 不可用。请改用 general-purpose subagent + Bash 手动 git worktree add, 或在单一子仓库内启动会话。`,
-          }),
-        );
-      } else {
-        // 项目根是 git repo: 不输出 stdout, 让 harness 用默认 provider 创建 worktree.
-        // (见上方注释: 输出 hookSpecificOutput.hookEventName 会被 schema 拒绝并阻断.)
-      }
+      // Generate path: <repo-parent>/<repo-name>-worktrees/<worktree-name>
+      const worktreeName =
+        payload?.worktree_name || payload?.name || `wt-${Date.now()}`;
+      const parentDir = path.dirname(cwd);
+      const repoName = path.basename(cwd);
+      const generatedPath = path.join(
+        parentDir,
+        `${repoName}-worktrees`,
+        worktreeName,
+      );
+      fs.mkdirSync(generatedPath, { recursive: true });
+      process.stdout.write(generatedPath);
     }
   }
 
