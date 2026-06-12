@@ -3,7 +3,7 @@
   "model": "opusplan",
   "effortLevel": "xhigh",
   "env": {
-    "VIBECODING_ATHENA_VERSION": "9.6.4",
+    "VIBECODING_ATHENA_VERSION": "9.7.0",
     "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",

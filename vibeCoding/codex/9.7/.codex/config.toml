@@ -1,4 +1,4 @@
-# VibeCoding Athena v9.6.4 · Codex Configuration  (v9.6.4-hotfix3)
+# VibeCoding Athena v9.7.0 · Codex Configuration  (v9.7.0)
 # 位置: ~/.codex/config.toml
 
 project_root_markers = [".git", ".hg", ".sl"]
@@ -113,4 +113,10 @@ enabled = true
 inherit = "core"
 
 [shell_environment_policy.set]
-VIBECODING_VERSION = "9.6.4"
+VIBECODING_VERSION = "9.7.0"
+
+[model_providers.openai]
+name = "openai"
+base_url = ""
+wire_api = "responses"
+requires_openai_auth = true

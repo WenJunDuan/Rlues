@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+"""
+VibeCoding Athena v9.7.0 · Codex SessionStart hook
+
+触发: session 启动 / resume
+职责:
+1. 注入 _index.md frontmatter 摘要
+2. 注入 ~/.agents/standards/_index.md 摘要
+3. stage-specific 操作提示 (xhigh / critic / spec-compliance)
+4. design_changed_after_impl=true 强提示
+5. next_action = roadmap 自动推进提示
+
+v9.7.0: impl 提示与铁律[零写入]红黄绿区同步 (绿区主 thread 直做)
+源: https://developers.openai.com/codex/hooks
+"""
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+EXIT_SUCCESS = 0
+
+
+def find_ai_state(cwd: Path):
+    for _ in range(5):
+        if (cwd / ".ai_state").is_dir():
+            return cwd / ".ai_state"
+        if cwd.parent == cwd:
+            return None
+        cwd = cwd.parent
+    return None
+
+
+def read_frontmatter_summary(idx_path: Path) -> str:
+    if not idx_path.exists():
+        return ""
+    content = idx_path.read_text(encoding="utf-8")
+    if content.startswith("---"):
+        parts = content.split("---", 2)
+        if len(parts) >= 3:
+            return parts[1].strip()
+    return ""
+
+
+def parse_frontmatter(idx_path: Path) -> dict:
+    if not idx_path.exists():
+        return {}
+    content = idx_path.read_text(encoding="utf-8")
+    if not content.startswith("---"):
+        return {}
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return {}
+    fm = {}
+    for line in parts[1].splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = re.match(r"^([\w\-_.]+)\s*:\s*(.*)$", line)
+        if m:
+            k, v = m.group(1), m.group(2).strip()
+            if v.startswith('"') and v.endswith('"'):
+                v = v[1:-1]
+            fm[k] = v
+    return fm
+
+
+def read_standards_summary() -> str:
+    home = Path.home()
+    idx = home / ".agents" / "standards" / "_index.md"
+    if not idx.exists():
+        return ""
+    content = idx.read_text(encoding="utf-8")
+    if len(content) > 600:
+        content = content[:600] + "\n... (see ~/.agents/standards/ for full)"
+    return content
+
+
+def stage_hints(fm: dict) -> list:
+    stage = fm.get("stage", "")
+    hints = []
+
+    if stage in ("plan", "design"):
+        hints.append("🧠 **plan/design stage**: Codex `plan_mode_reasoning_effort = xhigh` 已生效 (config.toml).")
+        hints.append("🔍 完成 design.md `## Round N` 后, spawn_agent ~/.codex/agents/critic.toml 评估.")
+        max_rounds = fm.get("plan_critique_max_rounds", "4")
+        last_round = fm.get("last_critic_round", "0")
+        hints.append(f"📊 critic 多轮限制: max={max_rounds}, 已跑={last_round}.")
+
+    if stage == "impl":
+        hints.append("🔧 **impl stage**: 铁律[零写入] 按区路由 —")
+        hints.append("   - 绿区 (单文件 ≤30 行无跨模块影响, 或 Hotfix/Quick): 主 thread 直接做")
+        hints.append("   - 黄区 (单模块): spawn_agent generator.toml")
+        path_type = fm.get("path", "")
+        if path_type in ("Refactor", "System"):
+            hints.append(f"⚠️ path={path_type} (红区): 主 thread 先 git worktree add 后 spawn_agent --cwd <wt-path> (pre-bash-guard 强制).")
+        else:
+            hints.append("   - 红区 (Refactor/System / 并行 ≥2 写者): git worktree add + spawn_agent --cwd 强制")
+
+    if stage == "review":
+        hints.append("🔎 **review stage**: 并行 spawn 3 个 agent:")
+        hints.append("   - reviewer.toml (代码层 findings)")
+        hints.append("   - spec-compliance.toml (design ↔ diff)")
+        hints.append("   - evaluator.toml (综合 VERDICT, 写 _index.next_action)")
+
+    if stage == "polish":
+        hints.append("✨ **polish stage** (Refactor/System 强制):")
+        hints.append("   - spawn_agent polish_worker.toml")
+        hints.append("   - 5 检查项 + worktree 清理 (borrowed: Superpowers finishing-a-development-branch)")
+
+    return hints
+
+
+def special_alerts(fm: dict) -> list:
+    alerts = []
+
+    if fm.get("design_changed_after_impl", "false").lower() == "true":
+        alerts.append("🚨 **design 改后未重新 review**: ship 前必须重新 spawn 3 个 review subagent. delivery-gate 会 block.")
+
+    next_action = fm.get("next_action", "")
+    if next_action.startswith("next_roadmap_item:"):
+        slug = next_action.split(":", 1)[1]
+        alerts.append(f"🎯 **roadmap 推进**: 上 sprint 完成, 自动进入下一 item \"{slug}\". 进 plan stage 处理.")
+    elif next_action == "roadmap_complete":
+        alerts.append("🎉 **roadmap 完成**: 所有 items 已 ship, 触发 /compound add learning 沉淀经验.")
+
+    active_wts = fm.get("active_worktrees", "[]")
+    if active_wts != "[]":
+        alerts.append(f"🌿 **活着的 worktree**: {active_wts}. 检查 sprints/{{current_sprint}}/worktrees.yaml.")
+
+    return alerts
+
+
+def main() -> int:
+    try:
+        cwd = Path.cwd()
+        ai_state = find_ai_state(cwd)
+
+        context_parts = []
+
+        if ai_state:
+            idx_path = ai_state / "_index.md"
+            summary = read_frontmatter_summary(idx_path)
+            if summary:
+                context_parts.append(f"## Athena 项目状态 (.ai_state/_index.md)\n\n{summary}")
+
+            fm = parse_frontmatter(idx_path)
+
+            alerts = special_alerts(fm)
+            if alerts:
+                context_parts.append("## 🚨 重要提醒\n\n" + "\n\n".join(alerts))
+
+            hints = stage_hints(fm)
+            if hints:
+                context_parts.append(
+                    f"## 当前 stage 操作提示 (stage: {fm.get('stage') or 'unknown'})\n\n"
+                    + "\n".join(hints)
+                )
+
+        standards = read_standards_summary()
+        if standards:
+            context_parts.append(f"## 项目规范摘要 (~/.agents/standards/_index.md)\n\n{standards}")
+
+        if context_parts:
+            # Codex SessionStart 协议: stdout 即注入 context
+            print("\n\n---\n\n".join(context_parts))
+
+        return EXIT_SUCCESS
+    except Exception as e:
+        sys.stderr.write(f"[session-start] warning (non-blocking): {e}\n")
+        return EXIT_SUCCESS
+
+
+if __name__ == "__main__":
+    sys.exit(main())
