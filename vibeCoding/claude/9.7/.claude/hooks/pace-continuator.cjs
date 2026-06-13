@@ -95,16 +95,22 @@ function main() {
       }
     }
 
-    // === 2. 软提醒 (additionalContext, 不 block) ===
-    const hints = [];
-    if (nextAction) {
-      hints.push(`next_action="${nextAction}" 未消费 — 下一 turn 应按 athena-dev 的 next_action 表处理.`);
-    }
-    if (stage === 'review') {
-      hints.push('review stage: 后台 review agent 产物 (reviews/pass1.md) 落盘后才推进 stage=ship; ship 时 delivery-gate 会强制检查.');
-    }
-    if (hints.length > 0) {
-      additional = `[pace-continuator] stage=${stage}${sprint ? ` sprint=${sprint}` : ''}\n` + hints.join('\n');
+    // === 2. 软提醒 (additionalContext) ===
+    // 官方: Stop hook 输出 additionalContext 不是 block, 但会让对话"继续一轮再自然停止"
+    // (code.claude.com/docs/en/hooks: "the conversation continues so Claude can act on the feedback").
+    // 故必须按 stop_hook_active 关闸 — 仅在首次自然停止 (stopHookActive=false) 提醒一次;
+    // 否则续跑后的每个 Stop 都重复喂同一段 → 永远停不下来 → 撞 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP 被强停.
+    if (!stopHookActive) {
+      const hints = [];
+      if (nextAction) {
+        hints.push(`next_action="${nextAction}" 未消费 — 下一 turn 应按 athena-dev 的 next_action 表处理.`);
+      }
+      if (stage === 'review') {
+        hints.push('review stage: 后台 review agent 产物 (reviews/pass1.md) 落盘后才推进 stage=ship; ship 时 delivery-gate 会强制检查.');
+      }
+      if (hints.length > 0) {
+        additional = `[pace-continuator] stage=${stage}${sprint ? ` sprint=${sprint}` : ''}\n` + hints.join('\n');
+      }
     }
   } catch (e) {
     process.stderr.write(`[pace-continuator] non-blocking: ${e.message}\n`);
