@@ -1,4 +1,4 @@
-# PACE References · Orchestration (v9.7.0)
+# PACE References · Orchestration (v9.7.1)
 
 > 编排机制选型. 铁律[三原语]: Workflow 统领 · SubAgent 执行 · Skill 赋能.
 > 选机制前先读本表, 不要凭直觉 spawn.
@@ -12,6 +12,8 @@
 | 红区 (Refactor/System / 并行 ≥2 写者) | Task subagent + `isolation: worktree` | Task tool |
 | 超大规模 (≥5 个独立可切片同构子任务) | Dynamic Workflows | prompt 含 `ultracode` |
 | 长任务跨 turn 完成条件 | /goal | `/goal <完成条件>` |
+| **定时轮询 (盯 CI / 定期 triage)** | /loop + cron 工具 | `/loop <interval> <prompt>` (2.1.72+ GA) |
+| **外部事件驱动 (CI 失败 push 进来)** | Channels | research preview (2.1.80+), **stable 不用** |
 | 后台长跑 review/调研 | background session | Task + 后台 |
 
 ## ultracode · Dynamic Workflows (M4)
@@ -38,6 +40,28 @@
 ## /goal · Sisyphus 原生执行层 (M5)
 
 长任务用 `/goal <完成条件>` 设定目标 (CC 2.1.139+), 替代 prompt 层"不完成不许停"约束, 承载铁律[Sisyphus]. ship 前核对 goal 达成.
+
+**机制** [官方 code.claude.com/docs/en/goal]: 每 turn 后由独立小模型 (默认 Haiku) 判停 — maker 不给自己批作业. **evaluator 只读 transcript, 不跑命令不读文件** → 条件必须写成"Claude 的输出能演示的东西", 让 Claude 把证据晒进 transcript.
+
+**条件三件套** (官方, 上限 4000 字符):
+1. 可测终态: 测试结果 / build exit code / 文件计数 / 空队列
+2. stated check (Claude 怎么证明): 如 "运行 `grep -c 'VERDICT: PASS' .ai_state/sprints/{slug}/reviews/pass1.md` 且输出 ≥1"
+3. 约束: 路上不许动什么 + **turn 上限护栏** (如 "Stop after 30 turns" — /goal 无内建 token 预算, 上限必写)
+
+**非交互入口**: `claude -p "/goal <条件>"` 单命令跑到完成 (夜间/脚本姿势).
+
+## 长任务三分法 (M14) [官方 scheduled-tasks 文档]
+
+| 你要的是 | 用 | 边界 (写清楚, 防止当 daemon 用) |
+|---|---|---|
+| **轮询**: 每 N 分钟干一次 | `/loop` | session-scoped (关终端即灭) · 任务 3 天自动过期 · ≤50/session · 最小间隔 1min · **它不是 daemon**, 真持久化用系统 cron / Desktop scheduled tasks |
+| **事件**: 外部系统 push 进来 | Channels | research preview, Bedrock/Vertex 不可用; stable 轨不用, exp 轨另册 |
+| **干到条件满足** | `/goal` | 见 M5 |
+
+**loop 设计三问** (任何 loop 形态上线前自答):
+1. loop 里有没有能说 no 的东西? (test / typecheck / delivery-gate — 没有硬验证的 loop 会安静地失败并持续烧钱)
+2. 预算护栏在哪? (max fires / max iterations / turn 上限 — 必须有硬数字)
+3. 状态落盘在哪? (不落盘的 loop 是失忆复读机 — Athena 答案: .ai_state)
 
 ## Agent Teams (不接入, Out of Scope)
 

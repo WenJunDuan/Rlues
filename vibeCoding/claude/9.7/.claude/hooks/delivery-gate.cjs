@@ -13,7 +13,7 @@
  * v9.7.0 协议修正 [官方 code.claude.com/docs/en/hooks]:
  * - JSON 仅在 exit 0 时解析; exit 2 时 JSON 被忽略 → block 统一为 exit 0 + {decision:"block", reason}
  * - 读 Stop 输入 background_tasks (2.1.145+) 感知后台 review agent 状态, 字段缺失静默跳过
- * - block reason 必须含明确解锁动作 (Stop 连续 block 默认上限 8 次)
+ * - block reason 必须含明确解锁动作 (Stop 连续 block 上限由 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP 控制, 撞上限即被强制 stop)
  */
 'use strict';
 
