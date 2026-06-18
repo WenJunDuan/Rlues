@@ -55,7 +55,7 @@
 | Agent Teams | experimental, 不接入 | ❌ |
 | 文件写 hook 拦截 | ✅ PostToolUse(Edit\|Write) | ❌ 仅 Bash [官方], evidence 走降级链 |
 | compact hooks | ✅ PreCompact/PostCompact | ✅ 0.129+ 同名事件 |
-| Subagent hooks | ✅ SubagentStart/Stop (matcher=agent type) | ✅ 原生事件 [官方], 字段名待 dogfood 核验 |
+| Subagent hooks | ✅ SubagentStart/Stop (matcher=agent type) | ✅ 原生事件 [官方], SubagentStop 使用 agent_type / agent_id |
 
 ## worktree 规则速查
 

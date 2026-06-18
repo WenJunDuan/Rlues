@@ -8,7 +8,7 @@
 | UserPromptSubmit | user-prompt-submit.py + index-updater.py | 预检 + counts 同步 (mtime 比对) |
 | PreToolUse(Bash) | pre-bash-guard.py | 灾难命令拦截 + 铁律[零写入] 红区 spawn_agent --cwd 强制 + worktree 命令跟踪 |
 | PostToolUse(Bash) | subagent-retry.py + evidence-collector.py | spawn_agent 日志/roadmap 推进 + 过程证据收集 (v9.7.0 新) |
-| SubagentStop | subagent-tracker.py | subagent 完成记录 (v9.7.0 新, 字段防御式读取) |
+| SubagentStop | subagent-tracker.py | subagent 完成记录 (v9.7.1: 读取官方 agent_type / agent_id, 兼容旧字段) |
 | Stop | delivery-gate.py | 交付门禁 (exit 0 + JSON decision) |
 | PreCompact | compact-snapshot.py | compact 前快照 _index.md (v9.7.0 新, CX 0.129+) |
 | PostCompact | compact-restore.py | compact 后注回 _index.md 摘要 (v9.7.0 新) |
@@ -18,6 +18,7 @@
 > - additionalContext 放 `hookSpecificOutput` 并带 `hookEventName`
 > - PostToolUse 支持 systemMessage / continue:false / stopReason; PreToolUse 返回这些会被标 hook 失败
 > - 输入含 `permission_mode` (default/acceptEdits/plan/dontAsk/bypassPermissions); turn 级含 `turn_id`
+> - SubagentStop 输入含 `agent_type` / `agent_id`; 不再依赖早期实验字段名
 > - **拦截不完整**: 非 shell、非 MCP 工具调用 (含文件写) 不触发 hook → evidence 走降级链 (见 stages.md)
 > - 多 hook 并发执行无顺序保证
 
@@ -28,7 +29,7 @@
 - polish stage 完成: 触发 `/compound add learning` 提示
 - review 发现 P0: reviewer 触发 `/compound add learning`
 
-详: `~/.agents/skills/_athena/compound/SKILL.md`
+详: `~/.codex/skills/compound/SKILL.md`
 
 ## 项目级例外 (用户可调)
 

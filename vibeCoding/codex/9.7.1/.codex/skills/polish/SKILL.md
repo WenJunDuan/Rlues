@@ -100,7 +100,7 @@ polish 完成时, 主 agent 询问:
 选: _
 ```
 
-按选择触发对应 `/compound add {type} {slug}`, 从 `~/.agents/skills/_athena/compound/templates/` 模板创建.
+按选择触发对应 `/compound add {type} {slug}`, 从 `~/.codex/skills/compound/templates/` 模板创建.
 
 ### Step 4: architecture 更新触发 (若 ≥5 文件)
 
@@ -109,7 +109,7 @@ polish 完成时, 主 agent 询问:
 changed=$(jq '. | length' < .ai_state/sprints/{slug}/evidence.yaml 2>/dev/null || echo 0)
 if [ "$changed" -ge 5 ]; then
   echo "改动 $changed 文件, 触发 /architect-doc update"
-  read ~/.agents/skills/_athena/architect-doc/SKILL.md
+  read ~/.codex/skills/architect-doc/SKILL.md
 fi
 ```
 

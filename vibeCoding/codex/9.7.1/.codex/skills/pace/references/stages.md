@@ -8,14 +8,14 @@
 **职责**: 多轮对话理清楚, 不评估不约束
 **产出**: `sprints/{date}-{slug}/brainstorm.md`
 **路由**: → plan (清晰) / → roadmap (大需求) / → design (System 路径需求清晰)
-**详**: `~/.agents/skills/_athena/brainstorm/SKILL.md`
+**详**: `~/.codex/skills/brainstorm/SKILL.md`
 
 ## roadmap (借 CodeStable)
 
 **触发**: ≥3 模块需求 / 显式 "拆分" / brainstorm 收敛后大需求
 **职责**: 拆 feature 序列, 产出 items.yaml + roadmap.md
 **调度**: subagent-retry hook (PostToolUse Bash) 检测 ship 完成自动推进下一 item
-**详**: `~/.agents/skills/_athena/roadmap/SKILL.md`
+**详**: `~/.codex/skills/roadmap/SKILL.md`
 
 ## plan (强制 critique 多轮)
 

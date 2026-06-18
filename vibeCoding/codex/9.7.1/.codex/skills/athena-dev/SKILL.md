@@ -64,14 +64,14 @@ def route(user_input, ai_state):
 # 创建 sprint 目录
 slug="$(date +%Y-%m-%d)-$(slugify '$user_topic')"
 mkdir -p ".ai_state/sprints/${slug}"
-cp ~/.agents/skills/_athena/pace/templates/sprints/brainstorm.md ".ai_state/sprints/${slug}/"
+cp ~/.codex/skills/pace/templates/sprints/brainstorm.md ".ai_state/sprints/${slug}/"
 
 # 更新 _index.md
 update_field stage "brainstorm"
 update_field current_sprint_slug "${slug}"
 
 # 进 brainstorm skill
-read ~/.agents/skills/_athena/brainstorm/SKILL.md
+read ~/.codex/skills/brainstorm/SKILL.md
 # 多轮对话
 ```
 
@@ -80,12 +80,12 @@ read ~/.agents/skills/_athena/brainstorm/SKILL.md
 ```bash
 slug="$(slugify '$user_topic')"
 mkdir -p ".ai_state/roadmap/${slug}/drafts"
-cp ~/.agents/skills/_athena/pace/templates/roadmap/{roadmap.md,items.yaml} ".ai_state/roadmap/${slug}/"
+cp ~/.codex/skills/pace/templates/roadmap/{roadmap.md,items.yaml} ".ai_state/roadmap/${slug}/"
 
 update_field stage "roadmap"
 update_field current_roadmap_slug "${slug}"
 
-read ~/.agents/skills/_athena/roadmap/SKILL.md
+read ~/.codex/skills/roadmap/SKILL.md
 ```
 
 ### → plan / design (需求清晰)
@@ -93,7 +93,7 @@ read ~/.agents/skills/_athena/roadmap/SKILL.md
 ```bash
 slug="$(date +%Y-%m-%d)-$(slugify '$task_name')"
 mkdir -p ".ai_state/sprints/${slug}/reviews"
-cp ~/.agents/skills/_athena/pace/templates/sprints/{design.md,checklist.yaml} ".ai_state/sprints/${slug}/"
+cp ~/.codex/skills/pace/templates/sprints/{design.md,checklist.yaml} ".ai_state/sprints/${slug}/"
 
 update_field path "${path_type}"
 update_field stage "plan"

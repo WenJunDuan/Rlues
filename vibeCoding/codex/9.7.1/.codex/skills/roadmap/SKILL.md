@@ -60,8 +60,8 @@ items:
 ```bash
 slug=$(slugify "$user_topic")
 mkdir -p .ai_state/roadmap/$slug/drafts
-cp ~/.agents/skills/_athena/pace/templates/roadmap/roadmap.md .ai_state/roadmap/$slug/
-cp ~/.agents/skills/_athena/pace/templates/roadmap/items.yaml .ai_state/roadmap/$slug/
+cp ~/.codex/skills/pace/templates/roadmap/roadmap.md .ai_state/roadmap/$slug/
+cp ~/.codex/skills/pace/templates/roadmap/items.yaml .ai_state/roadmap/$slug/
 ```
 
 ### Step 2: spawn architect 调研 (worktree 隔离)

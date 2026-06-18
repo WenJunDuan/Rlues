@@ -3,7 +3,7 @@
 VibeCoding Athena v9.6.4 · Codex PostToolUse(Bash) hook
 
 触发: Bash 命令完成后
-职责 (CX 等价 SubagentStop, 因为 Codex 无原生 SubagentStop 事件):
+职责 (兼容旧 spawn_agent Bash 调用日志; 原生 SubagentStop 由 subagent-tracker.py 处理):
   1. 检测 spawn_agent / spawn_agents_on_csv 完成 → 写 sprints/{slug}/subagent-log.md
   2. 检测 spawn_agent 失败 (exit != 0) → 写 runtime-events.md
   3. 检测主 agent ship 完成 → roadmap items.yaml 自动推进

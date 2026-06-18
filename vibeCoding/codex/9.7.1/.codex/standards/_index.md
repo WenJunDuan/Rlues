@@ -27,7 +27,7 @@ note: "本文件供 SessionStart hook 注入摘要 (≤ 600 字符) 进 system p
 ## 加载机制 (三入口)
 
 1. **SessionStart hook** 注入本 `_index.md` 摘要 (≤ 600 字符) 进 system prompt
-2. **PACE SKILL.md** 在 stage 切换时显式 `Read ~/.agents/standards/<file>.md`
+2. **PACE SKILL.md** 在 stage 切换时显式 `Read ~/.codex/standards/<file>.md`
 3. **Subagent frontmatter** `attach_to_rules: [...]` 字段在 spawn subagent 时拼接对应 rule 全文进 developer_instructions
 
 ## 规则覆盖原则
@@ -40,5 +40,5 @@ note: "本文件供 SessionStart hook 注入摘要 (≤ 600 字符) 进 system p
 ## 项目自定义
 
 每个使用 Athena 的项目可以**覆盖**这些 standards:
-- 在项目 `~/.agents/standards/` (USER) 或 `.codex/standards/` (REPO) 放同名文件 → 覆盖 USER 级
+- 在项目 `~/.codex/standards/` (USER) 或 `.codex/standards/` (REPO) 放同名文件 → 覆盖 USER 级
 - 项目级的规则与 USER 级合并, 项目级胜出

@@ -55,9 +55,9 @@ developer_instructions = """
 ## 规则约束
 
 加载并遵守:
-- ~/.agents/standards/coding-standards.md (设计必须符合 P0/P1)
-- ~/.agents/standards/ui-guidelines.md (若涉及 UI)
-- ~/.agents/standards/security-checklist.md (若涉及用户输入 / 密钥)
+- ~/.codex/standards/coding-standards.md (设计必须符合 P0/P1)
+- ~/.codex/standards/ui-guidelines.md (若涉及 UI)
+- ~/.codex/standards/security-checklist.md (若涉及用户输入 / 密钥)
 
 ## 工作流
 

@@ -128,7 +128,7 @@ read confirm
 ```python
 # 用 python 脚本 (或 yq) 升级 frontmatter
 # 新增字段: current_sprint_slug / current_roadmap_slug / counts.compound / next_action / 等
-# 详见 ~/.agents/skills/_athena/pace/templates/_index.md
+# 详见 ~/.codex/skills/pace/templates/_index.md
 ```
 
 主 agent 读旧 `_index.md`, 与新模板合并 (老字段保留 + 新字段填默认值), 提示用户审阅.
@@ -162,7 +162,7 @@ echo "  如需回滚: rm -rf .ai_state && mv ${backup_dir} .ai_state"
 # 1. 覆盖配置 (athena-setup 同款步骤, 见 athena-setup skill)
 #    - ~/.codex/hooks.json + hooks/*.py (新增 evidence-collector / compact-snapshot / compact-restore / subagent-tracker)
 #    - ~/.codex/AGENTS.md (16 条铁律)
-#    - ~/.agents/skills/_athena/ (pace 拆分 + 7 个 entry skill 全为 SKILL.md)
+#    - ~/.codex/skills/ (pace 拆分 + 7 个 entry skill 全为 SKILL.md)
 # 2. 删除 deprecated prompts/
 rm -rf ~/.codex/prompts
 # 3. .ai_state 数据结构不变, 无需迁移

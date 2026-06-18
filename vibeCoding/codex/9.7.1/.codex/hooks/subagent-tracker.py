@@ -6,11 +6,9 @@ VibeCoding Athena v9.7.0 · Codex SubagentStop hook (新)
   1. SubagentStop 触发时写 sprints/{slug}/subagent-log.md
   2. 更新 _index.md last_subagent + last_subagent_at
 
-⚠️ 铁律[不臆造] 声明: SubagentStop 是 CX 原生事件 [官方
-developers.openai.com/codex/hooks 共享 JSON 字段列表], 但 payload 中
-subagent 标识字段的确切名称未在官方 Schemas 页核验到. 本 hook 防御式
-读取候选字段 (subagent_name / agent_name / subagent_type / name),
-全部缺失时记 "unknown". 待 dogfood 确认后收敛为单一字段.
+字段: 官方 SubagentStop schema 使用 agent_type / agent_id. 本 hook 优先
+读取 agent_type, 保留旧候选字段兼容早期实验 payload; 全部缺失时记
+"unknown".
 
 roadmap 自动推进逻辑保留在 subagent-retry.py (PostToolUse Bash, 已验证可用),
 本 hook 不重复 (零减负 + 不重叠).
@@ -22,7 +20,14 @@ import re
 import sys
 from pathlib import Path
 
-FIELD_CANDIDATES = ("subagent_name", "agent_name", "subagent_type", "name")
+FIELD_CANDIDATES = (
+    "agent_type",
+    "agent_id",
+    "subagent_name",
+    "agent_name",
+    "subagent_type",
+    "name",
+)
 
 
 def find_ai_state(cwd: Path):
@@ -79,7 +84,7 @@ def main() -> int:
         if not idx_path.exists():
             return 0
 
-        ts = datetime.datetime.utcnow().isoformat() + "Z"
+        ts = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
         update_field(idx_path, "last_subagent", agent_name)
         update_field(idx_path, "last_subagent_at", ts)
 

@@ -31,7 +31,7 @@ developer_instructions = """
 - File: src/foo.ts:42
 - 问题: ...
 - 建议: ...
-- 引用: ~/.agents/standards/coding-standards.md L23
+- 引用: ~/.codex/standards/coding-standards.md L23
 
 ### F2 ...
 ```
@@ -45,10 +45,10 @@ developer_instructions = """
 ## 5 个 review 维度 (按顺序)
 
 1. **Correctness**: 业务逻辑符合 design.md 需求? 边界条件处理?
-2. **Security**: 输入验证 / 密钥处理 / SQL/XSS 防护 / 权限检查. 强制读 ~/.agents/standards/security-checklist.md.
+2. **Security**: 输入验证 / 密钥处理 / SQL/XSS 防护 / 权限检查. 强制读 ~/.codex/standards/security-checklist.md.
 3. **Test risk**: 测试覆盖关键路径? 测试真实验证业务?
 4. **Design 一致性**: 实现偏离 design.md? 引入未声明依赖?
-5. **Code quality**: 对照 ~/.agents/standards/coding-standards.md (P0/P1/P2)
+5. **Code quality**: 对照 ~/.codex/standards/coding-standards.md (P0/P1/P2)
 
 ## 工作流
 
@@ -56,7 +56,7 @@ developer_instructions = """
 2. Bash `git diff main...HEAD --stat` (变更范围)
 3. Bash `git diff main...HEAD` (变更细节)
 4. Read 关键变更文件
-5. Read ~/.agents/standards/coding-standards.md, ~/.agents/standards/security-checklist.md
+5. Read ~/.codex/standards/coding-standards.md, ~/.codex/standards/security-checklist.md
 6. 写 finding 列表到 .ai_state/details/reviews/sprint-{N}.md
 7. **不要**写 VERDICT (evaluator 的工作)
 

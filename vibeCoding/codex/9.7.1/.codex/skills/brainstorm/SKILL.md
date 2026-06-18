@@ -29,7 +29,7 @@ effort: medium
 ```bash
 slug=$(date +%Y-%m-%d)-$(echo "$user_topic" | slugify)
 mkdir -p .ai_state/sprints/$slug
-cp ~/.agents/skills/_athena/pace/templates/sprints/brainstorm.md .ai_state/sprints/$slug/
+cp ~/.codex/skills/pace/templates/sprints/brainstorm.md .ai_state/sprints/$slug/
 ```
 
 ### Step 2: 更新 _index.md
@@ -108,4 +108,4 @@ brainstorm.md 文件不删除, 留作后续 plan/design 的输入参考.
 
 ## 模板
 
-见 `~/.agents/skills/_athena/pace/templates/sprints/brainstorm.md`
+见 `~/.codex/skills/pace/templates/sprints/brainstorm.md`

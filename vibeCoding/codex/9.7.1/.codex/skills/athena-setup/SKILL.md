@@ -1,7 +1,7 @@
 ---
 name: athena-setup
 description: |
-  Athena 全局首次配置 (Codex 端, 跨项目一次性). 部署 config.toml / hooks / agents / standards / skills 到 ~/.codex/ 与 ~/.agents/skills/_athena/.
+  Athena 全局首次配置 (Codex 端, 跨项目一次性). 部署 config.toml / hooks / agents / standards / skills 到 ~/.codex/.
   和 athena-init 区别: setup 全局一次性, init 每项目一次.
   v9.7.0: 文件名修正为 SKILL.md (config.toml 指向 SKILL.md); 修 stale 计数 (CC hooks 14 / agents 5); CX hooks 增至 10 个 .py.
 effort: low
@@ -58,16 +58,16 @@ ls ~/.codex/agents/*.toml | wc -l   # 应为 9
 ### Step 5: 复制 standards/ (6 个 md)
 
 ```bash
-mkdir -p ~/.agents/standards   # 注意 ~/.agents/, 不是 ~/.codex/ (agentskills.io 跨工具标准)
-cp cx/.codex/standards/*.md ~/.agents/standards/
-ls ~/.agents/standards/*.md | wc -l   # 应为 6 (_index + coding/doc/git/security/ui)
+mkdir -p ~/.codex/standards
+cp cx/.codex/standards/*.md ~/.codex/standards/
+ls ~/.codex/standards/*.md | wc -l   # 应为 6 (_index + coding/doc/git/security/ui)
 ```
 
-### Step 6: 复制 skills/ (到 ~/.agents/skills/\_athena/, 前缀隔离)
+### Step 6: 复制 skills/ (到 ~/.codex/skills/)
 
 ```bash
-mkdir -p ~/.agents/skills/_athena
-cp -r cx/.codex/skills/* ~/.agents/skills/_athena/
+mkdir -p ~/.codex/skills
+cp -r cx/.codex/skills/* ~/.codex/skills/
 ```
 
 ### Step 7: 验证 entry + workflow + tool skills 全部被发现
@@ -114,10 +114,10 @@ mkdir -p ~/.claude/skills && cp -r cc/.claude/skills/* ~/.claude/skills/
 | Athena 资产       | CC 部署位置                  | CX 部署位置                                    |
 | ----------------- | ---------------------------- | ---------------------------------------------- |
 | Settings          | `~/.claude/settings.json`    | `~/.codex/config.toml` + `~/.codex/hooks.json` |
-| Rules / Standards | `~/.claude/rules/` (6)       | `~/.agents/standards/` (6)                     |
+| Rules / Standards | `~/.claude/rules/` (6)       | `~/.codex/standards/` (6)                     |
 | Hooks             | `~/.claude/hooks/*.cjs` (14) | `~/.codex/hooks/*.py` (10)                     |
 | Subagents         | `~/.claude/agents/*.md` (5)  | `~/.codex/agents/*.toml` (9)                   |
-| Skills (含 entry) | `~/.claude/skills/`          | `~/.agents/skills/_athena/`                    |
+| Skills (含 entry) | `~/.claude/skills/`          | `~/.codex/skills/`                         |
 
 ## 卸载
 
@@ -126,8 +126,8 @@ mkdir -p ~/.claude/skills && cp -r cc/.claude/skills/* ~/.claude/skills/
 rm ~/.codex/hooks.json
 mv ~/.codex/config.toml.pre-athena ~/.codex/config.toml 2>/dev/null
 rm -rf ~/.codex/{hooks,agents}
-rm -rf ~/.agents/standards
-rm -rf ~/.agents/skills/_athena
+rm -rf ~/.codex/standards
+rm -rf ~/.codex/skills
 ```
 
 ## 升级

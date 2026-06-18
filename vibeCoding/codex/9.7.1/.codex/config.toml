@@ -41,69 +41,69 @@ max_depth = 1
 job_max_runtime_seconds = 1800
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/athena-dev/SKILL.md"
+path = "<USER_HOME>/.codex/skills/athena-dev/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/athena-init/SKILL.md"
+path = "<USER_HOME>/.codex/skills/athena-init/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/athena-setup/SKILL.md"
+path = "<USER_HOME>/.codex/skills/athena-setup/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/athena-migrate/SKILL.md"
+path = "<USER_HOME>/.codex/skills/athena-migrate/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/athena-preferences/SKILL.md"
+path = "<USER_HOME>/.codex/skills/athena-preferences/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/athena-review/SKILL.md"
+path = "<USER_HOME>/.codex/skills/athena-review/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/athena-status/SKILL.md"
+path = "<USER_HOME>/.codex/skills/athena-status/SKILL.md"
 enabled = true
 
 # --- workflow skills ---
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/pace/SKILL.md"
+path = "<USER_HOME>/.codex/skills/pace/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/polish/SKILL.md"
+path = "<USER_HOME>/.codex/skills/polish/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/compound/SKILL.md"
+path = "<USER_HOME>/.codex/skills/compound/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/brainstorm/SKILL.md"
+path = "<USER_HOME>/.codex/skills/brainstorm/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/roadmap/SKILL.md"
+path = "<USER_HOME>/.codex/skills/roadmap/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/architect-doc/SKILL.md"
+path = "<USER_HOME>/.codex/skills/architect-doc/SKILL.md"
 enabled = true
 
 # --- tool-dispatch skills ---
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/context7/SKILL.md"
+path = "<USER_HOME>/.codex/skills/context7/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/antigravity/SKILL.md"
+path = "<USER_HOME>/.codex/skills/antigravity/SKILL.md"
 enabled = true
 
 [[skills.config]]
-path = "<USER_HOME>/.agents/skills/_athena/deps-check/SKILL.md"
+path = "<USER_HOME>/.codex/skills/deps-check/SKILL.md"
 enabled = true
 
 [tui.model_availability_nux]
@@ -120,3 +120,27 @@ name = "openai"
 base_url = ""
 wire_api = "responses"
 requires_openai_auth = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[desktop]
+preventSleepWhileRunning = true
+show-context-window-usage = true
+composerEnterBehavior = "cmdIfMultiline"
+git-show-sidebar-pr-icons = true

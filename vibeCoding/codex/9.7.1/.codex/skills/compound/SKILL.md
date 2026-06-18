@@ -85,7 +85,7 @@ compound/YYYY-MM-DD-{doc_type}-{slug}.md
 
 ## 模板
 
-见 `~/.agents/skills/_athena/compound/templates/{learning,trick,decision,explore}.md`
+见 `~/.codex/skills/compound/templates/{learning,trick,decision,explore}.md`
 
 ## 与其他 stage 联动 (vs v9.6.2 单文件)
 
@@ -104,4 +104,4 @@ v9.6.2 (lessons.md 单文件):                v9.6.4 (compound/ 颗粒化):
 2. 手工拆分 → 主 agent 引导逐段分类
 3. 全部丢弃 → 删除 lessons.md, compound/ 从空开始
 
-详: `~/.agents/skills/_athena/athena-migrate/SKILL.md`
+详: `~/.codex/skills/athena-migrate/SKILL.md`

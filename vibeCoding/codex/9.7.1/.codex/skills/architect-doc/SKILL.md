@@ -101,4 +101,4 @@ compound/decision-*.md (永久, 写"为什么这样选")
 
 ## 模板
 
-见 `~/.agents/skills/_athena/pace/templates/architecture/`
+见 `~/.codex/skills/pace/templates/architecture/`

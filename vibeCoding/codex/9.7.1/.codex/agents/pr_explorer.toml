@@ -66,5 +66,5 @@ developer_instructions = """
 
 ## 严重度对齐
 
-与 reviewer 用同一套 P0/P1/P2 标准 (见 ~/.agents/standards/coding-standards.md), 用 IM-N (Implicit Modification) 编号区分.
+与 reviewer 用同一套 P0/P1/P2 标准 (见 ~/.codex/standards/coding-standards.md), 用 IM-N (Implicit Modification) 编号区分.
 """

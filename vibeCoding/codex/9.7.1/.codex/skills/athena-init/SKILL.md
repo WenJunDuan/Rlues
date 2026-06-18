@@ -77,7 +77,7 @@ touch .ai_state/compound/.gitkeep
 ### Step 5: 复制 \_index.md 模板 + 填入探测结果
 
 ```bash
-cp ~/.agents/skills/_athena/pace/templates/_index.md .ai_state/_index.md
+cp ~/.codex/skills/pace/templates/_index.md .ai_state/_index.md
 ```
 
 主 agent 把探测值写入 frontmatter:

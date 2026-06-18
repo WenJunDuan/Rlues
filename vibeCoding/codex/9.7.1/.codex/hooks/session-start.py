@@ -5,7 +5,7 @@ VibeCoding Athena v9.7.0 · Codex SessionStart hook
 触发: session 启动 / resume
 职责:
 1. 注入 _index.md frontmatter 摘要
-2. 注入 ~/.agents/standards/_index.md 摘要
+2. 注入 ~/.codex/standards/_index.md 摘要 (兼容旧 ~/.agents/standards)
 3. stage-specific 操作提示 (xhigh / critic / spec-compliance)
 4. design_changed_after_impl=true 强提示
 5. next_action = roadmap 自动推进提示
@@ -66,15 +66,20 @@ def parse_frontmatter(idx_path: Path) -> dict:
     return fm
 
 
-def read_standards_summary() -> str:
+def read_standards_summary() -> tuple[str, str]:
     home = Path.home()
-    idx = home / ".agents" / "standards" / "_index.md"
-    if not idx.exists():
-        return ""
-    content = idx.read_text(encoding="utf-8")
-    if len(content) > 600:
-        content = content[:600] + "\n... (see ~/.agents/standards/ for full)"
-    return content
+    candidates = [
+        (home / ".codex" / "standards" / "_index.md", "~/.codex/standards"),
+        (home / ".agents" / "standards" / "_index.md", "~/.agents/standards"),
+    ]
+    for idx, label in candidates:
+        if not idx.exists():
+            continue
+        content = idx.read_text(encoding="utf-8")
+        if len(content) > 600:
+            content = content[:600] + f"\n... (see {label}/ for full)"
+        return content, label
+    return "", ""
 
 
 def stage_hints(fm: dict) -> list:
@@ -158,9 +163,9 @@ def main() -> int:
                     + "\n".join(hints)
                 )
 
-        standards = read_standards_summary()
+        standards, standards_path = read_standards_summary()
         if standards:
-            context_parts.append(f"## 项目规范摘要 (~/.agents/standards/_index.md)\n\n{standards}")
+            context_parts.append(f"## 项目规范摘要 ({standards_path}/_index.md)\n\n{standards}")
 
         if context_parts:
             # Codex SessionStart 协议: stdout 即注入 context
