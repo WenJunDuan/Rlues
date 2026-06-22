@@ -1,0 +1,121 @@
+{
+  "_comment_athena": "VibeCoding Athena v9.7.0 · Codex hooks 配置. 位置: ~/.codex/hooks.json. 源: https://developers.openai.com/codex/hooks",
+  "_comment_v962": "B3 修复: index-updater 从 PostToolUse(Bash) 改到 UserPromptSubmit. 因为 Codex PostToolUse matcher 只匹配 tool_name (官方文档明确), 而 .ai_state/details/*.md 由 apply_patch 写, 不是 Bash. 改用 UserPromptSubmit + mtime 比对触发 (代价: 每次发消息检查一次 mtime, 单次 IO < 5ms)",
+  "_comment_v970": "v9.7.0: (1) 新增 PostToolUse(Bash) evidence-collector.py 收过程证据 (修 CX 端 evidence 链断裂; 文件证据由 delivery-gate 用 git diff 现场补, 因官方明确非 shell/非 MCP 工具调用不触发 hook); (2) 新增 PreCompact/PostCompact (Codex 0.129+ 原生事件, 对齐 CC 跨 compact 连续性, < 0.129 版本该事件不触发, 无副作用); (3) 新增 SubagentStop subagent-tracker.py (原生事件, 官方字段 agent_type / agent_id, 兼容旧候选字段); (4) Stop delivery-gate 改 exit 0 + JSON decision (官方: Stop 要求 JSON 输出); (5) SessionStart matcher 保持 startup|resume — clear 是用户主动清空, 故意不注入旧状态",
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/session-start.py",
+            "timeout": 10,
+            "statusMessage": "Loading Athena context"
+          }
+        ]
+      }
+    ],
+
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/user-prompt-submit.py",
+            "timeout": 5,
+            "statusMessage": "Athena pre-check"
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/index-updater.py",
+            "timeout": 8,
+            "statusMessage": "Syncing _index.md counts"
+          }
+        ]
+      }
+    ],
+
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/pre-bash-guard.py",
+            "timeout": 10,
+            "statusMessage": "Checking Bash command"
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-retry.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/evidence-collector.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-tracker.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",
+            "timeout": 60,
+            "statusMessage": "Athena delivery-gate"
+          }
+        ]
+      }
+    ],
+
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/compact-snapshot.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/compact-restore.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
