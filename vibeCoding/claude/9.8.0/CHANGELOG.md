@@ -33,7 +33,7 @@ dogfood 发现 PACE "写完即止": review/单测只验证"想的问题实现没
 1. **执行者 = CC /goal 主路径, 不默认发 codex**。/goal 是有状态连续 loop + 自带官方 supervisor + 交互式在订阅内; codex exec 每次独立 session 断片、无 supervisor。codex 留 System 密集测试省钱特例(opt-in)。
 2. **reflect 做成 runtime-verify Step 4, 不调 brainstorm**。brainstorm 是项目级发散新方向; reflect 是本 sprint 落地完整性自检。混了 reflect 会需求蔓延。
 3. **/goal 完成条件必须把实跑证据晒进 transcript**。官方: supervisor 只判断对话里展示的东西, 不读文件。写"接口测过了"无效, 写"运行 X 命令 → 输出 Y"才有效。
-4. **运行时实跑用已装插件**(playwright-skill / browser+computer-use plugin), 不自造。
+4. **运行时实跑用 `$playwright` skill**; CC 可借官方 playwright-skill 插件, CX 用本包注册的 Playwright 测试 skill, browser+computer-use 只作探索/冒烟兜底, 不自造。
 
 ## 未含(下一批)
 - U1(impl 强制 subagent)/U2(plan min_rounds)/U3(review checklist↔evidence)/U6(plugin 编排): 弱耦合, 单独迭代。
@@ -57,6 +57,7 @@ dogfood 发现 PACE "写完即止": review/单测只验证"想的问题实现没
 ### 审计修复 (F1–F9) + 配置
 - CC 两新 skill 版本误标 v9.7.5→v9.8.0; 运行时验证铁律折叠进 Review (不占编号膨胀); checkpoint 主动提醒 wiring; CX 原生 SubagentStop 驱动对等; pre-bash-guard py3.12 f-string 兼容性修复; 等.
 - CX config.toml 注册全部新 skill (runtime-verify/checkpoint/requirements/issue); CC settings.json 加 curl 等运行时权限; cc/cx 版本号全刷 9.8.0; 新功能 (Goals/workflows/multi-agent/browser) 全开 (Agent Teams experimental 除外).
+- 补齐 **skill `playwright`(CC+CX)**: runtime-verify 的前端/E2E 实跑工具, 把 Playwright 官方测试 runner / locator / trace workflow 固化为可复跑证据链; CX config.toml 已注册, CC 与官方 playwright-skill 插件互补.
 
 ### 定位 (vs CodeStable)
 CodeStable = human in loop and check (人对软件整体把控). 本框架 = **agent in loop and check** (DOER+CHECKER 全自动, 人只在 plan 确认门). 共识: 软件要素 (req/arch/decision) 必须落盘可召回, .ai_state 是落盘根.

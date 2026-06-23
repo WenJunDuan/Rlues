@@ -50,7 +50,7 @@ System 路径专用, plan 通过后进 design 出详细架构. 可 spawn `archit
 
 impl 写完代码 + 单测后, 不直接进 review, 先做运行时自测自改:
 - 用 Codex Goals 承载: 实跑接口 + 模拟数据 (正常/边界/异常) + 不同环境 → 测出问题自己改 → 复跑到完成条件满足
-- 前端/E2E 用 browser + computer-use plugin (config.toml openai-bundled); 后端用 curl/真实调用; CLI 用实际命令 + 退出码断言
+- 前端/E2E 用 `$playwright` skill 写可复跑测试; browser + computer-use plugin 仅作探索/人工式冒烟; 后端用 curl/真实调用; CLI 用实际命令 + 退出码断言
 - ⚠️ 完成判定只看对话里展示的: 完成条件写成"把实跑命令 + 输出晒进对话"
 - 出口 reflect: 对照 design + 实跑发现, 列"还有哪里没完善" → 回 impl 补 或 进 review
 - 详见 skill: `/athena-runtime-verify`

@@ -117,6 +117,10 @@ path = "<USER_HOME>/.codex/skills/context7/SKILL.md"
 enabled = true
 
 [[skills.config]]
+path = "<USER_HOME>/.codex/skills/playwright/SKILL.md"
+enabled = true
+
+[[skills.config]]
 path = "<USER_HOME>/.codex/skills/antigravity/SKILL.md"
 enabled = true
 

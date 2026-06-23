@@ -69,7 +69,7 @@ Codex Goals (0.133+ 默认开启 [官方 release 0.133]) 是 CX 端的 objective
 每轮自己决定下一步 (即"自己给自己提要求"):
 - **写测试场景**: 实际接口调用 / 模拟数据 (正常+边界+异常) / 不同环境
 - **实跑** (按类型):
-  - 前端 / E2E → config.toml 的 `browser@openai-bundled` + `computer-use@openai-bundled` plugin (启服务 + 浏览器驱动)
+  - 前端 / E2E → `$playwright` skill (优先, 可落 repeatable tests); browser/computer-use plugin 仅作探索或人工式冒烟
   - 后端 / API → `curl` / 真实 HTTP / 测试库真实读写 (shell)
   - CLI → 实际命令 + 退出码 + stdout 断言
 - **测出问题 → 自己改 → 复跑** (自测自改)
