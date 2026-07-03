@@ -1,0 +1,14 @@
+#!name=Claude Cookie Cleaner
+#!desc=Strip sessionKey and routingHint cookies on Claude or Anthropic login/logout URLs.
+#!author=Codex
+#!system=ios
+
+[General]
+force-http-engine-hosts = %APPEND% claude.ai, *.claude.ai, claude.com, *.claude.com, anthropic.com, *.anthropic.com
+
+[Script]
+Claude_Cookie_Request = type=http-request,pattern=^https?:\/\/(?:[^\/]+\.)?(?:claude\.ai|claude\.com|anthropic\.com)(?::\d+)?\/[^?#]*(?:login|logout)(?:[/?#]|$),script-path=https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/claude_cookie.js,script-update-interval=86400,timeout=10,requires-body=false
+Claude_Cookie_Response = type=http-response,pattern=^https?:\/\/(?:[^\/]+\.)?(?:claude\.ai|claude\.com|anthropic\.com)(?::\d+)?\/[^?#]*(?:login|logout)(?:[/?#]|$),script-path=https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/claude_cookie.js,script-update-interval=86400,timeout=10,requires-body=false
+
+[MITM]
+hostname = %APPEND% claude.ai, *.claude.ai, claude.com, *.claude.com, anthropic.com, *.anthropic.com

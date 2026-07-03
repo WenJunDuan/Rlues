@@ -26,6 +26,7 @@
     "API_TIMEOUT_MS": "30000"
   },
   "permissions": {
+    "defaultMode": "auto",
     "allow": [
       "Read(**)",
       "Write(**)",
