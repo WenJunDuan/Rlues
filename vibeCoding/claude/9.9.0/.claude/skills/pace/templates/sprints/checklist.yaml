@@ -1,0 +1,15 @@
+# Sprint 进度清单
+# - impl stage 由主 agent 写入 task 列表
+# - generator subagent 完成时回写 status + evidence_tool_use_ids
+# - accept (review) 时验证 tasks 全 completed
+sprint_slug: ""
+created: ""
+tasks:
+  - id: T1
+    title: ""
+    design_ref: ""              # 引用 design.md 行号或段标题, 如 "design.md L45-80" 或 "## File Structure Plan"
+    status: pending             # pending | in_progress | completed | blocked
+    evidence_tool_use_ids: []   # 由 PostToolUse hook 自动填
+    files_changed: []           # 由 PostToolUse hook 自动填
+    completed_at: ""
+    blocked_by: ""              # 若 blocked, 说明阻塞原因

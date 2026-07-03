@@ -1,0 +1,175 @@
+# VibeCoding Athena v9.9.0 · Codex Configuration  (v9.9.0)
+# 位置: ~/.codex/config.toml
+
+project_root_markers = [".git", ".hg", ".sl"]
+project_doc_max_bytes = 65536
+
+model_provider = "openai"
+# 7/23 遗留 Codex API 模型永久关停; ChatGPT 登录态官方建议不 pin, 此处 pin 当前默认取确定性 — 勿回退旧 ID
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+plan_mode_reasoning_effort = "xhigh"
+
+windows_wsl_setup_acknowledged = true
+model_context_window = 1000000
+model_auto_compact_token_limit = 900000
+web_search = "live"
+
+suppress_unstable_features_warning = true
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false
+
+[features]
+# hooks / multi_agent 已默认开 (hooks 5/14 GA, multi_agent 0.142+), 保留显式声明兼容旧版
+hooks = true
+multi_agent = true
+shell_tool = true
+shell_snapshot = true
+unified_exec = true
+memories = true
+
+[memories]
+generate_memories = true
+use_memories = true
+disable_on_external_context = true
+
+[agents]
+max_threads = 6
+max_depth = 1
+job_max_runtime_seconds = 1800
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-dev/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-init/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-setup/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-migrate/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-preferences/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-review/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-status/SKILL.md"
+enabled = true
+
+# --- workflow skills ---
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/pace/SKILL.md"
+enabled = true
+
+# v9.8.0 Loop Engineering: 运行时验证环 + 会话记忆固化 (必须注册, 否则 CX 端不加载)
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-runtime-verify/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-checkpoint/SKILL.md"
+enabled = true
+
+# v9.9.0 VM 运行时接入 (runtime-verify 环境矩阵; 必须注册, 否则 CX 端不加载)
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-vm/SKILL.md"
+enabled = true
+
+# v9.8.0 软件要素 (借 CodeStable): 需求逃生通道 + 结构化问题流程 (必须注册, 否则 CX 端不加载)
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-requirements/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/athena-issue/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/polish/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/compound/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/brainstorm/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/roadmap/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/architect-doc/SKILL.md"
+enabled = true
+
+# --- tool-dispatch skills ---
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/context7/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/playwright/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/antigravity/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/deps-check/SKILL.md"
+enabled = true
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.9.0"
+
+[model_providers.custom_openai]
+name = "openai"
+base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[desktop]
+preventSleepWhileRunning = true
+show-context-window-usage = true
+composerEnterBehavior = "cmdIfMultiline"
+git-show-sidebar-pr-icons = true
