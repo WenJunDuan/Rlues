@@ -1,17 +1,10 @@
 #!name=自己收藏脚本
-#!desc=阿里云盘签到；B站每日任务；Bing积分；
+#!desc=B站每日任务
 #!system=ios
 
 [URL Rewrite]
 
 [Script]
-# > 阿里云盘签到
-阿里网盘token获取 = type=http-request,pattern=^https:\/\/(auth|aliyundrive)\.alipan\.com\/v2\/account\/token,requires-body=1,script-path=https://raw.githubusercontent.com/zqzess/rule_for_quantumultX/master/js/Mine/aDriveCheckIn/aDriveCheckIn.js
-阿里网盘签到 = type=cron,cronexp=10 7 * * *,script-path=https://raw.githubusercontent.com/zqzess/rule_for_quantumultX/master/js/Mine/aDriveCheckIn/aDriveCheckIn.js
-
-# > Bing积分
-#Bing积分cookie = requires-body=0,type=http-request,pattern=https:\/\/rewards\.bing\.com,script-path=https://raw.githubusercontent.com/lowking/Scripts/master/bing/bingPoint.js
-#Bing积分 = type=cron,cronexp="0 10 0 * * ?",wake-system=1,script-path=https://raw.githubusercontent.com/lowking/Scripts/master/bing/bingPoint.js
 
 # > BILIBILI
 B站每日任务 = type=cron,cronexp=30 7 * * *,script-path=https://raw.githubusercontent.com/ClydeTime/Quantumult/main/Script/Task/BiliBili.js
@@ -19,4 +12,4 @@ B站获取Cookie(APP) = type=http-request,pattern=^https:\/\/app\.bilibili\.com\
 #B站获取Cookie(网页) = type=http-request,pattern=^https:\/\/m.bilibili.com/$,script-path=https://raw.githubusercontent.com/ClydeTime/Quantumult/main/Script/Task/BiliBili.js
 
 [MITM]
-hostname = %APPEND% homepage-api.smzdm.com,haojia-api.smzdm.com,baike-api.smzdm.com,app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com,auth.alipan.com, auth.aliyundrive.com, security.wechat.com
+hostname = %APPEND% app.bilibili.com, grpc.biliapi.net,app.bilibili.com,m.bilibili.com
