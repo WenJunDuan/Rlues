@@ -1,66 +1,73 @@
 # Claude Cookie Cleaner
 
-Surge iOS 模块。只在 Claude / Anthropic 的 login 或 logout URL 上清理 `sessionKey` 和 `routingHint`。
+Surge iOS module. When you open a Claude or Anthropic page, it clears web login cookies at the HTTP layer.
 
-## 文件
+## Files
 
-- `claude-cookie-clean.sgmodule`: 手机导入的 Surge 模块
-- `claude_cookie.js`: 模块调用的脚本
-- `README.md`: 使用说明
+- `claude-cookie-clean.sgmodule`: Surge module to import on iPhone
+- `claude_cookie.js`: Script used by the module
+- `README.md`: Usage notes
 
-## 发布到 GitHub
+## Online URLs
 
-1. 新建一个公开 GitHub 仓库。
-2. 上传这 3 个文件。
-3. 打开 `claude-cookie-clean.sgmodule`，把 `YOUR_GITHUB_USERNAME/YOUR_REPO` 改成你的仓库路径。
+Module Raw URL:
 
-修改后应类似：
+```text
+https://raw.githubusercontent.com/WenJunDuan/Rlues/refs/heads/main/surge/module/Claude%20Cookie%20Cleaner/claude-cookie-clean.sgmodule
+```
+
+Script Raw URL:
 
 ```ini
-script-path=https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/claude_cookie.js
+https://raw.githubusercontent.com/WenJunDuan/Rlues/refs/heads/main/surge/module/Claude%20Cookie%20Cleaner/claude_cookie.js
 ```
 
-## 手机安装
+## Use On iPhone
 
-1. Surge iOS 打开 `首页 -> 模块 -> 安装模块`。
-2. 粘贴模块 Raw 地址。
+1. Surge iOS -> Modules -> Install Module.
+2. Paste the module Raw URL.
 
 ```text
-https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/claude-cookie-clean.sgmodule
+https://raw.githubusercontent.com/WenJunDuan/Rlues/refs/heads/main/surge/module/Claude%20Cookie%20Cleaner/claude-cookie-clean.sgmodule
 ```
 
-3. 启用模块。
-4. 确认 Surge 的 MITM 已开启，CA 证书已安装并信任。
-5. 打开 Claude 的登录或登出页面触发清理。
-6. 清理完成后关闭模块。
+3. Enable the module.
+4. Make sure Surge MITM is enabled and the CA certificate is installed and trusted.
+5. Open any Claude or Anthropic page once.
+6. Disable the module after cleanup, otherwise Claude login cookies will keep being removed.
 
-## 触发范围
+## What It Cleans
 
-会触发：
+- Removes the outgoing `Cookie` header for Claude and Anthropic domains.
+- Removes incoming `Set-Cookie` headers from Claude and Anthropic responses.
+- Sends expired `Set-Cookie` headers for known and observed Claude-related cookie names.
+
+Matched domains:
 
 ```text
-https://claude.ai/login
-https://claude.ai/api/auth/logout
-https://claude.com/.../login
-https://anthropic.com/.../logout
+claude.ai
+*.claude.ai
+claude.com
+*.claude.com
+anthropic.com
+*.anthropic.com
 ```
 
-不会触发：
+## Limits
 
-```text
-https://claude.ai/chat
-https://example.com/login
-https://claude.ai/blog/logout-help
-```
+This cannot clear iOS/macOS Keychain items, Claude app private storage, Safari LocalStorage, IndexedDB, or Cache Storage.
 
-## 说明
+Surge scripts run on HTTP requests and responses. They do not have permission to access system Keychain or another app's private data.
 
-Surge 模块负责配置 MITM、HTTP Engine 和脚本触发规则；`claude_cookie.js` 负责实际处理 Cookie。
+For deeper manual cleanup on iPhone:
 
-手机实际只需要安装一个 `.sgmodule` Raw URL。脚本会由模块通过 GitHub Raw 自动拉取。
+1. Clear Safari website data for `claude.ai`, `claude.com`, and `anthropic.com`.
+2. Delete and reinstall the Claude app if you use the native app.
+3. Check iOS Passwords/Passkeys manually for saved Claude credentials.
 
-参考：
+References:
 
 - Surge Module: https://manual.nssurge.com/others/module.html
 - Surge Scripting: https://manual.nssurge.com/scripting/common.html
 - Surge MITM: https://manual.nssurge.com/http-processing/mitm.html
+- Apple Keychain Services: https://developer.apple.com/documentation/security/keychain-services
