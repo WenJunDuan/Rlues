@@ -199,13 +199,24 @@ def main() -> int:
         cmp_counts, by_type = scan_compound(ai_state)
         # compound nested counts (in counts.compound)
         # v9.9.0 修: 限定 compound: 块内替换 (旧实现撞任意同名缩进键)
-        cmp_block = re.search(r"^(\s*)compound:\s*\n((?:\1\s+\S.*\n?)*)", content, re.MULTILINE)
+        # Keep the trailing newline inside the nested block.  The previous
+        # optional-newline pattern could leave the next heading adjacent to the
+        # final item after replacement (`explore: 0# === Pointers ===`).
+        cmp_block = re.search(r"^(\s*)compound:\s*\n((?:\1\s+\S.*(?:\n|$))*)", content, re.MULTILINE)
         if cmp_block:
             block = cmp_block.group(2)
             new_block = block
             for k, v in cmp_counts.items():
                 new_block = re.sub(rf"^(\s+{k}:\s*)\d+\s*$", rf"\g<1>{v}", new_block, count=1, flags=re.MULTILINE)
+            if new_block and not new_block.endswith("\n"):
+                new_block += "\n"
             content = content.replace(cmp_block.group(0), cmp_block.group(0).replace(block, new_block), 1)
+        content = re.sub(
+            r"^(\s+explore:\s*\d+)#\s*(=== Pointers ===)",
+            r"\1\n# \2",
+            content,
+            flags=re.MULTILINE,
+        )
 
         content = update_field(content, "latest_decisions", by_type["decision"])
         content = update_field(content, "latest_lessons", by_type["learning"])
