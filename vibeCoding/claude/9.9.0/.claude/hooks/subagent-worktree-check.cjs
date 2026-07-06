@@ -40,7 +40,15 @@ function parseFrontmatter(content) {
     const m = t.match(/^([\w\-_.]+)\s*:\s*(.*)$/);
     if (m) {
       let v = m[2].trim();
-      if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+      // v9.9.1 fix: 取首对引号内的值 (而非剥首尾字符), 防止行尾注释被并入值
+      // 例: current_sprint_slug: "xxx"  # 注释 "示例" — 旧逻辑会把注释当值的一部分
+      const q = v.match(/^"([^"]*)"|^'([^']*)'/);
+      if (q) {
+        v = q[1] !== undefined ? q[1] : q[2];
+      } else {
+        const hashIdx = v.indexOf(" #");
+        if (hashIdx >= 0) v = v.slice(0, hashIdx).trim();
+      }
       fm[m[1]] = v;
     }
   }
