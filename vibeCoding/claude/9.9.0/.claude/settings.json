@@ -84,7 +84,11 @@
       "Bash(rm -rf $HOME*)",
       "Bash(git push *--force*)",
       "Bash(npm publish*)",
-      "Bash(pnpm publish*)"
+      "Bash(pnpm publish*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/credentials/**)"
     ]
   },
   "hooks": {
