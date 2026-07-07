@@ -1,0 +1,46 @@
+roadmap_slug: fullstack-delivery
+created: "2026-07-07"
+requirement: requirements/fullstack-delivery-pack.md
+items:
+  - slug: f1-orchestrator-framework-design
+    title: "F1: 框架设计 (家族边界+编排状态机+checkpoint/回滚协议+报告schema+token hook 设计)"
+    path: System
+    repo: Rlues
+    depends: []
+    sprint_slug: "2026-07-07-f1-orchestrator-framework-design"
+    status: in_progress
+  - slug: f2-scaffold-page-gen
+    title: "F2: scaffold-page-gen skill + 对接 quantum-front 约定包"
+    path: Feature
+    repo: Rlues + quantum-front
+    depends: [f1-orchestrator-framework-design]
+    sprint_slug: ""
+    status: pending
+  - slug: f3-db-and-unit-test-gen
+    title: "F3: db-schema-gen + unit-test-gen skill + 报告模板"
+    path: Feature
+    repo: Rlues + quantum-backend
+    depends: [f1-orchestrator-framework-design]
+    sprint_slug: ""
+    status: pending
+  - slug: f4-security-and-e2e
+    title: "F4: security-test + playwright-e2e 无关化 + 环境编排约定接口"
+    path: Feature
+    repo: Rlues + quantum
+    depends: [f2-scaffold-page-gen]
+    sprint_slug: ""
+    status: pending
+  - slug: f5-biz-delivery-loop
+    title: "F5: biz-delivery-loop 编排 skill + checkpoint/token hook + project-data-reader 完善"
+    path: System
+    repo: Rlues
+    depends: [f1-orchestrator-framework-design, f2-scaffold-page-gen, f3-db-and-unit-test-gen, f4-security-and-e2e]
+    sprint_slug: ""
+    status: pending
+  - slug: f6-end-to-end-drill
+    title: "F6: 端到端演练 (真实小业务全流程, 校准回滚协议)"
+    path: Feature
+    repo: quantum 三工程
+    depends: [f5-biz-delivery-loop]
+    sprint_slug: ""
+    status: pending
