@@ -6,6 +6,8 @@
  *   1. 收集 tool_use_id, 文件路径, 时间戳
  *   2. 追加到 sprints/{current_slug}/tool-trace.jsonl (每行一个 JSON)
  *   3. 解析 evidence: 若 Edit/Write 写的文件在 design.md 的 File Structure Plan 中提到 → 写 evidence.yaml
+ *   4. v9.9.2: subagent 在隔离 worktree 写文件时, 证据重定向到主仓库 (防随 worktree 清理丢失,
+ *      否则 delivery-gate 的 changedFiles 计数与 U3 Evidence Cross-Check 失真)
  *
  * matcher: Edit|Write|MultiEdit|Bash (在 settings.json 中配置)
  * 源: https://code.claude.com/docs/en/hooks-guide
@@ -14,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 function findAiState(cwd) {
   let current = cwd;
@@ -25,6 +28,24 @@ function findAiState(cwd) {
     current = parent;
   }
   return null;
+}
+
+// 缺陷1 修复 (v9.9.2): PostToolUse 在隔离 worktree 内触发时 (generator 写代码),
+// findAiState 命中 worktree 副本 → evidence.yaml/tool-trace.jsonl 随 worktree 清理丢失,
+// 致 delivery-gate 的 changedFiles 计数与 U3 Evidence Cross-Check 失真. 检测到 worktree 则
+// 重定向到主仓库 .ai_state (与 subagent-tracker 同策略, hook 自包含故内联).
+function redirectToMainRepo(aiState, cwd) {
+  try {
+    const opt = { cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] };
+    const gitDir = execFileSync('git', ['rev-parse', '--git-dir'], opt).trim();
+    const commonDir = execFileSync('git', ['rev-parse', '--git-common-dir'], opt).trim();
+    if (path.resolve(cwd, gitDir) === path.resolve(cwd, commonDir)) return aiState;
+    const mainAiState = path.join(path.dirname(path.resolve(cwd, commonDir)), '.ai_state');
+    if (fs.existsSync(mainAiState) && fs.statSync(mainAiState).isDirectory()) return mainAiState;
+  } catch (_) {
+    // 非 git / git 不可用 → 保持原路径
+  }
+  return aiState;
 }
 
 function getCurrentSprintSlug(aiState) {
@@ -41,8 +62,11 @@ function main() {
     try { data = fs.readFileSync(0, 'utf-8'); } catch (_) {}
     const payload = data ? JSON.parse(data) : {};
 
-    const aiState = findAiState(process.cwd());
+    const cwd = payload?.cwd || process.cwd();
+    let aiState = findAiState(cwd);
     if (!aiState) { process.exit(0); }
+    // 缺陷1: worktree 副本重定向到主仓库, 防证据随 worktree 清理丢失
+    aiState = redirectToMainRepo(aiState, cwd);
 
     const sprintSlug = getCurrentSprintSlug(aiState);
     if (!sprintSlug) { process.exit(0); }

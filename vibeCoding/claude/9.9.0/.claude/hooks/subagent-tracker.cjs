@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * VibeCoding Athena v9.8.0 · CC SubagentStop hook
+ * VibeCoding Athena v9.9.2 · CC SubagentStop hook
  *
  * 职责:
  *   1. SubagentStop 触发时, 写 sprints/{current_slug}/subagent-log.md
@@ -10,13 +10,15 @@
  *   5. v9.8.0 新 (Loop Engineering 闭环): generator 完成且 stage=impl 且 checklist 全完成
  *      → 写 next_action (System/Refactor=runtime-verify, 其余=review). 软驱动, 不绕门禁.
  *
- * 输入: SubagentStop JSON payload (subagent_name, duration_ms, exit_code, last_assistant_message)
- * 源: https://code.claude.com/docs/en/hooks-guide
+ * 输入: SubagentStop JSON payload (agent_type, agent_id, last_assistant_message, cwd, stop_hook_active)
+ *   注: 官方字段是 agent_type/agent_id, 非 subagent_name/subagent_type; 且不含 duration_ms/exit_code.
+ * 源: https://code.claude.com/docs/en/hooks (SubagentStop input)
  */
 "use strict";
 
 const fs = require("fs");
 const path = require("path");
+const { execFileSync } = require("child_process");
 
 function findAiState(cwd) {
   let current = cwd;
@@ -29,6 +31,26 @@ function findAiState(cwd) {
     current = parent;
   }
   return null;
+}
+
+// 缺陷1 修复 (v9.9.2): subagent 在隔离 worktree 运行时, findAiState 从 worktree cwd
+// 向上命中的是 worktree 内的 .ai_state 副本; 写入随 worktree 清理一起丢失, 主仓库缺条目,
+// 致 delivery-gate 的 generator 记录检查误报. 检测到 cwd 处于 git worktree 时
+// (git-dir != git-common-dir) 重定向到主仓库 .ai_state.
+function redirectToMainRepo(aiState, cwd) {
+  try {
+    const opt = { cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] };
+    const gitDir = execFileSync("git", ["rev-parse", "--git-dir"], opt).trim();
+    const commonDir = execFileSync("git", ["rev-parse", "--git-common-dir"], opt).trim();
+    // 主仓库: 两者指向同一 .git → 不重定向
+    if (path.resolve(cwd, gitDir) === path.resolve(cwd, commonDir)) return aiState;
+    // worktree: 主仓库根 = dirname(common-dir) (通常 <main>/.git)
+    const mainAiState = path.join(path.dirname(path.resolve(cwd, commonDir)), ".ai_state");
+    if (fs.existsSync(mainAiState) && fs.statSync(mainAiState).isDirectory()) return mainAiState;
+  } catch (_) {
+    // 非 git 仓库 / git 不可用 → 保持原路径, 不影响非 worktree 场景
+  }
+  return aiState;
 }
 
 function readFrontmatter(filePath) {
@@ -167,16 +189,21 @@ function main() {
     } catch (_) {}
     const payload = data ? JSON.parse(data) : {};
 
+    // 缺陷2 修复 (v9.9.2): 官方 SubagentStop payload 字段是 agent_type / agent_id
+    // (不是 subagent_name/subagent_type); 后者恒 undefined → 日志恒 "· unknown",
+    // delivery-gate 只能靠 last message 碰巧含 "generator" 字样. 保留旧字段兜底防平台再改.
     const subagentName =
-      payload?.subagent_name || payload?.subagent_type || "unknown";
+      payload?.agent_type || payload?.subagent_name || payload?.subagent_type || "unknown";
+    const agentId = payload?.agent_id || "";
     const lastMessage = payload?.last_assistant_message || "";
-    const durationMs = payload?.duration_ms || 0;
-    const exitCode = payload?.exit_code != null ? payload.exit_code : 0;
 
-    const aiState = findAiState(process.cwd());
+    // 缺陷1: 官方 SubagentStop 带 cwd 字段, 优先用它 (比 process.cwd() 更贴合触发上下文)
+    const cwd = payload?.cwd || process.cwd();
+    let aiState = findAiState(cwd);
     if (!aiState) {
       process.exit(0);
     }
+    aiState = redirectToMainRepo(aiState, cwd);
 
     const idxPath = path.join(aiState, "_index.md");
     if (!fs.existsSync(idxPath)) {
@@ -198,14 +225,14 @@ function main() {
     );
 
     // 2. 写 subagent-log.md
+    // 官方 SubagentStop payload 不含 duration_ms/exit_code (仅 agent_type/agent_id/
+    // last_assistant_message/stop_hook_active), 故不再写编造的 Duration/Exit;
+    // 记 agent_id + last_assistant_message 前 200 字作为证据. 失败感知由 subagent-retry hook 承担.
     if (sprintSlug) {
-      const duration = `${Math.round(durationMs / 1000)}s`;
-      const status = exitCode === 0 ? "success" : `exit ${exitCode}`;
       const summary = (lastMessage || "").slice(0, 200).replace(/\n/g, " ");
       const entry =
         `## ${ts} · ${subagentName}\n` +
-        `- Duration: ${duration}\n` +
-        `- Exit: ${status}\n` +
+        (agentId ? `- Agent ID: ${agentId}\n` : "") +
         `- Last message: ${summary}\n\n`;
       appendToSubagentLog(aiState, sprintSlug, entry);
     }
@@ -213,10 +240,11 @@ function main() {
     // 3. v9.8.0 (Loop Engineering 闭环): generator 完成且 stage=impl 且 checklist 全完成
     //    → 写 next_action 软驱动下一步. System/Refactor=runtime-verify, 其余=review.
     //    (仅当 generator 成功; 失败不推进, 由 subagent-retry hook 记录)
+    // exit_code 官方 payload 不提供 → 用 implTasksComplete (checklist 全 complete) 作为
+    // 真正的完成信号; generator 失败时 checklist 不会全绿, 自然不推进.
     if (
       subagentName === "generator" &&
       idxFm.stage === "impl" &&
-      exitCode === 0 &&
       implTasksComplete(aiState, sprintSlug)
     ) {
       const pathType = idxFm.path || "";
