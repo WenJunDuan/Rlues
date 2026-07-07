@@ -131,6 +131,39 @@ enabled = true
 path = "<USER_HOME>/.codex/skills/deps-check/SKILL.md"
 enabled = true
 
+# --- fullstack-delivery skills ---
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/scaffold-module-gen/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/project-data-reader/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/scaffold-page-gen/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/db-schema-gen/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/unit-test-gen/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/security-test/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/playwright-e2e/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.codex/skills/biz-delivery-loop/SKILL.md"
+enabled = true
+
 [tui.model_availability_nux]
 "gpt-5.5" = 4
 

@@ -1,34 +1,34 @@
 sprint: 2026-07-07-f1-orchestrator-framework-design
 path: System
-stage: plan
+stage: impl
 items:
   - id: plan
     title: plan 审议 (读 design-brief 7 设计点, 出 plan.md 任务分解)
-    status: pending
+    status: done
   - id: design-statemachine
     title: "design: 14 步→PACE 映射定稿 + 状态机唯一权威约束"
-    status: pending
+    status: done
   - id: design-checkpoint
     title: "design: checkpoint 分类 + 回滚目标表 + loop 上限 + 人工升级"
-    status: pending
+    status: done
   - id: design-skills-boundary
     title: "design: 8 skill 边界卡 (职责/输入/输出/禁区)"
-    status: pending
+    status: done
   - id: design-report-schema
     title: "design: 交付报告 schema 字段级定义 + 样例"
-    status: pending
+    status: done
   - id: design-token-hook
     title: "design: token 统计 hook 方案 (含 CC transcript 实测)"
-    status: pending
+    status: in_progress
   - id: design-runtime-env
     title: "design: 环境编排约定接口 (runtime-env section)"
-    status: pending
+    status: done
   - id: design-dual-platform
     title: "design: 双端对称矩阵 + pack 安装脚本方案"
-    status: pending
+    status: done
   - id: critic
     title: critic ≥2 轮, findings 全处置
     status: pending
   - id: skeleton
     title: "impl (限骨架): skills/fullstack-delivery/ 目录 + 报告 schema 文件落盘"
-    status: pending
+    status: done

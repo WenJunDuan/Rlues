@@ -5,7 +5,7 @@ version: "9.9.0"
 
 # === PACE 路由状态 ===
 path: "System"                    # Hotfix | Bugfix | Quick | Feature | Refactor | System
-stage: "plan"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
+stage: "impl"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
 current_sprint_slug: "2026-07-07-f1-orchestrator-framework-design"  # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
 current_roadmap_slug: "fullstack-delivery"  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
@@ -55,8 +55,8 @@ counts:
   features_count: 0
   issues_count: 0
   refactors_count: 0
-  systems_count: 0
-  requirements_count: 0
+  systems_count: 1
+  requirements_count: 1
   reviews_count: 0
   cleanup_count: 0
   compound:
@@ -67,20 +67,20 @@ counts:
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: ""               # sprints/{current_sprint_slug}/design.md
+  latest_design: "sprints/2026-07-07-f1-orchestrator-framework-design/design.md"
   latest_review: ""
   latest_cleanup: ""
   latest_brainstorm: ""
   latest_decisions: []
   latest_lessons: []
   latest_architecture_update: ""  # architecture/ARCHITECTURE.md mtime
-  latest_requirement: ""          # requirements/{slug}.md 最新 (v9.8.0)
+  latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: ""                   # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
-last_subagent: ""                 # SubagentStop hook 写
-last_subagent_at: ""
-active_worktrees: []              # WorktreeCreate/Remove hook 维护
+next_action: "runtime-verify"     # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
+last_subagent: "generator"
+last_subagent_at: "2026-07-07T04:29:01.199972Z"
+active_worktrees: []
 last_critic_round: 0              # plan stage critic 已跑轮数
 design_changed_after_impl: false  # design.md 改后需 re-review
 
@@ -102,6 +102,8 @@ fingerprint: ""
 ## 当前状态
 
 [由主 agent 在 stage 切换时简短追加]
+
+- `2026-07-07 12:34`: F1 进入 impl。已按 Claude design-brief 落 `design.md`, 新增 9.9.0 全栈交付 skills 骨架与 Codex 注册；下一步 runtime-verify/review。
 
 ## 工具调度建议
 
