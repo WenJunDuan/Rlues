@@ -23,6 +23,7 @@ sandbox_mode = "danger-full-access"
 network_access = true
 
 [features]
+goals = true
 hooks = true
 multi_agent = true
 shell_tool = true
