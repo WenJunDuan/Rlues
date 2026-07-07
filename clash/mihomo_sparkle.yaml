@@ -1,8 +1,29 @@
 # ==========================================
-# 🚀 Mihomo 终极配置 · v4.6
-# 🧭 基于 v4.5 + speedtest 语义修正 (改为独立测速分流组)
-# 📅 2026-05-30
+# 🚀 Mihomo 终极配置 · v4.9
+# 🧭 基于 v4.8 + Sparkle GUI 延迟测试直连超时修正
+# 📅 2026-07-06
 # ==========================================
+#
+# 📌 v4.9 变更 (Sparkle GUI 延迟测试)
+#
+# 🧪 延迟测试 URL 从 https://www.gstatic.com/generate_204 改为 http://www.gstatic.com/generate_204
+#    实测本机 DIRECT: HTTPS 超时, HTTP 稳定 204 / 80-100ms
+# 🎛️ select 组显式写入 url, 适配 Sparkle delayTestUrlScope: group
+# 🗺️ GeoIP 数据改用 geoip-lite.dat, 当前规则只需 CN/private, 首次下载从 18MB 降到约 200KB
+#
+# 📌 v4.8 变更 (Speedtest 直连超时修正)
+#
+# 🚀 Speedtest 规则提前到海外 QUIC 阻断之前, 避免 UDP/443 先被 REJECT
+# 🧩 补充 speedtestcustom / ookla 关键字 / speed.cloudflare.com 等测速域名直达 speedtest 组
+# ✅ 保持 speedtest 组默认 DIRECT, 需要测代理出口时在本组手动切换
+#
+# 📌 v4.7 变更 (mihomo v1.19.27 适配)
+#
+# 🔒 external-controller 实际回收至 127.0.0.1:9090, 与安全注释保持一致
+# 🌐 geox-url 从 GitHub release 改为 jsDelivr release 分支, 避免 GeoIP.dat 首次下载超时
+# 🧭 find-process-mode 回到 Windows 端更合适的 strict (off 主要推荐路由器场景)
+# 🧩 nameserver-policy 拆分 Tailscale 域名 key, 避免逗号写法误作单个通配模式
+# ℹ️ v1.19.27 新增 empty-fallback 仅支持代理节点名, 当前订阅节点名不稳定, 不强行写入
 #
 # 📌 v4.6 变更 (speedtest 语义修正)
 #
@@ -58,7 +79,7 @@ BaseFB:
     type: fallback,
     interval: 300,
     lazy: true,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     timeout: 5000,
     expected-status: 204,
   }
@@ -67,7 +88,7 @@ BaseCH:
     type: load-balance,
     interval: 300,
     lazy: true,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     strategy: consistent-hashing,
     timeout: 5000,
     expected-status: 204,
@@ -77,7 +98,7 @@ BaseCR:
     type: load-balance,
     interval: 300,
     lazy: true,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     strategy: round-robin,
     timeout: 5000,
     expected-status: 204,
@@ -88,7 +109,7 @@ BaseUT:
     interval: 300,
     tolerance: 50,
     lazy: true,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     timeout: 5000,
     expected-status: 204,
   }
@@ -107,6 +128,7 @@ FilterAL: &FilterAL "^(?!.*(DIRECT|直连|群|邀请|返利|循环|官网|客服
 SelectFB:
   &SelectFB {
     type: select,
+    url: "http://www.gstatic.com/generate_204",
     proxies:
       [
         故障转移,
@@ -124,6 +146,7 @@ SelectFB:
 SelectPY:
   &SelectPY {
     type: select,
+    url: "http://www.gstatic.com/generate_204",
     proxies:
       [
         🎯 节点选择,
@@ -142,28 +165,20 @@ SelectPY:
 SelectDC:
   &SelectDC {
     type: select,
+    url: "http://www.gstatic.com/generate_204",
     proxies:
       [DIRECT, 🎯 节点选择, 故障转移, 香港策略, 狮城策略, 日本策略, 美国策略],
   }
 SelectSG:
   &SelectSG {
     type: select,
-    proxies:
-      [
-        狮城策略,
-        🎯 节点选择,
-        故障转移,
-        香港策略,
-        日本策略,
-        美国策略,
-        台湾策略,
-        欧盟策略,
-        DIRECT,
-      ],
+    url: "http://www.gstatic.com/generate_204",
+    proxies: [狮城策略, 日本策略, 美国策略, 欧盟策略],
   }
 SelectSM:
   &SelectSM {
     type: select,
+    url: "http://www.gstatic.com/generate_204",
     proxies:
       [
         🎯 节点选择,
@@ -223,7 +238,7 @@ ipv6: false
 unified-delay: true
 tcp-concurrent: true
 log-level: warning
-find-process-mode: "off"
+find-process-mode: strict
 
 keep-alive-interval: 30
 keep-alive-idle: 600
@@ -234,7 +249,7 @@ skip-auth-prefixes:
   - 10.0.0.0/8
   - 100.64.0.0/10
 
-external-controller: 0.0.0.0:9090
+external-controller: 127.0.0.1:9090
 secret: "SdlYQeCNR1K+LsdE23456789sdfghjklOKjSjP4LKm6yVf3"
 external-ui: ui
 external-ui-name: zashboard
@@ -250,10 +265,10 @@ geodata-loader: standard
 geo-auto-update: true
 geo-update-interval: 48
 geox-url:
-  geoip: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
-  geosite: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
-  mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
-  asn: "https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb"
+  geoip: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.dat"
+  geosite: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
+  asn: "https://cdn.jsdelivr.net/gh/xishang0128/geoip@release/GeoLite2-ASN.mmdb"
 
 # 👃 ============================= 域名嗅探 =============================
 sniffer:
@@ -369,7 +384,8 @@ dns:
   direct-nameserver-follow-policy: true
 
   nameserver-policy:
-    "*.ts.net,tailscale.com": system
+    "+.ts.net": system
+    "tailscale.com": system
     "geosite:cn,private":
       - https://dns.alidns.com/dns-query
       - https://doh.pub/dns-query
@@ -386,7 +402,7 @@ proxy-providers:
     interval: 3600
     health-check:
       enable: true
-      url: "https://www.gstatic.com/generate_204"
+      url: "http://www.gstatic.com/generate_204"
       interval: 300
       timeout: 5000
       lazy: true
@@ -486,6 +502,7 @@ proxy-groups:
   - {
       name: speedtest,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       proxies:
         [
           DIRECT,
@@ -504,6 +521,7 @@ proxy-groups:
   - {
       name: 香港策略,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       proxies: [香港自动, 香港均衡-散列, 香港均衡-轮询],
       include-all: true,
       filter: *FilterHK,
@@ -512,6 +530,7 @@ proxy-groups:
   - {
       name: 台湾策略,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       proxies: [台湾自动, 台湾均衡-散列, 台湾均衡-轮询],
       include-all: true,
       filter: *FilterTW,
@@ -520,6 +539,7 @@ proxy-groups:
   - {
       name: 狮城策略,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       proxies: [狮城自动, 狮城均衡-散列, 狮城均衡-轮询],
       include-all: true,
       filter: *FilterSG,
@@ -528,6 +548,7 @@ proxy-groups:
   - {
       name: 日本策略,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       proxies: [日本自动, 日本均衡-散列, 日本均衡-轮询],
       include-all: true,
       filter: *FilterJP,
@@ -536,6 +557,7 @@ proxy-groups:
   - {
       name: 美国策略,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       proxies: [美国自动, 美国均衡-散列, 美国均衡-轮询],
       include-all: true,
       filter: *FilterUS,
@@ -544,6 +566,7 @@ proxy-groups:
   - {
       name: 欧盟策略,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       proxies: [欧盟自动, 欧盟均衡-散列, 欧盟均衡-轮询],
       include-all: true,
       filter: *FilterEU,
@@ -552,6 +575,7 @@ proxy-groups:
   - {
       name: 冷门节点,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       include-all: true,
       filter: *FilterOT,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/World_Map.png",
@@ -559,6 +583,7 @@ proxy-groups:
   - {
       name: 全部节点,
       type: select,
+      url: "http://www.gstatic.com/generate_204",
       include-all: true,
       filter: *FilterAL,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Rocket.png",
@@ -967,12 +992,23 @@ rules:
   # 🔌 ===== 1. 网络基础设施直连 =====
   - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
   - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
+  - IP-CIDR,47.80.24.122/32,DIRECT,no-resolve
   - DOMAIN-SUFFIX,ts.net,DIRECT
   - DOMAIN-KEYWORD,tailscale,DIRECT
   - RULE-SET,lan_non_ip,DIRECT
   - RULE-SET,lan_ip,DIRECT
 
-  # 🚫 ===== 1b. 阻断海外 QUIC (强制 TCP/443 回退) =====
+  # 🚀 ===== 1b. Ookla / Speedtest 先匹配, 避免被 QUIC 阻断或兜底分流截走 =====
+  - DOMAIN-SUFFIX,speedtest.net,speedtest
+  - DOMAIN-SUFFIX,speedtestcustom.com,speedtest
+  - DOMAIN-SUFFIX,ooklaserver.net,speedtest
+  - DOMAIN-SUFFIX,fast.com,speedtest
+  - DOMAIN-SUFFIX,speed.cloudflare.com,speedtest
+  - DOMAIN-KEYWORD,speedtest,speedtest
+  - DOMAIN-KEYWORD,ookla,speedtest
+  - RULE-SET,Speedtest,speedtest
+
+  # 🚫 ===== 1c. 阻断海外 QUIC (强制 TCP/443 回退) =====
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
 
   # 🛡️ ===== 2. DNS 服务器走代理 =====
@@ -984,14 +1020,26 @@ rules:
 
   # 🏠 ===== 3. 用户自定义直连 =====
   - DOMAIN-SUFFIX,juejin.cn,DIRECT
+  - DOMAIN-SUFFIX,guoker.org,DIRECT
+  - DOMAIN-SUFFIX,gying.net,DIRECT
+  - DOMAIN-SUFFIX,selectgroup.click,DIRECT
+  - DOMAIN-SUFFIX,smardaten.com,DIRECT
+  - DOMAIN-SUFFIX,right.codes,DIRECT
+  - DOMAIN-SUFFIX,codex-for.me,DIRECT
+  - DOMAIN-SUFFIX,acemcp.heroman.wtf,DIRECT
 
   # 🌍 ===== 4. 用户自定义代理 =====
   - DOMAIN-SUFFIX,anyrouter.top,🌍 全球加速
   - DOMAIN-SUFFIX,coze.com,🌍 全球加速
+  - DOMAIN-SUFFIX,ouonetwork.com,🌍 全球加速
   - DOMAIN-SUFFIX,linux.do,🌍 全球加速
   - DOMAIN-SUFFIX,ldstatic.com,🌍 全球加速
+  - DOMAIN-SUFFIX,dgbmc.top,🌍 全球加速
+  - DOMAIN-SUFFIX,oseeue.com,🌍 全球加速
   - DOMAIN-SUFFIX,marketplace.jetbrains.com,🌍 全球加速
   - DOMAIN-SUFFIX,makerworld.com,🌍 全球加速
+  - DOMAIN-SUFFIX,openlist.team,🌍 全球加速
+  - DOMAIN-SUFFIX,qinzhiai.com,🌍 全球加速
 
   # 🛑 ===== 5. 广告拦截 (按需启用) =====
   # - RULE-SET,reject_non_ip,REJECT
@@ -999,9 +1047,6 @@ rules:
   # - RULE-SET,reject_non_ip_drop,REJECT-DROP
   # - RULE-SET,reject_non_ip_no_drop,REJECT
   # - RULE-SET,reject_ip,REJECT
-
-  # 🚀 ===== 5b. Ookla 测速 =====
-  - RULE-SET,Speedtest,speedtest
 
   # 🤖 ===== 6. AI 服务 =====
   - DOMAIN-SUFFIX,openrouter.ai,🤖 人工智能
