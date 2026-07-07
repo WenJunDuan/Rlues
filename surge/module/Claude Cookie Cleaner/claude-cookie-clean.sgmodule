@@ -1,14 +1,20 @@
-#!name=Claude Cookie Cleaner
-#!desc=Clear Claude/Anthropic web login cookies when opening any Claude or Anthropic page.
+#!name=Claude Login Reset
+#!desc=Force Claude iOS/Web session_expired on account APIs, then clear Claude/Anthropic web login cookies.
 #!author=Codex
 #!system=ios
 
 [General]
-force-http-engine-hosts = %APPEND% claude.ai, *.claude.ai, claude.com, *.claude.com, anthropic.com, *.anthropic.com
+force-http-engine-hosts = %APPEND% claude.ai, *.claude.ai, claude.com, *.claude.com, a-api.anthropic.com, anthropic.com, *.anthropic.com
 
 [Script]
 Claude_Cookie_Request = type=http-request,pattern=^https?:\/\/(?:[^\/]+\.)?(?:claude\.ai|claude\.com|anthropic\.com)(?::\d+)?(?:\/|$),script-path=https://raw.githubusercontent.com/WenJunDuan/Rlues/refs/heads/main/surge/module/Claude%20Cookie%20Cleaner/claude_cookie.js,script-update-interval=86400,timeout=10,requires-body=false
 Claude_Cookie_Response = type=http-response,pattern=^https?:\/\/(?:[^\/]+\.)?(?:claude\.ai|claude\.com|anthropic\.com)(?::\d+)?(?:\/|$),script-path=https://raw.githubusercontent.com/WenJunDuan/Rlues/refs/heads/main/surge/module/Claude%20Cookie%20Cleaner/claude_cookie.js,script-update-interval=86400,timeout=10,requires-body=false
 
+[Map Local]
+# Hard fallback for Claude Web / iOS account reset. Disable this module after Claude returns to login.
+^https:\/\/claude\.ai\/api\/account(?:[\/\?#]|$) data-type=base64 data=eyJ0eXBlIjoiZXJyb3IiLCJlcnJvciI6eyJ0eXBlIjoic2Vzc2lvbl9leHBpcmVkIiwibWVzc2FnZSI6IlNlc3Npb24gZXhwaXJlZCJ9fQ== status-code=401 header="Content-Type:application/json|Cache-Control:no-store|Set-Cookie:routingHint=; Path=/; Domain=.claude.ai; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly; SameSite=Lax|Set-Cookie:sessionKey=; Path=/; Domain=.claude.ai; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly; SameSite=Lax"
+^https:\/\/a-api\.anthropic\.com\/.* data-type=base64 data=eyJ0eXBlIjoiZXJyb3IiLCJlcnJvciI6eyJ0eXBlIjoic2Vzc2lvbl9leHBpcmVkIiwibWVzc2FnZSI6IlNlc3Npb24gZXhwaXJlZCJ9fQ== status-code=401 header="Content-Type:application/json|Cache-Control:no-store|Set-Cookie:routingHint=; Path=/; Domain=.claude.ai; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly; SameSite=Lax|Set-Cookie:sessionKey=; Path=/; Domain=.claude.ai; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly; SameSite=Lax"
+
 [MITM]
-hostname = %APPEND% claude.ai, *.claude.ai, claude.com, *.claude.com, anthropic.com, *.anthropic.com
+hostname = %APPEND% claude.ai, *.claude.ai, claude.com, *.claude.com, a-api.anthropic.com, anthropic.com, *.anthropic.com
+h2 = true

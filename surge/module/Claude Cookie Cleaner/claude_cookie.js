@@ -1,6 +1,13 @@
 (() => {
   const targetHost = /(^|\.)((claude\.ai)|(claude\.com)|(anthropic\.com))$/i;
   const storePrefix = "claude_cookie_cleaner.";
+  const sessionExpiredBody = JSON.stringify({
+    type: "error",
+    error: {
+      type: "session_expired",
+      message: "Session expired"
+    }
+  });
   const knownCookieNames = [
     "activitySessionId",
     "ajs_anonymous_id",
@@ -30,6 +37,21 @@
   function hostnameFromUrl(url) {
     const match = String(url || "").match(/^https?:\/\/([^/:?#]+)/i);
     return match ? match[1] : "";
+  }
+
+  function pathnameFromUrl(url) {
+    const match = String(url || "").match(/^https?:\/\/[^/]+([^?#]*)/i);
+    return match ? match[1] || "/" : "/";
+  }
+
+  function isResetEndpoint(url) {
+    const host = hostnameFromUrl(url);
+    const path = pathnameFromUrl(url);
+
+    return (
+      (/^claude\.ai$/i.test(host) && /^\/api\/account(?:\/|$)/i.test(path)) ||
+      (/^a-api\.anthropic\.com$/i.test(host))
+    );
   }
 
   function nameBeforeEquals(cookie) {
@@ -141,6 +163,28 @@
     });
   }
 
+  function sessionExpiredHeaders(host) {
+    return {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      "Set-Cookie": expiryCookies(host || "claude.ai", [
+        ...knownCookieNames,
+        "routingHint",
+        "sessionKey"
+      ])
+    };
+  }
+
+  function notifyReset(url) {
+    try {
+      if (typeof $notification !== "undefined") {
+        $notification.post("Claude Login Reset", "Intercepted Claude session API", url);
+      }
+    } catch (error) {
+      // Notification is best-effort; reset should still continue.
+    }
+  }
+
   try {
     const host = hostnameFromUrl($request.url);
     if (!targetHost.test(host)) {
@@ -148,6 +192,17 @@
     }
 
     if (typeof $response === "undefined") {
+      if (isResetEndpoint($request.url)) {
+        notifyReset($request.url);
+        return $done({
+          response: {
+            status: 401,
+            headers: sessionExpiredHeaders(host),
+            body: sessionExpiredBody
+          }
+        });
+      }
+
       const headers = $request.headers || {};
       const requestCookieNames = parseRequestCookieNames(headers);
       const existingCookieNames = readStoredCookieNames(host);

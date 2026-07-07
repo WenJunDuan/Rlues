@@ -1,6 +1,6 @@
-# Claude Cookie Cleaner
+# Claude Login Reset
 
-Surge iOS module. When you open a Claude or Anthropic page, it clears web login cookies at the HTTP layer.
+Surge iOS module. It forces Claude account APIs to return `session_expired`, then clears Claude / Anthropic web login cookies at the HTTP layer.
 
 ## Files
 
@@ -33,11 +33,14 @@ https://raw.githubusercontent.com/WenJunDuan/Rlues/refs/heads/main/surge/module/
 
 3. Enable the module.
 4. Make sure Surge MITM is enabled and the CA certificate is installed and trusted.
-5. Open any Claude or Anthropic page once.
-6. Disable the module after cleanup, otherwise Claude login cookies will keep being removed.
+5. Open Claude iOS or Claude Web once.
+6. Wait until Claude returns to the login screen or account state resets.
+7. Disable the module immediately, otherwise Claude APIs will keep returning `session_expired`.
 
-## What It Cleans
+## What It Does
 
+- Forces `https://claude.ai/api/account...` to return HTTP `401` with `session_expired`.
+- Forces `https://a-api.anthropic.com/...` to return HTTP `401` with `session_expired`.
 - Removes the outgoing `Cookie` header for Claude and Anthropic domains.
 - Removes incoming `Set-Cookie` headers from Claude and Anthropic responses.
 - Sends expired `Set-Cookie` headers for known and observed Claude-related cookie names.
@@ -49,9 +52,19 @@ claude.ai
 *.claude.ai
 claude.com
 *.claude.com
+a-api.anthropic.com
 anthropic.com
 *.anthropic.com
 ```
+
+## Why This Shape
+
+The `401 session_expired` path matches Claude app behavior better than only deleting cookies: the app sees an expired session and runs its own logout/reset flow. Cookie deletion remains useful as a browser fallback.
+
+The module includes both:
+
+- `Script`: dynamic reset response plus broad Cookie cleanup
+- `Map Local`: static `401 session_expired` fallback if the reset endpoint is matched
 
 ## Limits
 
@@ -69,5 +82,6 @@ References:
 
 - Surge Module: https://manual.nssurge.com/others/module.html
 - Surge Scripting: https://manual.nssurge.com/scripting/common.html
+- Surge Map Local: https://manual.nssurge.com/http-processing/mock.html
 - Surge MITM: https://manual.nssurge.com/http-processing/mitm.html
 - Apple Keychain Services: https://developer.apple.com/documentation/security/keychain-services
