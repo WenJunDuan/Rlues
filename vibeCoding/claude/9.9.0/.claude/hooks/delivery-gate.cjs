@@ -24,6 +24,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const EXIT_SUCCESS = 0;
 
@@ -91,6 +92,41 @@ function runningBackgroundTasks(payload) {
     const s = ((t && (t.status || t.state)) || '').toString().toLowerCase();
     return s === 'running' || s === 'pending' || s === 'in_progress';
   });
+}
+
+function gitLines(cwd, args) {
+  try {
+    const out = execFileSync('git', args, {
+      cwd,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 15000,
+    });
+    return out.split('\n').map(s => s.trim()).filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
+
+function gitRoot(cwd) {
+  const out = gitLines(cwd, ['rev-parse', '--show-toplevel']);
+  return out[0] || cwd;
+}
+
+function countChangedFilesGit(cwd) {
+  const root = gitRoot(cwd);
+  const files = new Set();
+  for (const base of ['main...HEAD', 'master...HEAD']) {
+    for (const file of gitLines(root, ['diff', '--name-only', base])) files.add(file);
+  }
+  for (const args of [
+    ['diff', '--name-only'],
+    ['diff', '--name-only', '--cached'],
+    ['ls-files', '--others', '--exclude-standard'],
+  ]) {
+    for (const file of gitLines(root, args)) files.add(file);
+  }
+  return files.size;
 }
 
 function main() {
@@ -184,14 +220,14 @@ function main() {
     // === Refactor/System (≥5 文件) ship 前必须更新 architecture/ (铁律[架构]) ===
     if (REFACTOR_SYSTEM.has(pathType) && stage === 'ship' && sprintSlug && !skipArch) {
       const evidenceFile = path.join(aiState, 'sprints', sprintSlug, 'evidence.yaml');
-      let changedFiles = 0;
+      let changedFiles = countChangedFilesGit(cwd);
       if (fs.existsSync(evidenceFile)) {
         const ev = fs.readFileSync(evidenceFile, 'utf-8');
         const seen = new Set();
         for (const m of ev.matchAll(/^\s*file:\s*["']?([^"\n]+)["']?/gm)) {
           seen.add(m[1].trim());
         }
-        changedFiles = seen.size;
+        changedFiles = Math.max(changedFiles, seen.size);
       }
       if (changedFiles >= 5) {
         const archDir = path.join(aiState, 'architecture');

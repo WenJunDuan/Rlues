@@ -83,6 +83,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/token-usage-collector.py",
+            "timeout": 15,
+            "statusMessage": "Collecting subagent token usage"
+          },
+          {
+            "type": "command",
             "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-tracker.py",
             "timeout": 15
           }
@@ -92,6 +98,12 @@
     "Stop": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/token-usage-collector.py",
+            "timeout": 15,
+            "statusMessage": "Collecting token usage"
+          },
           {
             "type": "command",
             "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",

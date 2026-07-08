@@ -88,7 +88,12 @@ by_stage:
       reasoning_tokens: 0
 ```
 
-CC can read usage from transcript/subagent usage blocks. CX support must be verified against current hook payloads before implementation; if unavailable, record `unknown` rather than inventing numbers.
+CC can read usage from transcript/subagent usage blocks. CX support must be verified against current hook payloads before implementation; if unavailable, record `unknown` rather than inventing numbers. Official hook contracts used for this decision:
+
+- Codex hooks: https://developers.openai.com/codex/hooks
+- Claude Code hooks: https://code.claude.com/docs/en/hooks
+
+`token-usage.yaml` v1 must use `null` for unknown totals, not `0`. It must expose both `by_model` and `by_stage -> model` buckets so delivery reports can summarize stage x model cost without re-parsing records.
 
 Alternative rejected: infer token use from elapsed time or model name. That produces false precision.
 
@@ -120,6 +125,15 @@ Both `vibeCoding/claude/9.9.0/.claude/skills` and `vibeCoding/codex/9.9.0/.codex
 
 Alternative rejected: only patch installed `~/.codex` / `~/.claude`. The versioned package is the source of truth.
 
+### CC/CX Hook Matrix
+
+| Concern | CX package | CC package | Intentional difference |
+|---|---|---|---|
+| Token usage collection | `Stop` and `SubagentStop`: `token-usage-collector.py` as a non-blocking command | `Stop` and `SubagentStop`: `token-usage-collector.cjs` as a non-blocking command; `pace-continuator.cjs` remains CC-only | Hook order in config is not a correctness dependency; Codex command hooks for the same event may run concurrently. |
+| Transcript access | Best-effort `transcript_path` / `agent_transcript_path` / hook payload; absence writes `no_usage_found` | Official `transcript_path` / `agent_transcript_path`, payload recursion, and `<usage>...</usage>` blocks | CC transcript is expected to be richer; CX may only provide process evidence. |
+| Failure mode | Fail-open, write warning to stderr | Fail-open, write warning to stderr | Same behavior. |
+| Write safety | Lock file + atomic temp replace | Lock file + atomic temp rename | Same semantics, implementation differs by runtime. |
+
 ## Implementation Slice
 
 This Sprint implements the package-level skill skeletons and shared reference schemas:
@@ -131,10 +145,31 @@ This Sprint implements the package-level skill skeletons and shared reference sc
 - Add `playwright-e2e`
 - Add `biz-delivery-loop` with checkpoint/report/runtime-env references
 - Register all eight fullstack-delivery skills in Codex `config.toml`
+- Add the first token usage collector hook for CC/CX with best-effort transcript parsing, `unknown` handling, and stage x model output.
+- Harden delivery-gate architecture counting so System/Refactor ship checks include committed, staged, unstaged, and untracked files.
 
 Out of scope for this slice:
 
-- Hook implementation for token aggregation
-- Delivery-gate code changes
 - Real quantum FE/BE Convention Pack edits
 - End-to-end drill against live quantum projects
+
+## Critic Findings Round 1
+
+- Token collector files were untracked and could be missed by review/commit. Resolution: keep implementation files explicit in git status and include them in final review evidence.
+- Fingerprint included `stage`, causing duplicate token records when the same transcript was collected after a stage transition. Resolution: fingerprint excludes `stage`.
+- Persistent regression coverage was missing. Resolution: added `scripts/test-token-usage-collector.py`.
+- Token collector scope was not reflected in the design. Resolution: Decision 5 and hook matrix now include token collection.
+
+## Critic Findings Round 2
+
+- Unknown token totals used `0`, which looked like real usage. Resolution: no-usage files write `null` totals.
+- Runtime env keys diverged between `frontend/backend/database` and `fe/be/db`. Resolution: reference contract now defines canonical keys plus aliases.
+- Checkpoint protocol lacked a machine-readable `checkpoints.yaml` schema. Resolution: reference contract now defines status enum, attempts, evidence, confirmation, issue, and rollback fields.
+- Concurrent collector writes could race. Resolution: both collectors use lock files and atomic replacement.
+
+## Critic Findings Round 3
+
+- Codex Stop hook ordering was assumed but not guaranteed. Resolution: runtime verification and hook matrix now state non-blocking collection with no order dependency.
+- Subagent token coverage missed `agent_transcript_path`. Resolution: both collectors support `agent_transcript_path` and both packages register collection on `SubagentStop`.
+- System architecture gate could miss main-worktree changes because it counted only `main...HEAD` or evidence files. Resolution: both delivery gates now include unstaged, staged, and untracked git files.
+- Review artifacts were not closed. Resolution path: generate `reviews/pass1.md`, update `_index.latest_review`, then proceed only after PASS/CONCERNS.

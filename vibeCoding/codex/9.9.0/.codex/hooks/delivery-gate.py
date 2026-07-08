@@ -61,8 +61,13 @@ def parse_frontmatter(content: str) -> dict:
         m = re.match(r"^([\w\-_.]+)\s*:\s*(.*)$", line)
         if m:
             k, v = m.group(1), m.group(2).strip()
-            if v.startswith('"') and v.endswith('"'):
-                v = v[1:-1]
+            quoted = re.match(r'^"([^"]*)"|^\'([^\']*)\'', v)
+            if quoted:
+                v = quoted.group(1) if quoted.group(1) is not None else quoted.group(2)
+            else:
+                comment_idx = v.find(" #")
+                if comment_idx >= 0:
+                    v = v[:comment_idx].strip()
             fm[k] = v
     return fm
 
@@ -73,21 +78,44 @@ def block(reason: str) -> int:
     return EXIT_SUCCESS
 
 
-def count_changed_files_git(cwd: Path) -> int:
-    for base in ("main...HEAD", "master...HEAD"):
-        try:
-            r = subprocess.run(
-                ["git", "diff", "--name-only", base],
-                cwd=str(cwd), capture_output=True, text=True, timeout=15,
-            )
-            if r.returncode == 0:
-                files = [ln for ln in r.stdout.splitlines() if ln.strip()]
-                if files:
-                    return len(files)
-        except Exception:
-            pass
-    return 0
+def _git_lines(cwd: Path, args: list[str]) -> set[str]:
+    try:
+        r = subprocess.run(
+            ["git", *args],
+            cwd=str(cwd), capture_output=True, text=True, timeout=15,
+        )
+        if r.returncode == 0:
+            return {ln.strip() for ln in r.stdout.splitlines() if ln.strip()}
+    except Exception:
+        pass
+    return set()
 
+
+def git_root(cwd: Path) -> Path:
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=str(cwd), capture_output=True, text=True, timeout=15,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return Path(r.stdout.strip())
+    except Exception:
+        pass
+    return cwd
+
+
+def count_changed_files_git(cwd: Path) -> int:
+    root = git_root(cwd)
+    files: set[str] = set()
+    for base in ("main...HEAD", "master...HEAD"):
+        files |= _git_lines(root, ["diff", "--name-only", base])
+    for args in (
+        ["diff", "--name-only"],
+        ["diff", "--name-only", "--cached"],
+        ["ls-files", "--others", "--exclude-standard"],
+    ):
+        files |= _git_lines(root, args)
+    return len(files)
 
 def count_changed_files_evidence(ai_state: Path, sprint_slug: str) -> int:
     evidence = ai_state / "sprints" / sprint_slug / "evidence.yaml"

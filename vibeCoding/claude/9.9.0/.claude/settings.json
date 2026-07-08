@@ -164,6 +164,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node ~/.claude/hooks/token-usage-collector.cjs",
+            "timeout": 15
+          },
+          {
+            "type": "command",
             "command": "node ~/.claude/hooks/subagent-tracker.cjs",
             "timeout": 15
           }
@@ -198,6 +203,11 @@
       {
         "matcher": "",
         "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/token-usage-collector.cjs",
+            "timeout": 15
+          },
           {
             "_comment": "v9.6.4-hotfix2: Stop hook 全部用确定性 command 类型 delivery-gate (只看当下快照, 不等后台产物, 不死锁)",
             "type": "command",

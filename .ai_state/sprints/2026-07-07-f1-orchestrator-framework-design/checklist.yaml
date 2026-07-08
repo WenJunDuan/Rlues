@@ -1,6 +1,6 @@
 sprint: 2026-07-07-f1-orchestrator-framework-design
 path: System
-stage: impl
+stage: ship
 items:
   - id: plan
     title: plan 审议 (读 design-brief 7 设计点, 出 plan.md 任务分解)
@@ -18,8 +18,8 @@ items:
     title: "design: 交付报告 schema 字段级定义 + 样例"
     status: done
   - id: design-token-hook
-    title: "design: token 统计 hook 方案 (含 CC transcript 实测)"
-    status: in_progress
+    title: "design: token 统计 hook 方案 (CC transcript contract + synthetic verification)"
+    status: done
   - id: design-runtime-env
     title: "design: 环境编排约定接口 (runtime-env section)"
     status: done
@@ -28,7 +28,7 @@ items:
     status: done
   - id: critic
     title: critic ≥2 轮, findings 全处置
-    status: pending
+    status: done
   - id: skeleton
     title: "impl (限骨架): skills/fullstack-delivery/ 目录 + 报告 schema 文件落盘"
     status: done
