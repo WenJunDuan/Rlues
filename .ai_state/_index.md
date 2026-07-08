@@ -6,7 +6,7 @@ version: "9.9.0"
 # === PACE 路由状态 ===
 path: "Feature"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
 stage: "ship"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
-current_sprint_slug: "2026-07-08-f6-end-to-end-drill"  # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
+current_sprint_slug: ""          # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
 current_roadmap_slug: ""  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
@@ -88,7 +88,7 @@ design_changed_after_impl: false  # design.md 改后需 re-review
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
 plan_critique_min_rounds: 0       # v9.9.0 (U2): 0=auto (Refactor/System=2, 其余=1); delivery-gate 在 ship 验 design.md 轮数
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
-skip_impl_subagent_check: true    # v9.9.0 (U1): true 跳过 "impl 必须经 generator" 门禁 (纯绿区微改 sprint 才设)
+skip_impl_subagent_check: false   # v9.9.0 (U1): true 跳过 "impl 必须经 generator" 门禁 (纯绿区微改 sprint 才设)
 network_in_polish: true           # polish_worker 是否允许 network
 
 # === Fingerprint (index-updater 用于 mtime 比对) ===
