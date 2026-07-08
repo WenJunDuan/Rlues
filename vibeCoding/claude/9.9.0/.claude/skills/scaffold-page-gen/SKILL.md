@@ -36,12 +36,14 @@ Convention Pack；运行命令只从 `runtime-env` 读取。
 
 ## 工作流
 
-1. 读取 Convention Pack，确认页面文件结构、命名、权限、数据访问和测试约定。
-2. 读取 API 契约，生成类型、mock 数据、API client 或适配层；不得凭记忆补接口字段。
-3. 生成页面、路由、查询条件、表单校验、空态、错误态和权限态。
-4. 运行 Convention Pack 声明的 lint/typecheck/build/unit 命令。
-5. 从 `runtime-env` 启动 FE demo，访问探活 URL；失败则读错误、修复、重跑。
-6. 记录页面路径、命令、探活结果、截图或日志摘要，交给 `runtime-verify`。
+1. 定位 Convention Pack。通用约定读 `references/frontend-convention-pack.md`；若 `scaffold_id=quantum-front`
+   或目标 pack 路径匹配 `quantum-front/docs/ai/convention-pack`，再读 `references/quantum-front-adapter.md`。
+2. 运行 `python3 scripts/check_frontend_pack.py <convention-pack-dir>`，缺必需文件/模板先停机补约定。
+3. 读取 API 契约，生成类型、mock 数据、API client 或适配层；不得凭记忆补接口字段。
+4. 生成页面、路由/注册、查询条件、表单校验、空态、错误态和权限态。
+5. 运行 Convention Pack 声明的 lint/typecheck/build/unit 命令。
+6. 从 `runtime-env` 启动 FE demo，访问探活 URL；失败则读错误、修复、重跑。
+7. 记录页面路径、命令、探活结果、截图或日志摘要，交给 `runtime-verify`。
 
 ## 输出
 
@@ -62,3 +64,9 @@ Convention Pack；运行命令只从 `runtime-env` 读取。
 - impl stage：生成页面与 mock demo。
 - runtime-verify stage：实跑 FE demo、保存截图和探活证据。
 - review stage：由 spec-compliance 核对需求、契约和生成文件是否一致。
+
+## References
+
+- `references/frontend-convention-pack.md`: 所有前端脚手架必须提供的 pack contract。
+- `references/quantum-front-adapter.md`: quantum-front 的首个具体适配器。
+- `scripts/check_frontend_pack.py`: pack 结构和模板完整性校验脚本。

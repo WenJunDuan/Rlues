@@ -4,9 +4,9 @@
 version: "9.9.0"
 
 # === PACE 路由状态 ===
-path: "System"                    # Hotfix | Bugfix | Quick | Feature | Refactor | System
-stage: "ship"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
-current_sprint_slug: "2026-07-07-f1-orchestrator-framework-design"  # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
+path: "Feature"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
+stage: "plan"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
+current_sprint_slug: "2026-07-08-f2-scaffold-page-gen"  # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
 current_roadmap_slug: "fullstack-delivery"  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
@@ -52,7 +52,7 @@ tools_available:
 
 # === 进度计数 (index-updater hook 自动维护, 不手填) ===
 counts:
-  features_count: 0
+  features_count: 1
   issues_count: 0
   refactors_count: 0
   systems_count: 1
@@ -77,7 +77,7 @@ pointers:
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "ship"               # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
+next_action: "next_roadmap_item:f2-scaffold-page-gen"  # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
 last_subagent: "critic"
 last_subagent_at: "2026-07-08T02:25:55.015630Z"
 active_worktrees: []
@@ -107,6 +107,8 @@ fingerprint: ""
 - `2026-07-07 20:29`: F1 token-usage collector 已实现并 runtime-verify。真实 CX Stop payload 未暴露 usage, `token-usage.yaml` 记录 no_usage_found；下一步 review/critic。
 - `2026-07-08 10:48`: F1 review pass1=CONCERNS。已修 SubagentStop token 收集、delivery-gate 工作区计数、reference schema；下一步 polish。
 - `2026-07-08 11:05`: F1 polish 完成。已写 cleanup-pass、compound learning/decision、architecture 现状档；下一步 ship。
+- `2026-07-08 11:25`: F1 roadmap 标记 completed。F2 scaffold-page-gen sprint 已进入 plan，next_action=next_roadmap_item:f2-scaffold-page-gen。
+- `2026-07-08 12:18`: F2 scaffold-page-gen 首片实现完成。已新增 Convention Pack contract、quantum-front adapter、pack 校验脚本与 CC/CX 回归；review 仍待执行。
 
 ## 工具调度建议
 

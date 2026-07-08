@@ -8,14 +8,14 @@ items:
     repo: Rlues
     depends: []
     sprint_slug: "2026-07-07-f1-orchestrator-framework-design"
-    status: in_progress
+    status: completed
   - slug: f2-scaffold-page-gen
     title: "F2: scaffold-page-gen skill + 对接 quantum-front 约定包"
     path: Feature
     repo: Rlues + quantum-front
     depends: [f1-orchestrator-framework-design]
-    sprint_slug: ""
-    status: pending
+    sprint_slug: "2026-07-08-f2-scaffold-page-gen"
+    status: in_progress
   - slug: f3-db-and-unit-test-gen
     title: "F3: db-schema-gen + unit-test-gen skill + 报告模板"
     path: Feature

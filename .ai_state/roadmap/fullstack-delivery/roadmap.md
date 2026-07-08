@@ -27,8 +27,8 @@ Rlues vibeCoding/{claude,codex}/9.9.x/skills/fullstack-delivery/   ← skill 本
 
 | item | 交付 | 仓库 | 依赖 | 状态 |
 |---|---|---|---|---|
-| F1 | 框架设计: 家族边界 + 编排状态机 (PACE 特化) + checkpoint/回滚协议 + 报告 schema + token 统计 hook 设计 | Rlues | 无 | **进行中 (本 session)** |
-| F2 | scaffold-page-gen skill; FE 约定包由 quantum session 并行产出后对接 | Rlues + quantum-front | F1 | pending |
+| F1 | 框架设计: 家族边界 + 编排状态机 (PACE 特化) + checkpoint/回滚协议 + 报告 schema + token 统计 hook 设计 | Rlues | 无 | completed |
+| F2 | scaffold-page-gen skill; FE 约定包由 quantum session 并行产出后对接 | Rlues + quantum-front | F1 | **in_progress (sprint: 2026-07-08-f2-scaffold-page-gen)** |
 | F3 | db-schema-gen + unit-test-gen skill + 报告模板; DB/测试约定 quantum 侧 | Rlues + quantum-backend | F1 | pending |
 | F4 | security-test + playwright-e2e 无关化 + 环境编排约定接口 | Rlues + quantum | F2 | pending |
 | F5 | biz-delivery-loop 编排 skill + checkpoint hook + token hook + project-data-reader 完善 | Rlues | F1-F4 (reader 另依赖 quantum S3) | pending |

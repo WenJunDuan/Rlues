@@ -1,0 +1,25 @@
+sprint: 2026-07-08-f2-scaffold-page-gen
+path: Feature
+stage: plan
+items:
+  - id: f1-closeout
+    title: "roadmap: F1 标记 completed, F2 标记 in_progress"
+    status: done
+  - id: plan
+    title: "plan: 读取 quantum-front Convention Pack, 定义 scaffold-page-gen 增强验收"
+    status: done
+  - id: skill-contract
+    title: "impl: scaffold-page-gen SKILL.md 增加 progressive-disclosure 入口"
+    status: done
+  - id: references
+    title: "impl: 增加 frontend Convention Pack contract + quantum-front adapter references"
+    status: done
+  - id: validator
+    title: "impl: 增加 Convention Pack 结构校验脚本 + 回归测试"
+    status: done
+  - id: parity
+    title: "verify: CC/CX scaffold-page-gen 内容 parity"
+    status: done
+  - id: review
+    title: "review: F2 findings/证据落盘"
+    status: pending
