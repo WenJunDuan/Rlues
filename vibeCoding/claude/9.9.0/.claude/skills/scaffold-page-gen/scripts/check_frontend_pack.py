@@ -9,6 +9,7 @@ from pathlib import Path
 
 REQUIRED_FILES = [
     "conventions.md",
+    "runtime-env.md",
     "validate.md",
     "templates/access.ts.tmpl",
     "templates/api.ts.tmpl",
@@ -20,6 +21,8 @@ REQUIRED_FILES = [
 ]
 
 REQUIRED_VALIDATE_MARKERS = ["bunx tsc", "bun run lint", "bun run build", "G1", "G2", "G3", "G4", "G5", "G6"]
+
+REQUIRED_RUNTIME_MARKERS = ["dev_command", "port", "health_url", "teardown"]
 
 PLACEHOLDER_REQUIREMENTS = {
     "templates/access.ts.tmpl": ["{{Entity}}", "{{entity}}", "{{module}}"],
@@ -59,6 +62,11 @@ def validate(pack_dir: Path) -> tuple[list[str], list[str]]:
     for marker in REQUIRED_VALIDATE_MARKERS:
         if marker not in validate_md:
             errors.append(f"validate.md missing marker: {marker}")
+
+    runtime_env = read(pack_dir / "runtime-env.md")
+    for marker in REQUIRED_RUNTIME_MARKERS:
+        if marker not in runtime_env:
+            errors.append(f"runtime-env.md missing marker: {marker}")
 
     for rel, placeholders in PLACEHOLDER_REQUIREMENTS.items():
         content = read(pack_dir / rel)

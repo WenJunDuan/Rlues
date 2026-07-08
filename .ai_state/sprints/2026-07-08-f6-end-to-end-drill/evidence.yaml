@@ -1,0 +1,16 @@
+sprint_slug: 2026-07-08-f6-end-to-end-drill
+collected_evidence:
+  - tool_use_id: "call_rTcwuIpqelPdprrwvD0fYVbt"
+    tool: "Bash"
+    file: ""
+    kind: "test"
+    command: "bun test"
+    result: "pass"
+    timestamp: "2026-07-08T06:19:24.581785Z"
+  - tool_use_id: "call_vs5fe3oKs11TOVmhmBcng50q"
+    tool: "Bash"
+    file: ""
+    kind: "test"
+    command: "bun test"
+    result: "pass"
+    timestamp: "2026-07-08T06:19:33.016253Z"

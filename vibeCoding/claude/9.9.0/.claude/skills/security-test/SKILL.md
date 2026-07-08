@@ -35,11 +35,16 @@ Convention Pack；运行环境只从 `runtime-env` 读取。
 
 ## 工作流
 
-1. 读取 Convention Pack 与安全清单，限定测试范围。
-2. 执行静态检查：硬编码密钥、危险日志、SQL/shell 拼接、权限注解、依赖审计。
-3. 启动 `runtime-env` 声明的环境，执行动态用例：未登录、低权限、跨租户/跨数据域、非法输入。
-4. 对每个问题记录复现步骤、影响、证据和修复建议；修复后重跑同一用例。
-5. 输出安全测试报告；超出授权范围的问题转人工确认。
+1. 定位 Convention Pack。通用规则读 `references/security-test-contract.md`；若
+   `scaffold_id=quantum` 或 pack 路径匹配 `quantum-front` / `quantum-backend`，再读
+   `references/quantum-security-adapter.md`。
+2. 运行 `python3 scripts/check_security_e2e_pack.py --frontend-pack <fe-pack> --backend-pack <be-pack> --profile security`。
+   缺安全门禁、权限守卫或 runtime-env 时先停机补约定。
+3. 读取 Convention Pack 与安全清单，限定测试范围。
+4. 执行静态检查：硬编码密钥、危险日志、SQL/shell 拼接、权限注解、依赖审计。
+5. 启动 `runtime-env` 声明的环境，执行动态用例：未登录、低权限、跨租户/跨数据域、非法输入。
+6. 对每个问题记录复现步骤、影响、证据和修复建议；修复后重跑同一用例。
+7. 输出安全测试报告；超出授权范围的问题转人工确认。
 
 ## 输出
 
@@ -60,3 +65,9 @@ Convention Pack；运行环境只从 `runtime-env` 读取。
 - runtime-verify stage：执行静态与动态安全测试。
 - review stage：evaluator 把高风险问题作为 REWORK 输入。
 - ship stage：交付报告列出安全结论和人工确认项。
+
+## References
+
+- `references/security-test-contract.md`: 安全测试 Convention Pack contract。
+- `references/quantum-security-adapter.md`: quantum 前后端安全适配器。
+- `scripts/check_security_e2e_pack.py`: security/e2e pack 与 runtime-env 完整性校验脚本。

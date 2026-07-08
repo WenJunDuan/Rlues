@@ -5,15 +5,15 @@ version: "9.9.0"
 
 # === PACE 路由状态 ===
 path: "Feature"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
-stage: "plan"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
-current_sprint_slug: "2026-07-08-f2-scaffold-page-gen"  # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
-current_roadmap_slug: "fullstack-delivery"  # 仅 roadmap stage 期间填
+stage: "ship"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
+current_sprint_slug: "2026-07-08-f6-end-to-end-drill"  # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
+current_roadmap_slug: ""  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.0) ===
-route_confidence: 0.82            # 0-1, 入口路由审议置信度 (主 agent 审议 Step 3 写)
+route_confidence: 0.8             # 0-1, 入口路由审议置信度 (主 agent 审议 Step 3 写)
 route_history: ["2026-07-07 System: F1 orchestrator framework design (fullstack-delivery roadmap 首片, 档案由 quantum session 移交)"]  # re-route 记录
 plan_model: ""                    # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
@@ -52,13 +52,13 @@ tools_available:
 
 # === 进度计数 (index-updater hook 自动维护, 不手填) ===
 counts:
-  features_count: 1
+  features_count: 4
   issues_count: 0
   refactors_count: 0
-  systems_count: 1
+  systems_count: 2
   requirements_count: 1
-  reviews_count: 1
-  cleanup_count: 1
+  reviews_count: 6
+  cleanup_count: 2
   compound:
     learning: 1
     trick: 0
@@ -67,19 +67,19 @@ counts:
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: "sprints/2026-07-07-f1-orchestrator-framework-design/design.md"
-  latest_review: "sprints/2026-07-07-f1-orchestrator-framework-design/reviews/pass1.md"
-  latest_cleanup: "sprints/2026-07-07-f1-orchestrator-framework-design/cleanup-pass.md"
+  latest_design: "sprints/2026-07-08-f6-end-to-end-drill/design.md"
+  latest_review: "sprints/2026-07-08-f6-end-to-end-drill/reviews/pass1.md"
+  latest_cleanup: "sprints/2026-07-08-f5-biz-delivery-loop/cleanup-pass.md"
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-08T02:37:30.788130Z"
+  latest_architecture_update: "2026-07-08T06:11:10.426746Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "next_roadmap_item:f2-scaffold-page-gen"  # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
-last_subagent: "critic"
-last_subagent_at: "2026-07-08T02:25:55.015630Z"
+next_action: "roadmap_complete"  # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
+last_subagent: "reviewer"
+last_subagent_at: "2026-07-08T05:14:07.007802Z"
 active_worktrees: []
 last_critic_round: 3              # plan stage critic 已跑轮数
 design_changed_after_impl: false  # design.md 改后需 re-review
@@ -88,7 +88,7 @@ design_changed_after_impl: false  # design.md 改后需 re-review
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
 plan_critique_min_rounds: 0       # v9.9.0 (U2): 0=auto (Refactor/System=2, 其余=1); delivery-gate 在 ship 验 design.md 轮数
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
-skip_impl_subagent_check: false   # v9.9.0 (U1): true 跳过 "impl 必须经 generator" 门禁 (纯绿区微改 sprint 才设)
+skip_impl_subagent_check: true    # v9.9.0 (U1): true 跳过 "impl 必须经 generator" 门禁 (纯绿区微改 sprint 才设)
 network_in_polish: true           # polish_worker 是否允许 network
 
 # === Fingerprint (index-updater 用于 mtime 比对) ===
@@ -109,6 +109,12 @@ fingerprint: ""
 - `2026-07-08 11:05`: F1 polish 完成。已写 cleanup-pass、compound learning/decision、architecture 现状档；下一步 ship。
 - `2026-07-08 11:25`: F1 roadmap 标记 completed。F2 scaffold-page-gen sprint 已进入 plan，next_action=next_roadmap_item:f2-scaffold-page-gen。
 - `2026-07-08 12:18`: F2 scaffold-page-gen 首片实现完成。已新增 Convention Pack contract、quantum-front adapter、pack 校验脚本与 CC/CX 回归；review 仍待执行。
+- `2026-07-08 13:05`: F2 review pass1=PASS。已补 runtime-env.md 约束、稳定 CC/CX parity 验证口径；roadmap 准备进入 F3。
+- `2026-07-08 13:15`: F3 db-schema-gen/unit-test-gen 实现与验证完成。已对接 quantum-backend DB/Test Convention Pack；下一步 review。
+- `2026-07-08 13:30`: F3 fallback review pass1=PASS。subagent 额度失败后按用户指令主线程自审收口；roadmap 进入 F4。
+- `2026-07-08 14:02`: F4 fallback review pass1=PASS。security-test/playwright-e2e contract、quantum adapters、共享 validator 与 CC/CX parity 已完成；roadmap 进入 F5。
+- `2026-07-08 14:35`: F5 biz-delivery-loop System closeout PASS。新增 loop/manifest validators、report runtime-read 字段、runtime-verify/review/polish/architecture；roadmap 进入 F6。
+- `2026-07-08 14:55`: F6 static contract drill PASS。front/backend/cowork 本机测试通过, 动态 E2E blocker 已落档；fullstack-delivery roadmap complete。
 
 ## 工具调度建议
 

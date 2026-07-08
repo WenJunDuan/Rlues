@@ -1,0 +1,22 @@
+sprint: 2026-07-08-f3-db-and-unit-test-gen
+path: Feature
+stage: ship
+items:
+  - id: plan
+    title: "plan: 读取 quantum-backend Convention Pack, 定义 db-schema-gen/unit-test-gen 增强验收"
+    status: done
+  - id: db-contract
+    title: "impl: db-schema-gen 增加 backend DB Convention Pack contract + quantum-backend adapter"
+    status: done
+  - id: test-contract
+    title: "impl: unit-test-gen 增加 backend test Convention Pack contract + quantum-backend adapter"
+    status: done
+  - id: validator
+    title: "impl: 增加 backend pack 结构/marker 校验脚本 + 回归测试"
+    status: done
+  - id: parity
+    title: "verify: CC/CX db-schema-gen 与 unit-test-gen 内容 parity"
+    status: done
+  - id: review
+    title: "review: F3 findings/证据落盘"
+    status: done

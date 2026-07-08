@@ -2,10 +2,11 @@
 
 - `python3 scripts/test-scaffold-page-gen.py` — PASS
 - `python3 -m py_compile vibeCoding/codex/9.9.0/.codex/skills/scaffold-page-gen/scripts/check_frontend_pack.py vibeCoding/claude/9.9.0/.claude/skills/scaffold-page-gen/scripts/check_frontend_pack.py scripts/test-scaffold-page-gen.py` — PASS
-- `diff -qr vibeCoding/codex/9.9.0/.codex/skills/scaffold-page-gen vibeCoding/claude/9.9.0/.claude/skills/scaffold-page-gen` — PASS
+- `find vibeCoding/codex/9.9.0/.codex/skills/scaffold-page-gen vibeCoding/claude/9.9.0/.claude/skills/scaffold-page-gen -type d -name __pycache__ -prune -exec rm -rf {} + && diff -qr vibeCoding/codex/9.9.0/.codex/skills/scaffold-page-gen vibeCoding/claude/9.9.0/.claude/skills/scaffold-page-gen` — PASS
 - `python3 /Users/mi_manchi/.codex/skills/.system/skill-creator/scripts/quick_validate.py vibeCoding/codex/9.9.0/.codex/skills/scaffold-page-gen` — PASS
 - `python3 /Users/mi_manchi/.codex/skills/.system/skill-creator/scripts/quick_validate.py vibeCoding/claude/9.9.0/.claude/skills/scaffold-page-gen` — PASS
 - `git diff --check` — PASS
+- `python3 scripts/test-scaffold-page-gen.py` now asserts CC/CX source parity and runtime-env missing/marker failures.
 
 ## Notes
 

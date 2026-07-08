@@ -1,0 +1,22 @@
+sprint: 2026-07-08-f4-security-and-e2e
+path: Feature
+stage: ship
+items:
+  - id: plan
+    title: "plan: 定义 security-test/playwright-e2e contract 与 runtime-env 接口验收"
+    status: done
+  - id: security-contract
+    title: "impl: security-test 增加无关化安全测试 contract + adapter"
+    status: done
+  - id: e2e-contract
+    title: "impl: playwright-e2e 增加无关化浏览器测试 contract + adapter"
+    status: done
+  - id: runtime-env
+    title: "impl: 环境编排约定接口与 validator"
+    status: done
+  - id: parity
+    title: "verify: CC/CX security-test 与 playwright-e2e parity"
+    status: done
+  - id: review
+    title: "review: F4 findings/证据落盘"
+    status: done

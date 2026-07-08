@@ -28,11 +28,17 @@ Rlues vibeCoding/{claude,codex}/9.9.x/skills/fullstack-delivery/   ← skill 本
 | item | 交付 | 仓库 | 依赖 | 状态 |
 |---|---|---|---|---|
 | F1 | 框架设计: 家族边界 + 编排状态机 (PACE 特化) + checkpoint/回滚协议 + 报告 schema + token 统计 hook 设计 | Rlues | 无 | completed |
-| F2 | scaffold-page-gen skill; FE 约定包由 quantum session 并行产出后对接 | Rlues + quantum-front | F1 | **in_progress (sprint: 2026-07-08-f2-scaffold-page-gen)** |
-| F3 | db-schema-gen + unit-test-gen skill + 报告模板; DB/测试约定 quantum 侧 | Rlues + quantum-backend | F1 | pending |
-| F4 | security-test + playwright-e2e 无关化 + 环境编排约定接口 | Rlues + quantum | F2 | pending |
-| F5 | biz-delivery-loop 编排 skill + checkpoint hook + token hook + project-data-reader 完善 | Rlues | F1-F4 (reader 另依赖 quantum S3) | pending |
-| F6 | 端到端演练: 真实小业务全流程, 校准回滚协议 | quantum 三工程 | F5 | pending |
+| F2 | scaffold-page-gen skill; FE 约定包由 quantum session 并行产出后对接 | Rlues + quantum-front | F1 | completed |
+| F3 | db-schema-gen + unit-test-gen skill + 报告模板; DB/测试约定 quantum 侧 | Rlues + quantum-backend | F1 | completed |
+| F4 | security-test + playwright-e2e 无关化 + 环境编排约定接口 | Rlues + quantum | F2 | completed |
+| F5 | biz-delivery-loop 编排 skill + checkpoint hook + token hook + project-data-reader 完善 | Rlues | F1-F4 (reader 另依赖 quantum S3) | completed |
+| F6 | 端到端演练: 静态 contract drill + 本机 FE/BE/MCP/cowork 测试; 真实动态 E2E blocker 已落档 | quantum 三工程 | F5 | completed |
+
+## 完成结论
+
+- F1-F5 skills/编排/契约已完成并通过回归。
+- F6 可复验静态演练完成: Rlues 回归、quantum-front 测试、quantum-backend MCP reactor 测试、quantum-cowork 测试均通过。
+- 真实动态 FE/BE/MCP 小业务 E2E 未伪装为完成; blocker: backend runtime-env、OAuth/test account handoff、cowork docs/ai runtime contract、cowork remote fetch credentials。
 
 ## 硬约束 (每个 item 都适用)
 

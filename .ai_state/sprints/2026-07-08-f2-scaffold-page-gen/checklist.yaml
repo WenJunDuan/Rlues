@@ -1,6 +1,6 @@
 sprint: 2026-07-08-f2-scaffold-page-gen
 path: Feature
-stage: plan
+stage: ship
 items:
   - id: f1-closeout
     title: "roadmap: F1 标记 completed, F2 标记 in_progress"
@@ -22,4 +22,4 @@ items:
     status: done
   - id: review
     title: "review: F2 findings/证据落盘"
-    status: pending
+    status: done

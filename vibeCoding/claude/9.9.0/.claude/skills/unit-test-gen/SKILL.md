@@ -34,11 +34,15 @@ Convention Pack；需要服务或数据库时只读 `runtime-env`。
 
 ## 工作流
 
-1. 读取 Convention Pack，确定测试类型、目录、fixture 和禁止 mock 的边界。
-2. 为每条验收标准写测试；覆盖成功、失败、权限、空数据和边界条件。
-3. 运行声明的单测命令，确认失败原因来自真实业务差异而非测试拼写错误。
-4. 修复代码或测试夹具，重跑；同一失败连续三轮无法推进时标记 blocked。
-5. 汇总用例数、通过率、覆盖关键路径、失败修复摘要和剩余风险。
+1. 定位 Convention Pack。通用约定读 `references/backend-test-convention-pack.md`；若
+   `scaffold_id=quantum-backend` 或目标 pack 路径匹配 `quantum-backend/docs/ai/convention-pack`，
+   再读 `references/quantum-backend-adapter.md`。
+2. 运行 `python3 scripts/check_backend_pack.py <convention-pack-dir> --profile test`，缺必需文件/模板先停机补约定。
+3. 读取 Convention Pack，确定测试类型、目录、fixture 和禁止 mock 的边界。
+4. 为每条验收标准写测试；覆盖成功、失败、权限、空数据和边界条件。
+5. 运行声明的单测命令，确认失败原因来自真实业务差异而非测试拼写错误。
+6. 修复代码或测试夹具，重跑；同一失败连续三轮无法推进时标记 blocked。
+7. 汇总用例数、通过率、覆盖关键路径、失败修复摘要和剩余风险。
 
 ## 输出
 
@@ -59,3 +63,9 @@ Convention Pack；需要服务或数据库时只读 `runtime-env`。
 - runtime-verify stage：保存测试命令与报告证据。
 - review stage：reviewer 检查测试是否覆盖验收标准和关键风险。
 - ship stage：交付报告引用测试结果和遗留风险。
+
+## References
+
+- `references/backend-test-convention-pack.md`: 后端测试 Convention Pack contract。
+- `references/quantum-backend-adapter.md`: quantum-backend 的测试适配器。
+- `scripts/check_backend_pack.py`: 后端 pack 结构和模板完整性校验脚本。

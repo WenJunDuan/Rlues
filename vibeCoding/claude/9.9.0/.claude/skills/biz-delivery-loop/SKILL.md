@@ -37,19 +37,22 @@ description: >-
 
 ## 工作流
 
-1. requirements：落需求清单，拆 Sprint 或 roadmap。
-2. design：冻结 API 契约、效果图或 HTML mockup、schema 草案和 checkpoint 标准。
-3. CP1：人工确认效果图；失败回到 design 对应子步。
-4. impl FE：调用 `scaffold-page-gen` 生成 mock demo，启动 `runtime-env` 探活。
-5. CP2：机器门禁确认 demo 可运行；失败回到 FE impl。
-6. impl DB：调用 `db-schema-gen` 产出表设计文档和 DDL SQL。
-7. CP3：人工 schema 评审；失败回到 DB design/impl。
-8. impl BE：调用 `scaffold-module-gen` 生成后端模块并编译。
-9. CP4：机器门禁确认编译、契约和基础质量；失败回到 BE impl。
-10. runtime-verify：调用 `unit-test-gen`、集成契约 diff、`playwright-e2e`、`security-test`。
-11. review：执行 PACE review 三件套，缺失或偏离回到对应 impl 或 design 子步。
-12. ship 前：按报告 schema 汇总需求完成度、FE/BE 测试、模型/token 消耗、遗留问题和人工确认清单。
-13. CP5：人工确认交付报告；通过后按用户指令进入 ship。
+1. 先读 `references/orchestration-contract.md`，再运行
+   `python3 scripts/check_delivery_loop_contract.py <biz-delivery-loop-skill-dir>`；缺合同/报告/checkpoint 字段先停机补 skill。
+2. requirements：落需求清单，拆 Sprint 或 roadmap。
+3. design：冻结 API 契约、效果图或 HTML mockup、schema 草案和 checkpoint 标准。
+4. CP1：人工确认效果图；失败回到 design 对应子步。
+5. impl FE：调用 `scaffold-page-gen` 生成 mock demo，启动 `runtime-env` 探活。
+6. CP2：机器门禁确认 demo 可运行；失败回到 FE impl。
+7. impl DB：调用 `db-schema-gen` 产出表设计文档和 DDL SQL。
+8. CP3：人工 schema 评审；失败回到 DB design/impl。
+9. impl BE：调用 `scaffold-module-gen` 生成后端模块并编译。
+10. CP4：机器门禁确认编译、契约和基础质量；失败回到 BE impl。
+11. runtime-verify：调用 `unit-test-gen`、集成契约 diff、`playwright-e2e`、`security-test`。
+12. 可选读数：调用 `project-data-reader` 读取运行期只读数据；只接受 Capability Manifest 声明的 read 能力。
+13. review：执行 PACE review 三件套，缺失或偏离回到对应 impl 或 design 子步。
+14. ship 前：按报告 schema 汇总需求完成度、FE/BE 测试、模型/token 消耗、运行期读数、遗留问题和人工确认清单。
+15. CP5：人工确认交付报告；通过后按用户指令进入 ship。
 
 ## 输出
 
@@ -76,4 +79,6 @@ description: >-
 
 - `references/checkpoint-protocol.md`
 - `references/delivery-report-schema.md`
+- `references/orchestration-contract.md`
 - `references/runtime-env-contract.md`
+- `scripts/check_delivery_loop_contract.py`

@@ -37,5 +37,5 @@ Turn `scaffold-page-gen` from a thin skeleton into a usable frontend page genera
 
 - `python3 scripts/test-scaffold-page-gen.py`
 - `python3 -m py_compile .../check_frontend_pack.py scripts/test-scaffold-page-gen.py`
-- `diff -qr` between CC/CX scaffold-page-gen directories.
+- `find ... -name __pycache__ -prune -exec rm -rf {} +` then `diff -qr` between CC/CX scaffold-page-gen directories.
 - `python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py` on both skill folders.

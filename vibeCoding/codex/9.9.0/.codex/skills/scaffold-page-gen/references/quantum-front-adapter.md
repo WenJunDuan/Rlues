@@ -81,3 +81,8 @@ bun run build
 
 Run only the commands appropriate to the current stage, but `build` is the final proof before
 claiming a generated page is complete.
+
+## Runtime Env
+
+Use `runtime-env.md` from the target pack for demo verification. Do not infer the dev command,
+port, health URL, or teardown from `package.json`; the pack must declare them explicitly.

@@ -1,0 +1,19 @@
+sprint: 2026-07-08-f6-end-to-end-drill
+path: Feature
+stage: plan
+items:
+  - id: audit
+    title: "plan: 审计 quantum-front/backend/cowork-ai 分支、运行条件、runtime-env/MCP/test accounts"
+    status: completed
+  - id: drill-scope
+    title: "design: 选择一个最小真实小业务切片与验收标准"
+    status: completed
+  - id: runtime-env
+    title: "impl: 补齐缺失 runtime-env / manifest / 演练报告输入"
+    status: completed
+  - id: dry-run
+    title: "runtime-verify: 运行可复验脚本或明确 blocker"
+    status: completed
+  - id: review
+    title: "review: F6 演练结论、缺口、是否 roadmap completed"
+    status: completed

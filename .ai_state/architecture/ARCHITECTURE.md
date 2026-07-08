@@ -1,6 +1,6 @@
 ---
 last_updated: "2026-07-08"
-triggered_by_sprint: "2026-07-07-f1-orchestrator-framework-design"
+triggered_by_sprint: "2026-07-08-f5-biz-delivery-loop"
 state: "current"
 ---
 
@@ -56,3 +56,4 @@ sequenceDiagram
 ## 关键决策
 
 - Token usage unknown totals use `null`, not `0` -> `compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md`
+- Fullstack delivery orchestration remains a PACE specialization; Capability Manifest reads are runtime-only and read-only.

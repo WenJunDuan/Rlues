@@ -9,6 +9,7 @@ permission, mock, and validation rules.
 ```text
 docs/ai/convention-pack/
   conventions.md
+  runtime-env.md
   validate.md
   templates/
     access.ts.tmpl
@@ -26,9 +27,11 @@ docs/ai/convention-pack/
   permission guard, mock/demo, table/form, and error-state rules.
 - `validate.md` must define typecheck/lint/build commands and security gates. Gates must check
   evidence, not just success strings.
+- `runtime-env.md` must define `dev_command`, `port`, `health_url`, and `teardown` for local demo
+  verification.
 - Templates must preserve placeholders for `{{Entity}}`, `{{entity}}`, and route/module fields
   until the generator instantiates them.
-- Runtime commands, ports, health URLs, and teardown must come from `runtime-env`; do not infer
+- Runtime commands, ports, health URLs, and teardown must come from `runtime-env.md`; do not infer
   them from package scripts.
 
 ## Generation Flow

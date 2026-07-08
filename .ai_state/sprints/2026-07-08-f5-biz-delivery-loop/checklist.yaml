@@ -1,0 +1,25 @@
+sprint: 2026-07-08-f5-biz-delivery-loop
+path: System
+stage: ship
+items:
+  - id: plan
+    title: "plan/design: 定义 biz-delivery-loop 与 project-data-reader 完善验收"
+    status: done
+  - id: orchestration-contract
+    title: "impl: biz-delivery-loop 补齐 F2-F4 skill 编排 contract"
+    status: done
+  - id: checkpoint-report
+    title: "impl: checkpoint/report/token evidence schema 与 validator"
+    status: done
+  - id: reader-boundary
+    title: "impl: project-data-reader 运行期只读边界与 manifest adapter"
+    status: done
+  - id: runtime-verify
+    title: "runtime-verify: 验证 loop contract、schema validator、CC/CX parity"
+    status: done
+  - id: review
+    title: "review: F5 findings/证据落盘"
+    status: done
+  - id: polish
+    title: "polish: System 路径 cleanup-pass + architecture 更新"
+    status: done

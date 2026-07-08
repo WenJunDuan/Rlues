@@ -34,12 +34,17 @@ Convention Pack 或 `runtime-env`，不复制 Playwright 官方细节。
 
 ## 工作流
 
-1. 读取 `runtime-env`，按声明顺序启动 DB、BE、FE，并等待探活 URL 成功。
-2. 读取 Convention Pack，确认 E2E 文件位置、选择器约定和测试数据策略。
-3. 使用既有 `playwright` skill 编写可复跑测试；测试来源必须是需求和契约。
-4. 执行 E2E 命令，保存截图、trace、视频或报告路径；失败则读证据、修复、重跑。
-5. 执行 teardown，释放端口、进程、容器或临时数据。
-6. 把结果写入 `runtime-verify` 证据和交付报告输入。
+1. 定位 Convention Pack。通用规则读 `references/e2e-convention-pack.md`；若
+   `scaffold_id=quantum` 或 pack 路径匹配 `quantum-front` / `quantum-backend`，再读
+   `references/quantum-e2e-adapter.md`。
+2. 运行 `python3 scripts/check_security_e2e_pack.py --frontend-pack <fe-pack> --backend-pack <be-pack> --profile e2e`。
+   缺 runtime-env、页面挂载或测试报告约定时先停机补约定。
+3. 读取 `runtime-env`，按声明顺序启动 DB、BE、FE，并等待探活 URL 成功。
+4. 读取 Convention Pack，确认 E2E 文件位置、选择器约定和测试数据策略。
+5. 使用既有 `playwright` skill 编写可复跑测试；测试来源必须是需求和契约。
+6. 执行 E2E 命令，保存截图、trace、视频或报告路径；失败则读证据、修复、重跑。
+7. 执行 teardown，释放端口、进程、容器或临时数据。
+8. 把结果写入 `runtime-verify` 证据和交付报告输入。
 
 ## 输出
 
@@ -59,3 +64,9 @@ Convention Pack 或 `runtime-env`，不复制 Playwright 官方细节。
 - runtime-verify stage：启动全栈环境，执行 E2E，保存证据。
 - review stage：spec-compliance 核对 E2E 是否覆盖原始需求和契约。
 - ship stage：交付报告引用 E2E 结果和人工未确认项。
+
+## References
+
+- `references/e2e-convention-pack.md`: E2E Convention Pack contract。
+- `references/quantum-e2e-adapter.md`: quantum 前后端 E2E 适配器。
+- `scripts/check_security_e2e_pack.py`: security/e2e pack 与 runtime-env 完整性校验脚本。

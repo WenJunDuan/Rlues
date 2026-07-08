@@ -31,6 +31,7 @@ description: >-
 
 1. 目标系统的 MCP endpoint（Streamable HTTP/SSE URL 或 stdio 启动方式）
 2. 操作者身份：**OAuth 2.1 自动授权，无需手动提供 token**（决策 2026-07-06）
+3. Capability Manifest。通用合同见 `references/capability-manifest-contract.md`。
 
 ## 授权流程（OAuth 2.1，MCP 规范标准流程）
 
@@ -48,9 +49,11 @@ description: >-
 ## 工作流
 
 1. 连接目标系统 MCP server，拉取 Capability Manifest（可用只读工具清单 + 入参/语义）。
-2. 按需调用只读能力。**每次调用都带上操作者 JWT**。
-3. 目标系统侧完成：验签身份 → 重建登录用户 → 过角色/权限 → 过行级数据权限 → 脱敏 → 审计。
-4. 拿到结构化结果回给模型。
+2. 若 manifest 可导出为本地 JSON，先运行
+   `python3 scripts/check_capability_manifest.py <manifest.json>`；含写能力、缺权限/数据域/审计声明时停机。
+3. 按需调用只读能力。**每次调用都带上操作者 JWT**。
+4. 目标系统侧完成：验签身份 → 重建登录用户 → 过角色/权限 → 过行级数据权限 → 脱敏 → 审计。
+5. 拿到结构化结果回给模型，并把 capability 名称、manifest 版本、调用目的和证据交给 `biz-delivery-loop` 汇总。
 
 ## 铁律（安全边界在目标系统，不在本 skill）
 
@@ -62,3 +65,8 @@ description: >-
 
 本目录即一个标准 Agent Skill，直接放进 aether/pace 的 skills 目录即可。
 quantum-backend 的 MCP 能力适配见设计文档 §7 与 `quantum-mcp` 模块（S3 交付）。
+
+## References
+
+- `references/capability-manifest-contract.md`: 运行期只读 Capability Manifest contract。
+- `scripts/check_capability_manifest.py`: 本地 manifest JSON 结构/只读边界校验脚本。
