@@ -25,7 +25,7 @@ items:
     notes: "首装、升级、AGENTS、动态计数、CHANGELOG"
   - slug: "validation-delivery"
     title: "runtime-verify/review/polish/architecture/ship"
-    status: in_progress
+    status: completed
     sprint_slug: "2026-07-10-athena-9-9-1-validation"
     blocked_by: ["cx-runtime-contract", "agent-skill-contract", "installer-release"]
     estimated_complexity: L

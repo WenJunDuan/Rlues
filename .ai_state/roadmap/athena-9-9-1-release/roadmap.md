@@ -47,8 +47,8 @@ Athena 9.9.0 在 Codex CLI 0.144.1 上可加载，但 hooks wire、原生 multi-
 
 ## 验收
 
-- [ ] items.yaml 全部 completed
-- [ ] 9.9.1 CC/CX 包存在，9.9.0 无改动
-- [ ] 行为 fixtures、strict config、skill validator、包一致性全部通过
-- [ ] runtime-verify、三维 review、polish、architecture 更新完成
-- [ ] 产生 compound learning
+- [x] items.yaml 全部 completed
+- [x] 9.9.1 CC/CX 包存在，9.9.0 无改动
+- [x] 行为 fixtures、strict config、skill validator、包一致性全部通过
+- [x] runtime-verify、三维 review、polish、architecture 更新完成
+- [x] 产生 compound learning

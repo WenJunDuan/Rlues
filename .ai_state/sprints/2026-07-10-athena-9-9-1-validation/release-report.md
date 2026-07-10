@@ -3,7 +3,7 @@ sprint_slug: "2026-07-10-athena-9-9-1-validation"
 version: "9.9.1"
 base_version: "9.9.0"
 base_commit: "5eb6189"
-status: "ready_to_ship"
+status: "shipped"
 created: "2026-07-10"
 ---
 
@@ -56,7 +56,8 @@ created: "2026-07-10"
 
 ## Ship
 
-- Release commit: pending.
-- Main merge: pending.
-- Origin push/ahead-behind: pending.
-- Worktree/branch cleanup: pending.
+- Release commit: `c0cc8ed feat(athena): release v9.9.1 for Codex 0.144.1`.
+- Main merge: fast-forward `5eb6189 -> c0cc8ed`.
+- Origin push: `main -> origin/main`; post-push ahead/behind `0 0` at `c0cc8ed`.
+- Worktree/branch cleanup: `/Users/mi_manchi/workspace/Rlues-athena-9.9.1` removed; `codex/athena-9.9.1` deleted.
+- Existing main-worktree changes preserved: `vibeCoding/claude/9.9.0/.claude/settings.json` and pre-compact snapshots were not included in the release commit.

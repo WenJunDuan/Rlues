@@ -6,8 +6,8 @@ version: "9.9.0"
 # === PACE 路由状态 ===
 path: "System"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
 stage: "ship"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
-current_sprint_slug: "2026-07-10-athena-9-9-1-validation"          # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
-current_roadmap_slug: "athena-9-9-1-release"  # 仅 roadmap stage 期间填
+current_sprint_slug: ""          # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
+current_roadmap_slug: ""  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
@@ -52,12 +52,12 @@ tools_available:
 
 # === 进度计数 (index-updater hook 自动维护, 不手填) ===
 counts:
-  features_count: 4
+  features_count: 5
   issues_count: 0
-  refactors_count: 0
-  systems_count: 2
+  refactors_count: 1
+  systems_count: 5
   requirements_count: 1
-  reviews_count: 7
+  reviews_count: 8
   cleanup_count: 3
   compound:
     learning: 2
@@ -73,14 +73,14 @@ pointers:
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-10T06:31:00Z"
+  latest_architecture_update: "2026-07-10T06:34:58.956322Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "ship"  # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
+next_action: "roadmap_complete"  # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
 last_subagent: "polish_worker"
 last_subagent_at: "2026-07-10T06:31:00Z"
-active_worktrees: ["Rlues-athena-9.9.1"]
+active_worktrees: []
 last_critic_round: 3              # plan stage critic 已跑轮数
 design_changed_after_impl: false  # design.md 改后需 re-review
 
@@ -117,6 +117,7 @@ fingerprint: ""
 - `2026-07-08 14:55`: F6 static contract drill PASS。front/backend/cowork 本机测试通过, 动态 E2E blocker 已落档；fullstack-delivery roadmap complete。
 - `2026-07-10 14:22`: Athena 9.9.1 review pass2=PASS。统一验证 65/65，runtime 30/30，migration 8/8；进入 polish。
 - `2026-07-10 14:31`: Athena 9.9.1 polish=READY。architecture、compound、release report 已更新；进入 ship。
+- `2026-07-10 14:36`: Athena 9.9.1 已发布。release commit `c0cc8ed` 合并并推送 main；worktree/branch 已清理，roadmap 4/4 complete。
 
 ## 工具调度建议
 
