@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "opus",
+  "effortLevel": "max",
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "env": {
+    "VIBECODING_ATHENA_VERSION": "9.9.1",
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-5",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_MAX_RETRIES": "100",
+    "API_TIMEOUT_MS": "30000"
+  },
+  "permissions": {
+    "defaultMode": "auto",
+    "allow": [
+      "Read(**)",
+      "Write(**)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push *)",
+      "Bash(git worktree*)",
+      "Bash(npm test*)",
+      "Bash(npm run*)",
+      "Bash(npm install*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm run*)",
+      "Bash(pnpm install*)",
+      "Bash(npx playwright*)",
+      "Bash(npx ecc-agentshield*)",
+      "Bash(curl *)",
+      "Bash(http *)",
+      "Bash(uvicorn *)",
+      "Bash(node *)",
+      "Bash(python3 -m *)",
+      "Bash(pytest*)",
+      "Bash(rg *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(grep *)",
+      "Bash(jq *)",
+      "Bash(make *)",
+      "Bash(cmake --build*)",
+      "Bash(./gradlew test*)",
+      "Bash(./gradlew build*)",
+      "Bash(mvn test*)",
+      "Bash(mvn compile*)",
+      "Bash(cargo test*)",
+      "Bash(cargo build*)",
+      "Bash(go test*)",
+      "Bash(go build*)",
+      "Bash(eslint *)",
+      "Bash(prettier --check*)",
+      "Bash(tsc --noEmit*)",
+      "Bash(ssh athena-vm-*)",
+      "Bash(sshpass -e ssh athena-vm-*)",
+      "Bash(scp * athena-vm-*)",
+      "Bash(rsync * athena-vm-*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf $HOME*)",
+      "Bash(git push *--force*)",
+      "Bash(npm publish*)",
+      "Bash(pnpm publish*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/session-start.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/pre-bash-guard.cjs",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/subagent-worktree-check.cjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/index-updater.cjs",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/evidence-collector.cjs",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/design-change-detector.cjs",
+            "timeout": 5,
+            "if": "Edit(**/design.md)",
+            "_comment": "v9.9.0: if 过滤 (2.1.178+), 只在 design.md 被 Edit 时起进程; 若 if 在当前版本失效导致 detector 哑火, delivery-gate 的 mtime 兜底在 ship 时补位 (CHECKER 冗余, 见 delivery-gate 检查9)"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/evidence-collector.cjs",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/subagent-retry.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/token-usage-collector.cjs",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/subagent-tracker.cjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/worktree-tracker.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/worktree-tracker.cjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/token-usage-collector.cjs",
+            "timeout": 15
+          },
+          {
+            "_comment": "v9.6.4-hotfix2: Stop hook 全部用确定性 command 类型 delivery-gate (只看当下快照, 不等后台产物, 不死锁)",
+            "type": "command",
+            "command": "node ~/.claude/hooks/delivery-gate.cjs",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/pace-continuator.cjs",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/permission-retry.cjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/compact-snapshot.cjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/compact-restore.cjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/notification-router.cjs",
+            "timeout": 5,
+            "_comment": "v9.9.0: agent_completed → 软提醒消费 next_action (fail-open, payload 不匹配零副作用)"
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "superpowers@anthropic-official": true,
+    "code-review@anthropic-official": true,
+    "feature-dev@anthropic-official": true,
+    "commit@anthropic-official": true,
+    "playwright-skill@anthropic-official": true,
+    "context7@anthropic-official": true,
+    "codex-plugin-cc@third-party-marketplace": true,
+    "ECC-AgentShield@third-party-marketplace": true
+  },
+  "_comment_v991": "v9.9.1: Athena 版本标记更新; SessionStart 覆盖 startup/resume/clear; 其余用户级配置由迁移流程按字段合并，不允许整份覆盖"
+}

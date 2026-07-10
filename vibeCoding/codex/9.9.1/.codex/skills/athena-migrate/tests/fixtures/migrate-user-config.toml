@@ -1,0 +1,43 @@
+# Athena v9.9.0 plus user-owned configuration that migration must preserve.
+model_provider = "custom_openai"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+model_context_window = 1000000
+model_auto_compact_token_limit = 900000
+user_top_level_flag = "keep-byte-for-byte"
+
+[[skills.config]]
+path = "/Users/example/.codex/skills/athena-dev/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "/Users/example/.codex/skills/private-customer-skill/SKILL.md"
+enabled = true
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.9.0"
+USER_FLAG = "keep"
+
+[model_providers.custom_openai]
+name = "custom_openai"
+base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
+user_note = "preserve-extra-provider-key"
+
+[mcp_servers.private]
+command = "private-mcp"
+args = ["--token-env", "PRIVATE_TOKEN"]
+
+[projects."/private/project"]
+trust_level = "trusted"
+
+[plugins."private@local"]
+enabled = true
+
+[desktop]
+preventSleepWhileRunning = false
+composerEnterBehavior = "enter"
+
+[unknown.private]
+opaque = "preserve-me"

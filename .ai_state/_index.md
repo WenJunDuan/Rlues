@@ -4,23 +4,23 @@
 version: "9.9.0"
 
 # === PACE 路由状态 ===
-path: "Feature"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
+path: "System"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
 stage: "ship"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
-current_sprint_slug: ""          # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
-current_roadmap_slug: ""  # 仅 roadmap stage 期间填
+current_sprint_slug: "2026-07-10-athena-9-9-1-validation"          # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
+current_roadmap_slug: "athena-9-9-1-release"  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.0) ===
-route_confidence: 0.8             # 0-1, 入口路由审议置信度 (主 agent 审议 Step 3 写)
-route_history: ["2026-07-07 System: F1 orchestrator framework design (fullstack-delivery roadmap 首片, 档案由 quantum session 移交)"]  # re-route 记录
+route_confidence: 0.99             # 0-1, 入口路由审议置信度 (主 agent 审议 Step 3 写)
+route_history: ["2026-07-07 System: F1 orchestrator framework design (fullstack-delivery roadmap 首片, 档案由 quantum session 移交)", "2026-07-10 System: Athena 9.9.1 compatibility release from 9.9.0 baseline"]  # re-route 记录
 plan_model: ""                    # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
 platforms_enabled: ["both"]       # cc | cx | both
 cc_version: "claude-code (unknown, desktop app 会话, CLI 不在 PATH)"
-cx_version: "codex-cli 0.142.5"
+cx_version: "codex-cli 0.144.1"
 ag_callable: false                # antigravity (agy) 未安装
 
 # === 平台原生能力 (athena-init 探测) ===
@@ -31,9 +31,9 @@ platform_features:
   cc_subagent_stop_hook: true     # CC SubagentStop 原生事件
   cc_worktree_hooks: true         # CC WorktreeCreate/Remove 原生事件
   cc_stop_prompt_hook: true       # CC Stop hook prompt 类型 (2026-03+)
-  cx_spawn_agent: true            # codex 0.142.5 >= 0.128
-  cx_plan_mode_reasoning_effort: true    # codex 0.142.5 >= 0.105.0
-  cx_spawn_agents_on_csv: true    # 0.142.5 且 config.toml multi_agent=true
+  cx_spawn_agent: true            # Codex 0.144.1 native multi-agent v2
+  cx_plan_mode_reasoning_effort: true    # Codex 0.144.1
+  cx_spawn_agents_on_csv: false   # 当前 surfaced v2 无 CSV fan-out；按实际工具能力判定
   ag_parallel_subagents: false    # Antigravity 并行
   ag_headless_p: false            # agy -p
 
@@ -44,7 +44,7 @@ tools_available:
   augment_mcp_cc: false
   augment_mcp_cx: false
   web_search_cc: true             # CC WebSearch (always true)
-  web_search_cx: false            # Codex web_search = "live"
+  web_search_cx: true             # Codex web_search = "live"
   rg_available: true
   jq_available: true
   agentshield_cli: false          # ECC AgentShield (可选)
@@ -57,30 +57,30 @@ counts:
   refactors_count: 0
   systems_count: 2
   requirements_count: 1
-  reviews_count: 6
-  cleanup_count: 2
+  reviews_count: 7
+  cleanup_count: 3
   compound:
-    learning: 1
+    learning: 2
     trick: 0
     decision: 1
     explore: 0
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: "sprints/2026-07-08-f6-end-to-end-drill/design.md"
-  latest_review: "sprints/2026-07-08-f6-end-to-end-drill/reviews/pass1.md"
-  latest_cleanup: "sprints/2026-07-08-f5-biz-delivery-loop/cleanup-pass.md"
+  latest_design: "sprints/2026-07-10-athena-9-9-1-validation/design.md"
+  latest_review: "sprints/2026-07-10-athena-9-9-1-validation/reviews/pass2.md"
+  latest_cleanup: "sprints/2026-07-10-athena-9-9-1-validation/cleanup-pass.md"
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
-  latest_lessons: ["compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-08T06:11:10.426746Z"
+  latest_lessons: ["compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
+  latest_architecture_update: "2026-07-10T06:31:00Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "roadmap_complete"  # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
-last_subagent: "reviewer"
-last_subagent_at: "2026-07-08T05:14:07.007802Z"
-active_worktrees: []
+next_action: "ship"  # evaluator/Stop prompt 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
+last_subagent: "polish_worker"
+last_subagent_at: "2026-07-10T06:31:00Z"
+active_worktrees: ["Rlues-athena-9.9.1"]
 last_critic_round: 3              # plan stage critic 已跑轮数
 design_changed_after_impl: false  # design.md 改后需 re-review
 
@@ -115,6 +115,8 @@ fingerprint: ""
 - `2026-07-08 14:02`: F4 fallback review pass1=PASS。security-test/playwright-e2e contract、quantum adapters、共享 validator 与 CC/CX parity 已完成；roadmap 进入 F5。
 - `2026-07-08 14:35`: F5 biz-delivery-loop System closeout PASS。新增 loop/manifest validators、report runtime-read 字段、runtime-verify/review/polish/architecture；roadmap 进入 F6。
 - `2026-07-08 14:55`: F6 static contract drill PASS。front/backend/cowork 本机测试通过, 动态 E2E blocker 已落档；fullstack-delivery roadmap complete。
+- `2026-07-10 14:22`: Athena 9.9.1 review pass2=PASS。统一验证 65/65，runtime 30/30，migration 8/8；进入 polish。
+- `2026-07-10 14:31`: Athena 9.9.1 polish=READY。architecture、compound、release report 已更新；进入 ship。
 
 ## 工具调度建议
 
@@ -136,12 +138,13 @@ fingerprint: ""
 
 ### impl stage (subagent 始终用)
 - CC: Task `generator` subagent
-- CX: spawn_agent `generator.toml`
-- Refactor/System: 强制 `isolation: worktree` (CC) 或 `git worktree add + --cwd` (CX)
+- CX: native `spawn_agent({task_name,message})`; 先按 `~/.agents/skills/pace/references/orchestration.md` 完成 raw Start → assignment 握手
+- Refactor/System: CC 使用平台 isolation；CX 由主线程 `git worktree add`，任务携带绝对路径，agent 验证 `pwd/workdir`
 - 并行 ≥ 2 subagent 改文件时: 强制 worktree 隔离
 
-### review stage (3 subagent 并行)
-- `reviewer` + `spec-compliance` + `evaluator` 同时跑
+### review stage (2 + 1)
+- `reviewer` + `spec-compliance` 并行返回
+- 主线程合并 `passN.md` 后再启动 `evaluator`
 - spec-compliance 检查 design.md vs git diff (MISSING/EXTRA/DEVIATED)
 - evaluator 给 VERDICT (PASS/CONCERNS/REWORK/FAIL) 写入 _index.next_action
 

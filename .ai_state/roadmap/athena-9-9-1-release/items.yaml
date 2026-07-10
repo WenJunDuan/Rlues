@@ -1,0 +1,32 @@
+roadmap_slug: "athena-9-9-1-release"
+created: "2026-07-10"
+total_items: 4
+items:
+  - slug: "cx-runtime-contract"
+    title: "CX config/hooks/native multi-agent 兼容"
+    status: completed
+    sprint_slug: "2026-07-10-athena-9-9-1-cx-runtime"
+    blocked_by: []
+    estimated_complexity: XL
+    notes: "修复 false-pass、provider/context、spawn/worktree 合约"
+  - slug: "agent-skill-contract"
+    title: "Agent 落盘模型、路径与 skill schema"
+    status: completed
+    sprint_slug: "2026-07-10-athena-9-9-1-agent-skill"
+    blocked_by: []
+    estimated_complexity: L
+    notes: "主线程落盘；移除 details/；frontmatter 合规"
+  - slug: "installer-release"
+    title: "setup/migrate/版本/双端发布包"
+    status: completed
+    sprint_slug: "2026-07-10-athena-9-9-1-installer"
+    blocked_by: []
+    estimated_complexity: L
+    notes: "首装、升级、AGENTS、动态计数、CHANGELOG"
+  - slug: "validation-delivery"
+    title: "runtime-verify/review/polish/architecture/ship"
+    status: in_progress
+    sprint_slug: "2026-07-10-athena-9-9-1-validation"
+    blocked_by: ["cx-runtime-contract", "agent-skill-contract", "installer-release"]
+    estimated_complexity: L
+    notes: "行为证据与发布闭环"

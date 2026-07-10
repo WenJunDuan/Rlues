@@ -1,0 +1,52 @@
+sprint_slug: "2026-07-10-athena-9-9-1-validation"
+created: "2026-07-10"
+tasks:
+  - id: T1
+    title: "运行 release validator、双端 tests、quick_validate 与静态解析"
+    status: completed
+    evidence_tool_use_ids: ["986b49", "1d9524", "aea330", "b42792", "0067aa", "f3e056", "43f0fe", "f391c0"]
+    files_changed: []
+    completed_at: "2026-07-10T04:18:00Z"
+    blocked_by: ""
+  - id: T2
+    title: "临时 HOME fresh install + Codex strict doctor/debug prompt"
+    status: completed
+    evidence_tool_use_ids: ["160b23", "9c444d"]
+    files_changed: []
+    completed_at: "2026-07-10T04:22:00Z"
+    blocked_by: "T1"
+  - id: T3
+    title: "真实 9.9.0 双端事务升级、幂等、保护字段与故障回滚"
+    status: completed
+    evidence_tool_use_ids: ["ab365d", "020a77", "7fb664", "f0c017", "a4ba0c", "9afdcd"]
+    files_changed: []
+    completed_at: "2026-07-10T04:32:00Z"
+    blocked_by: "T1"
+  - id: T4
+    title: "PostTool/subagent/gate 正常、边界、异常行为矩阵"
+    status: completed
+    evidence_tool_use_ids: ["runtime_validation_builder", "eb297a", "986b49"]
+    files_changed: []
+    completed_at: "2026-07-10T04:32:00Z"
+    blocked_by: "T1"
+  - id: T5
+    title: "三件套 review 与 findings 闭环"
+    status: completed
+    evidence_tool_use_ids: ["7e213a"]
+    files_changed: [".ai_state/sprints/2026-07-10-athena-9-9-1-validation/reviews/pass1.md", ".ai_state/sprints/2026-07-10-athena-9-9-1-validation/reviews/pass2.md"]
+    completed_at: "2026-07-10T06:22:11Z"
+    blocked_by: "T2,T3,T4"
+  - id: T6
+    title: "polish、architecture、compound、release report"
+    status: completed
+    evidence_tool_use_ids: ["7e213a"]
+    files_changed: [".ai_state/sprints/2026-07-10-athena-9-9-1-validation/cleanup-pass.md", ".ai_state/architecture/ARCHITECTURE.md", ".ai_state/architecture/lib-athena-delivery-pack.md", ".ai_state/compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", ".ai_state/sprints/2026-07-10-athena-9-9-1-validation/release-report.md"]
+    completed_at: "2026-07-10T06:31:00Z"
+    blocked_by: "T5"
+  - id: T7
+    title: "merge main、push、worktree/branch cleanup 与 ahead-behind 验证"
+    status: pending
+    evidence_tool_use_ids: []
+    files_changed: []
+    completed_at: ""
+    blocked_by: "T6"

@@ -1,0 +1,45 @@
+sprint_slug: "2026-07-10-athena-9-9-1-cx-runtime"
+created: "2026-07-10"
+tasks:
+  - id: T1
+    title: "复制 9.9.0 双端包为 9.9.1并固定基线"
+    status: completed
+    evidence_tool_use_ids: ["release_scaffold", "0b0060"]
+    files_changed: ["vibeCoding/codex/9.9.1", "vibeCoding/claude/9.9.1"]
+    completed_at: "2026-07-10T02:55:00Z"
+    blocked_by: ""
+  - id: T2
+    title: "先写空 provider/context/strict config、CX runtime 与 gate 失败 fixtures"
+    status: completed
+    evidence_tool_use_ids: ["0b0060"]
+    files_changed: ["vibeCoding/scripts/validate-athena-9.9.1.py", "vibeCoding/scripts/fixtures/athena-9.9.1", ".ai_state/sprints/2026-07-10-athena-9-9-1-cx-runtime/red-baseline.md"]
+    completed_at: "2026-07-10T02:55:00Z"
+    blocked_by: "T1"
+  - id: T3
+    title: "修复 portable config 与 hook runtime contract"
+    status: completed
+    evidence_tool_use_ids: ["cx_runtime_fix", "f73ab1"]
+    files_changed: ["vibeCoding/codex/9.9.1/.codex/config.toml", "vibeCoding/codex/9.9.1/.codex/hooks.json", "vibeCoding/codex/9.9.1/.codex/hooks"]
+    completed_at: "2026-07-10T03:19:00Z"
+    blocked_by: "T2"
+  - id: T4
+    title: "修复 native collaboration 与 gate contract"
+    status: completed
+    evidence_tool_use_ids: ["cx_runtime_fix", "shared_contract_rework", "c4bfed"]
+    files_changed: ["vibeCoding/codex/9.9.1/.codex/hooks/delivery-gate.py", "vibeCoding/codex/9.9.1/.codex/hooks/subagent-tracker.py", "vibeCoding/codex/9.9.1/.codex/skills/pace/references/orchestration.md", "vibeCoding/codex/9.9.1/.codex/AGENTS.md", "vibeCoding/scripts/fixtures/athena-9.9.1/README.md"]
+    completed_at: "2026-07-10T04:12:00Z"
+    blocked_by: "T2"
+  - id: T5
+    title: "运行同一 fixtures 转绿并完成 item review"
+    status: completed
+    evidence_tool_use_ids: ["176920"]
+    files_changed: [".ai_state/sprints/2026-07-10-athena-9-9-1-validation/reviews/pass2.md"]
+    completed_at: "2026-07-10T06:22:11Z"
+    blocked_by: "T3,T4"
+  - id: T6
+    title: "修复 task_name-agent_id 握手与 unknown/fail evidence 假过"
+    status: completed
+    evidence_tool_use_ids: ["cx_runtime_review", "cx_runtime_fix", "688a05"]
+    files_changed: ["vibeCoding/codex/9.9.1/.codex/hooks/subagent-tracker.py", "vibeCoding/codex/9.9.1/.codex/hooks/delivery-gate.py", "vibeCoding/scripts/fixtures/athena-9.9.1/gate-cases.json"]
+    completed_at: "2026-07-10T03:33:00Z"
+    blocked_by: "T3"

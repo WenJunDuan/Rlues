@@ -1,0 +1,38 @@
+sprint_slug: "2026-07-10-athena-9-9-1-agent-skill"
+created: "2026-07-10"
+tasks:
+  - id: T1
+    title: "保存旧 orchestration/details/frontmatter 的 validator 红灯"
+    status: completed
+    evidence_tool_use_ids: ["0b0060"]
+    files_changed: [".ai_state/sprints/2026-07-10-athena-9-9-1-cx-runtime/red-baseline.md"]
+    completed_at: "2026-07-10T02:55:00Z"
+    blocked_by: ""
+  - id: T2
+    title: "修复双端 prompt/agent/skill/shared contract"
+    status: completed
+    evidence_tool_use_ids: ["shared_contract_fix", "b945ba", "0b9974"]
+    files_changed: ["vibeCoding/codex/9.9.1/.codex/AGENTS.md", "vibeCoding/codex/9.9.1/.codex/agents", "vibeCoding/codex/9.9.1/.codex/standards", "vibeCoding/codex/9.9.1/.codex/skills", "vibeCoding/claude/9.9.1/.claude/CLAUDE.md", "vibeCoding/claude/9.9.1/.claude/agents", "vibeCoding/claude/9.9.1/.claude/rules", "vibeCoding/claude/9.9.1/.claude/hooks", "vibeCoding/claude/9.9.1/.claude/skills"]
+    completed_at: "2026-07-10T03:25:00Z"
+    blocked_by: "T1"
+  - id: T3
+    title: "运行 31/31 quick_validate、禁用项扫描与 semantic parity"
+    status: completed
+    evidence_tool_use_ids: ["b945ba", "0b9974", "3482f0"]
+    files_changed: []
+    completed_at: "2026-07-10T03:25:00Z"
+    blocked_by: "T2"
+  - id: T4
+    title: "完成 item review 并关闭 findings"
+    status: completed
+    evidence_tool_use_ids: ["176920"]
+    files_changed: [".ai_state/sprints/2026-07-10-athena-9-9-1-validation/reviews/pass2.md"]
+    completed_at: "2026-07-10T06:22:11Z"
+    blocked_by: "T3"
+  - id: T5
+    title: "修复 spawn 握手、CC review 2+1、缓存与版本 findings"
+    status: completed
+    evidence_tool_use_ids: ["shared_contract_review", "shared_contract_rework"]
+    files_changed: ["vibeCoding/codex/9.9.1/.codex/AGENTS.md", "vibeCoding/codex/9.9.1/.codex/skills/pace/SKILL.md", "vibeCoding/codex/9.9.1/.codex/skills/pace/references/orchestration.md", "vibeCoding/claude/9.9.1/.claude/agents/reviewer.md", "vibeCoding/claude/9.9.1/.claude/skills/athena-runtime-verify/SKILL.md", "vibeCoding/claude/9.9.1/.claude/skills/pace/references/orchestration.md", "vibeCoding/scripts/fixtures/athena-9.9.1/README.md"]
+    completed_at: "2026-07-10T03:50:00Z"
+    blocked_by: "T3"

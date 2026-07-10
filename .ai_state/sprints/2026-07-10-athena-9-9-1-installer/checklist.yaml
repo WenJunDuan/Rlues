@@ -1,0 +1,38 @@
+sprint_slug: "2026-07-10-athena-9-9-1-installer"
+created: "2026-07-10"
+tasks:
+  - id: T1
+    title: "保存 setup/migrate/version 的 validator 红灯与用户 config fixture"
+    status: completed
+    evidence_tool_use_ids: ["0b0060"]
+    files_changed: ["vibeCoding/scripts/fixtures/athena-9.9.1/migrate-user-config.toml", "vibeCoding/scripts/fixtures/athena-9.9.1/setup-states.json"]
+    completed_at: "2026-07-10T02:55:00Z"
+    blocked_by: ""
+  - id: T2
+    title: "实现 setup 五态、迁移脚本、版本与 CHANGELOG"
+    status: completed
+    evidence_tool_use_ids: ["installer_release_fix"]
+    files_changed: ["vibeCoding/codex/9.9.1/.codex/skills/athena-setup", "vibeCoding/codex/9.9.1/.codex/skills/athena-migrate", "vibeCoding/claude/9.9.1/.claude/skills/athena-setup", "vibeCoding/claude/9.9.1/.claude/skills/athena-migrate", "vibeCoding/codex/9.9.1/CHANGELOG.md", "vibeCoding/claude/9.9.1/CHANGELOG.md", "vibeCoding/claude/9.9.1/.claude/settings.json"]
+    completed_at: "2026-07-10T03:25:00Z"
+    blocked_by: "T1"
+  - id: T3
+    title: "运行 dry-run/real/idempotent/invalid rollback 与 quick_validate"
+    status: completed
+    evidence_tool_use_ids: ["785f2d", "761e2e", "e5d3b1", "210c8a", "b945ba", "3482f0"]
+    files_changed: []
+    completed_at: "2026-07-10T03:27:00Z"
+    blocked_by: "T2"
+  - id: T4
+    title: "完成 item review 并关闭 findings"
+    status: completed
+    evidence_tool_use_ids: ["176920"]
+    files_changed: [".ai_state/sprints/2026-07-10-athena-9-9-1-validation/reviews/pass2.md"]
+    completed_at: "2026-07-10T06:22:11Z"
+    blocked_by: "T3"
+  - id: T5
+    title: "实现双端事务 orchestrator、故障注入与五态行为验证"
+    status: completed
+    evidence_tool_use_ids: ["installer_contract_review", "installer_orchestrator_rework", "ab365d", "020a77", "c4bfed"]
+    files_changed: ["vibeCoding/codex/9.9.1/.codex/skills/athena-setup", "vibeCoding/codex/9.9.1/.codex/skills/athena-migrate", "vibeCoding/claude/9.9.1/.claude/skills/athena-setup", "vibeCoding/claude/9.9.1/.claude/skills/athena-migrate", "vibeCoding/scripts/validate-athena-9.9.1.py"]
+    completed_at: "2026-07-10T04:12:00Z"
+    blocked_by: "T3"
