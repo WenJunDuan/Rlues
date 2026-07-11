@@ -1,173 +1,173 @@
 sprint_slug: 2026-07-10-claude-code-9-9-1-impl
-updated_at: "2026-07-11T01:23:49.556Z"
+updated_at: "2026-07-11T01:42:29.580002+00:00"
 status: "ok"
 totals:
   cache_creation_input_tokens: 5983912
   cache_read_input_tokens: 101127165
-  cached_input_tokens: 312475301
-  input_tokens: 209806730
-  output_tokens: 1396024
-  reasoning_output_tokens: 221935
-  total_tokens: 214176027
+  cached_input_tokens: 315217061
+  input_tokens: 212756937
+  output_tokens: 1410499
+  reasoning_output_tokens: 230152
+  total_tokens: 217140709
 by_model:
   "<synthetic>":
     calls: 5
+    reasoning_output_tokens: 0
     cache_creation_input_tokens: 0
     cache_read_input_tokens: 0
     cached_input_tokens: 0
     input_tokens: 0
-    output_tokens: 0
-    reasoning_output_tokens: 0
     total_tokens: 0
+    output_tokens: 0
   "claude-fable-5":
     calls: 242
+    reasoning_output_tokens: 0
     cache_creation_input_tokens: 2593421
     cache_read_input_tokens: 26439099
     cached_input_tokens: 29032520
     input_tokens: 176389
-    output_tokens: 427581
-    reasoning_output_tokens: 0
     total_tokens: 603970
+    output_tokens: 427581
   "claude-opus-4-8":
     calls: 185
+    reasoning_output_tokens: 0
     cache_creation_input_tokens: 1872473
     cache_read_input_tokens: 41139516
     cached_input_tokens: 43011989
     input_tokens: 93664
-    output_tokens: 214569
-    reasoning_output_tokens: 0
     total_tokens: 308233
+    output_tokens: 214569
   "claude-sonnet-5":
     calls: 489
+    reasoning_output_tokens: 0
     cache_creation_input_tokens: 1506533
     cache_read_input_tokens: 32030642
     cached_input_tokens: 33537175
     input_tokens: 46262
-    output_tokens: 92211
-    reasoning_output_tokens: 0
     total_tokens: 138473
+    output_tokens: 92211
   "unknown":
-    calls: 1385
+    calls: 1401
+    reasoning_output_tokens: 230152
     cache_creation_input_tokens: 11485
     cache_read_input_tokens: 1517908
-    cached_input_tokens: 206893617
-    input_tokens: 209490415
-    output_tokens: 661663
-    reasoning_output_tokens: 221935
-    total_tokens: 213125351
+    cached_input_tokens: 209635377
+    input_tokens: 212440622
+    total_tokens: 216090033
+    output_tokens: 676138
 by_stage:
   "impl":
     "unknown":
       calls: 1316
+      reasoning_output_tokens: 211087
       cache_creation_input_tokens: 0
       cache_read_input_tokens: 0
       cached_input_tokens: 201008640
       input_tokens: 204927851
-      output_tokens: 574570
-      reasoning_output_tokens: 211087
       total_tokens: 206612054
+      output_tokens: 574570
   "polish":
     "claude-fable-5":
       calls: 10
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 15511
       cache_read_input_tokens: 2275284
       cached_input_tokens: 2290795
       input_tokens: 278
-      output_tokens: 11932
-      reasoning_output_tokens: 0
       total_tokens: 12210
+      output_tokens: 11932
     "claude-opus-4-8":
       calls: 62
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 749107
       cache_read_input_tokens: 14123517
       cached_input_tokens: 14872624
       input_tokens: 62563
-      output_tokens: 60692
-      reasoning_output_tokens: 0
       total_tokens: 123255
+      output_tokens: 60692
     "claude-sonnet-5":
       calls: 86
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 408717
       cache_read_input_tokens: 3047580
       cached_input_tokens: 3456297
       input_tokens: 43789
-      output_tokens: 13377
-      reasoning_output_tokens: 0
       total_tokens: 57166
+      output_tokens: 13377
     "unknown":
       calls: 8
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 1206
       cache_read_input_tokens: 330867
       cached_input_tokens: 332073
       input_tokens: 8
-      output_tokens: 9741
-      reasoning_output_tokens: 0
       total_tokens: 351571
+      output_tokens: 9741
   "review":
     "<synthetic>":
       calls: 5
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 0
       cache_read_input_tokens: 0
       cached_input_tokens: 0
       input_tokens: 0
-      output_tokens: 0
-      reasoning_output_tokens: 0
       total_tokens: 0
+      output_tokens: 0
     "claude-fable-5":
       calls: 232
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 2577910
       cache_read_input_tokens: 24163815
       cached_input_tokens: 26741725
       input_tokens: 176111
-      output_tokens: 415649
-      reasoning_output_tokens: 0
       total_tokens: 591760
+      output_tokens: 415649
     "claude-opus-4-8":
       calls: 59
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 1012748
       cache_read_input_tokens: 8144049
       cached_input_tokens: 9156797
       input_tokens: 15673
-      output_tokens: 67254
-      reasoning_output_tokens: 0
       total_tokens: 82927
+      output_tokens: 67254
     "claude-sonnet-5":
       calls: 403
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 1097816
       cache_read_input_tokens: 28983062
       cached_input_tokens: 30080878
       input_tokens: 2473
-      output_tokens: 78834
-      reasoning_output_tokens: 0
       total_tokens: 81307
+      output_tokens: 78834
     "unknown":
       calls: 59
+      reasoning_output_tokens: 10848
       cache_creation_input_tokens: 8002
       cache_read_input_tokens: 1137354
       cached_input_tokens: 5500940
       input_tokens: 4562554
-      output_tokens: 74960
-      reasoning_output_tokens: 10848
       total_tokens: 6104974
+      output_tokens: 74960
   "ship":
     "claude-opus-4-8":
       calls: 64
+      reasoning_output_tokens: 0
       cache_creation_input_tokens: 110618
       cache_read_input_tokens: 18871950
       cached_input_tokens: 18982568
       input_tokens: 15428
-      output_tokens: 86623
-      reasoning_output_tokens: 0
       total_tokens: 102051
+      output_tokens: 86623
     "unknown":
-      calls: 2
+      calls: 18
+      reasoning_output_tokens: 8217
       cache_creation_input_tokens: 2277
       cache_read_input_tokens: 49687
-      cached_input_tokens: 51964
-      input_tokens: 2
-      output_tokens: 2392
-      reasoning_output_tokens: 0
-      total_tokens: 56752
+      cached_input_tokens: 2793724
+      input_tokens: 2950209
+      total_tokens: 3021434
+      output_tokens: 16867
 records:
   - fingerprint: "360ddd7734b1829d"
     platform: "cx"
@@ -32453,5 +32453,229 @@ records:
     output_tokens: 690
     reasoning_output_tokens: 0
     total_tokens: 5277
+  - fingerprint: "8224ed7eed9c4b0c"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:35:22.849Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 0
+    input_tokens: 155019
+    output_tokens: 787
+    reasoning_output_tokens: 487
+    total_tokens: 155806
+  - fingerprint: "4623998f25302e33"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:36:18.233Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 154112
+    input_tokens: 161426
+    output_tokens: 1198
+    reasoning_output_tokens: 419
+    total_tokens: 162624
+  - fingerprint: "b334e1e4c22f05aa"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:36:59.248Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 161280
+    input_tokens: 169351
+    output_tokens: 2020
+    reasoning_output_tokens: 1380
+    total_tokens: 171371
+  - fingerprint: "925be3beb4c57fdf"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:37:48.664Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 168448
+    input_tokens: 176375
+    output_tokens: 2450
+    reasoning_output_tokens: 2024
+    total_tokens: 178825
+  - fingerprint: "7a4fa2f456b741a9"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:38:22.268Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 175616
+    input_tokens: 179640
+    output_tokens: 654
+    reasoning_output_tokens: 217
+    total_tokens: 180294
+  - fingerprint: "3e8c0ab0344b3037"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:38:45.513Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 178688
+    input_tokens: 180483
+    output_tokens: 495
+    reasoning_output_tokens: 77
+    total_tokens: 180978
+  - fingerprint: "da3c29e684d2fbc3"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:39:13.121Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 179712
+    input_tokens: 181237
+    output_tokens: 452
+    reasoning_output_tokens: 310
+    total_tokens: 181689
+  - fingerprint: "229c854bc3a623f5"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:39:30.128Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 180736
+    input_tokens: 188834
+    output_tokens: 210
+    reasoning_output_tokens: 70
+    total_tokens: 189044
+  - fingerprint: "6c43f3849a5b914f"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:40:28.681Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 187904
+    input_tokens: 190268
+    output_tokens: 1503
+    reasoning_output_tokens: 493
+    total_tokens: 191771
+  - fingerprint: "91ce145c459249ed"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:40:43.494Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 189952
+    input_tokens: 191795
+    output_tokens: 581
+    reasoning_output_tokens: 314
+    total_tokens: 192376
+  - fingerprint: "f54bd2fc54534c99"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:40:52.759Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 190976
+    input_tokens: 193665
+    output_tokens: 132
+    reasoning_output_tokens: 38
+    total_tokens: 193797
+  - fingerprint: "c426c84cbc3fbcf2"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:41:00.011Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 193024
+    input_tokens: 193903
+    output_tokens: 205
+    reasoning_output_tokens: 54
+    total_tokens: 194108
+  - fingerprint: "914a5339ed28577c"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:41:27.166Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 193024
+    input_tokens: 195288
+    output_tokens: 1162
+    reasoning_output_tokens: 734
+    total_tokens: 196450
+  - fingerprint: "b504f9332307cddd"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:41:40.149Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 195072
+    input_tokens: 196767
+    output_tokens: 328
+    reasoning_output_tokens: 76
+    total_tokens: 197095
+  - fingerprint: "554382ffbab16953"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:42:06.736Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 196096
+    input_tokens: 197461
+    output_tokens: 1210
+    reasoning_output_tokens: 898
+    total_tokens: 198671
+  - fingerprint: "79c424a70258237a"
+    platform: "cx"
+    stage: "ship"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.codex/sessions/2026/07/10/rollout-2026-07-10T09-14-14-019f4996-e9c0-7f22-90d5-951eef929861.jsonl"
+    timestamp: "2026-07-11T01:42:29.450Z"
+    model: "unknown"
+    cache_creation_input_tokens: 0
+    cache_read_input_tokens: 0
+    cached_input_tokens: 197120
+    input_tokens: 198695
+    output_tokens: 1088
+    reasoning_output_tokens: 626
+    total_tokens: 199783
 notes:
   []

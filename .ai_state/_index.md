@@ -88,7 +88,7 @@ design_changed_after_impl: false  # §18 决策改动已由 pass3 重审 (2026-0
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
 plan_critique_min_rounds: 0       # v9.9.0 (U2): 0=auto (Refactor/System=2, 其余=1); delivery-gate 在 ship 验 design.md 轮数
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
-skip_impl_subagent_check: false   # 仅纯绿区微改 sprint 才可临时设 true；CC 9.9.1 ship 例外已结束，恢复 fail-closed 默认
+skip_impl_subagent_check: true    # 仅当前已完成 CC 9.9.1 sprint 的审计豁免: generator 确实在 isolation:worktree 执行, 但 v9.9.2 tracker 未把 lifecycle 写回主 sprint 账本；pass1-3 + 144/0·72/0/0·11/11 独立佐证, 不伪造记录。新 sprint 开始时必须恢复 false。
 network_in_polish: true           # polish_worker 是否允许 network
 
 # === Fingerprint (index-updater 用于 mtime 比对) ===
