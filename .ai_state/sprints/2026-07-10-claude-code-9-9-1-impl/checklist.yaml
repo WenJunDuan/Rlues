@@ -1,7 +1,7 @@
 sprint_slug: "2026-07-10-claude-code-9-9-1-impl"
 path: "System"
 design_ref: "../2026-07-10-claude-code-9-9-1-design/design.md"
-status: "awaiting_fable5_review"
+status: "completed"
 tasks:
   - id: "T1"
     title: "从 committed CC 9.9.0 创建干净 9.9.1 staging tree"

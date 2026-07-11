@@ -7,7 +7,7 @@ version: "9.9.0"
 path: "System"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
 stage: "ship"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
 current_sprint_slug: "2026-07-10-claude-code-9-9-1-impl"          # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
-current_roadmap_slug: "claude-code-9-9-1-optimization"  # 仅 roadmap stage 期间填
+current_roadmap_slug: ""  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
@@ -73,7 +73,7 @@ pointers:
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-11T01:00:45.666Z"
+  latest_architecture_update: "2026-07-11T01:00:45.666694Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
@@ -88,7 +88,7 @@ design_changed_after_impl: false  # §18 决策改动已由 pass3 重审 (2026-0
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
 plan_critique_min_rounds: 0       # v9.9.0 (U2): 0=auto (Refactor/System=2, 其余=1); delivery-gate 在 ship 验 design.md 轮数
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
-skip_impl_subagent_check: true    # 自负责: impl/rework/polish 均经 generator subagent (isolation:worktree), 但安装的 v9.9.2 tracker 未把 worktree-isolated generator 的 Start/Stop 写入主 sprint 机器账本 → gate generator-chain 查无记录。工作真实性由 subagent-log.md review 记录 + 三轮审查 (pass1-3) + 全绿代码独立佐证; 不伪造账本条目。这是环境/版本偏斜 (装了 9.9.2, 本轮发 9.9.1) 暴露的 tracker↔gate 洞, 记入 followup。
+skip_impl_subagent_check: false   # 仅纯绿区微改 sprint 才可临时设 true；CC 9.9.1 ship 例外已结束，恢复 fail-closed 默认
 network_in_polish: true           # polish_worker 是否允许 network
 
 # === Fingerprint (index-updater 用于 mtime 比对) ===

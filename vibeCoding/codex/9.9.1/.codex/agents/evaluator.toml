@@ -32,7 +32,7 @@ checklist.yaml 每个标记完成的 task, 在 evidence.yaml 里找对应证据 
 ```markdown
 ## VERDICT (evaluator, {sprint_slug})
 
-**判定**: PASS / CONCERNS / REWORK / FAIL
+VERDICT: PASS|CONCERNS|REWORK|FAIL  (纯文本, 不加粗; delivery-gate 按此行解析)
 
 ### 评分依据 (4 维)
 

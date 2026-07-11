@@ -481,6 +481,60 @@ class DeliveryGateTests(unittest.TestCase):
             self.assertIsInstance(response.get("reason"), str)
             self.assertTrue(response["reason"].strip())
 
+    def test_evaluator_bold_chinese_verdict_template_passes(self) -> None:
+        # Regression: evaluator.toml emits "**判定**: PASS"; the gate must parse it.
+        # Before the fix, strip("*") left "判定**:" and the VERDICT-only regex missed
+        # it, so a legitimate PASS was blocked as "no explicit VERDICT line".
+        with tempfile.TemporaryDirectory(prefix="athena-991-gate-bold-") as raw_dir:
+            project = Path(raw_dir)
+            sprint_dir = build_complete_feature(project)
+            (sprint_dir / "reviews/pass1.md").write_text(
+                "# Review\n\n## Spec Compliance\n\n- PASS\n\n"
+                "## VERDICT (evaluator, sprint)\n\n**判定**: PASS\n",
+                encoding="utf-8",
+            )
+            result = self.run_gate(project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(result.stderr, "")
+
+    def test_evaluator_bold_verdict_rework_blocks(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-991-gate-bold-rw-") as raw_dir:
+            project = Path(raw_dir)
+            sprint_dir = build_complete_feature(project)
+            (sprint_dir / "reviews/pass1.md").write_text(
+                "# Review\n\n## Spec Compliance\n\n- REWORK\n\n**判定**: REWORK\n",
+                encoding="utf-8",
+            )
+            result = self.run_gate(project)
+            response = json.loads(result.stdout)
+            self.assertEqual(response.get("decision"), "block", response)
+
+    def test_refactor_blocks_when_git_change_probes_are_unavailable(self) -> None:
+        # A temp project is deliberately not a Git repository. Refactor/System
+        # must treat an unknowable change count as over-threshold and require the
+        # architecture record, rather than silently downgrade the count to zero.
+        with tempfile.TemporaryDirectory(prefix="athena-991-gate-git-fail-") as raw_dir:
+            project = Path(raw_dir)
+            sprint_dir = build_complete_feature(project)
+            replace_text(project / ".ai_state/_index.md", "path: Feature", "path: Refactor")
+            replace_text(
+                sprint_dir / "design.md",
+                "- Contract accepted.",
+                "- Contract accepted.\n\n## Round 2 Critic Findings\n\n- Contract rechecked.",
+            )
+            replace_text(
+                sprint_dir / "reviews/pass1.md",
+                "VERDICT: PASS",
+                "## Evidence Cross-Check\n\n- PASS\n\nVERDICT: PASS",
+            )
+            (sprint_dir / "runtime-verify.md").write_text("## 测试场景\n\n- PASS\n", encoding="utf-8")
+            (sprint_dir / "cleanup-pass.md").write_text("# Cleanup\n\nPASS\n", encoding="utf-8")
+            result = self.run_gate(project)
+            response = json.loads(result.stdout)
+            self.assertEqual(response.get("decision"), "block", response)
+            self.assertIn("architecture/ARCHITECTURE.md", response.get("reason", ""))
+
     def test_non_athena_directory_passes_silently(self) -> None:
         with tempfile.TemporaryDirectory(prefix="athena-991-non-athena-") as raw_dir:
             project = Path(raw_dir)

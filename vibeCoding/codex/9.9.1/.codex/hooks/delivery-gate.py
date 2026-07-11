@@ -325,8 +325,12 @@ def validate_evidence(path: Path) -> None:
 def final_review_verdict(content: str) -> str:
     verdicts: list[str] = []
     for raw_line in content.splitlines():
-        line = raw_line.strip().strip("*").strip()
+        # Strip every "*" (not just leading/trailing) so the evaluator's own bold
+        # template line "**判定**: PASS" parses; also accept the Chinese "判定:" label.
+        line = raw_line.replace("*", "").strip()
         match = re.fullmatch(r"(?:Evaluator\s+)?VERDICT\s*:\s*([A-Za-z][A-Za-z _-]*?)\.?", line, re.I)
+        if not match:
+            match = re.fullmatch(r"判定\s*:\s*([A-Za-z][A-Za-z _-]*?)\.?", line, re.I)
         if match:
             verdicts.append(re.sub(r"\s+", " ", match.group(1).strip()).upper())
     if not verdicts:
@@ -367,16 +371,17 @@ def validate_review(path: Path, path_type: str) -> str:
     return content
 
 
-def git_lines(cwd: Path, args: list[str]) -> set[str]:
+def git_lines(cwd: Path, args: list[str]) -> tuple[bool, set[str]]:
     try:
         result = subprocess.run(
             ["git", *args], cwd=str(cwd), capture_output=True, text=True, timeout=15
         )
-    except (OSError, subprocess.SubprocessError):
-        return set()
+    except (OSError, subprocess.SubprocessError) as exc:
+        sys.stderr.write(f"[delivery-gate] git {' '.join(args)} unavailable: {exc}\n")
+        return False, set()
     if result.returncode != 0:
-        return set()
-    return {line.strip() for line in result.stdout.splitlines() if line.strip()}
+        return False, set()
+    return True, {line.strip() for line in result.stdout.splitlines() if line.strip()}
 
 
 def git_root(cwd: Path) -> Path:
@@ -396,14 +401,22 @@ def git_root(cwd: Path) -> Path:
 def changed_file_count(cwd: Path) -> int:
     root = git_root(cwd)
     files: set[str] = set()
-    for base in ("main...HEAD", "master...HEAD"):
-        files |= git_lines(root, ["diff", "--name-only", base])
-    for args in (
+    any_ok = False
+    probes = (
+        ["diff", "--name-only", "main...HEAD"],
+        ["diff", "--name-only", "master...HEAD"],
         ["diff", "--name-only"],
         ["diff", "--name-only", "--cached"],
         ["ls-files", "--others", "--exclude-standard"],
-    ):
-        files |= git_lines(root, args)
+    )
+    for args in probes:
+        ok, lines = git_lines(root, args)
+        any_ok = any_ok or ok
+        files |= lines
+    if not any_ok:
+        # Every git probe failed: the change set is unknowable, so fail closed
+        # (report an over-threshold count) rather than silently skip the gate.
+        return sys.maxsize
     return len(files)
 
 
