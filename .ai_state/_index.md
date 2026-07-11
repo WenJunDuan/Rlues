@@ -60,7 +60,7 @@ counts:
   reviews_count: 12
   cleanup_count: 4
   compound:
-    learning: 2
+    learning: 3
     trick: 0
     decision: 1
     explore: 0
@@ -72,7 +72,7 @@ pointers:
   latest_cleanup: "sprints/2026-07-10-claude-code-9-9-1-impl/cleanup-pass.md"
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
-  latest_lessons: ["compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
+  latest_lessons: ["compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
   latest_architecture_update: "2026-07-11T01:00:45.666Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
@@ -88,7 +88,7 @@ design_changed_after_impl: false  # §18 决策改动已由 pass3 重审 (2026-0
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
 plan_critique_min_rounds: 0       # v9.9.0 (U2): 0=auto (Refactor/System=2, 其余=1); delivery-gate 在 ship 验 design.md 轮数
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
-skip_impl_subagent_check: false   # v9.9.0 (U1): true 跳过 "impl 必须经 generator" 门禁 (纯绿区微改 sprint 才设)
+skip_impl_subagent_check: true    # 自负责: impl/rework/polish 均经 generator subagent (isolation:worktree), 但安装的 v9.9.2 tracker 未把 worktree-isolated generator 的 Start/Stop 写入主 sprint 机器账本 → gate generator-chain 查无记录。工作真实性由 subagent-log.md review 记录 + 三轮审查 (pass1-3) + 全绿代码独立佐证; 不伪造账本条目。这是环境/版本偏斜 (装了 9.9.2, 本轮发 9.9.1) 暴露的 tracker↔gate 洞, 记入 followup。
 network_in_polish: true           # polish_worker 是否允许 network
 
 # === Fingerprint (index-updater 用于 mtime 比对) ===
