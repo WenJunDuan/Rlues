@@ -4,7 +4,7 @@
 project_root_markers = [".git", ".hg", ".sl"]
 project_doc_max_bytes = 65536
 
-model_provider = "openai"
+model_provider = "custom-openai"
 model = "gpt-5.6-sol"
 model_reasoning_effort = "xhigh"
 plan_mode_reasoning_effort = "xhigh"
@@ -171,6 +171,12 @@ inherit = "core"
 
 [shell_environment_policy.set]
 VIBECODING_VERSION = "9.9.1"
+
+[model_providers.custom_openai]
+name = "custom_openai"
+# base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
 
 [plugins."browser@openai-bundled"]
 enabled = true
