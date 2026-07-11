@@ -77,10 +77,10 @@ pointers:
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "ship"  # 用户裁决完成 (插件保留/§18 四决/merge+push); architecture 已同步; 待 stage=ship 执行
+next_action: ""  # CC 9.9.1 已发布 (25d4883 pushed to main); roadmap 6/6 complete; worktree/branch 已清理
 last_subagent: "generator"
 last_subagent_at: "2026-07-10T08:53:02.056859Z"
-active_worktrees: ["agent-ab7bf28b9cd15fcb7", "agent-abb8192488781206f", "agent-a4dba85707f45a485"]
+active_worktrees: []
 last_critic_round: 3              # plan stage critic 已跑轮数
 design_changed_after_impl: false  # §18 决策改动已由 pass3 重审 (2026-07-11)
 
@@ -125,6 +125,7 @@ fingerprint: ""
 - `2026-07-11 00:30`: polish=Pass。guard `#` 注释误报修复 (+4 用例→70/0/1)、exec bit 恢复、validator tempdir 竞态修复、RELEASE.md known-limitations。
 - `2026-07-11 01:10`: 用户裁决完成 — 插件清单保留(授权); §18 四决 (model=best/floor 2.1.203/evidence schema 不变/Agent Teams opt-in); ship=merge+push。generator 落 model=best + floor 2.1.203, 144/0·72/0/0(2.1.203+2.1.206 live)·11/11。
 - `2026-07-11 01:20`: pass3=PASS (§18 复审), architecture 已同步, roadmap 6/6 completed; stage→ship 待执行 merge+push。
+- `2026-07-11 01:35`: CC 9.9.1 已发布。merge (09d7c45) + state (25d4883) 推送 main; 9.9.0 tree 仍 eb1ab06 (AC1); worktree/branch 清理完毕。用户本地 9.9.0 settings 与 codex config 改动未卷入 (保留未提交)。roadmap claude-code-9-9-1-optimization 6/6 complete。
 
 ## 工具调度建议
 
