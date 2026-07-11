@@ -1,0 +1,12 @@
+sprint_slug: "2026-07-10-claude-code-9-9-1-design"
+collected_evidence:
+  - tool_use_id: "exec-9cef69bd-f944-459d-b373-c64eb6ae78e5"
+    tool: "Bash"
+    kind: "official-contract"
+    command: "npm latest/stable + official Claude Code contract markers + CC 9.9.0 tree object"
+    result: "pass"
+  - tool_use_id: "exec-3d55d29d-bd29-4a52-b2ff-6e443f9b701e"
+    tool: "Bash"
+    kind: "design-validation"
+    command: "YAML parse + document presence + git diff --check + baseline object"
+    result: "pass"

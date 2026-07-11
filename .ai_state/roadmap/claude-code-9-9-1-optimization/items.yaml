@@ -1,0 +1,46 @@
+roadmap_slug: "claude-code-9-9-1-optimization"
+created: "2026-07-10"
+total_items: 6
+items:
+  - slug: "cc991-contract-design"
+    title: "冻结 Claude Code 9.9.1 官方契约与设计"
+    status: completed
+    sprint_slug: "2026-07-10-claude-code-9-9-1-design"
+    blocked_by: []
+    estimated_complexity: L
+    notes: "设计已冻结；用户批准 impl-first，Fable5 改为实现后发布前审查"
+  - slug: "cc991-hook-state-parity"
+    title: "Hook、证据、subagent ledger 与 delivery gate 对齐 CX"
+    status: completed
+    sprint_slug: "2026-07-10-claude-code-9-9-1-impl"
+    blocked_by: ["cc991-contract-design"]
+    estimated_complexity: XL
+    notes: "PostToolUse/Failure、Start/Stop、latest passN、PASS-only、fail-closed"
+  - slug: "cc991-subagent-worktree-models"
+    title: "CC 原生 subagent、模型路由与 worktree 隔离"
+    status: completed
+    sprint_slug: "2026-07-10-claude-code-9-9-1-impl"
+    blocked_by: ["cc991-contract-design"]
+    estimated_complexity: XL
+    notes: "角色模型、effort、background、原生 isolation、baseRef=head"
+  - slug: "cc991-prompt-skill-review"
+    title: "PACE、Prompt、Skills 与 review 2+1 协议"
+    status: completed
+    sprint_slug: "2026-07-10-claude-code-9-9-1-impl"
+    blocked_by: ["cc991-contract-design"]
+    estimated_complexity: L
+    notes: "主 agent 单写状态；不暴露私有 CoT；CC/CX 语义对齐"
+  - slug: "cc991-settings-security-teams"
+    title: "Settings、安全默认与 Agent Teams 可选增强"
+    status: completed
+    sprint_slug: "2026-07-10-claude-code-9-9-1-impl"
+    blocked_by: ["cc991-contract-design"]
+    estimated_complexity: L
+    notes: "默认关闭 experimental teams；最小权限；配置漂移审计"
+  - slug: "cc991-migrate-validation-release"
+    title: "9.9.0 定点迁移、双版本验证与发布闭环"
+    status: completed
+    sprint_slug: "2026-07-10-claude-code-9-9-1-impl"
+    blocked_by: ["cc991-hook-state-parity", "cc991-subagent-worktree-models", "cc991-prompt-skill-review", "cc991-settings-security-teams"]
+    estimated_complexity: XL
+    notes: "2.1.203 floor + 2.1.206 target (§18.2)；事务回滚；9.9.0 zero diff；Fable5 review pass1→pass3 PASS"

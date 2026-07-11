@@ -1,0 +1,38 @@
+sprint_slug: "2026-07-10-claude-code-9-9-1-design"
+created: "2026-07-10"
+tasks:
+  - id: T1
+    title: "核对 CC 9.9.0 committed 基线与现有 9.9.1 候选差异"
+    status: completed
+    evidence_tool_use_ids: ["exec-9cef69bd-f944-459d-b373-c64eb6ae78e5"]
+    files_changed: []
+    completed_at: "2026-07-10T07:15:38Z"
+    blocked_by: ""
+  - id: T2
+    title: "核对 Claude Code 2.1.197/2.1.206 官方 hooks/models/subagents/worktrees/settings"
+    status: completed
+    evidence_tool_use_ids: ["exec-9cef69bd-f944-459d-b373-c64eb6ae78e5"]
+    files_changed: []
+    completed_at: "2026-07-10T07:15:38Z"
+    blocked_by: "T1"
+  - id: T3
+    title: "输出 roadmap、详细设计与 Fable5 review brief"
+    status: completed
+    evidence_tool_use_ids: ["exec-3d55d29d-bd29-4a52-b2ff-6e443f9b701e"]
+    files_changed: [".ai_state/roadmap/claude-code-9-9-1-optimization", ".ai_state/sprints/2026-07-10-claude-code-9-9-1-design/design.md", ".ai_state/sprints/2026-07-10-claude-code-9-9-1-design/fable5-review-brief.md"]
+    completed_at: "2026-07-10T07:15:38Z"
+    blocked_by: "T2"
+  - id: T4
+    title: "Fable5 独立 review 并返回 verdict/findings"
+    status: pending
+    evidence_tool_use_ids: []
+    files_changed: []
+    completed_at: ""
+    blocked_by: "T3"
+  - id: T5
+    title: "主线程合并 Fable5 findings，用户确认最终设计"
+    status: pending
+    evidence_tool_use_ids: []
+    files_changed: []
+    completed_at: ""
+    blocked_by: "T4"

@@ -1,0 +1,17 @@
+sprint_slug: 2026-07-10-claude-code-9-9-1-impl
+worktrees:
+  - name: "agent-ab7bf28b9cd15fcb7"
+    path: ""
+    branch: ""
+    created_at: "2026-07-10T13:33:47.818Z"
+    status: active
+  - name: "agent-abb8192488781206f"
+    path: ""
+    branch: ""
+    created_at: "2026-07-10T23:35:27.014Z"
+    status: active
+  - name: "agent-a4dba85707f45a485"
+    path: ""
+    branch: ""
+    created_at: "2026-07-11T00:22:41.210Z"
+    status: active
