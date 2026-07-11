@@ -2,7 +2,7 @@
 
 These fixtures are executable contracts for `validate-athena-9.9.1.py`.
 
-## PostToolUse evidence outcomes
+## Codex PostToolUse evidence outcomes
 
 Only a top-level JSON integer (not boolean) `tool_response.exit_code` is reliable:
 
@@ -14,6 +14,17 @@ Only a top-level JSON integer (not boolean) `tool_response.exit_code` is reliabl
 | `posttool-string-exit-code.json` | `unknown` | string exit code is not a reliable integer |
 
 Missing, boolean, nested-only, or otherwise untyped exit status is also `unknown`; `unknown` never upgrades to `pass`.
+
+## Claude Code hook outcomes
+
+Official-shaped payloads live under `claude/`:
+
+- `posttool-success.json`: the `PostToolUse` event itself is explicit success; `tool_response` is not searched for a legacy exit code.
+- `posttool-failure.json`: `PostToolUseFailure` is explicit failure and carries top-level `error`, `is_interrupt`, and `duration_ms`.
+- `subagent-start.json` / `subagent-stop.json`: raw lifecycle fixtures with `agent_id + agent_type`.
+- `stop-failure.json`: notification-only API/model failure fixture; prompts and secret values are not persisted.
+
+An absent/unknown event remains `unknown` even if a legacy `tool_output.exit_code=0` is injected. A successful write is trace evidence, not a passing validation.
 
 ## Subagent ledger schemas
 
@@ -29,9 +40,9 @@ The gate joins them only by `agent_id + sprint_slug`. A generator requires one u
 Only `complete-chain` may pass. When `current_roadmap_slug` is non-empty, its
 `items.yaml` must parse successfully and every declared item must have exactly
 one `status: completed`; missing, malformed, pending, in-progress, blocked, or
-unknown states block ship. The gate selects the highest numeric
+unknown states block ship. Both gates select the highest numeric
 `reviews/passN.md`; an older PASS cannot
-override a newer REWORK. All 21 negatives in `gate-cases.json` must block:
+override a newer REWORK. The CX suite executes all 21 negatives in `gate-cases.json`; the CC suite adds schema-extras, duplicate lifecycle, PASS-only, System runtime/polish/architecture, quoted-command and migration cases for more than 30 total gate negatives. The CX cases are:
 
 1. `missing-assignment`
 2. `missing-generator-stop`

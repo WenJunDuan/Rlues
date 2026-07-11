@@ -1,127 +1,142 @@
 #!/usr/bin/env node
-/**
- * VibeCoding Athena v9.9.1 · CC PostToolUse hook
- *
- * 职责:
- *   1. 收集 tool_use_id, 文件路径, 时间戳
- *   2. 追加到 sprints/{current_slug}/tool-trace.jsonl (每行一个 JSON)
- *   3. 解析 evidence: 若 Edit/Write 写的文件在 design.md 的 File Structure Plan 中提到 → 写 evidence.yaml
- *   4. v9.9.1: subagent 在隔离 worktree 写文件时, 证据重定向到主仓库 (防随 worktree 清理丢失,
- *      否则 delivery-gate 的 changedFiles 计数与 U3 Evidence Cross-Check 失真)
- *
- * matcher: Edit|Write|MultiEdit|Bash (在 settings.json 中配置)
- * 源: https://code.claude.com/docs/en/hooks-guide
- */
-'use strict';
+/** Athena v9.9.1 PostToolUse/PostToolUseFailure evidence collector. */
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
-const { execFileSync } = require('child_process');
+const fs = require("fs");
+const path = require("path");
+const { execFileSync } = require("child_process");
 
 function findAiState(cwd) {
-  let current = cwd;
-  for (let i = 0; i < 5; i++) {
-    const candidate = path.join(current, '.ai_state');
+  let current = path.resolve(cwd);
+  for (let depth = 0; depth < 8; depth += 1) {
+    const candidate = path.join(current, ".ai_state");
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
     const parent = path.dirname(current);
-    if (parent === current) return null;
+    if (parent === current) break;
     current = parent;
   }
   return null;
 }
 
-// v9.9.1: PostToolUse 在隔离 worktree 内触发时 (generator 写代码),
-// findAiState 命中 worktree 副本 → evidence.yaml/tool-trace.jsonl 随 worktree 清理丢失,
-// 致 delivery-gate 的 changedFiles 计数与 U3 Evidence Cross-Check 失真. 检测到 worktree 则
-// 重定向到主仓库 .ai_state (与 subagent-tracker 同策略, hook 自包含故内联).
 function redirectToMainRepo(aiState, cwd) {
   try {
-    const opt = { cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] };
-    const gitDir = execFileSync('git', ['rev-parse', '--git-dir'], opt).trim();
-    const commonDir = execFileSync('git', ['rev-parse', '--git-common-dir'], opt).trim();
-    if (path.resolve(cwd, gitDir) === path.resolve(cwd, commonDir)) return aiState;
-    const mainAiState = path.join(path.dirname(path.resolve(cwd, commonDir)), '.ai_state');
-    if (fs.existsSync(mainAiState) && fs.statSync(mainAiState).isDirectory()) return mainAiState;
-  } catch (_) {
-    // 非 git / git 不可用 → 保持原路径
-  }
+    const options = { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] };
+    const gitDir = path.resolve(cwd, execFileSync("git", ["rev-parse", "--git-dir"], options).trim());
+    const commonDir = path.resolve(cwd, execFileSync("git", ["rev-parse", "--git-common-dir"], options).trim());
+    if (gitDir === commonDir) return aiState;
+    const main = path.join(path.dirname(commonDir), ".ai_state");
+    if (fs.existsSync(main) && fs.statSync(main).isDirectory()) return main;
+  } catch (_) {}
   return aiState;
 }
 
-function getCurrentSprintSlug(aiState) {
-  const idxPath = path.join(aiState, '_index.md');
-  if (!fs.existsSync(idxPath)) return null;
-  const content = fs.readFileSync(idxPath, 'utf-8');
-  const m = content.match(/current_sprint_slug:\s*["']?([^"\n]+)["']?/);
-  return m ? m[1].trim() : null;
+function currentSprint(aiState) {
+  try {
+    const content = fs.readFileSync(path.join(aiState, "_index.md"), "utf8");
+    const match = content.match(/^current_sprint_slug\s*:\s*["']?([^"'\n#]+)/m);
+    return match ? match[1].trim() : "";
+  } catch (_) { return ""; }
+}
+
+function redact(value) {
+  return String(value || "")
+    .replace(/\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,})\b/g, "[REDACTED]")
+    .replace(/((?:api[_-]?key|token|password|secret)\s*[=:]\s*)[^\s,;]+/gi, "$1[REDACTED]")
+    .slice(0, 500);
+}
+
+function classifyEvent(eventName) {
+  if (eventName === "PostToolUse") return "pass";
+  if (eventName === "PostToolUseFailure") return "fail";
+  return "unknown";
+}
+
+function isValidationCommand(command) {
+  const normalized = String(command || "").trim().toLowerCase();
+  // Real validation commands are frequently run with a leading KEY=VAL env
+  // prefix (e.g. "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest", the exact form
+  // runtime-verify.md records); tolerate any number of such prefixes at the
+  // start of the command or right after a shell separator.
+  const envPrefix = "(?:[a-z_][a-z0-9_]*=\\S+\\s+)*";
+  return new RegExp(
+    `(^|[;&|]\\s*)${envPrefix}(?:python3?\\s+-m\\s+(?:pytest|unittest)|pytest|npm\\s+(?:test|run\\s+(?:test|build|lint|typecheck|check))|pnpm\\s+(?:test|run\\s+(?:test|build|lint|typecheck|check))|yarn\\s+(?:test|run\\s+(?:test|build|lint|typecheck|check))|bun\\s+(?:test|run\\s+(?:test|build|lint|typecheck|check))|cargo\\s+(?:test|build|check|clippy)|go\\s+(?:test|build|vet)|mvn\\s+(?:test|verify|compile)|\\.\\/gradlew\\s+(?:test|build)|node\\s+--check|git\\s+diff\\s+--check)\\b`,
+  ).test(normalized);
+}
+
+function yamlString(value) {
+  return JSON.stringify(String(value || ""));
+}
+
+function appendEvidence(filePath, sprintSlug, row) {
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, `sprint_slug: ${yamlString(sprintSlug)}\ncollected_evidence:\n`, "utf8");
+  }
+  const entry = [
+    `  - tool_use_id: ${yamlString(row.tool_use_id)}`,
+    `    tool: ${yamlString(row.tool)}`,
+    `    result: ${row.result}`,
+    `    command: ${yamlString(row.command)}`,
+    `    timestamp: ${yamlString(row.timestamp)}`,
+    "",
+  ].join("\n");
+  fs.appendFileSync(filePath, entry, "utf8");
 }
 
 function main() {
   try {
-    let data = '';
-    try { data = fs.readFileSync(0, 'utf-8'); } catch (_) {}
-    const payload = data ? JSON.parse(data) : {};
-
-    const cwd = payload?.cwd || process.cwd();
+    let payload = {};
+    try {
+      const input = fs.readFileSync(0, "utf8");
+      if (input.trim()) payload = JSON.parse(input);
+    } catch (_) {}
+    const cwd = path.resolve(payload.cwd || process.cwd());
     let aiState = findAiState(cwd);
-    if (!aiState) { process.exit(0); }
-    // 缺陷1: worktree 副本重定向到主仓库, 防证据随 worktree 清理丢失
+    if (!aiState) return;
     aiState = redirectToMainRepo(aiState, cwd);
+    const sprintSlug = currentSprint(aiState);
+    if (!sprintSlug) return;
 
-    const sprintSlug = getCurrentSprintSlug(aiState);
-    if (!sprintSlug) { process.exit(0); }
-
-    const toolName = payload?.tool_name || '';
-    const toolInput = payload?.tool_input || {};
-    const toolUseId = payload?.tool_use_id || '';
-    const rawExitCode = payload?.tool_output?.exit_code;
-    const exitCode = Number.isInteger(rawExitCode) ? rawExitCode : null;
-    const status = exitCode === null ? 'unknown' : (exitCode === 0 ? 'passed' : 'failed');
-
-    const ts = new Date().toISOString();
-
-    // 1. 追加 tool-trace.jsonl
-    const tracePath = path.join(aiState, 'sprints', sprintSlug, 'tool-trace.jsonl');
-    fs.mkdirSync(path.dirname(tracePath), { recursive: true });
-
+    const eventName = String(payload.hook_event_name || "");
+    const status = classifyEvent(eventName);
+    const tool = String(payload.tool_name || "");
+    const toolUseId = String(payload.tool_use_id || "");
+    const toolInput = payload.tool_input && typeof payload.tool_input === "object" ? payload.tool_input : {};
+    const command = tool === "Bash" ? String(toolInput.command || "").slice(0, 500) : "";
+    const timestamp = new Date().toISOString();
     const trace = {
-      ts: ts,
-      tool: toolName,
+      schema_version: 1,
+      timestamp,
+      event: eventName || "unknown",
+      tool,
       tool_use_id: toolUseId,
-      exit: exitCode,
-      status: status,
+      status,
+      exit_code: null,
     };
-
-    if (['Edit', 'Write', 'MultiEdit'].includes(toolName)) {
-      trace.file = toolInput.file_path || toolInput.path || '';
-    } else if (toolName === 'Bash') {
-      trace.command = (toolInput.command || '').slice(0, 200);
+    if (["Edit", "Write", "MultiEdit"].includes(tool)) {
+      trace.file = String(toolInput.file_path || toolInput.path || "");
     }
-
-    fs.appendFileSync(tracePath, JSON.stringify(trace) + '\n');
-
-    // 2. 简化 evidence.yaml: 若 Edit/Write/MultiEdit, 追加 tool_use_id 到 evidence.yaml
-    //    (完整实现应该解析 design.md 的 File Structure Plan 对应 task, 但避免复杂度,
-    //     先做简单版: 每个写文件操作就追加一条 evidence)
-    if (['Edit', 'Write', 'MultiEdit'].includes(toolName) && toolUseId) {
-      const evidencePath = path.join(aiState, 'sprints', sprintSlug, 'evidence.yaml');
-      if (!fs.existsSync(evidencePath)) {
-        const header = `sprint_slug: ${sprintSlug}\ncollected_evidence:\n`;
-        fs.writeFileSync(evidencePath, header, 'utf-8');
-      }
-      const filePath = toolInput.file_path || toolInput.path || '';
-      const entry = `  - tool_use_id: "${toolUseId}"\n` +
-                    `    tool: "${toolName}"\n` +
-                    `    file: "${filePath}"\n` +
-                    `    status: "${status}"\n` +
-                    `    timestamp: "${ts}"\n`;
-      fs.appendFileSync(evidencePath, entry);
+    if (tool === "Bash") trace.command = command;
+    if (eventName === "PostToolUseFailure") {
+      trace.error = redact(payload.error);
+      trace.is_interrupt = payload.is_interrupt === true;
+      trace.duration_ms = Number.isFinite(payload.duration_ms) ? payload.duration_ms : null;
     }
+    const sprintDir = path.join(aiState, "sprints", sprintSlug);
+    fs.mkdirSync(sprintDir, { recursive: true });
+    fs.appendFileSync(path.join(sprintDir, "tool-trace.jsonl"), `${JSON.stringify(trace)}\n`, "utf8");
 
-    process.exit(0);
-  } catch (e) {
-    process.stderr.write(`[evidence-collector] non-blocking: ${e.message}\n`);
-    process.exit(0);
+    // A successful file write is useful trace data, but it is not validation.
+    if (tool === "Bash" && toolUseId && isValidationCommand(command)) {
+      appendEvidence(path.join(sprintDir, "evidence.yaml"), sprintSlug, {
+        tool_use_id: toolUseId,
+        tool,
+        result: status,
+        command,
+        timestamp,
+      });
+    }
+  } catch (error) {
+    process.stderr.write(`[evidence-collector] non-blocking: ${error.message}\n`);
   }
 }
 

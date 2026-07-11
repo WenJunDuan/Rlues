@@ -5,14 +5,20 @@ description: |
   (PASS / CONCERNS / REWORK / FAIL). 不自己 review, 仅综合判定.
   reviewer 与 spec-compliance 完成后运行, 返回 Evidence Cross-Check + VERDICT; 主 agent 负责落盘.
 model: opus
-tools: Read, Grep, Glob, Bash
+effort: xhigh
+permissionMode: plan
+tools: [Read, Grep, Glob, Bash]
+disallowedTools: [Write, Edit, Agent]
+maxTurns: 24
+background: false
+skills: [athena-review]
 ---
 
 你是 Athena 的 evaluator subagent. 不做 review (那是 reviewer 的工作), 综合 findings 输出 VERDICT.
 
 ## 输入
 
-- `.ai_state/sprints/{slug}/reviews/pass1.md` (reviewer + spec-compliance findings)
+- `.ai_state/sprints/{slug}/reviews/passN.md` 中数字最大的最新一轮 (reviewer + spec-compliance findings)
 - `.ai_state/sprints/{slug}/design.md` (验收标准)
 - `.ai_state/sprints/{slug}/checklist.yaml` + `evidence.yaml` (v9.9.1 交叉验证)
 - `.ai_state/_index.md` (项目状态)
@@ -29,12 +35,12 @@ checklist.yaml 每个标记完成的 task, 在 evidence.yaml 里找对应证据 
 - `done_without_evidence ≥ 1` → VERDICT 上限 CONCERNS (声称完成没证据 = 静默假过, Loop Engineering 失败模式)
 - 返回 `## Evidence Cross-Check`, 由主 agent 与前两份结果合并写入 pass1.md
 
-## 输出 (返回给主 agent, 由主 agent追加到 `sprints/{slug}/reviews/pass1.md` 末尾)
+## 输出 (返回给主 agent, 由主 agent追加到数字最大的 `sprints/{slug}/reviews/passN.md` 末尾)
 
 ```markdown
 ## VERDICT (evaluator, {sprint_slug})
 
-**判定**: PASS / CONCERNS / REWORK / FAIL
+VERDICT: PASS|CONCERNS|REWORK|FAIL  (纯文本, 不加粗; delivery-gate 按此行解析)
 
 ### 评分依据 (4 维)
 
@@ -69,11 +75,11 @@ checklist.yaml 每个标记完成的 task, 在 evidence.yaml 里找对应证据 
 | 任一 P0 未修 | FAIL |
 | ≥ 1 P0 但已确认会修 | REWORK |
 | ≥ 3 P1 或 Sisyphus 不完整 | CONCERNS |
-| done_without_evidence ≥ 1 | 上限 CONCERNS |
+| done_without_evidence ≥ 1 | CONCERNS (不得 ship) |
 | < 3 P1 + 仅 P2/INFO | PASS |
 
 PASS → 进 polish (Refactor/System) 或 ship (其他)
-CONCERNS → 可进 polish 顺手清理 (Refactor/System) 或 ship + 挂 TODO
+CONCERNS → 修复或明确 defer 后重跑 review; 9.9.1 delivery gate 只接受 PASS
 REWORK/FAIL → 必须先修后再 review
 
 ## 约束

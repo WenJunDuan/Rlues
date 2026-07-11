@@ -50,7 +50,7 @@ plan stage:
   → 继续 plan
 ```
 
-### 在 review_pass1 中
+### 在 review passN 中
 
 ```
 reviewer 提出疑虑 "这个用法对吗?"

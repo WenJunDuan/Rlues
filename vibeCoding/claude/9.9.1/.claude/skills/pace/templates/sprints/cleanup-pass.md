@@ -40,7 +40,7 @@ polish_worker: ""              # 谁做的: 主 agent | polish_worker subagent
 
 ## review 意见合并
 
-[本 sprint review_pass1.md 的 P1/P2 findings 在 polish 阶段一并处理. 列出已处理项]
+[本 sprint 最新 reviews/passN.md 的 P1/P2 findings 在 polish 阶段一并处理. 列出已处理项]
 
 - F1 (P1): [reviewer 提的问题] → ✅ 已处理
 - F2 (P2): ... → ✅ 已处理

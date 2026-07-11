@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+import types
 import unittest
 
 
@@ -43,6 +44,16 @@ def load_module():
 
 
 MIGRATE = load_module()
+
+
+def argparse_namespace(**kwargs: object) -> types.SimpleNamespace:
+    """Minimal stand-in for argparse.Namespace covering the attributes
+    locate_package()/package_candidates() read (cc_package/cx_package/
+    repo_root/only); tests only need to drive package discovery, not the
+    full CLI surface."""
+    defaults = {"cc_package": None, "cx_package": None, "repo_root": None, "only": "both"}
+    defaults.update(kwargs)
+    return types.SimpleNamespace(**defaults)
 
 
 def digest_tree(root: Path) -> dict[str, str]:
@@ -413,6 +424,93 @@ class OrchestratorTests(unittest.TestCase):
                 ["shell_environment_policy"]["set"]["VIBECODING_VERSION"],
                 "9.9.1",
             )
+
+    def test_owned_group_entirely_dropped_when_release_stops_shipping_its_hook(
+        self,
+    ) -> None:
+        """9.9.0 registers WorktreeCreate/WorktreeRemove groups whose only hook
+        is worktree-tracker.cjs; 9.9.1 no longer packages that hook (native
+        worktree support replaces it). The merge must drop those event keys
+        entirely rather than leaving an empty-hooks group or a stale hook
+        pointing at a file the 9.9.1 release no longer ships."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "home"
+            backup = root / "backup"
+            prepare_old_home(home)
+            before_settings = json.loads((home / ".claude/settings.json").read_text(encoding="utf-8"))
+            self.assertIn("WorktreeCreate", before_settings["hooks"])
+            self.assertIn("WorktreeRemove", before_settings["hooks"])
+
+            result = self.run_script(home, backup, "--only", "cc")
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            migrated = json.loads((home / ".claude/settings.json").read_text(encoding="utf-8"))
+            self.assertNotIn("WorktreeCreate", migrated["hooks"])
+            self.assertNotIn("WorktreeRemove", migrated["hooks"])
+            self.assertNotIn("worktree-tracker.cjs", json.dumps(migrated["hooks"]))
+
+    def test_athena_hook_allowlist_is_the_union_of_old_and_new_release_hooks(
+        self,
+    ) -> None:
+        """The allowlist that decides which installed hooks are athena-owned
+        (and therefore safe to replace/drop) must recognize hooks the *old*
+        9.9.0 release shipped even when 9.9.1 no longer ships them — otherwise
+        a stale 9.9.0-only hook like worktree-tracker.cjs would be
+        misclassified as a private user hook and preserved forever instead of
+        being cleanly retired."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "home"
+            backup = root / "backup"
+            prepare_old_home(home)
+
+            old_package = OLD_CC
+            new_package = MIGRATE.locate_package(
+                "cc",
+                argparse_namespace(repo_root=ROOT, cc_package=None, cx_package=None, only="cc"),
+            )
+            allowlist = MIGRATE.release_hook_allowlist(
+                new_package, "cc"
+            ) | MIGRATE.release_hook_allowlist(old_package, "cc")
+            self.assertIn("worktree-tracker.cjs", allowlist)
+            self.assertIn("evidence-collector.cjs", allowlist)
+
+            result = self.run_script(home, backup, "--only", "cc")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            migrated = json.loads((home / ".claude/settings.json").read_text(encoding="utf-8"))
+            self.assertNotIn("WorktreeCreate", migrated["hooks"])
+
+    def test_user_added_permission_rules_survive_migration(self) -> None:
+        """A permission entry the user added on top of the 9.9.0 defaults
+        (not present in the old package's allow/deny lists) must still be
+        present, in addition to the 9.9.1 package defaults, after migration."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "home"
+            backup = root / "backup"
+            prepare_old_home(home)
+            settings_path = home / ".claude/settings.json"
+            settings = json.loads(settings_path.read_text(encoding="utf-8"))
+            settings["permissions"]["allow"].append("Bash(make deploy-staging*)")
+            settings["permissions"]["deny"].append("Bash(curl http://internal-admin*)")
+            settings_path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+
+            result = self.run_script(home, backup, "--only", "cc")
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            migrated = json.loads(settings_path.read_text(encoding="utf-8"))
+            self.assertIn("Bash(make deploy-staging*)", migrated["permissions"]["allow"])
+            self.assertIn("Bash(curl http://internal-admin*)", migrated["permissions"]["deny"])
+            new_package = MIGRATE.locate_package(
+                "cc",
+                argparse_namespace(repo_root=ROOT, cc_package=None, cx_package=None, only="cc"),
+            )
+            packaged = json.loads((new_package / "settings.json").read_text(encoding="utf-8"))
+            for rule in packaged["permissions"]["allow"]:
+                self.assertIn(rule, migrated["permissions"]["allow"])
+            for rule in packaged["permissions"]["deny"]:
+                self.assertIn(rule, migrated["permissions"]["deny"])
 
     def test_unsupported_version_is_zero_write_preflight(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

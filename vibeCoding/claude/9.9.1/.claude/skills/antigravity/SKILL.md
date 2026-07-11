@@ -107,7 +107,7 @@ fi
 
 | 优先级 | 工具 | 条件 |
 |---|---|---|
-| 1 | CC 内置 Task tool (subagent_type) | N ≤ 4 (CC 单 session 限制) |
+| 1 | CC 内置 Agent tool (subagent_type) | N ≤ 4 (CC 单 session 限制) |
 | 2 | Codex `spawn_agent` fan-out | CX 可用且切片写集互斥 |
 | 3 | Antigravity `agy -p "..." &` 并行 | N ≥ 5 且 `ag_callable = true` |
 | 4 | 主 agent 顺序处理 | 其他机制不可用 |

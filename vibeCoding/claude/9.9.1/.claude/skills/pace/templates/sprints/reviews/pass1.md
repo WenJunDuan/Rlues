@@ -52,8 +52,8 @@ verdict: ""                    # PASS | CONCERNS | REWORK | FAIL (by evaluator)
 **理由**: [一段话]
 
 **下一步**:
-- PASS / CONCERNS (路径∈Refactor/System) → polish
-- PASS / CONCERNS (其他路径) → ship
-- REWORK / FAIL → 回 impl
+- PASS (路径∈Refactor/System) → polish
+- PASS (其他路径) → ship
+- CONCERNS / REWORK / FAIL → 修复或明确 defer 后生成 passN+1; 不直接 ship
 
 (主 agent 追加 evaluator 返回结果后, 更新 `.ai_state/_index.md.next_action`)

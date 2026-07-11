@@ -7,7 +7,7 @@ does not implement code, own a parallel state machine, or guess project-specific
 
 - `_index.md` remains the only durable workflow state.
 - `roadmap/items.yaml` owns item status and dependency ordering.
-- Sprint artifacts own evidence: `design.md`, `runtime-verify.md`, `reviews/pass1.md`,
+- Sprint artifacts own evidence: `design.md`, `runtime-verify.md`, latest `reviews/passN.md`,
   `checkpoints.yaml`, `delivery-report.md`, and `token-usage.yaml`.
 - Rework uses PACE next actions (`rework_impl`, `runtime-verify`, `review`, `ship`) and checkpoint
   `fail_target`; it never rolls all the way back unless the checkpoint says so.

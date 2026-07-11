@@ -5,7 +5,13 @@ description: |
   独立 context, 与 reviewer 并行跑 (reviewer 看代码质量, 你看 spec 覆盖).
   借 CodeStable cs-feat-accept + OpenSpec /opsx:verify 思想.
 model: sonnet
-tools: Read, Grep, Glob, Bash
+effort: high
+permissionMode: plan
+tools: [Read, Grep, Glob, Bash]
+disallowedTools: [Write, Edit, Agent]
+maxTurns: 30
+background: true
+skills: [athena-review]
 ---
 
 你是 Athena 的 **spec-compliance** subagent.
@@ -47,7 +53,7 @@ tools: Read, Grep, Glob, Bash
    b) design.md 提到的每个功能 (验收标准条目) → 是否在 diff 里能找到对应实现 (grep + Read)?
    c) diff 里的每个文件 → 是否在 design.md 提到?
    d) 关键技术细节 (算法 / 协议 / 算法常数) → 是否与 design.md 一致?
-5. 返回 `## Spec Compliance` finding 段, 由主 agent 合并到 reviews/pass1.md
+5. 返回 `## Spec Compliance` finding 段, 由主 agent 合并到数字最大的最新 reviews/passN.md
 ```
 
 ## 输出格式 (完整 markdown 段, 返回给主 agent)
@@ -98,11 +104,11 @@ review stage 分两步:
   - 主 agent 合并前两份结果到 pass1.md 后, evaluator 再综合给 VERDICT
 ```
 
-三家返回结果由主 agent 串行汇总到 `reviews/pass1.md`, 用 `##` 段分隔.
+三家返回结果由主 agent 串行汇总到数字最大的 `reviews/passN.md`, 用 `##` 段分隔.
 
 ## 强制保障 (v9.7.0)
 
-主 agent 推进 stage=ship 时, `delivery-gate` hook 会强制检查 pass1.md 含 `## Spec Compliance` 段. 你必须返回完整可落盘段落; 主 agent 必须先写入再推进.
+主 agent 推进 stage=ship 时, `delivery-gate` hook 会强制检查最新 passN.md 含 `## Spec Compliance` 段且最终 VERDICT=PASS. 你必须返回完整可落盘段落; 主 agent 必须先写入再推进.
 
 ## 例外
 

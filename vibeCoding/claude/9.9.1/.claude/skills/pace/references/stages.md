@@ -68,9 +68,9 @@ impl 写完代码 + 单测后, 不直接进 review, 先做运行时自测自改:
 2. 主 agent 合并 `reviews/passN.md`, 再运行 evaluator; evaluator 只返回 VERDICT, 主 agent 追加并更新 `_index.next_action`
 
 VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
-- PASS / CONCERNS (Refactor/System) → polish
-- PASS / CONCERNS (其他) → ship
-- REWORK / FAIL → 回 impl
+- PASS (Refactor/System) → polish
+- PASS (其他) → ship
+- CONCERNS / REWORK / FAIL → 回 impl 或明确 defer 后重跑 review; 不直接 ship
 
 > 注: review stage 本身不设同步 Stop 门禁 (后台 review agent 异步写产物, 同步等待会死锁).
 > spec-compliance 完整性由 delivery-gate 在 **ship** stage 检查 (此时产物已落盘).
@@ -89,11 +89,11 @@ spawn `polish_worker` subagent:
 - Refactor/System: 必须有 cleanup-pass.md
 - Refactor/System (≥5 文件): 必须更新 architecture/ (铁律[架构])
 - design_changed_after_impl=true: block 直到重新 review
-- Feature/Refactor/System: pass1.md 必须含 `## Spec Compliance` 段
-- v9.9.0: Refactor/System 的 pass1.md 必须含 `## Evidence Cross-Check` 段 (U3)
-- v9.9.0 (U1): Feature+ 的 subagent-log.md 必须含 generator 记录 (逃生: skip_impl_subagent_check)
+- Feature/Refactor/System: 选择数字最大的 passN.md, 最终 VERDICT 必须为 PASS 且含 `## Spec Compliance`
+- Refactor/System 的最新 passN.md 必须含 `## Evidence Cross-Check`
+- Feature+ 必须有共享 assignments/events JSONL 中完整 generator Start→assignment→Stop 链 (逃生: skip_impl_subagent_check)
 - v9.9.0 (U2): design.md 的 Critic Findings ≥ min 轮 (Refactor/System=2, 其余=1; plan_critique_min_rounds 覆写)
-- v9.9.0: design.md mtime 晚于 pass1.md → block 重新 review (CC=兜底 / CX=主检测)
+- design.md mtime 晚于最新 passN.md → block 重新 review
 - current_roadmap_slug 非空: 提示主 agent 继续下个 item
 - 长任务建议: ship 前用 `/goal` 设完成条件, 承载铁律[Sisyphus] (见 references/orchestration.md)
 
@@ -111,11 +111,12 @@ spawn `polish_worker` subagent:
 │       ├── issue-report.md            # v9.8.0 Bugfix: 可复现报告 (athena-issue)
 │       ├── fix-note.md                # v9.8.0 Bugfix: 修复记录+验证 (delivery-gate 验)
 │       ├── runtime-verify.md           # v9.8.0 运行时自测自改 (delivery-gate 验)
-│       ├── reviews/pass1.md           # 含 ## Spec Compliance 段
+│       ├── reviews/passN.md           # 数字最大一轮必须 PASS
 │       ├── cleanup-pass.md            # polish 产出
-│       ├── subagent-log.md            # SubagentStop hook 自动写
-│       ├── worktrees.yaml             # WorktreeCreate/Remove hook 自动写
-│       ├── evidence.yaml              # PostToolUse 收集 tool_use ID
+│       ├── subagent-log.md            # Start/Stop 人类视图, 非机器门禁真相
+│       ├── subagent-events.jsonl      # CC/CX 共享 raw lifecycle schema
+│       ├── subagent-assignments.jsonl # 主 agent Start→任务意图握手
+│       ├── evidence.yaml              # validation success/failure 证据
 │       └── tool-trace.jsonl           # 每个 tool call 一行
 ├── roadmap/
 │   └── {slug}/

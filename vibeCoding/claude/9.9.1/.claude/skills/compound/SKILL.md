@@ -49,7 +49,7 @@ compound/YYYY-MM-DD-{doc_type}-{slug}.md
 | 时机 | doc_type | 写入责任 |
 |---|---|---|
 | polish 完成 (cleanup-pass.md 写完) | learning | polish_worker / 主 agent |
-| review_pass1 发现 P0 finding | learning | reviewer subagent |
+| 最新 review passN 发现 P0 finding | learning | reviewer subagent |
 | design.md 含重大决策 (e.g. "我们决定 X 不用 Y") | decision | 主 agent / architect |
 | impl 时发现优雅 pattern | trick | generator / 主 agent |
 | docs_researcher 调研完成 | explore | docs_researcher |

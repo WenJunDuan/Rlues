@@ -22,12 +22,12 @@ impl 完成、checklist 全绿、测试通过; Refactor/System 还须先完成 r
 | VERDICT | 下一步 |
 |---|---|
 | PASS | polish (Refactor/System) 或 ship |
-| CONCERNS | polish 处理或带明确 defer 进入 ship |
+| CONCERNS | 修复或明确 defer 后生成 passN+1; 不得直接 ship |
 | REWORK / FAIL | 回 impl, 修复后生成 passN+1 |
 
 ## 门禁
 
-ship 时 delivery-gate 检查 passN.md、Spec Compliance、Evidence Cross-Check (Refactor/System) 与 reviewer/evaluator 结果. agent 启动记录不能代替返回结果或落盘产物.
+ship 时 delivery-gate 选择数字最大的 passN.md, 只接受最终 PASS，并检查 Spec Compliance、Evidence Cross-Check (Refactor/System) 与 reviewer/evaluator 结果. agent 启动记录不能代替返回结果或落盘产物.
 
 ## 禁止
 

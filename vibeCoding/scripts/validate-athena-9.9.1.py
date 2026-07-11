@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CX = ROOT / "vibeCoding/codex/9.9.1/.codex"
 CC = ROOT / "vibeCoding/claude/9.9.1/.claude"
 BASE = "5eb6189"
+CC_990_TREE = "eb1ab06bae8e9a9bd576643e941c4e5d59360fb1"
 failures: list[str] = []
 passes: list[str] = []
 
@@ -73,6 +74,18 @@ def check_baseline() -> None:
         check=False,
     )
     check("9.9.0 baseline unchanged", proc.returncode == 0, f"git diff exit={proc.returncode}")
+    tree = subprocess.run(
+        ["git", "rev-parse", "HEAD:vibeCoding/claude/9.9.0/.claude"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    check(
+        "committed CC 9.9.0 tree object unchanged",
+        tree.returncode == 0 and tree.stdout.strip() == CC_990_TREE,
+        tree.stdout.strip() or tree.stderr.strip(),
+    )
 
     release_roots = (ROOT / "vibeCoding/codex/9.9.1", ROOT / "vibeCoding/claude/9.9.1", ROOT / "vibeCoding/scripts")
     junk = [
@@ -130,6 +143,50 @@ def check_identity_and_config() -> None:
     check("AGENTS identity=9.9.1", "v9.9.1" in text(CX / "AGENTS.md"))
     check("CLAUDE identity=9.9.1", "v9.9.1" in text(CC / "CLAUDE.md"))
 
+    settings_path = CC / "settings.json"
+    try:
+        settings = json.loads(text(settings_path))
+    except json.JSONDecodeError as exc:
+        failures.append(f"CC settings JSON: {exc}")
+        settings = {}
+    check("CC model=best", settings.get("model") == "best", repr(settings.get("model")))
+    check("CC persisted effort=xhigh", settings.get("effortLevel") == "xhigh", repr(settings.get("effortLevel")))
+    check("CC fallback models", settings.get("fallbackModel") == ["opus", "sonnet"], repr(settings.get("fallbackModel")))
+    check("CC native worktree baseRef=head", settings.get("worktree", {}).get("baseRef") == "head")
+    env = settings.get("env", {})
+    check("CC has no global subagent model override", "CLAUDE_CODE_SUBAGENT_MODEL" not in env)
+    check("CC has no default model alias pins", not any(key.startswith("ANTHROPIC_DEFAULT_") for key in env))
+    hooks = settings.get("hooks", {})
+    check("CC has no WorktreeCreate override", "WorktreeCreate" not in hooks)
+    check("CC has no WorktreeRemove override", "WorktreeRemove" not in hooks)
+    precompact_matchers = [entry.get("matcher") for entry in hooks.get("PreCompact", [])]
+    check(
+        "CC PreCompact matcher uses official manual|auto trigger values",
+        precompact_matchers == ["manual|auto"],
+        repr(precompact_matchers),
+    )
+    private_keys: list[str] = []
+
+    def find_private_keys(value: object, prefix: str = "settings") -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if str(key).startswith("_comment"):
+                    private_keys.append(f"{prefix}.{key}")
+                find_private_keys(child, f"{prefix}.{key}")
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                find_private_keys(child, f"{prefix}[{index}]")
+
+    find_private_keys(settings)
+    check("CC settings has no private _comment keys", not private_keys, ", ".join(private_keys[:8]))
+    allow = settings.get("permissions", {}).get("allow", [])
+    check("CC permissions have no broad write allow", "Write(**)" not in allow and "Write" not in allow)
+    check("CC permissions do not pre-allow install/push/ssh", not any(
+        re.search(r"(?:install|git push|ssh|scp|rsync|curl)", str(rule), re.I) for rule in allow
+    ))
+    deny = settings.get("permissions", {}).get("deny", [])
+    check("CC permissions deny common secret reads", any(".env" in str(rule) for rule in deny) and any(".ssh" in str(rule) for rule in deny))
+
 
 def check_hooks() -> None:
     evidence = text(CX / "hooks/evidence-collector.py")
@@ -142,6 +199,60 @@ def check_hooks() -> None:
     check("gate uses event JSONL", "subagent-events.jsonl" in gate)
     check("gate validates final PASS", "VERDICT" in gate and "PASS" in gate)
     check("SessionStart includes clear", bool(re.search(r'"matcher"\s*:\s*"[^"]*clear', hooks_json, re.I)))
+
+    cc_evidence = text(CC / "hooks/evidence-collector.cjs")
+    cc_retry = text(CC / "hooks/subagent-retry.cjs")
+    cc_tracker = text(CC / "hooks/subagent-tracker.cjs")
+    cc_gate = text(CC / "hooks/delivery-gate.cjs")
+    settings = text(CC / "settings.json")
+    check("CC evidence uses hook event success/failure", "PostToolUseFailure" in cc_evidence and "PostToolUse" in cc_evidence)
+    check("CC evidence rejects legacy tool_output", "tool_output" not in cc_evidence and "tool_output" not in cc_retry)
+    check("CC registers PostToolUseFailure", '"PostToolUseFailure"' in settings)
+    check("CC registers SubagentStart and Stop", '"SubagentStart"' in settings and '"SubagentStop"' in settings)
+    check("CC tracker writes shared assignment schema", "subagent-assignments.jsonl" in cc_tracker and "task_name" in cc_tracker)
+    check("CC tracker writes shared event schema", "subagent-events.jsonl" in cc_tracker and "agent_type" in cc_tracker)
+    check("CC gate uses assignment JSONL", "subagent-assignments.jsonl" in cc_gate)
+    check("CC gate uses event JSONL", "subagent-events.jsonl" in cc_gate)
+    check("CC gate selects latest passN", "pass([1-9]" in cc_gate and "numbered" in cc_gate)
+    check("CC gate enforces PASS only", 'verdict !== "PASS"' in cc_gate)
+
+
+def check_cc_agents() -> None:
+    expected = {
+        "critic": ("fable", "xhigh", "plan", False),
+        "architect": ("fable", "xhigh", "plan", False),
+        "reviewer": ("sonnet", "high", "plan", True),
+        "spec-compliance": ("sonnet", "high", "plan", True),
+        "evaluator": ("opus", "xhigh", "plan", False),
+        "generator": ("sonnet", "high", "default", False),
+        "polish-worker": ("sonnet", "high", "default", False),
+    }
+    found = {path.stem for path in (CC / "agents").glob("*.md")}
+    check("CC role agent set 7/7", found == set(expected), f"found={sorted(found)}")
+    for name, (model, effort, permission, background) in expected.items():
+        body = text(CC / "agents" / f"{name}.md")
+        if not body.startswith("---") or body.count("---") < 2:
+            check(f"CC agent {name} frontmatter", False, "missing frontmatter")
+            continue
+        head = body.split("---", 2)[1]
+        try:
+            meta = yaml.safe_load(head) if yaml is not None else {}
+        except Exception as exc:
+            check(f"CC agent {name} frontmatter", False, type(exc).__name__)
+            continue
+        check(f"CC agent {name} model", meta.get("model") == model, repr(meta.get("model")))
+        check(f"CC agent {name} effort", meta.get("effort") == effort, repr(meta.get("effort")))
+        check(f"CC agent {name} permission", meta.get("permissionMode") == permission, repr(meta.get("permissionMode")))
+        check(f"CC agent {name} background", meta.get("background") is background, repr(meta.get("background")))
+        check(f"CC agent {name} maxTurns", isinstance(meta.get("maxTurns"), int) and meta["maxTurns"] > 0)
+        check(f"CC agent {name} skills", isinstance(meta.get("skills"), list) and bool(meta["skills"]))
+        if permission == "plan":
+            denied = set(meta.get("disallowedTools", []))
+            check(f"CC agent {name} write tools denied", {"Write", "Edit", "Agent"} <= denied, repr(denied))
+    generator = yaml.safe_load(text(CC / "agents/generator.md").split("---", 2)[1]) if yaml else {}
+    check("CC yellow generator does not force isolation", "isolation" not in generator)
+    polish = yaml.safe_load(text(CC / "agents/polish-worker.md").split("---", 2)[1]) if yaml else {}
+    check("CC red polish uses native worktree isolation", polish.get("isolation") == "worktree")
 
 
 def check_contract_text() -> None:
@@ -170,6 +281,22 @@ def check_contract_text() -> None:
         if re.search(r"(?m)^(effort|attach_to_stages):", head):
             bad_frontmatter.append(skill.parent.name)
     check("CX skill frontmatter official-only", not bad_frontmatter, ", ".join(bad_frontmatter))
+
+    bad_cc_frontmatter = []
+    for skill in sorted((CC / "skills").glob("*/SKILL.md")):
+        body = text(skill)
+        head = body.split("---", 2)[1] if body.startswith("---") and body.count("---") >= 2 else ""
+        if re.search(r"(?m)^attach_to_stages:", head):
+            bad_cc_frontmatter.append(skill.parent.name)
+    check("CC skill frontmatter has no attach_to_stages", not bad_cc_frontmatter, ", ".join(bad_cc_frontmatter))
+
+    cc_hot_rows = [
+        *all_text(CC / "agents", (".md",)),
+        *all_text(CC / "skills/pace", (".md",)),
+        *all_text(CC / "skills/athena-review", (".md",)),
+    ]
+    task_tool_hits = [str(path.relative_to(ROOT)) for path, body in cc_hot_rows if re.search(r"\bTask tool\b|\bTask subagent\b", body)]
+    check("CC hot path uses Agent terminology", not task_tool_hits, ", ".join(task_tool_hits[:8]))
 
 
 def check_release_static() -> None:
@@ -277,7 +404,29 @@ def check_package_parity() -> None:
     for skill_name in ("athena-setup", "athena-migrate"):
         cx_tree = tree_manifest(CX / "skills" / skill_name)
         cc_tree = tree_manifest(CC / "skills" / skill_name)
-        check(f"{skill_name} CC/CX parity", cx_tree == cc_tree)
+        if skill_name == "athena-migrate":
+            script = "scripts/migrate-9.9.0-to-9.9.1.py"
+            # Platform-specific: the migration transform itself, and its
+            # behavior-suite test file, may carry additional CC- or
+            # CX-only regression coverage on either side without forcing a
+            # lockstep edit of the other platform in the same patch (see
+            # RELEASE.md "Known issue" for one example of an accepted
+            # cross-platform gap). Fixtures and other shared assets still
+            # require byte-for-byte parity.
+            test_file = "tests/test_migrate_991.py"
+            for tree in (cx_tree, cc_tree):
+                tree.pop(script, None)
+                tree.pop(test_file, None)
+            check("athena-migrate shared assets CC/CX parity", cx_tree == cc_tree)
+            cc_script = text(CC / "skills/athena-migrate" / script)
+            check(
+                "CC migration has 9.9.0 three-way settings merge",
+                "old_defaults" in cc_script
+                and 'merged["env"] = env' in cc_script
+                and "old_permissions" in cc_script,
+            )
+        else:
+            check(f"{skill_name} CC/CX parity", cx_tree == cc_tree)
 
 
 def check_install_contract() -> None:
@@ -349,7 +498,16 @@ def check_fresh_codex_runtime() -> None:
         check("temp HOME Codex doctor", False, "codex unavailable")
         check("temp HOME prompt-input", False, "codex unavailable")
         return
-    with tempfile.TemporaryDirectory(prefix="athena-991-release-") as raw_home:
+    # ignore_cleanup_errors=True (Python 3.11+, matches this file's tomllib
+    # floor): macOS + fast Python releases have shown a benign TOCTOU where
+    # a child `codex`/`node` process still holds a just-closed handle under
+    # raw_home when the `with` block exits, making rmtree race and raise
+    # OSError on an otherwise-successful run. That race is irrelevant to the
+    # release contract this check verifies, so cleanup failures are swallowed
+    # instead of failing the whole validator on an environment artifact.
+    with tempfile.TemporaryDirectory(
+        prefix="athena-991-release-", ignore_cleanup_errors=True
+    ) as raw_home:
         home = Path(raw_home)
         env = isolated_env(home)
         setup = subprocess.run(
@@ -432,12 +590,29 @@ def check_runtime_contract() -> None:
     )
     detail = (run.stdout + run.stderr)[-2000:]
     check("runtime behavior suite", run.returncode == 0, detail)
+    cc_runtime_suite = ROOT / "vibeCoding/scripts/test-athena-claude-9.9.1-runtime.cjs"
+    check("CC runtime behavior suite exists", cc_runtime_suite.is_file())
+    node = shutil.which("node")
+    if node is None:
+        check("CC runtime behavior suite", False, "node unavailable")
+    else:
+        cc_run = subprocess.run(
+            [node, str(cc_runtime_suite)],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        cc_detail = (cc_run.stdout + cc_run.stderr)[-3000:]
+        check("CC runtime behavior suite", cc_run.returncode == 0, cc_detail)
 
 
 def main() -> int:
     check_baseline()
     check_identity_and_config()
     check_hooks()
+    check_cc_agents()
     check_contract_text()
     check_release_static()
     check_package_parity()
