@@ -42,3 +42,5 @@ PASS
 | 4 P0 无回归 | 相关文件未被 §18 改动波及 | PASS |
 | 全量绿 | 144/0 · 72/0/0 · 11/11 · clean (主 agent 亲跑) | PASS |
 | 范围隔离 | 无 9.9.0/codex leak | PASS |
+
+> 档案补录说明 (2026-07-11): impl sprint 目录补 design.md 桥接档 (指向 -design sprint 权威设计, 回显审议轮次) + evidence.yaml schema 补齐 (cc6705 外部 review 闭环指向 fable5.md; hook 活动痕迹补 result: unknown)。均为档案格式化, 无设计/实现内容变更, 不触发 re-review。本 pass3 终判 VERDICT: PASS 不变。
