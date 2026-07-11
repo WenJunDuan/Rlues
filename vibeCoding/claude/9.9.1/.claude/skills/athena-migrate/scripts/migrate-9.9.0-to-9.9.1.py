@@ -429,15 +429,51 @@ def merge_hook_maps(
 
 def merge_cc_settings(
     installed: dict[str, Any],
+    old: dict[str, Any],
     packaged: dict[str, Any],
     allowlist: frozenset[str],
 ) -> dict[str, Any]:
     merged = copy.deepcopy(installed)
-    env = merged.get("env")
-    if not isinstance(env, dict):
-        env = {}
-        merged["env"] = env
+
+    # Three-way scalar merge: update only values that still equal 9.9.0's
+    # shipped default. User values that differ from the baseline are retained.
+    for key in ("model", "effortLevel", "fallbackModel", "worktree", "statusLine"):
+        if key in old:
+            if installed.get(key) == old.get(key) and key in packaged:
+                merged[key] = copy.deepcopy(packaged[key])
+        elif key not in installed and key in packaged:
+            merged[key] = copy.deepcopy(packaged[key])
+
+    old_env = old.get("env") if isinstance(old.get("env"), dict) else {}
+    target_env = packaged.get("env") if isinstance(packaged.get("env"), dict) else {}
+    installed_env = installed.get("env") if isinstance(installed.get("env"), dict) else {}
+    env = copy.deepcopy(installed_env)
+    for key, old_value in old_env.items():
+        if installed_env.get(key) != old_value:
+            continue
+        if key in target_env:
+            env[key] = copy.deepcopy(target_env[key])
+        else:
+            env.pop(key, None)
+    for key, target_value in target_env.items():
+        if key not in old_env and key not in installed_env:
+            env[key] = copy.deepcopy(target_value)
     env["VIBECODING_ATHENA_VERSION"] = TO_VERSION
+    merged["env"] = env
+
+    old_permissions = old.get("permissions") if isinstance(old.get("permissions"), dict) else {}
+    target_permissions = packaged.get("permissions") if isinstance(packaged.get("permissions"), dict) else {}
+    installed_permissions = installed.get("permissions") if isinstance(installed.get("permissions"), dict) else {}
+    permissions = copy.deepcopy(installed_permissions)
+    if installed_permissions.get("defaultMode") == old_permissions.get("defaultMode"):
+        permissions["defaultMode"] = target_permissions.get("defaultMode", installed_permissions.get("defaultMode"))
+    for list_key in ("allow", "deny"):
+        old_items = old_permissions.get(list_key) if isinstance(old_permissions.get(list_key), list) else []
+        target_items = target_permissions.get(list_key) if isinstance(target_permissions.get(list_key), list) else []
+        installed_items = installed_permissions.get(list_key) if isinstance(installed_permissions.get(list_key), list) else []
+        user_items = [item for item in installed_items if item not in old_items]
+        permissions[list_key] = list(dict.fromkeys([*copy.deepcopy(target_items), *copy.deepcopy(user_items)]))
+    merged["permissions"] = permissions
     merged["hooks"] = merge_hook_maps(
         installed.get("hooks", {}), packaged.get("hooks", {}), "cc", allowlist
     )
@@ -733,16 +769,19 @@ def make_plan(
         raise MigrationError(f"{kind.upper()} release manifest is empty")
 
     if kind == "cc":
+        if old_package is None:
+            raise MigrationError("CC 9.9.0 package baseline is required for safe three-way migration")
         config = home / ".claude" / "settings.json"
         installed = load_json_object(config, "CC settings")
         packaged = load_json_object(package / "settings.json", "CC package settings")
-        hook_allowlist = release_hook_allowlist(package, kind)
+        old_defaults = load_json_object(old_package / "settings.json", "old CC package settings")
+        hook_allowlist = release_hook_allowlist(package, kind) | release_hook_allowlist(old_package, kind)
         version = endpoint_version(kind, installed)
         if version not in {FROM_VERSION, TO_VERSION}:
             raise MigrationError("CC endpoint is not on a supported migration version")
         files = {
             config: json_bytes(
-                merge_cc_settings(installed, packaged, hook_allowlist)
+                merge_cc_settings(installed, old_defaults, packaged, hook_allowlist)
             )
         }
         legacy: list[Path] = []

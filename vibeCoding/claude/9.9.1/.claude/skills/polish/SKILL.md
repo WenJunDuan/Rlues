@@ -9,7 +9,7 @@ description: |
 
 ## 触发
 
-review_pass1 VERDICT ∈ {PASS, CONCERNS} 且 path ∈ {Refactor, System} → 主 agent 进 polish.
+最新 reviews/passN.md VERDICT = PASS 且 path ∈ {Refactor, System} → 主 agent 进 polish.
 
 或 next_action = "polish" (主 agent 根据 evaluator 返回结果写入).
 
@@ -125,5 +125,5 @@ ship 时 delivery-gate 会检查:
 | 目标 | 找问题 | 清扫 + 沉淀 |
 | 改代码? | 不改, 只评论 | 改 |
 | subagent | reviewer + spec-compliance + evaluator | polish_worker |
-| 产出 | reviews/pass1.md | cleanup-pass.md + compound/ + architecture/ 更新 |
+| 产出 | reviews/passN.md | cleanup-pass.md + compound/ + architecture/ 更新 |
 | worktree? | read-only | 沿用 impl 的 worktree |

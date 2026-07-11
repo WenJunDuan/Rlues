@@ -6,15 +6,16 @@
 |---|---|---|
 | SessionStart | session-start.cjs | 注入 _index.md + stage-specific 操作提示 |
 | PreToolUse(Bash) | pre-bash-guard.cjs | 灾难命令拦截; v9.9.0 加 git push 门禁 (stage != ship 拦, 防 CC 2.1.198 worktree 自动 PR 绕过 review; 逃生 ATHENA_ALLOW_PUSH=1) |
-| PreToolUse(Task) | subagent-worktree-check.cjs | 铁律[零写入] 红区/并行强制 worktree |
+| PreToolUse(Agent) | subagent-worktree-check.cjs | 铁律[零写入] 红区/并行强制原生 worktree |
 | PostToolUse(Edit/Write/MultiEdit) | index-updater + evidence-collector + design-change-detector | 状态同步 / 证据收集 / design 变更标记; v9.9.0: index-updater 加 re-route 机械触发; design-change-detector 挂 if 过滤 (2.1.178+, 只在 design.md 被 Edit 时起进程, 失效有 delivery-gate mtime 兜底) |
 | Notification | notification-router.cjs | v9.9.0: agent_completed → 软提醒消费 next_action (fail-open, CC 2.1.198+; CX 无此事件, 不对称) |
-| PostToolUse(Bash) | evidence-collector | 命令证据 |
-| PostToolUse(Task) | subagent-retry | 失败或状态未知记录; 缺 exit code 不默认成功 |
-| SubagentStop | subagent-tracker.cjs | 仅写生命周期日志; 不猜退出码, 不改 next_action, 不推进 roadmap |
-| WorktreeCreate / WorktreeRemove | worktree-tracker.cjs | worktrees.yaml + active_worktrees |
+| PostToolUse(Bash) | evidence-collector | 官方成功事件 → pass; 不读 legacy tool_output/exit_code |
+| PostToolUseFailure(Bash/Agent) | evidence-collector + subagent-retry | 官方失败事件 → fail/error/interrupt/duration |
+| SubagentStart / SubagentStop | subagent-tracker.cjs | exact raw JSONL; Start 冻结 sprint, Stop 按 agent_id 回写; assignment 由主 agent握手 |
+| WorktreeCreate / WorktreeRemove | 默认不注册 | 使用 Claude Code 原生 Git worktree; 自定义 hook 仅非 Git VCS 专用 profile |
+| InstructionsLoaded / ConfigChange | config-change-audit.cjs | 只记来源/文件名, 不复制配置值 |
+| StopFailure | stop-failure-recorder.cjs | 模型/API 停止失败元数据, secret redaction |
 | Stop | delivery-gate.cjs + pace-continuator.cjs | 交付门禁 (确定性 command) + 历史/软提醒 |
-| PermissionDenied | permission-retry.cjs | deny 反馈 |
 | PreCompact / PostCompact | compact-snapshot/restore.cjs | 跨 compact 状态恢复 |
 
 > v9.7.0 协议要点 [官方 code.claude.com/docs/en/hooks]:

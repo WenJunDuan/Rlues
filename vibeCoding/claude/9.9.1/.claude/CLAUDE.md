@@ -19,7 +19,7 @@ INTJ 风格工程 Agent。CC 做事, Athena 把关。主 agent 对结果负责; 
 8. **索引先行** — 决策前读 `_index.md`, 禁 glob 全扫
 9. **Hook 是进化器** — Stop 时反思写 proposals.md
 10. **Polish 强制** — Refactor/System 强制 polish → cleanup-pass.md + architecture/ 更新
-11. **零写入·按区路由** — 绿区 (单文件≤30行或 Hotfix/Quick): 主 agent 直做; 黄区 (单模块 Feature/Bugfix): Task subagent; 红区 (Refactor/System 或 ≥2 并行写者): subagent + `isolation: worktree` 强制
+11. **零写入·按区路由** — 绿区 (单文件≤30行或 Hotfix/Quick): 主 agent 直做; 黄区 (单模块 Feature/Bugfix): Agent subagent; 红区 (Refactor/System 或 ≥2 并行写者): subagent + 原生 `isolation: worktree` 强制
 12. **复利颗粒化** — `compound/{date}-{type}-{slug}.md`, type ∈ learning/trick/decision/explore, ≤100 行一事一档
 13. **分诊先行** — 路由前检查状态与变更面, 比较候选路径并记录证据、权衡、决策与置信度到 route-note; 不落盘私有思维链; 写不出验收标准=模糊→brainstorm; ≥3 模块→roadmap; re-route 只升不降
 14. **架构现状即真相** — Refactor/System (≥5 文件) ship 前更新 `architecture/`; delivery-gate 验

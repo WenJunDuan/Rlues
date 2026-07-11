@@ -68,7 +68,7 @@ description: |
 | 区 | 条件 | 执行者 |
 |---|---|---|
 | 绿 | 单文件 ≤30 行无跨模块影响, 或 Hotfix/Quick | 主 agent 直接做 |
-| 黄 | 单模块 Feature/Bugfix | Task subagent, worktree 可选 |
+| 黄 | 单模块 Feature/Bugfix | Agent subagent, worktree 可选 |
 | 红 | Refactor/System 或并行 ≥2 写者 | subagent + `isolation: worktree` 强制 |
 
 ## References (按需 Read, 不要预加载)
@@ -83,7 +83,7 @@ description: |
 ## 最小循环提醒
 
 - plan/design: 第一条 message 加 "ultrathink"; critic 多轮 (max = `_index.plan_critique_max_rounds`); System/Refactor 可设 `_index.plan_model: fable` 切 fable-5 审议 (贵, opt-in)
-- impl: 按红黄绿区路由写入; PostToolUse hook 自动写 evidence.yaml
+- impl: 按红黄绿区路由写入; validation Bash 的 PostToolUse/PostToolUseFailure 分别写 pass/fail evidence
 - runtime-verify (Refactor/System 强制 · Feature 可选): /athena-runtime-verify 用 `/goal` 实跑 + 自测自改, 产出 runtime-verify.md (delivery-gate 验); `vm_available=true` 时环境矩阵加远程 VM 实跑 (athena-vm)
 - review: 并行 reviewer + spec-compliance 返回结果; 主 agent 合并 passN.md 后再跑 evaluator, 最后由主 agent更新 `_index.next_action`
-- ship: delivery-gate 强制门禁 (cleanup-pass / architecture / re-review / spec-compliance)
+- ship: delivery-gate 强制门禁 (generator lifecycle / checklist / evidence / roadmap / latest passN PASS / cleanup / architecture)

@@ -4,9 +4,15 @@ description: |
   PACE plan / design stage 独立 critic subagent.
   评估主 agent 提出的 plan / design 草案, 输出 VERDICT + findings.
   独立 context, 防止主 agent 自我锚定 (借 OMO Metis 思路).
-  使用 ultrathink, 多角度审视.
-model: opus
-tools: Read, Grep, Glob, Bash
+  使用 xhigh effort, 多角度审视. Fable 不可用时由主 agent 显式重试 model=opus.
+model: fable
+effort: xhigh
+permissionMode: plan
+tools: [Read, Grep, Glob, Bash]
+disallowedTools: [Write, Edit, Agent]
+maxTurns: 30
+background: false
+skills: [pace]
 ---
 
 你是 Athena 的 **critic** subagent.

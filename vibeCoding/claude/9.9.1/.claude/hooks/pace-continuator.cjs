@@ -106,7 +106,7 @@ function main() {
         hints.push(`next_action="${nextAction}" 未消费 — 下一 turn 应按 athena-dev 的 next_action 表处理.`);
       }
       if (stage === 'review') {
-        hints.push('review stage: 后台 review agent 产物 (reviews/pass1.md) 落盘后才推进 stage=ship; ship 时 delivery-gate 会强制检查.');
+        hints.push('review stage: reviewer/spec 返回后由主 agent 合并最新 reviews/passN.md, evaluator 后跑; 只有最终 PASS 才推进.');
       }
       if (hints.length > 0) {
         additional = `[pace-continuator] stage=${stage}${sprint ? ` sprint=${sprint}` : ''}\n` + hints.join('\n');

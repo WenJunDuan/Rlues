@@ -7,9 +7,9 @@
  * 职责: agent_completed → additionalContext 软提醒主 agent 消费 _index.next_action
  * (Loop Engineering: 事件驱动接续, 替代纯靠 Stop 轮询).
  *
- * Fail-open 设计 (payload 形状未在所有版本验证):
- * - 字段名不猜死: 对整个 payload 序列化后做包含匹配
- * - 任何异常 / 不匹配 → 静默 exit 0, 零副作用
+ * Fail-open 设计:
+ * - settings matcher 只注册 agent_needs_input|agent_completed
+ * - 脚本只读取官方 notification_type/type, 不扫描任意文本
  * - agent_needs_input 不处理 (UI 已通知用户, hook 无增量价值)
  */
 'use strict';
@@ -35,10 +35,10 @@ function main() {
       payload = d ? JSON.parse(d) : {};
     } catch (_) { process.exit(0); }
 
-    const raw = JSON.stringify(payload);
-    if (!raw.includes('agent_completed')) { process.exit(0); }
+    const notificationType = payload?.notification_type || payload?.type || '';
+    if (notificationType !== 'agent_completed') { process.exit(0); }
 
-    const aiState = findAiState(process.cwd());
+    const aiState = findAiState(payload?.cwd || process.cwd());
     if (!aiState) { process.exit(0); }
     const idx = path.join(aiState, '_index.md');
     if (!fs.existsSync(idx)) { process.exit(0); }

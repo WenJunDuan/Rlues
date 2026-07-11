@@ -1,0 +1,6 @@
+{
+  "hook_event_name": "StopFailure",
+  "error": "rate_limit",
+  "error_details": "request could not complete",
+  "last_assistant_message": "API Error: Rate limit reached"
+}

@@ -1,29 +1,39 @@
-# Athena CHANGELOG — v9.9.1 "Current Codex Contract"
+# Athena CHANGELOG — v9.9.1 "Claude Native Contract Alignment"
 
-发布: 2026-07-10 · 基线: 9.9.0 · 类型: patch (兼容性、安全迁移、契约纠错)
+发布: 2026-07-10 · 唯一基线: committed CC 9.9.0 tree `eb1ab06bae8e9a9bd576643e941c4e5d59360fb1` · 类型: patch
 
-## 核心修复
+## P0 修复
 
-- **Codex 0.144.1 配置基线**: CX 改用内置 `openai` provider、`gpt-5.6-sol`、`xhigh`；移除错误的空 `custom_openai` 默认选择、伪造 1M/900k 上下文覆盖和分发包中的 NUX 运行态。模型选择以[官方最新模型指南](https://developers.openai.com/api/docs/guides/latest-model)及 [0.144.1 模型目录](https://github.com/openai/codex/blob/rust-v0.144.1/codex-rs/models-manager/models.json)为准。
-- **PostToolUse 证据真实性**: CX hook 读取 0.144.1 的 `tool_response`，缺失/未知结果保持 unknown，不再把旧 `tool_output` 或无 exit code 当成成功。Schema 见[官方生成定义](https://github.com/openai/codex/blob/rust-v0.144.1/codex-rs/hooks/schema/generated/post-tool-use.command.input.schema.json)。
-- **多 agent v2 契约**: 提示词、skills、agents 统一使用原生 `spawn_agent` / `send_message` / `followup_task` / `wait_agent`；删除 shell `spawn_agent --cwd`、`assign_task`、裸 `wait` 等不存在语法。工作目录由主 thread 创建 worktree 后把绝对路径交给 agent，并要求每次工具调用显式 `workdir`。
-- **门禁 fail-closed**: SubagentStart/Stop 仅记录生命周期；缺失退出结果不再默认 0；generator Start 不能满足交付门禁；read-only reviewer/critic 只返回结果，由主 thread 串行落盘。
-- **Skill 合法化**: 两端 skill frontmatter 仅保留官方 `name` / `description`，移除 Codex 不接受的 `effort` / `attach_to_stages`；当前包全部 skills 走官方 `quick_validate.py`。
-- **路径清账**: 当前热路径不再引用旧 details 布局；仅历史迁移逻辑允许识别并搬迁该目录。
-- **Prompt 收敛**: 面向 GPT-5.6 保留验收、证据、权限与停止条件，删除强制可见思维链、极端电报体和“主 thread 只能编排”的冲突要求。依据 [GPT-5.6 prompt guidance](https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6)。
+- **恢复原生 Git worktree**: 默认 settings 删除 WorktreeCreate/Remove 注册及旧 tracker；设置 `worktree.baseRef=head`。官方规定注册 WorktreeCreate 会完全替代 Claude Code Git 逻辑，见 https://code.claude.com/docs/en/worktrees 。
+- **证据线分流**: PostToolUse 只表示成功，PostToolUseFailure 表示失败并携带 error/is_interrupt/duration；未知事件不读 legacy `tool_output.exit_code`，更不会默认成功。成功写文件只进 trace，不冒充 validation pass。见 https://code.claude.com/docs/en/hooks 。
+- **合法 effort**: persisted `effortLevel=max` 攆为 `xhigh`; agent frontmatter 可按角色使用官方 effort。主会话使用 `best` (org 有 Fable5 权限则用 Fable5, 否则回退最新 Opus), fallback `opus → sonnet`。见 https://code.claude.com/docs/en/model-config 。
+- **恢复角色模型**: 删除全局 `CLAUDE_CODE_SUBAGENT_MODEL` 和默认 model-ID pins；critic/architect=fable、reviewer/spec/generator=sonnet、evaluator=opus，由各 agent frontmatter 决定。
+
+## 状态与门禁
+
+- CC/CX 共用 exact JSONL schema：`subagent-events.jsonl` 与 `subagent-assignments.jsonl`。SubagentStart 冻结 sprint；主 agent 通过 `subagent-tracker.cjs assign` 绑定 task_name/role；Stop 按 agent_id 回原 sprint。
+- delivery-gate 改为 fail-closed：校验唯一 generator Start→assignment→Stop、checklist 全完成、evidence 至少一条显式 pass 且无 fail、roadmap 全完成、最新数字 passN 最终 PASS。
+- Refactor/System 额外强制 runtime-verify、Evidence Cross-Check、cleanup-pass 和 ≥5 文件 architecture 更新。CONCERNS 不再自动 ship。
+- PreToolUse Bash guard 使用结构化 token/command segment 判断；引用文本中的 `git push`/`rm -rf /` 不误拦，真实 push/灾难命令仍 block。
+
+## Agent 与 settings
+
+- 新增/规范 7 个角色 agent 的 model、effort、permissionMode、background、maxTurns、skills；read-only 角色禁止 Write/Edit/Agent。
+- 黄区 generator 不固定 isolation；红区调用 Agent 时显式 `isolation: worktree`。polish-worker 固定使用原生 worktree。
+- Agent Teams experimental、默认关闭、非发布依赖；只允许用户明确批准的 3–5 个独立研究/review/互斥模块任务，`.ai_state` 仍是真相。
+- 默认权限去除 broad Write、install、curl、SSH、push 自动放行，增加常见 secret path deny；用户自定义 provider/MCP/plugin/trust 不由默认包覆盖。
 
 ## Setup / migrate
 
-- `athena-setup` 改为**仅 fresh install**：CC/CX 分别判定；缺失端可单独补装；同版本只验证；旧端只路由 `athena-migrate`，不阻断另一个 fresh 端安装。fresh 写入先完成全量碰撞/语法预检，配置或资产复制失败会删除本事务全部新文件。仓库根可定位 `vibeCoding/{claude,codex}/9.9.1`，运行时 manifest 排除 `__pycache__`、`*.pyc`、`.DS_Store`、`tmp/`，CX 首装包含 `AGENTS.md`。
-- CX 用户 skills 目标改为 `~/.agents/skills`。`$CODEX_HOME/skills` 仅为 deprecated compatibility，见 [Codex 0.144.1 loader](https://github.com/openai/codex/blob/rust-v0.144.1/codex-rs/core-skills/src/loader.rs#L318-L337)。迁移只删除旧配置明确注册的 Athena `~/.codex/skills/<name>`，不碰第三方目录。
-- 新增可执行双端编排器 `migrate-9.9.0-to-9.9.1.py`：支持 `--home`、`--repo-root` / 双 package path、`--only`、`--dry-run`、`--backup-dir`。所选 9.9.0 端共用一个 transaction backup；CC/CX hook ownership 改为 release 包 hooks 文件名精确 allowlist，并逐 hook 过滤/替换，标准目录内 private hook、混合 group 私人 hook、非 Athena event/group 与未知字段均保留；CX 同时保留文本级 provider/NUX/skill-path transformer。配置先 stage/parse 再原子替换，release-owned 资产同步时保留第三方名字。legacy 清理优先使用旧 config 明确注册路径；针对 v9.9.0 漏注册的 `augment`，仅当 installed 目录与可定位的 9.9.0 package 完整路径/文件哈希签名一致才删除，任何改动或同名第三方内容均保留并报告 residue。四阶段故障注入验证全端回滚；仅 rollback 不完整返回 3；第二次运行零备份、零写入。
-- Setup/migrate 不覆盖整份用户配置，不读取或修改 Codex hook trust store。hook 内容变化后只提示用户在 Codex 内重新审阅信任。
+- CC 9.9.0→9.9.1 settings 使用 old/user/target 三方定点合并：只有仍等于 9.9.0 默认的 model/effort/env/permissions/hooks 才升级或移除；用户 model、private hooks、plugins、未知字段与 secret values 保留。
+- `--dry-run`、`--only cc|cx|both`、单 transaction backup、四点 fault injection 全回滚、第二次零写入幂等继续保留；日志不输出 secret values。
+- 已发布 CX 9.9.1 包保持不变；CC 共享 `.ai_state` 与 CX 9.9.1 gate schema 兼容，不追求平台文件字节相同。
 
-## 验证基线
+## 验证
 
-- 两端 setup/migrate 目录 parity；SKILL frontmatter 官方校验通过。
-- 迁移 fixture 覆盖 dry-run、real、第二次幂等、protected tables 保留，以及 after-backup / after-first-config / asset-copy / post-verify 四点全事务 rollback；setup fixture 执行 fresh / CC-only / CX-only / same-version / old-version 五态。
-- release validator 汇总 JSON/TOML/Python/Node 语法、hook 行为、skills、package parity、临时 HOME 安装/迁移和严格 Codex doctor。
+- CC runtime contract：72 PASS / 0 FAIL / 0 SKIP；2.1.203/2.1.206 临时 HOME 真机矩阵实跑通过，未伪造。
+- CC migration 8/8、setup 5/5；CX runtime 30/30；JSON/Node/Python/YAML/frontmatter/release validator 全部纳入总验证。
+- 发布仍需 Fable5 post-implementation review，合并全部 P0/P1 后重新验证并取得 PASS。
 
 ---
 

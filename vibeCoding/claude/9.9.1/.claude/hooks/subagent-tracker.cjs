@@ -1,153 +1,167 @@
 #!/usr/bin/env node
-/**
- * VibeCoding Athena v9.9.1 · CC SubagentStop hook
- *
- * 职责:
- *   1. SubagentStop 触发时, 写 sprints/{current_slug}/subagent-log.md
- *   2. 写 .snapshots/last-subagent.txt 供主 agent 恢复上下文
- *   3. 只记录生命周期; 不猜 exit code, 不更新 next_action, 不推进 roadmap
- *
- * 输入: SubagentStop JSON payload (agent_type, agent_id, last_assistant_message, cwd, stop_hook_active)
- *   注: 官方字段是 agent_type/agent_id, 非 subagent_name/subagent_type; 且不含 duration_ms/exit_code.
- * 源: https://code.claude.com/docs/en/hooks (SubagentStop input)
- */
+/** Athena v9.9.1 SubagentStart/Stop ledger and assignment handshake. */
 "use strict";
 
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 
+const SAFE_SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
 function findAiState(cwd) {
-  let current = cwd;
-  for (let i = 0; i < 5; i++) {
+  let current = path.resolve(cwd);
+  for (let depth = 0; depth < 8; depth += 1) {
     const candidate = path.join(current, ".ai_state");
-    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory())
-      return candidate;
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
     const parent = path.dirname(current);
-    if (parent === current) return null;
+    if (parent === current) break;
     current = parent;
   }
   return null;
 }
 
-// v9.9.1: subagent 在隔离 worktree 运行时, findAiState 从 worktree cwd
-// 向上命中的是 worktree 内的 .ai_state 副本; 写入随 worktree 清理一起丢失, 主仓库缺条目,
-// 致 delivery-gate 的 generator 记录检查误报. 检测到 cwd 处于 git worktree 时
-// (git-dir != git-common-dir) 重定向到主仓库 .ai_state.
 function redirectToMainRepo(aiState, cwd) {
   try {
-    const opt = { cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] };
-    const gitDir = execFileSync("git", ["rev-parse", "--git-dir"], opt).trim();
-    const commonDir = execFileSync("git", ["rev-parse", "--git-common-dir"], opt).trim();
-    // 主仓库: 两者指向同一 .git → 不重定向
-    if (path.resolve(cwd, gitDir) === path.resolve(cwd, commonDir)) return aiState;
-    // worktree: 主仓库根 = dirname(common-dir) (通常 <main>/.git)
-    const mainAiState = path.join(path.dirname(path.resolve(cwd, commonDir)), ".ai_state");
-    if (fs.existsSync(mainAiState) && fs.statSync(mainAiState).isDirectory()) return mainAiState;
-  } catch (_) {
-    // 非 git 仓库 / git 不可用 → 保持原路径, 不影响非 worktree 场景
-  }
+    const options = { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] };
+    const gitDir = path.resolve(cwd, execFileSync("git", ["rev-parse", "--git-dir"], options).trim());
+    const commonDir = path.resolve(cwd, execFileSync("git", ["rev-parse", "--git-common-dir"], options).trim());
+    if (gitDir === commonDir) return aiState;
+    const main = path.join(path.dirname(commonDir), ".ai_state");
+    if (fs.existsSync(main) && fs.statSync(main).isDirectory()) return main;
+  } catch (_) {}
   return aiState;
 }
 
-function readFrontmatter(filePath) {
-  const content = fs.readFileSync(filePath, "utf-8");
-  if (!content.startsWith("---")) return { fm: {}, body: content };
-  const parts = content.split("---", 3);
-  if (parts.length < 3) return { fm: {}, body: content };
-  const fm = {};
-  for (const line of parts[1].split("\n")) {
-    const t = line.trim();
-    if (!t || t.startsWith("#")) continue;
-    const m = t.match(/^([\w\-_.]+)\s*:\s*(.*)$/);
-    if (m) {
-      let v = m[2].trim();
-      // v9.9.1 fix: 取首对引号内的值 (而非剥首尾字符), 防止行尾注释被并入值
-      // 例: current_sprint_slug: "xxx"  # 注释 "示例" — 旧逻辑会把注释当值的一部分
-      const q = v.match(/^"([^"]*)"|^'([^']*)'/);
-      if (q) {
-        v = q[1] !== undefined ? q[1] : q[2];
-      } else {
-        const hashIdx = v.indexOf(" #");
-        if (hashIdx >= 0) v = v.slice(0, hashIdx).trim();
-      }
-      fm[m[1]] = v;
-    }
-  }
-  return { fm, body: parts[2] };
-}
-
-function appendToSubagentLog(aiState, sprintSlug, entry) {
-  const logPath = path.join(aiState, "sprints", sprintSlug, "subagent-log.md");
-  fs.mkdirSync(path.dirname(logPath), { recursive: true });
-  if (!fs.existsSync(logPath)) {
-    fs.writeFileSync(logPath, `# Subagent Log — ${sprintSlug}\n\n`, "utf-8");
-  }
-  fs.appendFileSync(logPath, entry);
-}
-
-function main() {
+function currentSprint(aiState) {
   try {
-    let data = "";
-    try {
-      data = fs.readFileSync(0, "utf-8");
-    } catch (_) {}
-    const payload = data ? JSON.parse(data) : {};
-
-    // 官方 SubagentStop payload 字段是 agent_type / agent_id.
-    // (不是 subagent_name/subagent_type); 后者恒 undefined → 日志恒 "· unknown",
-    // delivery-gate 只能靠 last message 碰巧含 "generator" 字样. 保留旧字段兜底防平台再改.
-    const subagentName =
-      payload?.agent_type || payload?.subagent_name || payload?.subagent_type || "unknown";
-    const agentId = payload?.agent_id || "";
-    const lastMessage = payload?.last_assistant_message || "";
-
-    // 官方 SubagentStop 带 cwd 字段, 优先用它.
-    const cwd = payload?.cwd || process.cwd();
-    let aiState = findAiState(cwd);
-    if (!aiState) {
-      process.exit(0);
-    }
-    aiState = redirectToMainRepo(aiState, cwd);
-
-    const idxPath = path.join(aiState, "_index.md");
-    if (!fs.existsSync(idxPath)) {
-      process.exit(0);
-    }
-
-    const { fm: idxFm } = readFrontmatter(idxPath);
-    const sprintSlug = idxFm.current_sprint_slug || "";
-
-    const ts = new Date().toISOString();
-
-    // 1. last_subagent/at 写到 gitignore 的 .snapshots/ 不污染 _index 的 git 追踪
-    const snapDir = path.join(aiState, ".snapshots");
-    if (!fs.existsSync(snapDir)) fs.mkdirSync(snapDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(snapDir, "last-subagent.txt"),
-      `${subagentName} @ ${ts}\n`,
-      "utf-8",
-    );
-
-    // 2. 写 subagent-log.md
-    // 官方 SubagentStop payload 不含 duration_ms/exit_code (仅 agent_type/agent_id/
-    // last_assistant_message/stop_hook_active), 故不再写编造的 Duration/Exit;
-    // 记 agent_id + last_assistant_message 前 200 字作为证据. 失败感知由 subagent-retry hook 承担.
-    if (sprintSlug) {
-      const summary = (lastMessage || "").slice(0, 200).replace(/\n/g, " ");
-      const entry =
-        `## ${ts} · ${subagentName}\n` +
-        `- Event: SubagentStop\n` +
-        (agentId ? `- Agent ID: ${agentId}\n` : "") +
-        `- Last message: ${summary}\n\n`;
-      appendToSubagentLog(aiState, sprintSlug, entry);
-    }
-
-    process.exit(0);
-  } catch (e) {
-    process.stderr.write(`[subagent-tracker] non-blocking: ${e.message}\n`);
-    process.exit(0);
-  }
+    const content = fs.readFileSync(path.join(aiState, "_index.md"), "utf8");
+    const match = content.match(/^current_sprint_slug\s*:\s*["']?([^"'\n#]+)/m);
+    const slug = match ? match[1].trim() : "";
+    return SAFE_SLUG.test(slug) ? slug : "";
+  } catch (_) { return ""; }
 }
 
-main();
+function readJsonl(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8").split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
+  } catch (_) { return []; }
+}
+
+function startLocations(aiState, agentId) {
+  const sprints = path.join(aiState, "sprints");
+  let names = [];
+  try { names = fs.readdirSync(sprints, { withFileTypes: true }).filter(row => row.isDirectory()).map(row => row.name); }
+  catch (_) { return []; }
+  const locations = [];
+  for (const slug of names) {
+    if (!SAFE_SLUG.test(slug)) continue;
+    const rows = readJsonl(path.join(sprints, slug, "subagent-events.jsonl"));
+    if (rows.some(row => row && row.event === "SubagentStart" && row.agent_id === agentId && row.sprint_slug === slug)) {
+      locations.push(slug);
+    }
+  }
+  return [...new Set(locations)];
+}
+
+function appendJsonl(filePath, row) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.appendFileSync(filePath, `${JSON.stringify(row)}\n`, "utf8");
+}
+
+function appendHumanLog(aiState, sprintSlug, eventName, agentId, agentType, lastMessage) {
+  const filePath = path.join(aiState, "sprints", sprintSlug, "subagent-log.md");
+  if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, `# Subagent Log — ${sprintSlug}\n\n`, "utf8");
+  const summary = String(lastMessage || "").replace(/\s+/g, " ").slice(0, 200);
+  const entry = [
+    `## ${new Date().toISOString()} · ${agentType}`,
+    `- Event: ${eventName}`,
+    `- Agent ID: ${agentId}`,
+    ...(summary ? [`- Last message: ${summary}`] : []),
+    "",
+    "",
+  ].join("\n");
+  fs.appendFileSync(filePath, entry, "utf8");
+}
+
+function parseArgs(args) {
+  const result = {};
+  for (let i = 0; i < args.length; i += 1) {
+    if (!args[i].startsWith("--") || i + 1 >= args.length) continue;
+    result[args[i].slice(2)] = args[i + 1];
+    i += 1;
+  }
+  return result;
+}
+
+function assign(args) {
+  const values = parseArgs(args);
+  const cwd = path.resolve(values.cwd || process.cwd());
+  let aiState = findAiState(cwd);
+  if (!aiState) throw new Error("Athena .ai_state not found");
+  aiState = redirectToMainRepo(aiState, cwd);
+  const agentId = String(values["agent-id"] || "").trim();
+  const taskName = String(values["task-name"] || "").trim();
+  const role = String(values.role || "").trim();
+  if (!agentId || !taskName || !role) throw new Error("assign requires --agent-id, --task-name and --role");
+  const locations = startLocations(aiState, agentId);
+  if (locations.length !== 1) throw new Error(`assignment requires exactly one new SubagentStart; found ${locations.length}`);
+  const sprintSlug = locations[0];
+  const filePath = path.join(aiState, "sprints", sprintSlug, "subagent-assignments.jsonl");
+  if (readJsonl(filePath).some(row => row && row.agent_id === agentId && row.sprint_slug === sprintSlug)) {
+    throw new Error(`duplicate assignment for agent_id=${agentId}`);
+  }
+  appendJsonl(filePath, {
+    schema_version: 1,
+    agent_id: agentId,
+    task_name: taskName,
+    role,
+    sprint_slug: sprintSlug,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+function hook() {
+  let payload = {};
+  try {
+    const input = fs.readFileSync(0, "utf8");
+    if (input.trim()) payload = JSON.parse(input);
+  } catch (_) {}
+  const eventName = String(payload.hook_event_name || "");
+  if (!["SubagentStart", "SubagentStop"].includes(eventName)) return;
+  const cwd = path.resolve(payload.cwd || process.cwd());
+  let aiState = findAiState(cwd);
+  if (!aiState) return;
+  aiState = redirectToMainRepo(aiState, cwd);
+  const agentId = String(payload.agent_id || "").trim();
+  const agentType = String(payload.agent_type || "").trim();
+  if (!agentId || !agentType) {
+    process.stderr.write("[subagent-tracker] missing official agent_id or agent_type; event not recorded\n");
+    return;
+  }
+  let sprintSlug = currentSprint(aiState);
+  if (eventName === "SubagentStop") {
+    const locations = startLocations(aiState, agentId);
+    if (locations.length === 1) sprintSlug = locations[0];
+  }
+  if (!sprintSlug) {
+    process.stderr.write("[subagent-tracker] no safe sprint slug; event not recorded\n");
+    return;
+  }
+  appendJsonl(path.join(aiState, "sprints", sprintSlug, "subagent-events.jsonl"), {
+    schema_version: 1,
+    event: eventName,
+    agent_id: agentId,
+    agent_type: agentType,
+    sprint_slug: sprintSlug,
+    timestamp: new Date().toISOString(),
+  });
+  appendHumanLog(aiState, sprintSlug, eventName, agentId, agentType, payload.last_assistant_message);
+}
+
+try {
+  if (process.argv[2] === "assign") assign(process.argv.slice(3));
+  else hook();
+} catch (error) {
+  process.stderr.write(`[subagent-tracker] ${error.message}\n`);
+  process.exitCode = 2;
+}

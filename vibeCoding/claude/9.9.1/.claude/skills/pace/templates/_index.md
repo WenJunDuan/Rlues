@@ -25,7 +25,7 @@ ag_callable: false                # antigravity (agy) 可调度?
 
 # === 平台原生能力 (athena-init 探测) ===
 platform_features:
-  cc_subagent_task: true          # CC Task tool (always true)
+  cc_subagent_task: true          # 共享字段名保留; CC 当前 Agent tool 可用
   cc_ultrathink_supported: false  # CC v2.1.68+ ultrathink keyword
   cc_isolation_worktree: false    # CC v2.x+ subagent frontmatter isolation: worktree
   cc_subagent_stop_hook: false    # CC SubagentStop 原生事件
@@ -79,7 +79,7 @@ pointers:
 next_action: ""                   # 主 agent / delivery-gate 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
 last_subagent: ""                 # SubagentStop hook 仅记录生命周期
 last_subagent_at: ""
-active_worktrees: []              # WorktreeCreate/Remove hook 维护
+active_worktrees: []              # 主 agent 现场核对 git worktree list 后维护; hook 不替代原生创建
 last_critic_round: 0              # plan stage critic 已跑轮数
 design_changed_after_impl: false  # design.md 改后需 re-review
 

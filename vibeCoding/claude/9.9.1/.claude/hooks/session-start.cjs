@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * VibeCoding Athena v9.8.0 · CC SessionStart hook
+ * VibeCoding Athena v9.9.1 · CC SessionStart hook
  *
  * 触发: session 启动 / resume
  * 职责:
@@ -10,7 +10,6 @@
  * 4. 若 design_changed_after_impl=true → 强提示需 re-review
  * 5. 若 next_action="next_roadmap_item:..." → 提示自动推进
  *
- * v9.7.0: impl 提示与铁律[零写入]红黄绿区同步 (绿区主 agent 直做)
  * 输出协议: { hookSpecificOutput: { hookEventName, additionalContext } }
  */
 'use strict';
@@ -132,7 +131,7 @@ function stageHints(fm) {
 
   if (stage === 'polish') {
     hints.push('✨ **polish stage**: 强制 (Refactor/System 路径).');
-    hints.push('   - spawn `polish_worker` subagent');
+    hints.push('   - spawn `polish-worker` subagent (native isolation: worktree)');
     hints.push('   - 5 检查项 + finishing-a-development-branch (worktree 清理)');
   }
 
@@ -156,10 +155,10 @@ function specialAlerts(fm, aiState) {
     alerts.push('🎉 **roadmap 完成**: 所有 items 已 ship, 提示用户庆祝 + 触发 `/compound add learning` 沉淀经验.');
   }
 
-  // 3. active worktrees
+  // 3. active worktrees (hint only; truth is live `git worktree list`)
   const activeWts = fm.active_worktrees || '[]';
   if (activeWts !== '[]') {
-    alerts.push(`🌿 **活着的 worktree**: ${activeWts} (跨 session 可能需要清理, 检查 sprints/{current_sprint}/worktrees.yaml)`);
+    alerts.push(`🌿 **worktree 提示**: _index 记录 ${activeWts}; 先运行 git worktree list 现场核对. 默认 hook 不替代原生 Git 创建/清理.`);
   }
 
   return alerts;

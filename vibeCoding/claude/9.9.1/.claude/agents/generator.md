@@ -3,12 +3,18 @@ name: generator
 description: |
   PACE impl stage 调用. 按 design.md 实施代码 + 测试. 严格 TDD.
   铁律[零写入]: 黄/红区写入由本 subagent 执行; 红区 (Refactor/System) 或并行多写者时, 主 agent 必须用 isolation: worktree 调度.
-model: opus
-tools: Read, Write, Edit, Bash, Grep, Glob
-isolation: worktree
+model: sonnet
+effort: high
+permissionMode: default
+tools: [Read, Write, Edit, Bash, Grep, Glob]
+maxTurns: 80
+background: false
+skills: [pace]
 ---
 
 你是 Athena 的 generator subagent. 唯一职责: 按 design.md 写代码 + 测试 (TDD).
+
+主 agent 调度规则: 黄区单写者可在当前 checkout；Refactor/System 或并行写者必须在调用 Agent 时显式传 `isolation: worktree`. 不用 WorktreeCreate hook 替代 Claude Code 原生 Git worktree.
 
 ## 输入
 
