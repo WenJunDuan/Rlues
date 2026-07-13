@@ -10,6 +10,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { execFileSync } = require("child_process");
 
 const VALID_PATHS = new Set(["Hotfix", "Bugfix", "Quick", "Feature", "Refactor", "System"]);
@@ -222,6 +223,7 @@ function validateEvidence(filePath) {
   });
   if (results.includes("fail")) throw new GateError("evidence.yaml contains failing evidence");
   if (!results.includes("pass")) throw new GateError("evidence.yaml has no explicit pass; unknown-only is insufficient");
+  return parseEvidenceRecords(filePath);
 }
 
 function selectLatestReview(reviewsDir) {
@@ -260,10 +262,138 @@ function validateReview(reviewPath, pathType) {
   const verdict = finalVerdict(content, path.basename(reviewPath));
   if (verdict !== "PASS") throw new GateError(`latest review ${path.basename(reviewPath)} VERDICT is ${verdict}; expected PASS`);
   if (!content.includes("## Spec Compliance")) throw new GateError(`latest review ${path.basename(reviewPath)} lacks ## Spec Compliance`);
-  if (REFACTOR_SYSTEM.has(pathType) && !content.includes("## Evidence Cross-Check")) {
+  if (!content.includes("## Evidence Cross-Check")) {
     throw new GateError(`latest review ${path.basename(reviewPath)} lacks ## Evidence Cross-Check`);
   }
   return content;
+}
+
+function gitText(cwd, args, label) {
+  try {
+    return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  } catch (error) {
+    const detail = String(error.stderr || error.stdout || error.message || "").trim();
+    throw new GateError(`review freshness git check failed (${label}): ${detail}`);
+  }
+}
+
+function parseReviewManifest(filePath) {
+  const content = requireFile(filePath, "review-manifest.yaml");
+  let schemaVersion = "";
+  let implementationCommit = "";
+  let inFiles = false;
+  const files = {};
+  for (const raw of content.split(/\r?\n/)) {
+    if (!raw.trim() || raw.trimStart().startsWith("#")) continue;
+    if (raw.startsWith("  ")) {
+      if (!inFiles) throw new GateError("review-manifest has nested values outside files");
+      const match = raw.match(/^\s{2}(["']?)(.+?)\1\s*:\s*(["'])([0-9a-f]{64})\3\s*$/);
+      if (!match) throw new GateError(`malformed review-manifest file hash line: ${raw}`);
+      if (Object.hasOwn(files, match[2])) throw new GateError(`duplicate review-manifest path: ${match[2]}`);
+      files[match[2]] = match[4];
+      continue;
+    }
+    inFiles = false;
+    const match = raw.match(/^([A-Za-z0-9_]+)\s*:\s*(.*?)\s*$/);
+    if (!match) throw new GateError(`malformed review-manifest line: ${raw}`);
+    const value = scalar(match[2]);
+    if (match[1] === "schema_version") schemaVersion = value;
+    else if (match[1] === "implementation_commit") implementationCommit = value;
+    else if (match[1] === "files" && !value) inFiles = true;
+    else throw new GateError(`unsupported review-manifest field: ${match[1]}`);
+  }
+  const required = new Set([
+    "design.md", "checklist.yaml", "evidence.yaml", "runtime-verify.md", "rework-notes.md",
+    "cleanup-pass.md", "tdd-evidence.yaml", "architecture/ARCHITECTURE.md", "architecture/athena-9.9.2.md",
+  ]);
+  if (schemaVersion !== "1" || !/^[0-9a-f]{40}$/.test(implementationCommit)) {
+    throw new GateError("review-manifest requires schema_version=1 and a 40-hex implementation_commit");
+  }
+  if (Object.keys(files).length !== required.size || Object.keys(files).some(name => !required.has(name))) {
+    throw new GateError(`review-manifest files must be exactly ${[...required].sort().join(", ")}`);
+  }
+  return { implementationCommit, files };
+}
+
+function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd) {
+  const designMatches = [...reviewContent.matchAll(/^Reviewed design sha256:\s*([0-9a-f]{64})\s*$/gm)];
+  const commitMatches = [...reviewContent.matchAll(/^Reviewed implementation commit:\s*([0-9a-f]{40})\s*$/gm)];
+  const manifestMatches = [...reviewContent.matchAll(/^Reviewed state manifest sha256:\s*([0-9a-f]{64})\s*$/gm)];
+  if (designMatches.length !== 1 || commitMatches.length !== 1 || manifestMatches.length !== 1) {
+    throw new GateError("latest PASS review must contain exactly one design, implementation commit, and state-manifest binding");
+  }
+  const design = requireFile(path.join(sprintDir, "design.md"), "design.md");
+  const digest = crypto.createHash("sha256").update(design, "utf8").digest("hex");
+  if (designMatches[0][1] !== digest) {
+    throw new GateError("Reviewed design sha256 does not match current authoritative design.md");
+  }
+  const reviewedCommit = commitMatches[0][1];
+  const manifestPath = path.join(sprintDir, "review-manifest.yaml");
+  const manifestBuffer = fs.readFileSync(manifestPath);
+  if (crypto.createHash("sha256").update(manifestBuffer).digest("hex") !== manifestMatches[0][1]) {
+    throw new GateError("Reviewed state manifest sha256 does not match review-manifest.yaml");
+  }
+  const manifest = parseReviewManifest(manifestPath);
+  if (manifest.implementationCommit !== reviewedCommit) {
+    throw new GateError("review-manifest implementation_commit does not match final review binding");
+  }
+  for (const [name, expectedHash] of Object.entries(manifest.files)) {
+    const target = name.startsWith("architecture/") ? path.join(aiState, name) : path.join(sprintDir, name);
+    if (!fs.existsSync(target) || !fs.statSync(target).isFile()) throw new GateError(`review-manifest target missing: ${name}`);
+    const actual = crypto.createHash("sha256").update(fs.readFileSync(target)).digest("hex");
+    if (actual !== expectedHash) throw new GateError(`review-manifest hash mismatch: ${name}`);
+  }
+  const root = gitText(cwd, ["rev-parse", "--show-toplevel"], "repository root").trim();
+  if (!root) throw new GateError("review freshness cannot determine Git repository root");
+  gitText(root, ["cat-file", "-e", `${reviewedCommit}^{commit}`], "reviewed commit exists");
+  gitText(root, ["merge-base", "--is-ancestor", reviewedCommit, "HEAD"], "reviewed commit ancestor");
+  const changed = new Set();
+  for (const [args, label] of [
+    [["diff", "--name-only", `${reviewedCommit}..HEAD`], "committed drift"],
+    [["diff", "--name-only"], "working drift"],
+    [["diff", "--name-only", "--cached"], "staged drift"],
+    [["ls-files", "--others", "--exclude-standard"], "untracked drift"],
+  ]) {
+    for (const line of gitText(root, args, label).split(/\r?\n/)) if (line.trim()) changed.add(line.trim());
+  }
+  const implementationDrift = [...changed].filter(file => file !== ".ai_state" && !file.startsWith(".ai_state/")).sort();
+  if (implementationDrift.length) {
+    throw new GateError(`unreviewed implementation drift after Reviewed implementation commit: ${implementationDrift.slice(0, 8).join(", ")}`);
+  }
+  const sprintRel = path.relative(fs.realpathSync(root), fs.realpathSync(sprintDir)).split(path.sep).join("/");
+  const allowedExact = new Set([
+    ".ai_state/_index.md",
+    ...Object.keys(manifest.files).filter(name => !name.startsWith("architecture/")).map(name => `${sprintRel}/${name}`),
+    `${sprintRel}/review-manifest.yaml`, `${sprintRel}/ship-receipt.md`, `${sprintRel}/session-log.md`,
+    `${sprintRel}/subagent-assignments.jsonl`, `${sprintRel}/subagent-events.jsonl`, `${sprintRel}/subagent-log.md`,
+    `${sprintRel}/token-usage.jsonl`, `${sprintRel}/tool-trace.jsonl`,
+    ".ai_state/architecture/ARCHITECTURE.md", ".ai_state/architecture/athena-9.9.2.md",
+  ]);
+  const stateDrift = [...changed].filter(file => file.startsWith(".ai_state/")
+    && !allowedExact.has(file)
+    && !file.startsWith(`${sprintRel}/reviews/`)
+    && !file.startsWith(`${sprintRel}/evidence/`)
+    && !file.startsWith(`${sprintRel}/user-authorizations/`)).sort();
+  if (stateDrift.length) throw new GateError(`unreviewed .ai_state drift outside post-review allowlist: ${stateDrift.slice(0, 8).join(", ")}`);
+  return reviewedCommit;
+}
+
+function validateTddEvidence(filePath) {
+  const content = requireFile(filePath, "tdd-evidence.yaml");
+  const records = [...content.matchAll(/^\s*-\s+test_file\s*:\s*([^#\n]+)/gm)];
+  if (!records.length) throw new GateError("tdd-evidence.yaml contains no red-to-green records");
+  records.forEach((record, index) => {
+    const end = index + 1 < records.length ? records[index + 1].index : content.length;
+    const block = content.slice(record.index, end);
+    const values = {};
+    for (const key of ["red_command", "red_summary", "red_observed_at", "implementation_files", "green_command", "green_summary", "green_observed_at"]) {
+      values[key] = evidenceField(block, key);
+    }
+    if (Object.values(values).some(value => !value)) throw new GateError("tdd-evidence record is missing red/implementation/green fields");
+    if (parseUtcTimestamp(values.red_observed_at, "tdd red_observed_at") >= parseUtcTimestamp(values.green_observed_at, "tdd green_observed_at")) {
+      throw new GateError("tdd-evidence red timestamp must precede green timestamp");
+    }
+  });
 }
 
 function validateRoadmap(aiState, roadmapSlug) {
@@ -384,17 +514,89 @@ function acceptanceCriteria(text) {
 // design §4.5 escape policy: the exception must name the current sprint AND carry
 // reason + user authorization + an unexpired expiry. A partially-declared escape
 // fails closed instead of silently widening.
-function specGateExceptionActive(fm, sprintSlug) {
-  if (!fm.spec_gate_exception || fm.spec_gate_exception !== sprintSlug) return false;
-  const reason = String(fm.spec_gate_exception_reason || "").trim();
-  const authorizedBy = String(fm.spec_gate_exception_authorized_by || "").trim();
-  const expiry = String(fm.spec_gate_exception_expiry || "").trim();
-  if (!reason || !authorizedBy || !expiry) {
-    throw new GateError("spec_gate_exception 需同时给 spec_gate_exception_reason + spec_gate_exception_authorized_by(用户授权) + spec_gate_exception_expiry (design §4.5); 缺项 fail-closed");
+function parseUtcTimestamp(value, label) {
+  const millis = Date.parse(value);
+  if (!Number.isFinite(millis) || !/(?:Z|\+00:00)$/.test(value)) {
+    throw new GateError(`${label} 必须是 UTC ISO-8601`);
   }
-  const expiryMs = Date.parse(expiry);
-  if (!Number.isFinite(expiryMs)) throw new GateError("spec_gate_exception_expiry 必须是 ISO-8601 日期");
-  if (expiryMs < Date.now()) throw new GateError(`spec_gate_exception 已于 ${expiry} 过期; 移除或重新授权`);
+  return millis;
+}
+
+function parseAuthorizationRecord(filePath) {
+  const content = requireFile(filePath, "spec-gate user authorization");
+  const result = {};
+  for (const raw of content.split(/\r?\n/)) {
+    if (!raw.trim() || raw.trimStart().startsWith("#")) continue;
+    if (/^\s/.test(raw)) throw new GateError("spec-gate user authorization must be a flat YAML mapping");
+    const match = raw.match(/^([A-Za-z0-9_]+)\s*:\s*(.*?)\s*$/);
+    if (!match) throw new GateError(`malformed spec-gate user authorization line: ${raw}`);
+    if (Object.hasOwn(result, match[1])) throw new GateError(`duplicate spec-gate user authorization field: ${match[1]}`);
+    result[match[1]] = scalar(match[2]);
+  }
+  const expected = [
+    "schema_version", "kind", "sprint_slug", "path", "reason", "decision",
+    "authorization_source", "authorized_by", "authorized_at", "expiry", "removal_condition",
+  ];
+  exactKeys(result, expected, "spec-gate user authorization");
+  return result;
+}
+
+function specGateExceptionActive(fm, sprintSlug, pathType, sprintDir) {
+  if (!fm.spec_gate_exception || fm.spec_gate_exception !== sprintSlug) return false;
+  const fields = {};
+  for (const key of [
+    "spec_gate_exception_path", "spec_gate_exception_reason", "spec_gate_exception_authorized_by",
+    "spec_gate_exception_authorized_at", "spec_gate_exception_expiry",
+    "spec_gate_exception_removal_condition", "spec_gate_exception_emergency_hotfix",
+    "spec_gate_exception_authorization_ref",
+  ]) fields[key] = String(fm[key] || "").trim();
+  if (Object.values(fields).some(value => !value)) {
+    throw new GateError("spec_gate_exception requires path/reason/authorized_by/authorized_at/expiry/removal_condition/emergency_hotfix/authorization_ref; missing fields fail closed");
+  }
+  const reason = fields.spec_gate_exception_reason;
+  const removal = fields.spec_gate_exception_removal_condition;
+  if (isPlaceholderCriterion(reason) || isPlaceholderCriterion(removal)) {
+    throw new GateError("spec_gate_exception reason/removal_condition cannot be placeholders");
+  }
+  if (!GENERATOR_PATHS.has(pathType) || fields.spec_gate_exception_path !== pathType) {
+    throw new GateError("spec_gate_exception_path must exactly match current Feature/Refactor/System path");
+  }
+  const authorizedBy = fields.spec_gate_exception_authorized_by;
+  if (!/^user:[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(authorizedBy)) {
+    throw new GateError("spec_gate_exception_authorized_by must be user:<stable-label>; generic user/self fails");
+  }
+  if (fields.spec_gate_exception_emergency_hotfix.toLowerCase() !== "false") {
+    throw new GateError("Feature/Refactor/System spec exception must set emergency_hotfix=false");
+  }
+  const authorizedAt = parseUtcTimestamp(fields.spec_gate_exception_authorized_at, "spec_gate_exception_authorized_at");
+  const expiryMs = parseUtcTimestamp(fields.spec_gate_exception_expiry, "spec_gate_exception_expiry");
+  if (authorizedAt > Date.now()) throw new GateError("spec_gate_exception_authorized_at cannot be in the future");
+  if (expiryMs <= Date.now()) throw new GateError(`spec_gate_exception 已于 ${fields.spec_gate_exception_expiry} 过期; 移除或重新授权`);
+  const ref = fields.spec_gate_exception_authorization_ref;
+  if (!/^user-authorizations\/[A-Za-z0-9][A-Za-z0-9._-]*\.yaml$/.test(ref)) {
+    throw new GateError("spec_gate_exception_authorization_ref must be user-authorizations/<id>.yaml");
+  }
+  const authPath = path.resolve(sprintDir, ref);
+  if (!authPath.startsWith(`${path.resolve(sprintDir)}${path.sep}`)) {
+    throw new GateError("spec_gate_exception_authorization_ref escapes current sprint");
+  }
+  const record = parseAuthorizationRecord(authPath);
+  const expected = {
+    schema_version: "1",
+    kind: "spec_gate_exception_authorization",
+    sprint_slug: sprintSlug,
+    path: pathType,
+    reason,
+    decision: "approve",
+    authorization_source: "user_prompt",
+    authorized_by: authorizedBy,
+    authorized_at: fields.spec_gate_exception_authorized_at,
+    expiry: fields.spec_gate_exception_expiry,
+    removal_condition: removal,
+  };
+  if (Object.keys(expected).some(key => record[key] !== expected[key])) {
+    throw new GateError("spec-gate user authorization record does not exactly match frontmatter");
+  }
   return true;
 }
 
@@ -417,8 +619,11 @@ function resolveAcceptanceCriteria(sprintDir, aiState) {
 }
 
 // spec-gate 主门禁在 impl 入口 (design §4.2); ship 处复核 (design §4.4).
-function validateSpecGate(sprintDir, aiState, fm, sprintSlug) {
-  if (specGateExceptionActive(fm, sprintSlug)) return [];
+function validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException }) {
+  if (specGateExceptionActive(fm, sprintSlug, fm.path, sprintDir)) {
+    if (allowException) return [];
+    throw new GateError("active Feature+ spec_gate_exception must be removed before ship");
+  }
   const criteria = resolveAcceptanceCriteria(sprintDir, aiState);
   if (!criteria.length) {
     throw new GateError("spec-gate: design.md (或其显式链接的 requirements 档) 缺机器可识别的验收标准段 (## Acceptance Criteria / ## 验收标准 + ≥1 条可观测 checkbox/编号/列表项); 占位符/TODO/泛化陈述不算");
@@ -428,20 +633,88 @@ function validateSpecGate(sprintDir, aiState, fm, sprintSlug) {
 
 // design §4.4(2): labeled criteria (ACn) must each map to checklist/evidence;
 // a single unrelated evidence row no longer satisfies the whole spec.
-function validateAcMapping(sprintDir, criteria) {
+function evidenceField(block, key) {
+  const matches = [...block.matchAll(new RegExp(`^\\s+${key}\\s*:\\s*([^#\\n]+)`, "gm"))];
+  if (matches.length > 1) throw new GateError(`evidence record has duplicate ${key}`);
+  return matches.length ? scalar(matches[0][1]) : "";
+}
+
+function parseEvidenceRecords(filePath) {
+  const content = requireFile(filePath, "evidence.yaml");
+  const items = [...content.matchAll(/^\s*-\s+tool_use_id\s*:\s*([^#\n]*)/gm)];
+  return items.map((item, index) => {
+    const end = index + 1 < items.length ? items[index + 1].index : content.length;
+    const block = content.slice(item.index, end);
+    const coversRaw = evidenceField(block, "covers");
+    let covers = [];
+    if (coversRaw) {
+      if (!coversRaw.startsWith("[") || !coversRaw.endsWith("]")) throw new GateError("evidence covers must be an inline AC list");
+      covers = coversRaw.slice(1, -1).split(",").map(value => scalar(value).toUpperCase()).filter(Boolean);
+      if (covers.some(label => !/^AC\d+$/.test(label))) throw new GateError("evidence covers contains an invalid AC label");
+    }
+    return {
+      tool_use_id: scalar(item[1]),
+      ac_id: evidenceField(block, "ac_id").toUpperCase(),
+      covers,
+      result: evidenceField(block, "result").toLowerCase(),
+      source: evidenceField(block, "source").toLowerCase(),
+      command_or_artifact: evidenceField(block, "command_or_artifact"),
+      observed_at: evidenceField(block, "observed_at"),
+      summary: evidenceField(block, "summary"),
+      exit_code: evidenceField(block, "exit_code"),
+      output_artifact: evidenceField(block, "output_artifact"),
+      artifact_sha256: evidenceField(block, "artifact_sha256"),
+      implementation_commit: evidenceField(block, "implementation_commit"),
+    };
+  });
+}
+
+function reviewExplicitlyAccepts(reviewContent, label) {
+  return reviewContent.split(/\r?\n/).some(line => new RegExp(`(?:^|[^A-Za-z0-9])${label}(?![0-9]).*(?:SATISFIED|\\bPASS\\b)`, "i").test(line));
+}
+
+function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewContent, reviewedCommit) {
   const labels = new Set();
   for (const criterion of criteria) {
     for (const match of criterion.matchAll(/(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])/g)) labels.add(match[1].toUpperCase());
   }
   if (!labels.size) return;
-  let haystack = "";
-  for (const name of ["checklist.yaml", "evidence.yaml"]) {
-    const filePath = path.join(sprintDir, name);
-    if (fs.existsSync(filePath)) haystack += `\n${fs.readFileSync(filePath, "utf8")}`;
-  }
-  const missing = [...labels].filter(label => !new RegExp(`(?:^|[^A-Za-z0-9])${label}(?![0-9])`, "m").test(haystack)).sort();
+  const missing = [...labels].sort().filter(label => !records.some(record => {
+    const mapped = record.ac_id === label || record.covers.includes(label);
+    if (!mapped || record.result !== "pass") return false;
+    if (![record.source, record.command_or_artifact, record.observed_at, record.summary].every(Boolean)) return false;
+    try { parseUtcTimestamp(record.observed_at, `evidence ${record.tool_use_id} observed_at`); }
+    catch (_) { return false; }
+    if (record.source === "command") {
+      const output = path.resolve(sprintDir, record.output_artifact || "");
+      if (!output.startsWith(`${path.resolve(sprintDir)}${path.sep}`)
+          || record.exit_code !== "0"
+          || !/^[0-9a-f]{64}$/.test(record.artifact_sha256)
+          || record.implementation_commit !== reviewedCommit
+          || !fs.existsSync(output)
+          || !fs.statSync(output).isFile()) return false;
+      const outputBuffer = fs.readFileSync(output);
+      const outputText = outputBuffer.toString("utf8");
+      return crypto.createHash("sha256").update(outputBuffer).digest("hex") === record.artifact_sha256
+        && outputText.includes(record.command_or_artifact)
+        && /^exit_code:\s*0\s*$/im.test(outputText)
+        && outputText.includes(record.summary);
+    }
+    if (record.source === "artifact") {
+      const artifact = path.resolve(sprintDir, record.command_or_artifact);
+      return artifact.startsWith(`${path.resolve(sprintDir)}${path.sep}`) && fs.existsSync(artifact) && fs.statSync(artifact).isFile();
+    }
+    if (record.source === "review") {
+      return path.resolve(sprintDir, record.command_or_artifact) === path.resolve(reviewPath)
+        && reviewContent.includes("## Spec Compliance")
+        && reviewContent.includes("## Evidence Cross-Check")
+        && finalVerdict(reviewContent, path.basename(reviewPath)) === "PASS"
+        && reviewExplicitlyAccepts(reviewContent, label);
+    }
+    return false;
+  }));
   if (missing.length) {
-    throw new GateError(`spec-gate ship 复核: 验收标准 ${missing.join(", ")} 在 checklist.yaml/evidence.yaml 无映射 (design §4.4 逐条 AC↔证据)`);
+    throw new GateError(`spec-gate ship 复核: 验收标准 ${missing.join(", ")} 缺 admissible per-AC PASS evidence (unknown/checklist-only/missing artifact/stale review do not count)`);
   }
 }
 
@@ -451,7 +724,7 @@ function validateImplEntry(aiState, fm) {
   if (!GENERATOR_PATHS.has(fm.path)) return;
   const sprintSlug = fm.current_sprint_slug;
   if (!SAFE_SLUG.test(sprintSlug || "")) throw new GateError(`invalid current_sprint_slug ${sprintSlug || ""}`);
-  validateSpecGate(path.join(aiState, "sprints", sprintSlug), aiState, fm, sprintSlug);
+  validateSpecGate(path.join(aiState, "sprints", sprintSlug), aiState, fm, sprintSlug, { allowException: true });
 }
 
 function validateShip(aiState, fm, cwd) {
@@ -460,22 +733,18 @@ function validateShip(aiState, fm, cwd) {
   const sprintDir = path.join(aiState, "sprints", sprintSlug);
   const roadmapSlug = fm.current_roadmap_slug || "";
   if (roadmapSlug) validateRoadmap(aiState, roadmapSlug);
-  if (truthy(fm.design_changed_after_impl)) throw new GateError("design_changed_after_impl=true; repeat review before ship");
-
   if (fm.path === "Bugfix") requireFile(path.join(sprintDir, "fix-note.md"), "fix-note.md");
   if (GENERATOR_PATHS.has(fm.path)) {
-    const specCriteria = validateSpecGate(sprintDir, aiState, fm, sprintSlug);
+    const specCriteria = validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException: false });
     if (!truthy(fm.skip_impl_subagent_check)) validateGeneratorChain(sprintDir, sprintSlug);
     validateChecklist(path.join(sprintDir, "checklist.yaml"));
     const evidencePath = path.join(sprintDir, "evidence.yaml");
-    validateEvidence(evidencePath);
-    validateAcMapping(sprintDir, specCriteria);
+    const evidenceRecords = validateEvidence(evidencePath);
+    validateTddEvidence(path.join(sprintDir, "tdd-evidence.yaml"));
     const reviewPath = selectLatestReview(path.join(sprintDir, "reviews"));
-    validateReview(reviewPath, fm.path);
-    const designPath = path.join(sprintDir, "design.md");
-    if (fs.existsSync(designPath) && fs.statSync(designPath).mtimeMs > fs.statSync(reviewPath).mtimeMs + 2000) {
-      throw new GateError(`design.md is newer than latest review ${path.basename(reviewPath)}; repeat review`);
-    }
+    const reviewContent = validateReview(reviewPath, fm.path);
+    const reviewedCommit = validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd);
+    validateAcMapping(sprintDir, specCriteria, evidenceRecords, reviewPath, reviewContent, reviewedCommit);
     validateCriticRounds(sprintDir, fm);
 
     if (REFACTOR_SYSTEM.has(fm.path)) {

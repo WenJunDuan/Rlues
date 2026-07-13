@@ -2,11 +2,13 @@
 name: athena-init
 description: |
   Athena 项目初始化 skill (Codex). 在项目中说"初始化 Athena"/"athena init"时触发.
-  职责: 探测平台 / 工具可用性, 创建 .ai_state/ 目录 (v9.6.4 schema) + 复制 _index.md 模板 + 填入探测结果.
+  职责: 探测平台 / 工具可用性, 创建 .ai_state/ 目录 (v9.9.2 schema) + 复制 _index.md 模板 + 填入探测结果.
   v9.7.0: 文件名修正 athena-init.md → SKILL.md (config.toml [[skills.config]] 指向 SKILL.md, 旧文件名导致加载失败).
 ---
 
-# /athena-init — 项目初始化 (Codex, v9.9.1)
+# /athena-init — 项目初始化 (Codex, v9.9.2)
+
+Memory contract: **Tier1 working memory** is non-authoritative; **Tier2 persistent memory** is the created `.ai_state`; **_index.md retrieval router** owns bounded recovery pointers/history.
 
 ## 触发
 
@@ -68,7 +70,7 @@ else
 fi
 ```
 
-### Step 4: 创建 .ai_state/ 目录 (v9.6.4 schema)
+### Step 4: 创建 .ai_state/ 目录 (v9.9.2 Tier2 schema)
 
 ```bash
 mkdir -p .ai_state/sprints
@@ -91,12 +93,13 @@ cp ~/.agents/skills/pace/templates/_index.md .ai_state/_index.md
 
 - `cx_version`, `cc_version`, `ag_callable`
 - `tools_available.{context7_cli, rg_available, jq_available, vm_available}`
-- `platform_features.{cx_spawn_agent, cx_goal_default_on, ag_parallel_subagents, ag_headless_p}`
+- `platforms_enabled`
+- `platform_features.{cx_spawn_agent, cx_plan_mode_reasoning_effort, ag_parallel_subagents, ag_headless_p}`
 
 判定规则:
 
 - `cx_spawn_agent = true` if `CX_VERSION` >= 0.128
-- `cx_goal_default_on = true` if `CX_VERSION` >= 0.133.0
+- `cx_plan_mode_reasoning_effort = true` when the installed Codex supports that config field
 - `ag_parallel_subagents = ag_callable`; `ag_headless_p = ag_callable`
 
 ### Step 6: 总结 + 给用户
@@ -106,7 +109,7 @@ cp ~/.agents/skills/pace/templates/_index.md .ai_state/_index.md
 ## 输出示例
 
 ```markdown
-✓ Athena v9.9.1 初始化完成
+✓ Athena v9.9.2 初始化完成
 
 ## 平台
 
@@ -121,7 +124,7 @@ cp ~/.agents/skills/pace/templates/_index.md .ai_state/_index.md
 
 ## 状态
 
-.ai_state/ 已建立 (sprints/ roadmap/ architecture/ compound/ .snapshots/), \_index.md 已生成
+.ai_state/ 已建立 (sprints/ roadmap/ architecture/ requirements/ compound/ .snapshots/), \_index.md 已生成；仅填充模板中真实存在的字段。
 
 ## 下一步
 

@@ -9,7 +9,7 @@ description: |
 
 ## 触发
 
-review_pass1 VERDICT ∈ {PASS, CONCERNS} 且 path ∈ {Refactor, System} → 主 agent 进 polish.
+最新数字 passN VERDICT = PASS 且 path ∈ {Refactor, System} → 主 agent 进 polish；CONCERNS 不得进入 polish/ship.
 
 或主 agent 根据 evaluator VERDICT 设置 `next_action = "polish"`.
 

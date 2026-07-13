@@ -20,6 +20,7 @@ const CC = path.join(ROOT, "vibeCoding/claude/9.9.2/.claude");
 const HOOKS = path.join(CC, "hooks");
 const FIXTURES = path.join(ROOT, "vibeCoding/scripts/fixtures/athena-9.9.2/claude");
 const GATE = path.join(HOOKS, "delivery-gate.cjs");
+const SESSION_START = path.join(HOOKS, "session-start.cjs");
 const EVIDENCE = path.join(HOOKS, "evidence-collector.cjs");
 const TRACKER = path.join(HOOKS, "subagent-tracker.cjs");
 const GUARD = path.join(HOOKS, "pre-bash-guard.cjs");
@@ -123,6 +124,65 @@ function write(pathname, body) {
   fs.writeFileSync(pathname, body, "utf8");
 }
 
+function gitRun(project, args) {
+  const result = spawnSync("git", args, { cwd: project, encoding: "utf8" });
+  if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result.stderr || result.stdout}`);
+  return (result.stdout || "").trim();
+}
+
+function sha256File(filePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+function bindReview(ctx, reviewPath) {
+  const commit = gitRun(ctx.project, ["rev-parse", "HEAD"]);
+  const manifestFiles = {
+    "design.md": path.join(ctx.sprintDir, "design.md"),
+    "checklist.yaml": path.join(ctx.sprintDir, "checklist.yaml"),
+    "evidence.yaml": path.join(ctx.sprintDir, "evidence.yaml"),
+    "runtime-verify.md": path.join(ctx.sprintDir, "runtime-verify.md"),
+    "rework-notes.md": path.join(ctx.sprintDir, "rework-notes.md"),
+    "cleanup-pass.md": path.join(ctx.sprintDir, "cleanup-pass.md"),
+    "tdd-evidence.yaml": path.join(ctx.sprintDir, "tdd-evidence.yaml"),
+    "architecture/ARCHITECTURE.md": path.join(ctx.ai, "architecture/ARCHITECTURE.md"),
+    "architecture/athena-9.9.2.md": path.join(ctx.ai, "architecture/athena-9.9.2.md"),
+  };
+  const manifestLines = ["schema_version: 1", `implementation_commit: "${commit}"`, "files:"];
+  for (const [name, filePath] of Object.entries(manifestFiles)) manifestLines.push(`  "${name}": "${sha256File(filePath)}"`);
+  const manifestPath = path.join(ctx.sprintDir, "review-manifest.yaml");
+  write(manifestPath, `${manifestLines.join("\n")}\n`);
+  let body = fs.readFileSync(reviewPath, "utf8")
+    .replace(/^Reviewed design sha256:.*\r?\n?/gm, "")
+    .replace(/^Reviewed implementation commit:.*\r?\n?/gm, "")
+    .replace(/^Reviewed state manifest sha256:.*\r?\n?/gm, "").trimEnd();
+  body += `\n\nReviewed design sha256: ${sha256File(path.join(ctx.sprintDir, "design.md"))}`;
+  body += `\nReviewed implementation commit: ${commit}`;
+  body += `\nReviewed state manifest sha256: ${sha256File(manifestPath)}\n`;
+  write(reviewPath, body);
+}
+
+function writeAuthorization(sprintDir, {
+  reason,
+  authorizedBy = "user:release-owner",
+  authorizedAt = "2026-07-13T08:00:00Z",
+  expiry = "2099-01-01T00:00:00Z",
+} = {}) {
+  write(path.join(sprintDir, "user-authorizations/release-owner.yaml"), [
+    "schema_version: 1",
+    "kind: spec_gate_exception_authorization",
+    `sprint_slug: "${SPRINT}"`,
+    'path: "Feature"',
+    `reason: "${reason}"`,
+    "decision: approve",
+    "authorization_source: user_prompt",
+    `authorized_by: "${authorizedBy}"`,
+    `authorized_at: "${authorizedAt}"`,
+    `expiry: "${expiry}"`,
+    'removal_condition: "acceptance criteria restored"',
+    "",
+  ].join("\n"));
+}
+
 function appendJsonl(pathname, rows) {
   write(pathname, rows.map(row => JSON.stringify(row)).join("\n") + "\n");
 }
@@ -203,9 +263,13 @@ function createCompleteProject(options = {}) {
     "collected_evidence:",
     "  - tool_use_id: validation-1",
     "    tool: Bash",
+    "    ac_id: AC1",
     "    result: pass",
     "    file: src/a.js",
-    "    criteria: [AC1]",
+    "    source: command",
+    "    command_or_artifact: node test.js",
+    "    observed_at: 2026-07-13T08:00:00Z",
+    "    summary: runtime contract completed with exit 0",
     "",
   ].join("\n"));
   appendJsonl(path.join(sprintDir, "subagent-assignments.jsonl"), [assignment()]);
@@ -217,6 +281,8 @@ function createCompleteProject(options = {}) {
     "# Review Pass 1",
     "## Spec Compliance",
     "PASS",
+    "## Evidence Cross-Check",
+    "PASS",
     "VERDICT: PASS",
     "",
   ].join("\n"));
@@ -224,9 +290,17 @@ function createCompleteProject(options = {}) {
     "# Review Pass 2",
     "## Spec Compliance",
     "PASS",
+    "## Evidence Cross-Check",
+    "PASS",
     "VERDICT: PASS",
     "",
   ].join("\n"));
+  write(path.join(sprintDir, "runtime-verify.md"), "## Test Scenarios\n\nPASS\n");
+  write(path.join(sprintDir, "rework-notes.md"), "# Rework\n\nPASS\n");
+  write(path.join(sprintDir, "cleanup-pass.md"), "# Cleanup\n\nPASS\n");
+  write(path.join(ai, "architecture/ARCHITECTURE.md"), "# Architecture\n");
+  write(path.join(ai, "architecture/athena-9.9.2.md"), "# Athena 9.9.2\n");
+  write(path.join(project, "implementation.txt"), "reviewed implementation\n");
   write(path.join(ai, "roadmap", ROADMAP, "items.yaml"), [
     `roadmap_slug: "${ROADMAP}"`,
     "total_items: 1",
@@ -235,7 +309,45 @@ function createCompleteProject(options = {}) {
     "    status: completed",
     "",
   ].join("\n"));
-  return { project, ai, sprintDir };
+  gitRun(project, ["init", "-q"]);
+  gitRun(project, ["config", "user.email", "athena@example.invalid"]);
+  gitRun(project, ["config", "user.name", "Athena Runtime Contract"]);
+  gitRun(project, ["add", "."]);
+  gitRun(project, ["commit", "-qm", "reviewed implementation"]);
+  const implementationCommit = gitRun(project, ["rev-parse", "HEAD"]);
+  const outputArtifact = path.join(sprintDir, "evidence/runtime.txt");
+  write(outputArtifact, "command: node test.js\nexit_code: 0\nsummary: runtime contract completed with exit 0\n");
+  write(path.join(sprintDir, "evidence.yaml"), [
+    "collected_evidence:",
+    "  - tool_use_id: validation-1",
+    "    ac_id: AC1",
+    "    result: pass",
+    "    source: command",
+    "    command_or_artifact: node test.js",
+    "    observed_at: 2026-07-13T08:00:00Z",
+    "    summary: runtime contract completed with exit 0",
+    "    exit_code: 0",
+    "    output_artifact: evidence/runtime.txt",
+    `    artifact_sha256: ${sha256File(outputArtifact)}`,
+    `    implementation_commit: ${implementationCommit}`,
+    "",
+  ].join("\n"));
+  write(path.join(sprintDir, "tdd-evidence.yaml"), [
+    "schema_version: 1",
+    "records:",
+    "  - test_file: vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs",
+    "    red_command: node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs",
+    "    red_summary: fail-open negative cases failed before implementation",
+    "    red_observed_at: 2026-07-13T07:00:00Z",
+    "    implementation_files: [delivery-gate.cjs]",
+    "    green_command: node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs",
+    "    green_summary: runtime contract passed",
+    "    green_observed_at: 2026-07-13T08:00:00Z",
+    "",
+  ].join("\n"));
+  const ctx = { project, ai, sprintDir };
+  bindReview(ctx, path.join(sprintDir, "reviews/pass2.md"));
+  return ctx;
 }
 
 function expectBlocked(name, mutate, expected = "") {
@@ -295,6 +407,8 @@ test("gate accepts evaluator.md's real bold-markdown PASS template", () => {
       "# Review Pass 2",
       "## Spec Compliance",
       "PASS",
+      "## Evidence Cross-Check",
+      "PASS",
       "## VERDICT (evaluator, cc-runtime-contract)",
       "",
       "**判定**: PASS",
@@ -302,6 +416,7 @@ test("gate accepts evaluator.md's real bold-markdown PASS template", () => {
       "总评: 4.8 / 5.0",
       "",
     ].join("\n"));
+    bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
     const gate = runGate(ctx.project);
     assert.strictEqual(gate.blocked, false, `gate incorrectly blocked a real PASS template; reason=${gate.reason}`);
   } finally { rmProject(ctx.project); }
@@ -322,8 +437,8 @@ expectBlocked(
 );
 expectBlocked("gate blocks missing roadmap", ({ ai }) => fs.rmSync(path.join(ai, "roadmap"), { recursive: true }), "roadmap");
 expectBlocked("gate blocks incomplete roadmap", ({ ai }) => write(path.join(ai, "roadmap", ROADMAP, "items.yaml"), `roadmap_slug: ${ROADMAP}\ntotal_items: 1\nitems:\n  - slug: release\n    status: pending\n`), "roadmap|pending");
-expectBlocked("gate blocks design changed after impl", ({ ai }) => write(path.join(ai, "_index.md"), indexBody({ designChanged: true })), "design");
-expectBlocked("gate blocks insufficient critic rounds", ({ sprintDir, ai }) => { write(path.join(ai, "_index.md"), indexBody({ critiqueMin: 2 })); write(path.join(sprintDir, "design.md"), "# Design\n\n## Acceptance Criteria\n- [ ] AC1: 可观测 X\n\n## Round 1 · Critic Findings\n"); }, "critic");
+expectBlocked("gate blocks design content changed after review", ({ sprintDir }) => write(path.join(sprintDir, "design.md"), "# Design changed after review\n\n## Acceptance Criteria\n- [ ] AC1: 可观测 X\n\n## Round 1 · Critic Findings\n"), "design");
+expectBlocked("gate blocks insufficient critic rounds", ctx => { write(path.join(ctx.ai, "_index.md"), indexBody({ critiqueMin: 2 })); write(path.join(ctx.sprintDir, "design.md"), "# Design\n\n## Acceptance Criteria\n- [ ] AC1: 可观测 X\n\n## Round 1 · Critic Findings\n"); bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md")); }, "critic");
 expectBlocked("spec-gate blocks missing acceptance criteria", ({ sprintDir }) => { write(path.join(sprintDir, "design.md"), "# Design\n\n## Round 1 · Critic Findings\nPASS\n"); }, "spec-gate");
 
 // --- P0-3: CC must accept its own packaged Chinese template heading ---
@@ -331,6 +446,7 @@ test("spec-gate accepts the packaged Chinese acceptance heading", () => {
   const ctx = createCompleteProject();
   try {
     write(path.join(ctx.sprintDir, "design.md"), "# Design\n\n## 验收标准 (acceptance criteria)\n- [ ] AC1: 用户以输入 X 得到可观测输出 Y\n\n## Round 1 · Critic Findings\nPASS\n");
+    bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
     const gate = runGate(ctx.project);
     assert.strictEqual(gate.blocked, false, `Chinese heading rejected: ${gate.reason}`);
   } finally { rmProject(ctx.project); }
@@ -340,6 +456,7 @@ test("spec-gate accepts a bare Chinese acceptance heading", () => {
   const ctx = createCompleteProject();
   try {
     write(path.join(ctx.sprintDir, "design.md"), "# Design\n\n## 验收标准\n- [ ] AC1: 输入 X 输出 Y\n\n## Round 1 · Critic Findings\nPASS\n");
+    bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
     const gate = runGate(ctx.project);
     assert.strictEqual(gate.blocked, false, `bare Chinese heading rejected: ${gate.reason}`);
   } finally { rmProject(ctx.project); }
@@ -380,7 +497,7 @@ expectBlocked("spec-gate rejects unlinked requirements artifacts", ({ ai, sprint
 }, "spec-gate");
 
 test("spec-gate accepts a requirements artifact linked from design", () => {
-  const ctx = createCompleteProject();
+  const ctx = createCompleteProject({ stage: "impl" });
   try {
     write(path.join(ctx.sprintDir, "design.md"), "# Design\n\n验收标准见 requirements/linked-req.md\n\n## Round 1 · Critic Findings\nPASS\n");
     write(path.join(ctx.ai, "requirements", "linked-req.md"), "# Req\n\n## Acceptance Criteria\n- [ ] AC1: observable outcome Y\n");
@@ -399,96 +516,260 @@ expectBlocked("expired spec-gate exception fails closed", ({ ai, sprintDir }) =>
   write(path.join(ai, "_index.md"), indexBody({ extras: [
     `spec_gate_exception: "${SPRINT}"`,
     'spec_gate_exception_reason: "emergency hotfix drill"',
-    'spec_gate_exception_authorized_by: "user"',
-    'spec_gate_exception_expiry: "2020-01-01"',
+    'spec_gate_exception_path: "Feature"',
+    'spec_gate_exception_authorized_by: "user:release-owner"',
+    'spec_gate_exception_authorized_at: "2026-07-13T08:00:00Z"',
+    'spec_gate_exception_expiry: "2020-01-01T00:00:00Z"',
+    'spec_gate_exception_removal_condition: "acceptance criteria restored"',
+    'spec_gate_exception_emergency_hotfix: false',
+    'spec_gate_exception_authorization_ref: "user-authorizations/release-owner.yaml"',
   ] }));
+  writeAuthorization(sprintDir, { reason: "emergency hotfix drill", expiry: "2020-01-01T00:00:00Z" });
   write(path.join(sprintDir, "design.md"), "# Design\n\n## Round 1 · Critic Findings\nPASS\n");
 }, "过期");
 
-test("fully authorized unexpired spec-gate exception passes", () => {
-  const ctx = createCompleteProject({ extras: [
+test("fully authorized unexpired spec-gate exception allows impl entry only", () => {
+  const ctx = createCompleteProject({ stage: "impl", extras: [
     `spec_gate_exception: "${SPRINT}"`,
+    'spec_gate_exception_path: "Feature"',
     'spec_gate_exception_reason: "user-approved dogfood exception"',
-    'spec_gate_exception_authorized_by: "user"',
-    'spec_gate_exception_expiry: "2099-01-01"',
+    'spec_gate_exception_authorized_by: "user:release-owner"',
+    'spec_gate_exception_authorized_at: "2026-07-13T08:00:00Z"',
+    'spec_gate_exception_expiry: "2099-01-01T00:00:00Z"',
+    'spec_gate_exception_removal_condition: "acceptance criteria restored"',
+    'spec_gate_exception_emergency_hotfix: false',
+    'spec_gate_exception_authorization_ref: "user-authorizations/release-owner.yaml"',
   ] });
   try {
+    writeAuthorization(ctx.sprintDir, { reason: "user-approved dogfood exception" });
     write(path.join(ctx.sprintDir, "design.md"), "# Design\n\n## Round 1 · Critic Findings\nPASS\n");
     const gate = runGate(ctx.project);
     assert.strictEqual(gate.blocked, false, `authorized exception rejected: ${gate.reason}`);
   } finally { rmProject(ctx.project); }
 });
 
+expectBlocked("spec-gate exception rejects unstructured authorizer", ({ ai, sprintDir }) => {
+  write(path.join(ai, "_index.md"), indexBody({ stage: "impl", extras: [
+    `spec_gate_exception: "${SPRINT}"`,
+    'spec_gate_exception_path: "Feature"',
+    'spec_gate_exception_reason: "dogfood exception"',
+    'spec_gate_exception_authorized_by: "someone said yes"',
+    'spec_gate_exception_authorized_at: "2026-07-13T08:00:00Z"',
+    'spec_gate_exception_expiry: "2099-01-01T00:00:00Z"',
+    'spec_gate_exception_removal_condition: "acceptance criteria restored"',
+    'spec_gate_exception_emergency_hotfix: false',
+    'spec_gate_exception_authorization_ref: "user-authorizations/release-owner.yaml"',
+  ] }));
+  write(path.join(sprintDir, "design.md"), "# Design\n\n## Round 1 · Critic Findings\nPASS\n");
+}, "authorized_by|用户");
+
+expectBlocked("spec-gate exception must be cleared before ship", ({ ai, sprintDir }) => {
+  write(path.join(ai, "_index.md"), indexBody({ extras: [
+    `spec_gate_exception: "${SPRINT}"`,
+    'spec_gate_exception_path: "Feature"',
+    'spec_gate_exception_reason: "temporary impl entry"',
+    'spec_gate_exception_authorized_by: "user:release-owner"',
+    'spec_gate_exception_authorized_at: "2026-07-13T08:00:00Z"',
+    'spec_gate_exception_expiry: "2099-01-01T00:00:00Z"',
+    'spec_gate_exception_removal_condition: "acceptance criteria restored"',
+    'spec_gate_exception_emergency_hotfix: false',
+    'spec_gate_exception_authorization_ref: "user-authorizations/release-owner.yaml"',
+  ] }));
+  writeAuthorization(sprintDir, { reason: "temporary impl entry" });
+  write(path.join(sprintDir, "design.md"), "# Design\n\n## Round 1 · Critic Findings\nPASS\n");
+}, "clear|移除|ship");
+
 // --- design §4.4(2): every labeled AC must map to checklist/evidence ---
-expectBlocked("ship blocks a labeled acceptance criterion without evidence mapping", ({ sprintDir }) => {
-  write(path.join(sprintDir, "design.md"), "# Design\n\n## Acceptance Criteria\n- [ ] AC1: 输出 X 可观测\n- [ ] AC2: 输出 Y 可观测\n\n## Round 1 · Critic Findings\nPASS\n");
+expectBlocked("ship blocks a labeled acceptance criterion without evidence mapping", ctx => {
+  write(path.join(ctx.sprintDir, "design.md"), "# Design\n\n## Acceptance Criteria\n- [ ] AC1: 输出 X 可观测\n- [ ] AC2: 输出 Y 可观测\n\n## Round 1 · Critic Findings\nPASS\n");
+  bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
 }, "AC2");
 
-test("System gate requires runtime, polish, architecture and evidence cross-check", () => {
-  const ctx = createCompleteProject({ pathType: "System", critiqueMin: 1 });
+expectBlocked("ship blocks unknown evidence for a labeled AC despite unrelated PASS", ctx => {
+  write(path.join(ctx.sprintDir, "evidence.yaml"), [
+    "collected_evidence:",
+    "  - tool_use_id: ac1-unknown",
+    "    result: unknown",
+    "    criteria: [AC1]",
+    "  - tool_use_id: unrelated-pass",
+    "    result: pass",
+    "    criteria: []",
+    "",
+  ].join("\n"));
+  bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
+}, "AC1|evidence");
+
+expectBlocked("ship blocks checklist-only AC mapping", ctx => {
+  write(path.join(ctx.sprintDir, "design.md"), "# Design\n\n## Acceptance Criteria\n- [ ] AC1: 输出 X 可观测\n- [ ] AC2: 输出 Y 可观测\n\n## Round 1 · Critic Findings\nPASS\n");
+  write(path.join(ctx.sprintDir, "checklist.yaml"), "tasks:\n  - id: T1\n    title: implement AC1 and AC2\n    status: completed\n");
+  bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
+}, "AC2|evidence");
+
+expectBlocked("ship blocks missing artifact evidence", ctx => {
+  write(path.join(ctx.sprintDir, "evidence.yaml"), [
+    "collected_evidence:",
+    "  - tool_use_id: ac1-missing-artifact",
+    "    ac_id: AC1",
+    "    result: pass",
+    "    source: artifact",
+    "    command_or_artifact: missing/runtime-report.md",
+    "    observed_at: 2026-07-13T08:00:00Z",
+    "    summary: claimed artifact coverage",
+    "",
+  ].join("\n"));
+  bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
+}, "artifact|AC1|missing");
+
+expectBlocked("ship blocks stale review evidence", ctx => {
+  write(path.join(ctx.sprintDir, "reviews/pass3.md"), "# Review Pass 3\n\n## Spec Compliance\n\n| AC | Result |\n|---|---|\n| AC1 | SATISFIED |\n\n## Evidence Cross-Check\n\nPASS\n\nVERDICT: PASS\n");
+  write(path.join(ctx.sprintDir, "evidence.yaml"), [
+    "collected_evidence:",
+    "  - tool_use_id: ac1-stale-review",
+    "    ac_id: AC1",
+    "    result: pass",
+    "    source: review",
+    "    command_or_artifact: reviews/pass2.md",
+    "    observed_at: 2026-07-13T08:00:00Z",
+    "    summary: stale review reference",
+    "",
+  ].join("\n"));
+  bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass3.md"));
+}, "latest|stale|pass2");
+
+test("explicit final review acceptance can cover a labeled AC", () => {
+  const ctx = createCompleteProject();
   try {
-    write(path.join(ctx.sprintDir, "reviews/pass2.md"), [
-      "# Review Pass 2",
-      "## Spec Compliance",
-      "PASS",
-      "## Evidence Cross-Check",
-      "PASS",
-      "VERDICT: PASS",
-      "",
-    ].join("\n"));
     write(path.join(ctx.sprintDir, "evidence.yaml"), [
       "collected_evidence:",
-      "  - tool_use_id: v1",
+      "  - tool_use_id: ac1-review",
+      "    ac_id: AC1",
       "    result: pass",
-      "    file: a",
-      "    files: [a,b,c,d,e]",
-      "    criteria: [AC1]",
+      "    source: review",
+      "    command_or_artifact: reviews/pass2.md",
+      "    observed_at: 2026-07-13T08:00:00Z",
+      "    summary: final review explicitly accepted AC1",
       "",
     ].join("\n"));
-    let gate = runGate(ctx.project);
-    assert.strictEqual(gate.blocked, true);
-    assert.match(gate.reason, /runtime/i);
-    write(path.join(ctx.sprintDir, "runtime-verify.md"), "## 测试场景\nPASS\n");
-    gate = runGate(ctx.project);
-    assert.match(gate.reason, /polish|cleanup/i);
-    write(path.join(ctx.sprintDir, "cleanup-pass.md"), "# Cleanup\nPASS\n");
-    gate = runGate(ctx.project);
-    assert.match(gate.reason, /architecture/i);
-    write(path.join(ctx.ai, "architecture", "ARCHITECTURE.md"), "# Architecture\n");
-    gate = runGate(ctx.project);
+    write(path.join(ctx.sprintDir, "reviews/pass2.md"), "# Review\n\n## Spec Compliance\n\n| AC | Result |\n|---|---|\n| AC1 | SATISFIED |\n\n## Evidence Cross-Check\n\nPASS\n\nVERDICT: PASS\n");
+    bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
+    const gate = runGate(ctx.project);
     assert.strictEqual(gate.blocked, false, gate.reason);
   } finally { rmProject(ctx.project); }
 });
 
-test("System gate fails closed on the architecture check when git is unavailable, even with a tiny evidence-listed file count", () => {
+test("review binding allows state-only post-review change", () => {
+  const ctx = createCompleteProject();
+  try {
+    write(path.join(ctx.sprintDir, "session-log.md"), "# Session\n");
+    assert.strictEqual(runGate(ctx.project).blocked, false);
+  } finally { rmProject(ctx.project); }
+});
+
+for (const [name, mutate] of [
+  ["unstaged", ctx => write(path.join(ctx.project, "implementation.txt"), "changed after review\n")],
+  ["staged", ctx => { write(path.join(ctx.project, "staged.txt"), "staged after review\n"); gitRun(ctx.project, ["add", "staged.txt"]); }],
+  ["untracked", ctx => write(path.join(ctx.project, "untracked.txt"), "untracked after review\n")],
+  ["committed", ctx => { write(path.join(ctx.project, "committed.txt"), "committed after review\n"); gitRun(ctx.project, ["add", "committed.txt"]); gitRun(ctx.project, ["commit", "-qm", "post-review implementation drift"]); }],
+]) {
+  test(`review binding blocks ${name} implementation drift`, () => {
+    const ctx = createCompleteProject();
+    try {
+      mutate(ctx);
+      assert.match(runGate(ctx.project).reason, /unreviewed implementation drift/);
+    } finally { rmProject(ctx.project); }
+  });
+}
+
+function memoryIndex({ latestDesign, latestReview }) {
+  return [
+    "---",
+    'version: "9.9.2"',
+    'path: "System"',
+    'stage: "review"',
+    `current_sprint_slug: "${SPRINT}"`,
+    'next_action: "review"',
+    "pointers:",
+    `  latest_design: "${latestDesign}"`,
+    `  latest_review: "${latestReview}"`,
+    '  latest_cleanup: ""',
+    '  latest_requirement: ""',
+    "route_history: []",
+    "---",
+    "",
+  ].join("\n");
+}
+
+test("SessionStart routes existing Tier2 pointers", () => {
+  const ctx = createCompleteProject({ stage: "review" });
+  try {
+    write(path.join(ctx.ai, "_index.md"), memoryIndex({
+      latestDesign: `sprints/${SPRINT}/design.md`,
+      latestReview: `sprints/${SPRINT}/reviews/pass2.md`,
+    }));
+    const result = runNode(SESSION_START, { hook_event_name: "SessionStart", cwd: ctx.project }, ctx.project);
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Tier1 working memory/);
+    assert.match(result.stdout, /Tier2 persistent memory/);
+    assert.match(result.stdout, /_index\.md retrieval router/);
+    assert.match(result.stdout, new RegExp(`sprints/${SPRINT}/design\\.md`));
+    assert.doesNotMatch(result.stdout, /missing authoritative pointer/);
+  } finally { rmProject(ctx.project); }
+});
+
+test("SessionStart warns on a missing authoritative pointer", () => {
+  const ctx = createCompleteProject({ stage: "review" });
+  try {
+    write(path.join(ctx.ai, "_index.md"), memoryIndex({
+      latestDesign: `sprints/${SPRINT}/missing-design.md`,
+      latestReview: `sprints/${SPRINT}/reviews/pass2.md`,
+    }));
+    const result = runNode(SESSION_START, { hook_event_name: "SessionStart", cwd: ctx.project }, ctx.project);
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /missing authoritative pointer/);
+  } finally { rmProject(ctx.project); }
+});
+
+test("SessionStart warns on a stale latest review pointer", () => {
+  const ctx = createCompleteProject({ stage: "review" });
+  try {
+    write(path.join(ctx.sprintDir, "reviews/pass3.md"), "VERDICT: PASS\n");
+    write(path.join(ctx.ai, "_index.md"), memoryIndex({
+      latestDesign: `sprints/${SPRINT}/design.md`,
+      latestReview: `sprints/${SPRINT}/reviews/pass2.md`,
+    }));
+    const result = runNode(SESSION_START, { hook_event_name: "SessionStart", cwd: ctx.project }, ctx.project);
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /stale authoritative pointer/);
+  } finally { rmProject(ctx.project); }
+});
+
+test("SessionStart warns on escaping pointers and history overflow", () => {
+  const ctx = createCompleteProject({ stage: "review" });
+  try {
+    let body = memoryIndex({ latestDesign: "", latestReview: "../../outside.md" });
+    body = body.replace("route_history: []", "route_history: [1,2,3,4,5,6,7,8,9,10,11]");
+    write(path.join(ctx.ai, "_index.md"), body);
+    const result = runNode(SESSION_START, { hook_event_name: "SessionStart", cwd: ctx.project }, ctx.project);
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /escaping authoritative pointer/);
+    assert.match(result.stdout, /route_history overflow/);
+  } finally { rmProject(ctx.project); }
+});
+
+test("System gate accepts bound runtime, polish, architecture and evidence cross-check", () => {
   const ctx = createCompleteProject({ pathType: "System", critiqueMin: 1 });
   try {
-    write(path.join(ctx.sprintDir, "reviews/pass2.md"), [
-      "# Review Pass 2",
-      "## Spec Compliance",
-      "PASS",
-      "## Evidence Cross-Check",
-      "PASS",
-      "VERDICT: PASS",
-      "",
-    ].join("\n"));
-    // Only one file listed in evidence.yaml (below the >=5 threshold) and no
-    // git history to fall back on: if the gate silently treated "git failed"
-    // the same as "git reported zero real changes" it would count 1 file and
-    // skip the ARCHITECTURE.md requirement, which is the fail-open bug.
-    write(path.join(ctx.sprintDir, "evidence.yaml"), [
-      "collected_evidence:",
-      "  - tool_use_id: v1",
-      "    result: pass",
-      "    file: a",
-      "    criteria: [AC1]",
-      "",
-    ].join("\n"));
-    write(path.join(ctx.sprintDir, "runtime-verify.md"), "## 测试场景\nPASS\n");
-    write(path.join(ctx.sprintDir, "cleanup-pass.md"), "# Cleanup\nPASS\n");
+    const gate = runGate(ctx.project);
+    assert.strictEqual(gate.blocked, false, gate.reason);
+  } finally { rmProject(ctx.project); }
+});
+
+test("System gate fails closed when review freshness Git is unavailable", () => {
+  const ctx = createCompleteProject({ pathType: "System", critiqueMin: 1 });
+  try {
     const gate = runGateNoGit(ctx.project);
     assert.strictEqual(gate.blocked, true, `gate should fail closed when git is unavailable; reason=${gate.reason}`);
-    assert.match(gate.reason, /architecture/i);
+    assert.match(gate.reason, /review freshness|git/i);
   } finally { rmProject(ctx.project); }
 });
 

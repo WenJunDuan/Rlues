@@ -26,6 +26,12 @@
     "spec-missing-criteria",
     "spec-placeholder-criteria",
     "spec-unmapped-ac-label",
-    "spec-exception-unauthorized"
+    "spec-ac-unknown-evidence",
+    "spec-ac-checklist-only",
+    "spec-ac-missing-artifact",
+    "spec-ac-stale-review",
+    "spec-exception-unauthorized",
+    "spec-exception-unstructured-authorizer",
+    "spec-exception-at-ship"
   ]
 }

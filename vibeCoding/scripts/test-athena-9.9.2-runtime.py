@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import copy
 import datetime as dt
+import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -27,6 +29,7 @@ FIXTURES = ROOT / "vibeCoding/scripts/fixtures/athena-9.9.2"
 EVIDENCE_COLLECTOR = HOOKS / "evidence-collector.py"
 SUBAGENT_TRACKER = HOOKS / "subagent-tracker.py"
 DELIVERY_GATE = HOOKS / "delivery-gate.py"
+SESSION_START = HOOKS / "session-start.py"
 SPRINT_SLUG = "runtime-contract"
 ROADMAP_SLUG = "runtime-roadmap"
 
@@ -264,6 +267,57 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     )
 
 
+def git(project: Path, *args: str) -> str:
+    run = subprocess.run(
+        ["git", *args],
+        cwd=project,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if run.returncode != 0:
+        raise AssertionError(f"git {' '.join(args)} failed: {run.stderr or run.stdout}")
+    return run.stdout.strip()
+
+
+def bind_review(project: Path, sprint_dir: Path, review_path: Path) -> None:
+    design_hash = hashlib.sha256((sprint_dir / "design.md").read_bytes()).hexdigest()
+    commit = git(project, "rev-parse", "HEAD")
+    manifest_paths = {
+        "design.md": sprint_dir / "design.md",
+        "checklist.yaml": sprint_dir / "checklist.yaml",
+        "evidence.yaml": sprint_dir / "evidence.yaml",
+        "runtime-verify.md": sprint_dir / "runtime-verify.md",
+        "rework-notes.md": sprint_dir / "rework-notes.md",
+        "cleanup-pass.md": sprint_dir / "cleanup-pass.md",
+        "tdd-evidence.yaml": sprint_dir / "tdd-evidence.yaml",
+        "architecture/ARCHITECTURE.md": project / ".ai_state/architecture/ARCHITECTURE.md",
+        "architecture/athena-9.9.2.md": project / ".ai_state/architecture/athena-9.9.2.md",
+    }
+    manifest_lines = [
+        "schema_version: 1",
+        f'implementation_commit: "{commit}"',
+        "files:",
+    ]
+    for label, file_path in manifest_paths.items():
+        digest = hashlib.sha256(file_path.read_bytes()).hexdigest()
+        manifest_lines.append(f'  "{label}": "{digest}"')
+    manifest = sprint_dir / "review-manifest.yaml"
+    manifest.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
+    manifest_hash = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    body = review_path.read_text(encoding="utf-8")
+    body = re.sub(r"(?m)^Reviewed design sha256:.*\n?", "", body)
+    body = re.sub(r"(?m)^Reviewed implementation commit:.*\n?", "", body).rstrip()
+    body = re.sub(r"(?m)^Reviewed state manifest sha256:.*\n?", "", body).rstrip()
+    review_path.write_text(
+        body
+        + f"\n\nReviewed design sha256: {design_hash}\n"
+        + f"Reviewed implementation commit: {commit}\n"
+        + f"Reviewed state manifest sha256: {manifest_hash}\n",
+        encoding="utf-8",
+    )
+
+
 def build_complete_feature(project: Path) -> Path:
     write_index(project, roadmap_slug=ROADMAP_SLUG)
     sprint_dir = project / ".ai_state/sprints" / SPRINT_SLUG
@@ -305,11 +359,15 @@ def build_complete_feature(project: Path) -> Path:
                 "collected_evidence:",
                 '  - tool_use_id: "tool-pass-1"',
                 '    tool: "Bash"',
+                '    ac_id: AC1',
                 '    file: ""',
                 '    kind: "test"',
                 '    command: "python3 -m pytest"',
                 '    result: "pass"',
-                '    criteria: [AC1]',
+                '    source: command',
+                '    command_or_artifact: "python3 -m pytest"',
+                '    observed_at: "2026-07-13T08:00:00Z"',
+                '    summary: "pytest completed with exit 0"',
                 "",
             ]
         ),
@@ -320,9 +378,65 @@ def build_complete_feature(project: Path) -> Path:
         encoding="utf-8",
     )
     (sprint_dir / "reviews/pass1.md").write_text(
-        "# Review\n\n## Spec Compliance\n\n- PASS\n\nVERDICT: PASS\n",
+        "# Review\n\n## Spec Compliance\n\n- PASS\n\n"
+        "## Evidence Cross-Check\n\n- PASS\n\nVERDICT: PASS\n",
         encoding="utf-8",
     )
+    (sprint_dir / "runtime-verify.md").write_text("## Test Scenarios\n\nPASS\n", encoding="utf-8")
+    (sprint_dir / "rework-notes.md").write_text("# Rework\n\nPASS\n", encoding="utf-8")
+    (sprint_dir / "cleanup-pass.md").write_text("# Cleanup\n\nPASS\n", encoding="utf-8")
+    architecture = project / ".ai_state/architecture"
+    architecture.mkdir(parents=True, exist_ok=True)
+    (architecture / "ARCHITECTURE.md").write_text("# Architecture\n", encoding="utf-8")
+    (architecture / "athena-9.9.2.md").write_text("# Athena 9.9.2\n", encoding="utf-8")
+    (project / "implementation.txt").write_text("reviewed implementation\n", encoding="utf-8")
+    git(project, "init", "-q")
+    git(project, "config", "user.email", "athena@example.invalid")
+    git(project, "config", "user.name", "Athena Runtime Contract")
+    git(project, "add", ".")
+    git(project, "commit", "-qm", "reviewed implementation")
+    implementation_commit = git(project, "rev-parse", "HEAD")
+    output_artifact = sprint_dir / "evidence/pytest.txt"
+    output_artifact.parent.mkdir(parents=True, exist_ok=True)
+    output_artifact.write_text(
+        "command: python3 -m pytest\nexit_code: 0\nsummary: pytest completed with exit 0\n",
+        encoding="utf-8",
+    )
+    output_hash = hashlib.sha256(output_artifact.read_bytes()).hexdigest()
+    (sprint_dir / "evidence.yaml").write_text(
+        "\n".join(
+            [
+                f'sprint_slug: "{SPRINT_SLUG}"',
+                "collected_evidence:",
+                '  - tool_use_id: "tool-pass-1"',
+                '    ac_id: AC1',
+                '    result: "pass"',
+                '    source: command',
+                '    command_or_artifact: "python3 -m pytest"',
+                '    observed_at: "2026-07-13T08:00:00Z"',
+                '    summary: "pytest completed with exit 0"',
+                '    exit_code: 0',
+                '    output_artifact: "evidence/pytest.txt"',
+                f'    artifact_sha256: "{output_hash}"',
+                f'    implementation_commit: "{implementation_commit}"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (sprint_dir / "tdd-evidence.yaml").write_text(
+        "schema_version: 1\nrecords:\n"
+        "  - test_file: vibeCoding/scripts/test-athena-9.9.2-runtime.py\n"
+        "    red_command: python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py\n"
+        "    red_summary: fail-open negative cases failed before implementation\n"
+        "    red_observed_at: 2026-07-13T07:00:00Z\n"
+        "    implementation_files: [delivery-gate.py]\n"
+        "    green_command: python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py\n"
+        "    green_summary: runtime contract passed\n"
+        "    green_observed_at: 2026-07-13T08:00:00Z\n",
+        encoding="utf-8",
+    )
+    bind_review(project, sprint_dir, sprint_dir / "reviews/pass1.md")
     return sprint_dir
 
 
@@ -331,6 +445,31 @@ def replace_text(path: Path, old: str, new: str) -> None:
     if old not in content:
         raise AssertionError(f"mutation source not found in {path}: {old!r}")
     path.write_text(content.replace(old, new, 1), encoding="utf-8")
+
+
+def write_user_authorization(
+    sprint_dir: Path,
+    *,
+    reason: str = "user-approved temporary impl entry",
+    authorized_by: str = "user:release-owner",
+    expiry: str = "2099-01-01T00:00:00Z",
+) -> None:
+    target = sprint_dir / "user-authorizations/release-owner.yaml"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        "schema_version: 1\n"
+        "kind: spec_gate_exception_authorization\n"
+        f'sprint_slug: "{SPRINT_SLUG}"\n'
+        'path: "Feature"\n'
+        f'reason: "{reason}"\n'
+        "decision: approve\n"
+        "authorization_source: user_prompt\n"
+        f'authorized_by: "{authorized_by}"\n'
+        'authorized_at: "2026-07-13T08:00:00Z"\n'
+        f'expiry: "{expiry}"\n'
+        'removal_condition: "acceptance criteria restored"\n',
+        encoding="utf-8",
+    )
 
 
 def mutate_gate_case(case_name: str, project: Path, sprint_dir: Path) -> None:
@@ -428,6 +567,70 @@ def mutate_gate_case(case_name: str, project: Path, sprint_dir: Path) -> None:
             "## Round 1 Critic Findings\n\n- Contract accepted.\n",
             encoding="utf-8",
         )
+    elif case_name == "spec-ac-unknown-evidence":
+        # AC1 is present but its own evidence is unknown. An unrelated global
+        # PASS must not make the per-criterion mapping pass.
+        evidence.write_text(
+            "\n".join(
+                [
+                    f'sprint_slug: "{SPRINT_SLUG}"',
+                    "collected_evidence:",
+                    '  - tool_use_id: "tool-unknown-ac1"',
+                    '    result: "unknown"',
+                    '    criteria: [AC1]',
+                    '  - tool_use_id: "tool-unrelated-pass"',
+                    '    result: "pass"',
+                    '    criteria: []',
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+    elif case_name == "spec-ac-checklist-only":
+        # A checklist mention is implementation planning, not acceptance
+        # evidence. AC2 has no passing evidence or accepted review result.
+        (sprint_dir / "design.md").write_text(
+            "# Design\n\n## Acceptance Criteria\n\n- [ ] AC1: observable outcome X\n"
+            "- [ ] AC2: observable outcome Y\n\n"
+            "## Round 1 Critic Findings\n\n- Contract accepted.\n",
+            encoding="utf-8",
+        )
+        checklist.write_text(
+            "tasks:\n  - id: T1\n    title: implement AC1 and AC2\n    status: completed\n",
+            encoding="utf-8",
+        )
+    elif case_name == "spec-ac-missing-artifact":
+        evidence.write_text(
+            "collected_evidence:\n"
+            "  - tool_use_id: ac1-missing-artifact\n"
+            "    ac_id: AC1\n"
+            "    result: pass\n"
+            "    source: artifact\n"
+            "    command_or_artifact: missing/runtime-report.md\n"
+            "    observed_at: 2026-07-13T08:00:00Z\n"
+            "    summary: claimed artifact coverage\n",
+            encoding="utf-8",
+        )
+    elif case_name == "spec-ac-stale-review":
+        pass2 = sprint_dir / "reviews/pass2.md"
+        pass2.write_text(
+            "# Review Pass 2\n\n## Spec Compliance\n\n"
+            "| AC | Result |\n|---|---|\n| AC1 | SATISFIED |\n\n"
+            "## Evidence Cross-Check\n\nPASS\n\nVERDICT: PASS\n",
+            encoding="utf-8",
+        )
+        bind_review(project, sprint_dir, pass2)
+        evidence.write_text(
+            "collected_evidence:\n"
+            "  - tool_use_id: ac1-stale-review\n"
+            "    ac_id: AC1\n"
+            "    result: pass\n"
+            "    source: review\n"
+            "    command_or_artifact: reviews/pass1.md\n"
+            "    observed_at: 2026-07-13T08:00:00Z\n"
+            "    summary: stale review reference\n",
+            encoding="utf-8",
+        )
     elif case_name == "spec-exception-unauthorized":
         # design §4.5: an exception naming the sprint without reason/authorizer/
         # expiry must fail closed.
@@ -436,6 +639,46 @@ def mutate_gate_case(case_name: str, project: Path, sprint_dir: Path) -> None:
             "design_changed_after_impl: false",
             f'design_changed_after_impl: false\nspec_gate_exception: "{SPRINT_SLUG}"',
         )
+        (sprint_dir / "design.md").write_text(
+            "# Design\n\n## Round 1 Critic Findings\n\n- Contract accepted.\n",
+            encoding="utf-8",
+        )
+    elif case_name == "spec-exception-unstructured-authorizer":
+        replace_text(index, "stage: ship", "stage: impl")
+        replace_text(
+            index,
+            "design_changed_after_impl: false",
+            "design_changed_after_impl: false\n"
+            f'spec_gate_exception: "{SPRINT_SLUG}"\n'
+            'spec_gate_exception_reason: "dogfood exception"\n'
+            'spec_gate_exception_path: "Feature"\n'
+            'spec_gate_exception_authorized_by: "someone said yes"\n'
+            'spec_gate_exception_authorized_at: "2026-07-13T08:00:00Z"\n'
+            'spec_gate_exception_expiry: "2099-01-01T00:00:00Z"\n'
+            'spec_gate_exception_removal_condition: "acceptance criteria restored"\n'
+            'spec_gate_exception_emergency_hotfix: false\n'
+            'spec_gate_exception_authorization_ref: "user-authorizations/release-owner.yaml"',
+        )
+        (sprint_dir / "design.md").write_text(
+            "# Design\n\n## Round 1 Critic Findings\n\n- Contract accepted.\n",
+            encoding="utf-8",
+        )
+    elif case_name == "spec-exception-at-ship":
+        replace_text(
+            index,
+            "design_changed_after_impl: false",
+            "design_changed_after_impl: false\n"
+            f'spec_gate_exception: "{SPRINT_SLUG}"\n'
+            'spec_gate_exception_path: "Feature"\n'
+            'spec_gate_exception_reason: "user-approved temporary impl entry"\n'
+            'spec_gate_exception_authorized_by: "user:release-owner"\n'
+            'spec_gate_exception_authorized_at: "2026-07-13T08:00:00Z"\n'
+            'spec_gate_exception_expiry: "2099-01-01T00:00:00Z"\n'
+            'spec_gate_exception_removal_condition: "acceptance criteria restored"\n'
+            'spec_gate_exception_emergency_hotfix: false\n'
+            'spec_gate_exception_authorization_ref: "user-authorizations/release-owner.yaml"',
+        )
+        write_user_authorization(sprint_dir)
         (sprint_dir / "design.md").write_text(
             "# Design\n\n## Round 1 Critic Findings\n\n- Contract accepted.\n",
             encoding="utf-8",
@@ -471,7 +714,13 @@ EXPECTED_NEGATIVE_GATE_CASES = {
     "spec-missing-criteria",
     "spec-placeholder-criteria",
     "spec-unmapped-ac-label",
+    "spec-ac-unknown-evidence",
+    "spec-ac-checklist-only",
+    "spec-ac-missing-artifact",
+    "spec-ac-stale-review",
     "spec-exception-unauthorized",
+    "spec-exception-unstructured-authorizer",
+    "spec-exception-at-ship",
 }
 
 
@@ -489,15 +738,17 @@ class DeliveryGateTests(unittest.TestCase):
         self.assertEqual(GATE_MANIFEST.get("schema_version"), 1)
         self.assertEqual(GATE_MANIFEST.get("positive"), "complete-chain")
         self.assertEqual(set(NEGATIVE_GATE_CASES), EXPECTED_NEGATIVE_GATE_CASES)
-        self.assertEqual(len(NEGATIVE_GATE_CASES), 25)
+        self.assertEqual(len(NEGATIVE_GATE_CASES), 31)
         with tempfile.TemporaryDirectory(prefix="athena-992-gate-pass-") as raw_dir:
             project = Path(raw_dir)
             sprint_dir = build_complete_feature(project)
             replace_text(sprint_dir / "reviews/pass1.md", "VERDICT: PASS", "VERDICT: REWORK")
             (sprint_dir / "reviews/pass2.md").write_text(
-                "# Review Pass 2\n\n## Spec Compliance\n\n- PASS\n\nVERDICT: PASS\n",
+                "# Review Pass 2\n\n## Spec Compliance\n\n- PASS\n\n"
+                "## Evidence Cross-Check\n\n- PASS\n\nVERDICT: PASS\n",
                 encoding="utf-8",
             )
+            bind_review(project, sprint_dir, sprint_dir / "reviews/pass2.md")
             result = self.run_gate(project)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "")
@@ -528,9 +779,11 @@ class DeliveryGateTests(unittest.TestCase):
             sprint_dir = build_complete_feature(project)
             (sprint_dir / "reviews/pass1.md").write_text(
                 "# Review\n\n## Spec Compliance\n\n- PASS\n\n"
+                "## Evidence Cross-Check\n\n- PASS\n\n"
                 "## VERDICT (evaluator, sprint)\n\n**判定**: PASS\n",
                 encoding="utf-8",
             )
+            bind_review(project, sprint_dir, sprint_dir / "reviews/pass1.md")
             result = self.run_gate(project)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "")
@@ -549,9 +802,7 @@ class DeliveryGateTests(unittest.TestCase):
             self.assertEqual(response.get("decision"), "block", response)
 
     def test_refactor_blocks_when_git_change_probes_are_unavailable(self) -> None:
-        # A temp project is deliberately not a Git repository. Refactor/System
-        # must treat an unknowable change count as over-threshold and require the
-        # architecture record, rather than silently downgrade the count to zero.
+        # Review freshness is fail-closed when Git provenance is unavailable.
         with tempfile.TemporaryDirectory(prefix="athena-992-gate-git-fail-") as raw_dir:
             project = Path(raw_dir)
             sprint_dir = build_complete_feature(project)
@@ -568,10 +819,12 @@ class DeliveryGateTests(unittest.TestCase):
             )
             (sprint_dir / "runtime-verify.md").write_text("## 测试场景\n\n- PASS\n", encoding="utf-8")
             (sprint_dir / "cleanup-pass.md").write_text("# Cleanup\n\nPASS\n", encoding="utf-8")
+            bind_review(project, sprint_dir, sprint_dir / "reviews/pass1.md")
+            shutil.rmtree(project / ".git")
             result = self.run_gate(project)
             response = json.loads(result.stdout)
             self.assertEqual(response.get("decision"), "block", response)
-            self.assertIn("architecture/ARCHITECTURE.md", response.get("reason", ""))
+            self.assertRegex(response.get("reason", ""), r"review freshness|Git|git")
 
     def test_spec_gate_accepts_packaged_chinese_heading(self) -> None:
         # P0-3 regression: the packaged design template emits "## 验收标准
@@ -585,6 +838,7 @@ class DeliveryGateTests(unittest.TestCase):
                 "## Round 1 Critic Findings\n\n- Contract accepted.\n",
                 encoding="utf-8",
             )
+            bind_review(project, sprint_dir, sprint_dir / "reviews/pass1.md")
             result = self.run_gate(project)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "", result.stdout)
@@ -615,20 +869,32 @@ class DeliveryGateTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "", result.stdout)
 
-    def test_authorized_unexpired_exception_passes(self) -> None:
-        # design §4.5: named sprint + reason + user authorization + future
-        # expiry is the only accepted escape shape.
+    def test_authorized_unexpired_exception_allows_impl_entry_only(self) -> None:
+        # design §4.5: a structured, user-authorized exception may unblock the
+        # temporary impl entry, but it must be cleared before ship.
         with tempfile.TemporaryDirectory(prefix="athena-992-exception-") as raw_dir:
             project = Path(raw_dir)
             sprint_dir = build_complete_feature(project)
+            replace_text(project / ".ai_state/_index.md", "stage: ship", "stage: impl")
             replace_text(
                 project / ".ai_state/_index.md",
                 "design_changed_after_impl: false",
                 "design_changed_after_impl: false\n"
                 f'spec_gate_exception: "{SPRINT_SLUG}"\n'
+                'spec_gate_exception_path: "Feature"\n'
                 'spec_gate_exception_reason: "user-approved dogfood exception"\n'
-                'spec_gate_exception_authorized_by: "user"\n'
-                'spec_gate_exception_expiry: "2099-01-01"',
+                'spec_gate_exception_authorized_by: "user:release-owner"\n'
+                'spec_gate_exception_authorized_at: "2026-07-13T08:00:00Z"\n'
+                'spec_gate_exception_expiry: "2099-01-01T00:00:00Z"\n'
+                'spec_gate_exception_removal_condition: "acceptance criteria restored"\n'
+                'spec_gate_exception_emergency_hotfix: false\n'
+                'spec_gate_exception_authorization_ref: "user-authorizations/release-owner.yaml"',
+            )
+            write_user_authorization(
+                sprint_dir,
+                reason="user-approved dogfood exception",
+                authorized_by="user:release-owner",
+                expiry="2099-01-01T00:00:00Z",
             )
             (sprint_dir / "design.md").write_text(
                 "# Design\n\n## Round 1 Critic Findings\n\n- Contract accepted.\n",
@@ -638,6 +904,75 @@ class DeliveryGateTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "", result.stdout)
 
+    def test_explicit_review_acceptance_can_cover_an_ac(self) -> None:
+        # Per-AC coverage may come from explicit passing evidence OR an
+        # accepted final review result. The generic final PASS alone is not
+        # enough; the review must name AC1 and mark it SATISFIED.
+        with tempfile.TemporaryDirectory(prefix="athena-992-review-ac-") as raw_dir:
+            project = Path(raw_dir)
+            sprint_dir = build_complete_feature(project)
+            (sprint_dir / "evidence.yaml").write_text(
+                "collected_evidence:\n"
+                "  - tool_use_id: ac1-review\n"
+                "    ac_id: AC1\n"
+                "    result: pass\n"
+                "    source: review\n"
+                "    command_or_artifact: reviews/pass1.md\n"
+                "    observed_at: 2026-07-13T08:00:00Z\n"
+                "    summary: final review explicitly accepted AC1\n",
+                encoding="utf-8",
+            )
+            (sprint_dir / "reviews/pass1.md").write_text(
+                "# Review\n\n## Spec Compliance\n\n"
+                "| AC | Result |\n|---|---|\n| AC1 | SATISFIED |\n\n"
+                "## Evidence Cross-Check\n\nPASS\n\n"
+                "VERDICT: PASS\n",
+                encoding="utf-8",
+            )
+            bind_review(project, sprint_dir, sprint_dir / "reviews/pass1.md")
+            result = self.run_gate(project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, "", result.stdout)
+
+    def test_review_binding_allows_state_only_post_review_change(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-state-only-") as raw_dir:
+            project = Path(raw_dir)
+            sprint_dir = build_complete_feature(project)
+            (sprint_dir / "session-log.md").write_text("# Session\n", encoding="utf-8")
+            result = self.run_gate(project)
+            self.assertEqual(result.stdout, "", result.stdout)
+
+    def test_review_binding_blocks_unstaged_implementation_drift(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-unstaged-") as raw_dir:
+            project = Path(raw_dir)
+            build_complete_feature(project)
+            (project / "implementation.txt").write_text("changed after review\n", encoding="utf-8")
+            self.assertIn("unreviewed implementation drift", self.run_gate(project).stdout)
+
+    def test_review_binding_blocks_staged_implementation_drift(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-staged-") as raw_dir:
+            project = Path(raw_dir)
+            build_complete_feature(project)
+            (project / "staged.txt").write_text("staged after review\n", encoding="utf-8")
+            git(project, "add", "staged.txt")
+            self.assertIn("unreviewed implementation drift", self.run_gate(project).stdout)
+
+    def test_review_binding_blocks_untracked_implementation_drift(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-untracked-") as raw_dir:
+            project = Path(raw_dir)
+            build_complete_feature(project)
+            (project / "untracked.txt").write_text("untracked after review\n", encoding="utf-8")
+            self.assertIn("unreviewed implementation drift", self.run_gate(project).stdout)
+
+    def test_review_binding_blocks_committed_implementation_drift(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-committed-") as raw_dir:
+            project = Path(raw_dir)
+            build_complete_feature(project)
+            (project / "committed.txt").write_text("committed after review\n", encoding="utf-8")
+            git(project, "add", "committed.txt")
+            git(project, "commit", "-qm", "post-review implementation drift")
+            self.assertIn("unreviewed implementation drift", self.run_gate(project).stdout)
+
     def test_non_athena_directory_passes_silently(self) -> None:
         with tempfile.TemporaryDirectory(prefix="athena-992-non-athena-") as raw_dir:
             project = Path(raw_dir)
@@ -645,6 +980,101 @@ class DeliveryGateTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "")
             self.assertEqual(result.stderr, "")
+
+
+class SessionStartMemoryTests(unittest.TestCase):
+    def run_session_start(self, project: Path) -> subprocess.CompletedProcess[str]:
+        return run_hook(
+            SESSION_START,
+            {"hook_event_name": "SessionStart", "cwd": str(project)},
+            project,
+        )
+
+    def write_memory_index(self, project: Path, latest_review: str, latest_design: str) -> None:
+        ai = project / ".ai_state"
+        ai.mkdir(parents=True, exist_ok=True)
+        (ai / "_index.md").write_text(
+            "---\n"
+            'version: "9.9.2"\n'
+            'path: "System"\n'
+            'stage: "review"\n'
+            f'current_sprint_slug: "{SPRINT_SLUG}"\n'
+            'next_action: "review"\n'
+            "pointers:\n"
+            f'  latest_design: "{latest_design}"\n'
+            f'  latest_review: "{latest_review}"\n'
+            '  latest_cleanup: ""\n'
+            '  latest_requirement: ""\n'
+            "route_history: []\n"
+            "---\n",
+            encoding="utf-8",
+        )
+
+    def test_routes_existing_authoritative_pointers(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-session-memory-") as raw_dir:
+            project = Path(raw_dir)
+            design = project / ".ai_state/sprints" / SPRINT_SLUG / "design.md"
+            review = project / ".ai_state/sprints" / SPRINT_SLUG / "reviews/pass2.md"
+            design.parent.mkdir(parents=True, exist_ok=True)
+            review.parent.mkdir(parents=True, exist_ok=True)
+            design.write_text("# Design\n", encoding="utf-8")
+            review.write_text("## Spec Compliance\n\nVERDICT: PASS\n", encoding="utf-8")
+            self.write_memory_index(
+                project,
+                f"sprints/{SPRINT_SLUG}/reviews/pass2.md",
+                f"sprints/{SPRINT_SLUG}/design.md",
+            )
+            result = self.run_session_start(project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Tier1 working memory", result.stdout)
+            self.assertIn("Tier2 persistent memory", result.stdout)
+            self.assertIn("_index.md retrieval router", result.stdout)
+            self.assertIn(f"sprints/{SPRINT_SLUG}/design.md", result.stdout)
+            self.assertNotIn("missing authoritative pointer", result.stdout)
+
+    def test_warns_on_missing_authoritative_pointer(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-session-missing-") as raw_dir:
+            project = Path(raw_dir)
+            self.write_memory_index(
+                project,
+                f"sprints/{SPRINT_SLUG}/reviews/pass2.md",
+                f"sprints/{SPRINT_SLUG}/missing-design.md",
+            )
+            result = self.run_session_start(project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("missing authoritative pointer", result.stdout)
+
+    def test_warns_on_stale_latest_review_pointer(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-session-stale-") as raw_dir:
+            project = Path(raw_dir)
+            reviews = project / ".ai_state/sprints" / SPRINT_SLUG / "reviews"
+            reviews.mkdir(parents=True, exist_ok=True)
+            (reviews / "pass1.md").write_text("VERDICT: PASS\n", encoding="utf-8")
+            (reviews / "pass2.md").write_text("VERDICT: PASS\n", encoding="utf-8")
+            design = project / ".ai_state/sprints" / SPRINT_SLUG / "design.md"
+            design.write_text("# Design\n", encoding="utf-8")
+            self.write_memory_index(
+                project,
+                f"sprints/{SPRINT_SLUG}/reviews/pass1.md",
+                f"sprints/{SPRINT_SLUG}/design.md",
+            )
+            result = self.run_session_start(project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("stale authoritative pointer", result.stdout)
+
+    def test_warns_on_escaping_pointer_and_history_overflow(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-session-bounds-") as raw_dir:
+            project = Path(raw_dir)
+            self.write_memory_index(project, "../../outside.md", "")
+            replace_text(
+                project / ".ai_state/_index.md",
+                "route_history: []",
+                "route_history: [1,2,3,4,5,6,7,8,9,10,11]",
+            )
+            result = self.run_session_start(project)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("escaping authoritative pointer", result.stdout)
+            self.assertIn("route_history overflow", result.stdout)
 
 
 def make_gate_test(case_name: str) -> Callable[[DeliveryGateTests], None]:

@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 EXIT_SUCCESS = 0
+POINTER_KEYS = ("latest_design", "latest_review", "latest_cleanup", "latest_requirement")
 
 
 def find_ai_state(cwd: Path):
@@ -142,6 +143,59 @@ def special_alerts(fm: dict) -> list:
     return alerts
 
 
+def memory_router_context(ai_state: Path, idx_path: Path, fm: dict) -> str:
+    lines = [
+        "Tier1 working memory is non-authoritative conversation/tool context.",
+        "Tier2 persistent memory is the versioned .ai_state project truth.",
+        "_index.md retrieval router is bounded routing metadata, not a second database.",
+    ]
+    current_sprint = fm.get("current_sprint_slug", "")
+    for key in POINTER_KEYS:
+        if key not in fm:
+            lines.append(f"⚠ malformed router: missing required pointer key {key}")
+            continue
+        value = fm.get(key, "").strip()
+        if not value:
+            continue
+        target = (ai_state / value).resolve()
+        try:
+            target.relative_to(ai_state.resolve())
+        except ValueError:
+            lines.append(f"⚠ escaping authoritative pointer {key}: {value}")
+            continue
+        if not target.is_file():
+            lines.append(f"⚠ missing authoritative pointer {key}: {value}")
+            continue
+        lines.append(f"✓ routed {key}: {value}")
+        if key == "latest_review" and current_sprint:
+            reviews = ai_state / "sprints" / current_sprint / "reviews"
+            numbered = []
+            if reviews.is_dir():
+                for candidate in reviews.glob("pass*.md"):
+                    match = re.fullmatch(r"pass([1-9]\d*)\.md", candidate.name)
+                    if match:
+                        numbered.append((int(match.group(1)), candidate.resolve()))
+            if numbered and target != max(numbered, key=lambda item: item[0])[1]:
+                lines.append(f"⚠ stale authoritative pointer {key}: {value}")
+
+    route_history = fm.get("route_history", "[]").strip()
+    if not (route_history.startswith("[") and route_history.endswith("]")):
+        lines.append("⚠ malformed route_history: expected inline list capped at 10")
+    else:
+        inner = route_history[1:-1].strip()
+        count = 0 if not inner else len([part for part in inner.split(",") if part.strip()])
+        if count > 10:
+            lines.append(f"⚠ route_history overflow: {count} entries (max 10)")
+
+    content = idx_path.read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"(?ms)^## 当前状态\s*$\n(.*?)(?=^##\s|\Z)", content)
+    if match:
+        entries = re.findall(r"(?m)^###\s+|^\s*-\s+", match.group(1))
+        if len(entries) > 10:
+            lines.append(f"⚠ current-state log overflow: {len(entries)} entries (max 10)")
+    return "\n".join(lines)
+
+
 def main() -> int:
     try:
         cwd = Path.cwd()
@@ -157,6 +211,8 @@ def main() -> int:
 
             fm = parse_frontmatter(idx_path)
 
+            context_parts.append("## Two-tier memory retrieval\n\n" + memory_router_context(ai_state, idx_path, fm))
+
             alerts = special_alerts(fm)
             if alerts:
                 context_parts.append("## 🚨 重要提醒\n\n" + "\n\n".join(alerts))
@@ -168,9 +224,10 @@ def main() -> int:
                     + "\n".join(hints)
                 )
 
-            # v9.8.0: 主动提醒会话记忆固化 (athena-checkpoint 的触达半径)
+            # Tier1 is never elevated over Tier2; checkpoint writes durable
+            # decisions/state before compaction or handoff.
             context_parts.append(
-                "## 💾 会话记忆 (v9.8.0)\n\n长任务收尾 / context 快满 / 关键决策后, 跑 "
+                "## 💾 会话记忆 (v9.9.2)\n\n长任务收尾 / context 快满 / 关键决策后, 跑 "
                 "`/athena-checkpoint` 把进展固化进 .ai_state (免每次手动描述). 与 PreCompact 兜底互补."
             )
 

@@ -7,15 +7,16 @@
 逐版本 migrate 脚本把"某字段是否仍等于旧默认"硬编码, 版本一多就漂移、漏项、静默改坏用户配置。AI 能读语义 (CHANGELOG 说明了每项改动的意图) + 逐文件 diff, 按意图迁移, 遇歧义停下问, 比死脚本稳。
 
 ## 通用红线 (三种场景都遵守)
-- **先备份**: 任何不可逆操作 (删目录 / 改配置) 前, 先把 `~/.claude` 与 `~/.agents`(CX 为 `~/.codex`) 复制到带时间戳备份目录, 记录路径。
+- **先备份**: 任何不可逆操作前分别备份 CC `~/.claude`、CX `~/.codex` 与 `~/.agents/skills`, 写入带时间戳目录并记录路径。
 - **preserve 用户所有权**: 用户 model/effort/env、私有 hook、自定义 provider/MCP/plugin、permissions、trust、未知字段、**任何密钥值** —— 一律保留, 只动仍等于旧默认的 release-owned 值。
 - **绝不打印密钥**: 迁移日志不 echo/log 任何 secret value。
 - **失败即 rollback / 回滚**: 出错恢复备份, 报告差异, 不留半迁移状态。
 
 ## 场景一 · 全新安装 9.9.2
 1. 定位包: `vibeCoding/claude/9.9.2/.claude` (CC) 与 `vibeCoding/codex/9.9.2/.codex` (CX)。
-2. 复制到 `~/.claude` / `~/.agents`; 若目标已存在同版, 只读校验不覆盖。
-3. 校验: 身份行/env 版本 = 9.9.2; skill 数 = 26; 跑 `vibeCoding/scripts/validate-athena-9.9.2.py` (py3.11+)。
+2. 精确目标: **CC runtime assets/config → `~/.claude`**；**CX config/hooks/agents → `~/.codex`**；**CX skills → `~/.agents/skills`**。不得把整个 CX `.codex` 包复制到 `~/.agents`。
+3. 安装后的 guide: CC `~/.claude/skills/athena-migrate/references/AI-MIGRATION-GUIDE.md`; CX `~/.agents/skills/athena-migrate/references/AI-MIGRATION-GUIDE.md`。若目标已存在同版, 只读校验不覆盖。
+4. 校验: 身份行/env 版本 = 9.9.2; skill 数 = 26; 跑 `python3 vibeCoding/scripts/validate-athena-9.9.2.py` (Python 3.11+)。
 
 ## 场景二 · 升级旧版 → 9.9.2 (AI 迁移)
 读 `CHANGELOG.md` 9.9.2 段, 逐项应用 (仅当用户未自定义):

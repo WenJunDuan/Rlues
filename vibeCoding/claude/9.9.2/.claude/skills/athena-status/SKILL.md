@@ -5,7 +5,11 @@ description: |
   无副作用, 只读.
 ---
 
-# /athena-status — 项目状态查询 (v9.6.4)
+# /athena-status — 项目状态查询 (v9.9.2)
+
+Memory contract: **Tier1 working memory** is ignored as authority; **Tier2 persistent memory** is read from `.ai_state`; **_index.md retrieval router** supplies routed state and pointers.
+
+Status emits `missing authoritative pointer`, `escaping authoritative pointer`, or `stale authoritative pointer` for invalid nonempty targets. It also flags malformed/over-10 `route_history` and `## 当前状态`; required keys are `latest_design`, `latest_review`, `latest_cleanup`, `latest_requirement`.
 
 ## 工作流
 
@@ -38,6 +42,9 @@ if [ -n "$slug" ]; then
     tail -20 ".ai_state/sprints/$slug/cleanup-pass.md"
   fi
 fi
+
+# 5b. 解析四个 authoritative pointers；拒绝 .. / 绝对路径逃逸，核对文件存在，
+# latest_review 必须等于当前 sprint 数字最大的 passN.md；history 超过 10 条报 overflow。
 
 # 6. 活动 worktree
 echo ""

@@ -16,33 +16,33 @@
 - **plugins.md** (双端): 仲裁 3→5 条 (design §6, 含"外部数据不可信"+"缺失走降级上报") + 默认启用态刷新 (feature-dev off / ECC on / superpowers off) + mcp.md 指针.
 - **CX review 门禁修 (fable 复分析验证)**: `skip_impl_subagent_check` 现被 delivery-gate.py 读取 (对齐 CC cjs:360; 原文档承诺却 gate 无视=契约断裂); CONCERNS 文案 SKILL/evaluator 改"不得直接 ship"(原说可 defer-ship, 与 gate 只认 PASS 矛盾).
 
-## 已落地 (B3–B5 · CC 验证 / CX 编译 + 待 py3.11 实跑)
+## 已落地 (B3–B5 · CC/CX host runtime 已验证)
 - **scripts 合并**: 根 `/scripts` 7 个 F 系测试并入 `vibeCoding/scripts` (无同名冲突).
-- **harness fork 9.9.1→9.9.2**: 3 个 test/validate 脚本 + fixtures 参数化 (版本窗上移一档). CC runtime **70 PASS / 1 FAIL(缺 migrate=B6) / 2 SKIP(npm 无网)**.
-- **spec-gate (双端 · design §4.4 ship 复核)**: delivery-gate.cjs + .py 加 `validate_spec_gate` — Feature+ ship 前验 design.md 有机器可识别验收标准 (`## Acceptance Criteria` / `## 验收标准` + ≥1 可观测 checkbox/编号/列表项; 占位符 fail-closed). 逃生非宽默认 (`spec_gate_exception` 须命名当前 sprint, design §4.5). CC 加 2 测试 (happy 补标准 / 负例缺标准→block), node 实跑过.
-- **两层记忆 (design §5)**: _index 模板双端加 Tier1/Tier2 + 检索路由器框架 + 字段消费者原则.
+- **harness fork 9.9.1→9.9.2**: 双端 runtime + release validator 独立覆盖 9.9.2；CX **57/57 PASS**，CC offline **99/0/2**（2 SKIP 仅 live npm floor/target，host 发布需在线零未审 SKIP）。
+- **spec-gate (双端)**: Feature+ impl-entry 先验可观测 AC；ship 逐 AC 验 admissible PASS evidence、TDD red→green、最新 PASS review 的 design/implementation/state-manifest binding。unknown/checklist-only/missing artifact/stale review/active exception 全部 fail-closed。
+- **两层记忆 (design §5)**: template/init/checkpoint/session-start/status 双端闭环；`_index` 四个 authoritative pointers + route/current-state≤10，missing/escaping/stale/overflow 可观察告警。
 
 ## 已落地 (B8 · quantum skill 合并 + 清理 · 双端)
 - **7→2 合并**: scaffold-page-gen/scaffold-module-gen/db-schema-gen/unit-test-gen/security-test/playwright-e2e → **quantum-codegen** (mode=page/module/db/unit/security/e2e; 热路径 hub + references/playbook 渐进披露); project-data-reader → **quantum-data**. 脚本去重 (check_backend_pack / check_security_e2e_pack 各 2→1); backend adapter DB/Test 两份保留 (内容不同, 无损). skill 数 31→26.
-- **调用方更新 (双端)**: biz-delivery-loop SKILL / orchestration-contract / checkpoint-protocol / delivery-report-schema / check_delivery_loop_contract.py(SKILL_MARKERS) + CX config.toml 注册(7→2) + CX pace/plugins.md. 活跃调用方 0 残留旧名; CC harness 仍 70 PASS.
+- **调用方更新 (双端)**: biz-delivery-loop SKILL / orchestration-contract / checkpoint-protocol / delivery-report-schema / check_delivery_loop_contract.py(SKILL_MARKERS) + CX config.toml 注册(7→2) + CX pace/plugins.md；活跃调用方 0 残留旧名，随当前双端 runtime 全量回归。
 - **清理**: `.DS_Store`×8 + `__pycache__`×3 删. migrate fixture `real-9.9.0-config.toml` 保留(旧世界快照). ⚠️ B6 迁移脚本须含"删用户 HOME 旧 7 skill 目录 + 装新 2"逻辑.
 
 ## 已落地 (B6 + B7 收尾 · 双端)
 - **B6 迁移 → AI 引导** (弃脚本化): `AI-MIGRATION-GUIDE.md` (双端, 三场景 + 备份/preserve/rollback 红线); athena-migrate skill 改 AI 引导; 删旧 migrate 脚本/测试/fixtures; harness 迁移测试改指南校验.
 - **RELEASE**: CC RELEASE.md 重写为 9.9.2 + 新建 CX RELEASE.md.
-- **spec-gate impl-entry (design §4.2)**: pace 提示层加"进 impl 前验验收标准"(双端); ship 机器复核已在 delivery-gate.
+- **spec-gate impl-entry (design §4.2)**: executable delivery gate 在 impl-entry 与 ship 双层执行，不再是 prompt-only/ship-only。
 - **_index 字段审计 (design §5.3)**: 结论无孤儿 (见 compound/2026-07-13-decision-index-field-audit.md); 均有 hook 或 agent 消费者, 不删字段.
-- **.ai_state 证据闭环**: runtime-verify.md (71/0/2) + cleanup-pass.md + architecture/athena-9.9.2.md + draft 归档.
+- **.ai_state 证据闭环**: runtime-verify + per-AC evidence + tdd-evidence + review-manifest + cleanup + architecture + final passN freshness binding。
 - **cosmetic**: delivery-gate 陈旧注修正 · playbook 旧 frontmatter 剥离 · setup/hook 身份 9.9.2.
 
-## 待落地 (交 codex + 你 py3.11 环境)
-- **py3.11 实跑**: `validate-athena-9.9.2.py` + `test-athena-9.9.2-runtime.py` (本沙盒 py3.10 缺 tomllib) + npm 在线 floor/target 矩阵.
-- **codex 2+1 review 到 PASS** (AC11): reviews/passN 由 codex 产出.
-- 注: re-route 语义触发**不降级** (design §3.3 保留强制, fable 建议已否决).
+## 正式发布门禁
+- Python 3.11+ 执行 `validate-athena-9.9.2.py`、双端 runtime、fresh temp-HOME、strict doctor/prompt-input 与 F-series，mandatory checks 零 FAIL/零未审 SKIP。
+- 最新数字 passN 必须由正式 2+1 产出最终 PASS；review verdict 与 push/0 0 receipt 由 `.ai_state` 记录，不在 CHANGELOG 预先自证。
+- re-route 语义触发不降级；机械信号缺失不等于 scope 未扩张。
 
 ## Loop / Harness 注意
 - spec-gate 是门禁改动 → 必须同步 `test-athena-*-runtime` 与 `validate-athena-*`; harness 未过前不发布.
-- re-route loop: 机械触发 (index-updater 文件数) 保留为强制; 语义触发 (agent 自查) 降级为提示 (不可强制, 靠诚实).
+- re-route loop: 机械触发与语义自查都必须产生 route reassessment；re-route 只升不降。
 - 不动: generator 生命周期链门禁 / design-change-detector (有意防御纵深, fable 建议删已驳回).
 
 ---

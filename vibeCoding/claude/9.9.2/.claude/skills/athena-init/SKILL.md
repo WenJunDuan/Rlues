@@ -5,7 +5,9 @@ description: |
   职责: 探测平台 / 工具可用性, 创建 .ai_state/ 目录 + 复制 _index.md 模板 + 填入探测结果.
 ---
 
-# /athena-init — 项目初始化 (v9.9.1)
+# /athena-init — 项目初始化 (v9.9.2)
+
+Memory contract: **Tier1 working memory** is non-authoritative; **Tier2 persistent memory** is the created `.ai_state`; **_index.md retrieval router** owns bounded recovery pointers/history.
 
 ## 触发
 
@@ -79,12 +81,16 @@ else
 fi
 ```
 
-### Step 4: 创建 .ai_state/ 目录
+### Step 4: 创建 .ai_state/ 目录 (v9.9.2 Tier2 schema)
 
 ```bash
-mkdir -p .ai_state/sprints/reviews
-mkdir -p .ai_state/sprints/lessons
-mkdir -p .ai_state/requirements   # v9.8.0 长效需求档 (WHY, 逃生通道)
+mkdir -p .ai_state/sprints
+mkdir -p .ai_state/roadmap
+mkdir -p .ai_state/architecture
+mkdir -p .ai_state/requirements
+mkdir -p .ai_state/compound
+mkdir -p .ai_state/.snapshots
+touch .ai_state/compound/.gitkeep
 ```
 
 ### Step 5: 复制 _index.md 模板 + 填入探测结果
@@ -97,28 +103,16 @@ cp ~/.claude/skills/pace/templates/_index.md .ai_state/_index.md
 主 agent 编辑 `.ai_state/_index.md` 把上面探测到的真实值填入对应字段:
 - `cc_version`, `cx_version`, `ag_callable`
 - `tools_available.{context7_cli, augment_mcp_cc, rg_available, jq_available, vm_available}`
-- `platform_features.{cc_subagent_task: true, cx_spawn_agent, cx_goal_default_on, ag_parallel_subagents, ag_headless_p}`
+- `platforms_enabled`
+- `platform_features.{cc_subagent_task: true, cx_spawn_agent, cx_plan_mode_reasoning_effort, ag_parallel_subagents, ag_headless_p}`
 
 判定规则 (主 agent 在 init 时执行):
 - `cx_spawn_agent = true` if `CX_VERSION` >= 0.128
-- `cx_goal_default_on = true` if `CX_VERSION` >= 0.133.0
+- `cx_plan_mode_reasoning_effort = true` when the installed Codex supports that config field
 - `ag_parallel_subagents = ag_callable` (Antigravity 默认支持)
 - `ag_headless_p = ag_callable` (`agy -p` 默认支持)
 
-### Step 6: 初始 compound/
-
-```bash
-cat > .ai_state/compound/ << 'EOF'
-# Project Lessons (Athena v9.6.4)
-
-> 本项目积累的经验. 每次 polish / review 后由主 agent 追加.
-> 格式: `## [date] 简述`
-> 内容: pattern (做对的) / pitfall (踩的坑) / constraint (硬约束)
-
-EOF
-```
-
-### Step 7: 总结 + 给用户
+### Step 6: 总结 + 给用户
 
 主 agent 输出 markdown 总结:
 - 探测到的平台 (cc / cx / ag)
@@ -129,7 +123,7 @@ EOF
 ## 输出示例
 
 ```markdown
-✓ Athena v9.9.1 初始化完成
+✓ Athena v9.9.2 初始化完成
 
 ## 平台
 - CC: claude-code 2.4.1 ✓
@@ -143,7 +137,7 @@ EOF
 - jq: ✓
 
 ## 状态
-.ai_state/ 已建立, _index.md 已生成
+.ai_state/ 已建立 (sprints/ roadmap/ architecture/ requirements/ compound/ .snapshots/), _index.md 已生成；仅填充模板中真实存在的字段。
 
 ## 下一步
 告诉我你要做什么, 我会路由 PACE 路径:

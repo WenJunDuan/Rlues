@@ -67,9 +67,9 @@ impl 写完代码 + 单测后, 不直接进 review, 先做运行时自测自改:
 2. 主 agent 串行合并 `reviews/passN.md`, 再 `spawn_agent` 跑 evaluator; evaluator 只返回 VERDICT, 主 agent 追加并更新 `_index.next_action`
 
 VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
-- PASS / CONCERNS (Refactor/System) → polish
-- PASS / CONCERNS (其他) → ship
-- REWORK / FAIL → 回 impl
+- PASS (Refactor/System) → polish
+- PASS (其他) → ship
+- CONCERNS / REWORK / FAIL → 回 impl 或修复/defer 后生成新 passN；不得直接 polish/ship
 
 > 注: review stage 本身不设同步 Stop 门禁 (后台 review agent 异步写产物, 同步等待会死锁).
 > spec-compliance 完整性由 delivery-gate 在 **ship** stage 检查 (此时产物已落盘).

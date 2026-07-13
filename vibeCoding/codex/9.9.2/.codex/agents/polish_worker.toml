@@ -16,7 +16,7 @@ developer_instructions = """
 ## 启动前置条件
 
 - 路径 ∈ {Refactor, System} (其他路径不会 spawn 你)
-- review_pass1 已完成, VERDICT ∈ {PASS, CONCERNS}
+- 最新数字 passN 已完成且 VERDICT = PASS；CONCERNS 不进入 polish
   (FAIL/REWORK 必须先修复, 不进入 polish)
 - `.ai_state/sprints/{slug}/reviews/pass1.md` 已存在
 

@@ -6,7 +6,9 @@ description: |
   手动 /checkpoint 触发. 与 compact-snapshot hook 互补 (hook 机械兜底, skill 做需推理的总结).
 ---
 
-# /athena-checkpoint — 会话记忆固化 (v9.8.0)
+# /athena-checkpoint — 会话记忆固化 (v9.9.2)
+
+Memory contract: **Tier1 working memory** only supplies the current-turn delta; **Tier2 persistent memory** receives authoritative state; **_index.md retrieval router** keeps stage/next_action/current sprint, authoritative pointers, route_history≤10 and current-state log≤10. Detailed history belongs in `session-log.md`; hooks are fallback only.
 
 ## 痛点 (你的反馈)
 
@@ -38,7 +40,7 @@ cp .ai_state/_index.md ".ai_state/.snapshots/pre-checkpoint-${ts}.md"
 
 ### Step 3 · 写入两处
 
-1. **`_index.md` frontmatter**: 校正 stage / path / next_action / current_sprint_slug / last_critic_round 等字段, 确保与实际一致 (hook 自动维护的字段也复核一遍)
+1. **`_index.md` frontmatter**: 校正 stage/path/next_action/current_sprint_slug、`pointers.latest_{design,review,cleanup,requirement}`；route_history/current-state 各最多 10 条
 2. **`sprints/{slug}/session-log.md`**: 追加本会话日志段 (见格式)
 
 ### Step 4 · 回显关键字段 (让你确认记对了)

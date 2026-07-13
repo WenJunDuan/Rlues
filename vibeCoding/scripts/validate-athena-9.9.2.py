@@ -240,6 +240,11 @@ def check_hooks() -> None:
     check("CX gate maps labeled ACs to evidence", "validate_ac_mapping" in gate)
     check("CC gate has impl-entry spec gate", "validateImplEntry" in cc_gate and "validateSpecGate" in cc_gate)
     check("CC gate maps labeled ACs to evidence", "validateAcMapping" in cc_gate)
+    for endpoint, body in (("CX", gate), ("CC", cc_gate)):
+        check(f"{endpoint} gate requires review state manifest", "review-manifest.yaml" in body and "Reviewed state manifest sha256" in body)
+        check(f"{endpoint} gate requires TDD red-green evidence", "tdd-evidence.yaml" in body and "red_observed_at" in body)
+        check(f"{endpoint} gate validates sprint-local user authorization", "user-authorizations/" in body and "authorization_source" in body)
+        check(f"{endpoint} gate captures command evidence artifact", "output_artifact" in body and "artifact_sha256" in body and "implementation_commit" in body)
     # P0-3: the acceptance heading matcher must not rely on \b after CJK.
     check("CX gate acceptance heading is CJK-safe", "验收标准)(?=" in gate, "boundary lookahead missing")
     check("CC gate acceptance heading is CJK-safe", "验收标准)(?=" in cc_gate, "boundary lookahead missing")
@@ -340,6 +345,52 @@ def check_contract_text() -> None:
             "normative threshold block reintroduced into pace/SKILL.md",
         )
         check(f"{endpoint} pace points to athena-dev route source", "athena-dev" in pace_body)
+
+    memory_markers = ("Tier1 working memory", "Tier2 persistent memory", "_index.md retrieval router")
+    for endpoint, root in (("CX", CX), ("CC", CC)):
+        surfaces = {
+            "template": root / "skills/pace/templates/_index.md",
+            "init": root / "skills/athena-init/SKILL.md",
+            "checkpoint": root / "skills/athena-checkpoint/SKILL.md",
+            "status": root / "skills/athena-status/SKILL.md",
+            "session-start": root / ("hooks/session-start.py" if endpoint == "CX" else "hooks/session-start.cjs"),
+        }
+        for surface, path in surfaces.items():
+            body = text(path)
+            missing = [marker for marker in memory_markers if marker not in body]
+            check(f"{endpoint} AC7 {surface} consumer contract", not missing, ", ".join(missing))
+        init_body = text(surfaces["init"])
+        check(f"{endpoint} init active identity=9.9.2", "v9.9.2" in init_body and "初始化完成" in init_body)
+        check(f"{endpoint} init has no removed cx_goal_default_on", "cx_goal_default_on" not in init_body)
+        status_body = text(surfaces["status"])
+        check(f"{endpoint} status pointer diagnostics", all(marker in status_body for marker in (
+            "missing authoritative pointer", "escaping authoritative pointer", "stale authoritative pointer"
+        )))
+        session_body = text(surfaces["session-start"])
+        check(f"{endpoint} SessionStart pointer diagnostics", all(marker in session_body for marker in (
+            "missing authoritative pointer", "escaping authoritative pointer", "stale authoritative pointer", "overflow"
+        )))
+
+    cx_workflow_files = (
+        CX / "skills/pace/references/stages.md",
+        CX / "skills/pace/templates/sprints/reviews/pass1.md",
+        CX / "skills/polish/SKILL.md",
+        CX / "agents/polish_worker.toml",
+    )
+    conflicting = [
+        str(path.relative_to(ROOT))
+        for path in cx_workflow_files
+        if re.search(r"PASS\s*/\s*CONCERNS|\{PASS,\s*CONCERNS\}", text(path))
+    ]
+    check("CX active workflow is PASS-only before polish/ship", not conflicting, ", ".join(conflicting))
+
+    for endpoint, release_root in (("CX", CX.parent), ("CC", CC.parent)):
+        release = text(release_root / "RELEASE.md")
+        changelog_active = text(release_root / "CHANGELOG.md").split("# Athena CHANGELOG — v9.9.1", 1)[0]
+        check(f"{endpoint} RELEASE uses current runtime commands", "test-athena-claude-9.9.2-runtime.cjs" in release and "test-athena-9.9.2-runtime.py" in release)
+        check(f"{endpoint} RELEASE has no wrong Node Python command", "node vibeCoding/scripts/test-athena-9.9.2-runtime.py" not in release)
+        stale = re.search(r"83 PASS|73/0/0|33/33|70 PASS|71/0/2|待 py3\.11|本包留待 review", release + changelog_active)
+        check(f"{endpoint} active release docs have no stale result/pending text", stale is None, stale.group(0) if stale else "")
 
     # AC13 (design §13): active quantum surfaces must not invoke legacy names.
     legacy = re.compile(
@@ -502,6 +553,13 @@ def check_install_contract() -> None:
     guide_body = text(CX.parent / "AI-MIGRATION-GUIDE.md")
     for marker in ("备份", "preserve", "rollback", "密钥", "quantum-codegen", "quantum-data", "project-data-reader", "9.9.2"):
         check(f"AI migration guide invariant: {marker}", marker in guide_body)
+    for marker in (
+        "CC runtime assets/config → `~/.claude`",
+        "CX config/hooks/agents → `~/.codex`",
+        "CX skills → `~/.agents/skills`",
+    ):
+        check(f"AI migration guide destination: {marker}", marker in guide_body)
+    check("AI migration guide has no CX package-to-~/.agents instruction", "复制到 `~/.claude` / `~/.agents`" not in guide_body)
 
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"

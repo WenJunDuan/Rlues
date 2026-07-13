@@ -7,8 +7,8 @@ Baseline: committed Athena 9.9.1 packages (`vibeCoding/claude/9.9.1`, `vibeCodin
 
 ## 本版要点 (详见 CHANGELOG.md)
 - **四原语**: 三原语 + MCP (连接层 reach)。
-- **spec-gate**: Feature+ ship 复核机器可识别验收标准 (治 2026 头号失败模式 intent-drift)。
-- **两层记忆**: `_index` 为 Tier2 检索路由器。
+- **spec-gate**: Feature+ impl-entry 先拦不可测试意图，ship 再验逐 AC passing evidence、最新 PASS review 与设计/实现/状态 manifest 绑定。
+- **两层记忆**: Tier1 非权威；Tier2 `.ai_state` 为持久真相；`_index` 是有界检索路由器。
 - pace 路由真相源单一化 (`athena-dev`) + stage 命名诚实化 (4 核心 + 5 条件)。
 - **技法 (CX 插件集独立: openai-bundled)**: feature-dev / superpowers off; ECC-AgentShield / code-review / commit / context7 / playwright-skill / codex-plugin-cc on。
 - **skill 合并 7→2**: `quantum-codegen` (前后端生成 6 合 1, mode 分发) + `quantum-data` (运行期数据读取)。
@@ -18,15 +18,13 @@ Baseline: committed Athena 9.9.1 packages (`vibeCoding/claude/9.9.1`, `vibeCodin
 9.9.2 起**推荐由 AI 引导**执行安装、升级、`.ai_state` 数据迁移 (弃脚本化 migrate: 脆、易漏字段)。见包根 `AI-MIGRATION-GUIDE.md` + `skills/athena-migrate`。`skills/athena-setup/scripts/setup-athena.py` 仍可用作可选后备。
 
 ## 兼容
-| Level | Codex | Contract |
-|---|---:|---|
-| Floor | 2.1.203 | Core hooks / agents / PACE state / native worktree 强隔离 |
-| Target | 2.1.206 | Full settings / hooks / subagent contract |
+Codex 端以包内 `config.toml` + `codex --strict-config doctor --json` + `codex debug prompt-input` 为当前兼容契约；Claude Code 2.1.203/2.1.206 只属于 CC 端矩阵，不是 Codex 版本。
 
 ## 验证
-- `node vibeCoding/scripts/test-athena-9.9.2-runtime.py` (本仓: **83 PASS / 0 FAIL / 2 SKIP (sandbox py3.10); codex py3.11: CC 73/0/0 live + CX 33/33**; SKIP = npm 无网, 需网络载 CC 2.1.203/206)。
-- `python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py` + `python3 vibeCoding/scripts/validate-athena-9.9.2.py` (需 **Python 3.11+**, tomllib)。
-- 发布前 **codex 2+1 review 到 PASS** (本包留待 review)。
+- `python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py` — 当前 **57/57 PASS**。
+- `node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs` — offline 复跑 **99 PASS / 0 FAIL / 2 SKIP**（仅 live npm 2.1.203/2.1.206）；正式 host 发布必须在线复跑到零未审 SKIP。
+- `python3 vibeCoding/scripts/validate-athena-9.9.2.py` — Python 3.11+；包含双端 runtime、fresh temp-HOME、strict doctor、prompt-input 与 F-series。
+- 正式 2+1 review 是 `.ai_state` 的外部发布门禁；最新数字 passN 必须含 Spec Compliance、Evidence Cross-Check、三项 freshness binding 且最终 PASS，包文档不伪造自证 verdict。
 
 ## 官方引用
 Hooks / Subagents / Worktrees / Settings / Model / MCP / Plugins — https://code.claude.com/docs/en/

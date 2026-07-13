@@ -17,6 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const POINTER_KEYS = ['latest_design', 'latest_review', 'latest_cleanup', 'latest_requirement'];
 
 function findAiState(cwd) {
   let current = cwd;
@@ -164,6 +165,59 @@ function specialAlerts(fm, aiState) {
   return alerts;
 }
 
+function memoryRouterContext(aiState, idxPath, fm) {
+  const lines = [
+    'Tier1 working memory is non-authoritative conversation/tool context.',
+    'Tier2 persistent memory is the versioned .ai_state project truth.',
+    '_index.md retrieval router is bounded routing metadata, not a second database.',
+  ];
+  const currentSprint = fm.current_sprint_slug || '';
+  for (const key of POINTER_KEYS) {
+    if (!Object.hasOwn(fm, key)) {
+      lines.push(`⚠ malformed router: missing required pointer key ${key}`);
+      continue;
+    }
+    const value = String(fm[key] || '').trim();
+    if (!value) continue;
+    const target = path.resolve(aiState, value);
+    if (!target.startsWith(`${path.resolve(aiState)}${path.sep}`)) {
+      lines.push(`⚠ escaping authoritative pointer ${key}: ${value}`);
+      continue;
+    }
+    if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
+      lines.push(`⚠ missing authoritative pointer ${key}: ${value}`);
+      continue;
+    }
+    lines.push(`✓ routed ${key}: ${value}`);
+    if (key === 'latest_review' && currentSprint) {
+      const reviews = path.join(aiState, 'sprints', currentSprint, 'reviews');
+      const numbered = fs.existsSync(reviews) ? fs.readdirSync(reviews).map(name => {
+        const match = name.match(/^pass([1-9]\d*)\.md$/);
+        return match ? [Number(match[1]), path.resolve(reviews, name)] : null;
+      }).filter(Boolean) : [];
+      if (numbered.length) {
+        numbered.sort((a, b) => a[0] - b[0]);
+        if (target !== numbered.at(-1)[1]) lines.push(`⚠ stale authoritative pointer ${key}: ${value}`);
+      }
+    }
+  }
+  const routeHistory = String(fm.route_history || '[]').trim();
+  if (!routeHistory.startsWith('[') || !routeHistory.endsWith(']')) {
+    lines.push('⚠ malformed route_history: expected inline list capped at 10');
+  } else {
+    const inner = routeHistory.slice(1, -1).trim();
+    const count = inner ? inner.split(',').filter(part => part.trim()).length : 0;
+    if (count > 10) lines.push(`⚠ route_history overflow: ${count} entries (max 10)`);
+  }
+  const content = fs.readFileSync(idxPath, 'utf8');
+  const state = content.match(/^## 当前状态\s*$\n([\s\S]*?)(?=^##\s|(?![\s\S]))/m);
+  if (state) {
+    const entries = state[1].split(/\r?\n/).filter(line => /^###\s+|^\s*-\s+/.test(line)).length;
+    if (entries > 10) lines.push(`⚠ current-state log overflow: ${entries} entries (max 10)`);
+  }
+  return lines.join('\n');
+}
+
 function main() {
   try {
     const cwd = process.cwd();
@@ -180,6 +234,8 @@ function main() {
 
       const fm = parseFrontmatter(idxPath);
 
+      contextParts.push(`## Two-tier memory retrieval\n\n${memoryRouterContext(aiState, idxPath, fm)}`);
+
       const alerts = specialAlerts(fm, aiState);
       if (alerts.length > 0) {
         contextParts.push(`## 🚨 重要提醒\n\n${alerts.join('\n\n')}`);
@@ -190,8 +246,8 @@ function main() {
         contextParts.push(`## 当前 stage 操作提示 (stage: ${fm.stage || 'unknown'})\n\n${hints.join('\n')}`);
       }
 
-      // v9.8.0: 主动提醒会话记忆固化 (athena-checkpoint 的触达半径, 否则用户不知道有这命令)
-      contextParts.push('## 💾 会话记忆 (v9.8.0)\n\n长任务收尾 / context 快满 / 关键决策后, 跑 `/athena-checkpoint` 把进展固化进 .ai_state (免每次手动描述). 与 PreCompact 兜底互补.');
+      // Tier1 is never elevated over Tier2; checkpoint writes durable state.
+      contextParts.push('## 💾 会话记忆 (v9.9.2)\n\n长任务收尾 / context 快满 / 关键决策后, 跑 `/athena-checkpoint` 把进展固化进 .ai_state (免每次手动描述). 与 PreCompact 兜底互补.');
     }
 
     const rulesSummary = readRulesSummary();

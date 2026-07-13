@@ -17,6 +17,7 @@ a security boundary.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import re
 import subprocess
@@ -245,29 +246,121 @@ def acceptance_criteria(text: str) -> list[str]:
     return found
 
 
-def spec_gate_exception_active(fm: dict[str, str], sprint_slug: str) -> bool:
-    """design §4.5 escape policy: 命名当前 sprint + reason + 用户授权 + 未过期
-    expiry; 声明不完整的逃生 fail-closed, 不静默放宽."""
-    if not fm.get("spec_gate_exception") or fm.get("spec_gate_exception") != sprint_slug:
-        return False
-    reason = (fm.get("spec_gate_exception_reason") or "").strip()
-    authorized_by = (fm.get("spec_gate_exception_authorized_by") or "").strip()
-    expiry = (fm.get("spec_gate_exception_expiry") or "").strip()
-    if not reason or not authorized_by or not expiry:
-        raise GateError(
-            "spec_gate_exception 需同时给 spec_gate_exception_reason + "
-            "spec_gate_exception_authorized_by(用户授权) + spec_gate_exception_expiry "
-            "(design §4.5); 缺项 fail-closed"
-        )
-    candidate = expiry[:-1] + "+00:00" if expiry.endswith("Z") else expiry
+def parse_utc_timestamp(value: str, label: str) -> dt.datetime:
+    candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
         parsed = dt.datetime.fromisoformat(candidate)
     except ValueError as exc:
-        raise GateError("spec_gate_exception_expiry 必须是 ISO-8601 日期") from exc
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=dt.UTC)
-    if parsed < dt.datetime.now(dt.UTC):
-        raise GateError(f"spec_gate_exception 已于 {expiry} 过期; 移除或重新授权")
+        raise GateError(f"{label} 必须是 UTC ISO-8601") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() != dt.timedelta(0):
+        raise GateError(f"{label} 必须带 UTC 时区")
+    return parsed.astimezone(dt.UTC)
+
+
+def parse_authorization_record(path: Path) -> dict[str, str]:
+    content = require_file(path, "spec-gate user authorization")
+    result: dict[str, str] = {}
+    for raw_line in content.splitlines():
+        if not raw_line.strip() or raw_line.lstrip().startswith("#"):
+            continue
+        if raw_line[:1].isspace():
+            raise GateError("spec-gate user authorization must be a flat YAML mapping")
+        match = re.fullmatch(r"([A-Za-z0-9_]+)\s*:\s*(.*?)\s*", raw_line)
+        if not match:
+            raise GateError(f"malformed spec-gate user authorization line: {raw_line!r}")
+        key, value = match.group(1), match.group(2)
+        if key in result:
+            raise GateError(f"duplicate spec-gate user authorization field: {key}")
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            value = value[1:-1]
+        result[key] = value
+    expected = {
+        "schema_version",
+        "kind",
+        "sprint_slug",
+        "path",
+        "reason",
+        "decision",
+        "authorization_source",
+        "authorized_by",
+        "authorized_at",
+        "expiry",
+        "removal_condition",
+    }
+    if set(result) != expected:
+        raise GateError(
+            "spec-gate user authorization must use exact schema fields "
+            f"{sorted(expected)}"
+        )
+    return result
+
+
+def spec_gate_exception_active(
+    fm: dict[str, str], sprint_slug: str, path_type: str, sprint_dir: Path
+) -> bool:
+    """Validate the design §H sprint-local user authorization contract."""
+    if not fm.get("spec_gate_exception") or fm.get("spec_gate_exception") != sprint_slug:
+        return False
+    fields = {
+        key: (fm.get(key) or "").strip()
+        for key in (
+            "spec_gate_exception_path",
+            "spec_gate_exception_reason",
+            "spec_gate_exception_authorized_by",
+            "spec_gate_exception_authorized_at",
+            "spec_gate_exception_expiry",
+            "spec_gate_exception_removal_condition",
+            "spec_gate_exception_emergency_hotfix",
+            "spec_gate_exception_authorization_ref",
+        )
+    }
+    if any(not value for value in fields.values()):
+        raise GateError(
+            "spec_gate_exception requires path/reason/authorized_by/authorized_at/expiry/"
+            "removal_condition/emergency_hotfix/authorization_ref; missing fields fail closed"
+        )
+    reason = fields["spec_gate_exception_reason"]
+    removal = fields["spec_gate_exception_removal_condition"]
+    if is_placeholder_criterion(reason) or is_placeholder_criterion(removal):
+        raise GateError("spec_gate_exception reason/removal_condition cannot be placeholders")
+    if fields["spec_gate_exception_path"] != path_type or path_type not in GENERATOR_PATHS:
+        raise GateError("spec_gate_exception_path must exactly match current Feature/Refactor/System path")
+    authorized_by = fields["spec_gate_exception_authorized_by"]
+    if not re.fullmatch(r"user:[A-Za-z0-9][A-Za-z0-9._-]{1,63}", authorized_by):
+        raise GateError("spec_gate_exception_authorized_by must be user:<stable-label>; generic user/self fails")
+    if fields["spec_gate_exception_emergency_hotfix"].lower() != "false":
+        raise GateError("Feature/Refactor/System spec exception must set emergency_hotfix=false")
+    authorized_at = parse_utc_timestamp(fields["spec_gate_exception_authorized_at"], "spec_gate_exception_authorized_at")
+    expiry_at = parse_utc_timestamp(fields["spec_gate_exception_expiry"], "spec_gate_exception_expiry")
+    now = dt.datetime.now(dt.UTC)
+    if authorized_at > now:
+        raise GateError("spec_gate_exception_authorized_at cannot be in the future")
+    if expiry_at <= now:
+        raise GateError(f"spec_gate_exception 已于 {fields['spec_gate_exception_expiry']} 过期; 移除或重新授权")
+    ref = fields["spec_gate_exception_authorization_ref"]
+    if not re.fullmatch(r"user-authorizations/[A-Za-z0-9][A-Za-z0-9._-]*\.yaml", ref):
+        raise GateError("spec_gate_exception_authorization_ref must be user-authorizations/<id>.yaml")
+    auth_path = (sprint_dir / ref).resolve()
+    try:
+        auth_path.relative_to(sprint_dir.resolve())
+    except ValueError as exc:
+        raise GateError("spec_gate_exception_authorization_ref escapes current sprint") from exc
+    record = parse_authorization_record(auth_path)
+    expected = {
+        "schema_version": "1",
+        "kind": "spec_gate_exception_authorization",
+        "sprint_slug": sprint_slug,
+        "path": path_type,
+        "reason": reason,
+        "decision": "approve",
+        "authorization_source": "user_prompt",
+        "authorized_by": authorized_by,
+        "authorized_at": fields["spec_gate_exception_authorized_at"],
+        "expiry": fields["spec_gate_exception_expiry"],
+        "removal_condition": removal,
+    }
+    if record != expected:
+        raise GateError("spec-gate user authorization record does not exactly match frontmatter")
     return True
 
 
@@ -291,10 +384,19 @@ def resolve_acceptance_criteria(sprint_dir: Path, ai_state: Path) -> list[str]:
     return []
 
 
-def validate_spec_gate(sprint_dir: Path, ai_state: Path, fm: dict[str, str], sprint_slug: str) -> list[str]:
+def validate_spec_gate(
+    sprint_dir: Path,
+    ai_state: Path,
+    fm: dict[str, str],
+    sprint_slug: str,
+    *,
+    allow_exception: bool,
+) -> list[str]:
     """spec-gate 主门禁在 impl 入口 (design §4.2); ship 处复核 (design §4.4)."""
-    if spec_gate_exception_active(fm, sprint_slug):
-        return []
+    if spec_gate_exception_active(fm, sprint_slug, fm.get("path", ""), sprint_dir):
+        if allow_exception:
+            return []
+        raise GateError("active Feature+ spec_gate_exception must be removed before ship")
     criteria = resolve_acceptance_criteria(sprint_dir, ai_state)
     if not criteria:
         raise GateError(
@@ -304,28 +406,127 @@ def validate_spec_gate(sprint_dir: Path, ai_state: Path, fm: dict[str, str], spr
     return criteria
 
 
-def validate_ac_mapping(sprint_dir: Path, criteria: list[str]) -> None:
-    """design §4.4(2): 带标签 (ACn) 的验收标准必须逐条映射到 checklist/evidence;
-    不再是"存在一条证据即过"."""
+def evidence_field(block: str, key: str) -> str:
+    matches = re.findall(rf"(?m)^\s+{re.escape(key)}\s*:\s*([^#\n]+)", block)
+    if len(matches) > 1:
+        raise GateError(f"evidence record has duplicate {key}")
+    return matches[0].strip().strip('"\'') if matches else ""
+
+
+def parse_evidence_records(path: Path) -> list[dict[str, Any]]:
+    content = require_file(path, "evidence.yaml")
+    items = list(re.finditer(r"(?m)^\s*-\s+tool_use_id\s*:\s*([^#\n]*)", content))
+    records: list[dict[str, Any]] = []
+    for index, item in enumerate(items):
+        end = items[index + 1].start() if index + 1 < len(items) else len(content)
+        block = content[item.start():end]
+        covers_raw = evidence_field(block, "covers")
+        covers = []
+        if covers_raw:
+            value = covers_raw.strip()
+            if not (value.startswith("[") and value.endswith("]")):
+                raise GateError("evidence covers must be an inline AC list")
+            covers = [part.strip().strip('"\'').upper() for part in value[1:-1].split(",") if part.strip()]
+            if any(not re.fullmatch(r"AC\d+", label) for label in covers):
+                raise GateError("evidence covers contains an invalid AC label")
+        records.append(
+            {
+                "tool_use_id": item.group(1).strip().strip('"\''),
+                "ac_id": evidence_field(block, "ac_id").upper(),
+                "covers": covers,
+                "result": evidence_field(block, "result").lower(),
+                "source": evidence_field(block, "source").lower(),
+                "command_or_artifact": evidence_field(block, "command_or_artifact"),
+                "observed_at": evidence_field(block, "observed_at"),
+                "summary": evidence_field(block, "summary"),
+                "exit_code": evidence_field(block, "exit_code"),
+                "output_artifact": evidence_field(block, "output_artifact"),
+                "artifact_sha256": evidence_field(block, "artifact_sha256"),
+                "implementation_commit": evidence_field(block, "implementation_commit"),
+            }
+        )
+    return records
+
+
+def review_explicitly_accepts(review_content: str, label: str) -> bool:
+    return bool(re.search(rf"(?im)^.*(?:^|[^A-Za-z0-9]){re.escape(label)}(?![0-9]).*(?:SATISFIED|\bPASS\b).*$", review_content))
+
+
+def validate_ac_mapping(
+    sprint_dir: Path,
+    criteria: list[str],
+    records: list[dict[str, Any]],
+    review_path: Path,
+    review_content: str,
+    reviewed_commit: str,
+) -> None:
+    """Require one admissible explicit PASS record per labeled AC."""
     labels: set[str] = set()
     for criterion in criteria:
         for match in AC_LABEL.finditer(criterion):
             labels.add(match.group(1).upper())
     if not labels:
         return
-    haystack = ""
-    for name in ("checklist.yaml", "evidence.yaml"):
-        target = sprint_dir / name
-        if target.is_file():
-            haystack += "\n" + target.read_text(encoding="utf-8", errors="replace")
-    missing = sorted(
-        label for label in labels
-        if not re.search(rf"(?:^|[^A-Za-z0-9]){label}(?![0-9])", haystack)
-    )
+    missing: list[str] = []
+    for label in sorted(labels):
+        admissible = False
+        for record in records:
+            mapped = record["ac_id"] == label or label in record["covers"]
+            if not mapped or record["result"] != "pass":
+                continue
+            required = ("source", "command_or_artifact", "observed_at", "summary")
+            if any(not record[field] for field in required):
+                continue
+            try:
+                parse_utc_timestamp(record["observed_at"], f"evidence {record['tool_use_id']} observed_at")
+            except GateError:
+                continue
+            source = record["source"]
+            if source == "command":
+                output = (sprint_dir / record["output_artifact"]).resolve()
+                try:
+                    output.relative_to(sprint_dir.resolve())
+                except (ValueError, TypeError):
+                    continue
+                if (
+                    record["exit_code"] != "0"
+                    or not re.fullmatch(r"[0-9a-f]{64}", record["artifact_sha256"])
+                    or record["implementation_commit"] != reviewed_commit
+                    or not output.is_file()
+                ):
+                    continue
+                output_bytes = output.read_bytes()
+                output_text = output_bytes.decode("utf-8", errors="replace")
+                admissible = (
+                    hashlib.sha256(output_bytes).hexdigest() == record["artifact_sha256"]
+                    and record["command_or_artifact"] in output_text
+                    and re.search(r"(?im)^exit_code:\s*0\s*$", output_text) is not None
+                    and record["summary"] in output_text
+                )
+            elif source == "artifact":
+                artifact = (sprint_dir / record["command_or_artifact"]).resolve()
+                try:
+                    artifact.relative_to(sprint_dir.resolve())
+                except ValueError:
+                    continue
+                admissible = artifact.is_file()
+            elif source == "review":
+                candidate = (sprint_dir / record["command_or_artifact"]).resolve()
+                admissible = (
+                    candidate == review_path.resolve()
+                    and "## Spec Compliance" in review_content
+                    and "## Evidence Cross-Check" in review_content
+                    and final_review_verdict(review_content) == "PASS"
+                    and review_explicitly_accepts(review_content, label)
+                )
+            if admissible:
+                break
+        if not admissible:
+            missing.append(label)
     if missing:
         raise GateError(
-            f"spec-gate ship 复核: 验收标准 {', '.join(missing)} 在 checklist.yaml/evidence.yaml "
-            "无映射 (design §4.4 逐条 AC↔证据)"
+            f"spec-gate ship 复核: 验收标准 {', '.join(missing)} 缺 admissible per-AC PASS evidence "
+            "(unknown/checklist-only/missing artifact/stale review do not count)"
         )
 
 
@@ -410,7 +611,7 @@ def validate_checklist(path: Path) -> None:
         raise GateError(f"checklist.yaml is incomplete: statuses={incomplete}")
 
 
-def validate_evidence(path: Path) -> None:
+def validate_evidence(path: Path) -> list[dict[str, Any]]:
     content = require_file(path, "evidence.yaml")
     if not re.search(r"(?m)^collected_evidence\s*:\s*(?:#.*)?$", content):
         raise GateError("evidence.yaml lacks collected_evidence list")
@@ -446,6 +647,7 @@ def validate_evidence(path: Path) -> None:
             raise GateError(f"evidence {evidence_id!r} has unsupported result {result!r}")
     if "pass" not in results:
         raise GateError("evidence.yaml has no explicit passing evidence (unknown alone is insufficient)")
+    return parse_evidence_records(path)
 
 
 def final_review_verdict(content: str) -> str:
@@ -492,9 +694,177 @@ def validate_review(path: Path, path_type: str) -> str:
         raise GateError(f"latest review {path.name} VERDICT is {verdict!r}, expected PASS")
     if "## Spec Compliance" not in content:
         raise GateError(f"latest review {path.name} lacks ## Spec Compliance")
-    if path_type in REFACTOR_SYSTEM and "## Evidence Cross-Check" not in content:
+    if "## Evidence Cross-Check" not in content:
         raise GateError(f"latest review {path.name} lacks ## Evidence Cross-Check")
     return content
+
+
+def git_text(cwd: Path, args: list[str], label: str) -> str:
+    try:
+        run = subprocess.run(
+            ["git", *args],
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise GateError(f"review freshness git check unavailable ({label}): {exc}") from exc
+    if run.returncode != 0:
+        raise GateError(
+            f"review freshness git check failed ({label}): "
+            f"{(run.stderr or run.stdout).strip()}"
+        )
+    return run.stdout
+
+
+def parse_review_manifest(path: Path) -> tuple[str, dict[str, str]]:
+    content = require_file(path, "review-manifest.yaml")
+    implementation_commit = ""
+    files: dict[str, str] = {}
+    in_files = False
+    schema_version = ""
+    for raw in content.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        if raw.startswith("  "):
+            if not in_files:
+                raise GateError("review-manifest has nested values outside files")
+            match = re.fullmatch(r"\s{2}(['\"]?)(.+?)\1\s*:\s*(['\"])([0-9a-f]{64})\3\s*", raw)
+            if not match:
+                raise GateError(f"malformed review-manifest file hash line: {raw!r}")
+            key = match.group(2)
+            if key in files:
+                raise GateError(f"duplicate review-manifest path: {key}")
+            files[key] = match.group(4)
+            continue
+        in_files = False
+        match = re.fullmatch(r"([A-Za-z0-9_]+)\s*:\s*(.*?)\s*", raw)
+        if not match:
+            raise GateError(f"malformed review-manifest line: {raw!r}")
+        key, value = match.group(1), match.group(2).strip().strip('"\'')
+        if key == "schema_version":
+            schema_version = value
+        elif key == "implementation_commit":
+            implementation_commit = value
+        elif key == "files" and not value:
+            in_files = True
+        else:
+            raise GateError(f"unsupported review-manifest field: {key}")
+    if schema_version != "1" or not re.fullmatch(r"[0-9a-f]{40}", implementation_commit):
+        raise GateError("review-manifest requires schema_version=1 and a 40-hex implementation_commit")
+    required = {
+        "design.md",
+        "checklist.yaml",
+        "evidence.yaml",
+        "runtime-verify.md",
+        "rework-notes.md",
+        "cleanup-pass.md",
+        "tdd-evidence.yaml",
+        "architecture/ARCHITECTURE.md",
+        "architecture/athena-9.9.2.md",
+    }
+    if set(files) != required:
+        raise GateError(f"review-manifest files must be exactly {sorted(required)}")
+    return implementation_commit, files
+
+
+def validate_review_binding(
+    review_content: str, review_path: Path, sprint_dir: Path, ai_state: Path, cwd: Path
+) -> str:
+    design_matches = re.findall(r"(?m)^Reviewed design sha256:\s*([0-9a-f]{64})\s*$", review_content)
+    commit_matches = re.findall(r"(?m)^Reviewed implementation commit:\s*([0-9a-f]{40})\s*$", review_content)
+    manifest_matches = re.findall(r"(?m)^Reviewed state manifest sha256:\s*([0-9a-f]{64})\s*$", review_content)
+    if len(design_matches) != 1 or len(commit_matches) != 1 or len(manifest_matches) != 1:
+        raise GateError(
+            "latest PASS review must contain exactly one design, implementation commit, "
+            "and state-manifest binding"
+        )
+    design_path = sprint_dir / "design.md"
+    design_digest = hashlib.sha256(require_file(design_path, "design.md").encode("utf-8")).hexdigest()
+    if design_matches[0] != design_digest:
+        raise GateError("Reviewed design sha256 does not match current authoritative design.md")
+    reviewed_commit = commit_matches[0]
+    manifest_path = sprint_dir / "review-manifest.yaml"
+    manifest_bytes = require_file(manifest_path, "review-manifest.yaml").encode("utf-8")
+    if hashlib.sha256(manifest_bytes).hexdigest() != manifest_matches[0]:
+        raise GateError("Reviewed state manifest sha256 does not match review-manifest.yaml")
+    manifest_commit, manifest_files = parse_review_manifest(manifest_path)
+    if manifest_commit != reviewed_commit:
+        raise GateError("review-manifest implementation_commit does not match final review binding")
+    for name, expected_hash in manifest_files.items():
+        target = ai_state / name if name.startswith("architecture/") else sprint_dir / name
+        if not target.is_file():
+            raise GateError(f"review-manifest target missing: {name}")
+        if hashlib.sha256(target.read_bytes()).hexdigest() != expected_hash:
+            raise GateError(f"review-manifest hash mismatch: {name}")
+    root_text = git_text(cwd, ["rev-parse", "--show-toplevel"], "repository root").strip()
+    if not root_text:
+        raise GateError("review freshness cannot determine Git repository root")
+    root = Path(root_text)
+    git_text(root, ["cat-file", "-e", f"{reviewed_commit}^{{commit}}"], "reviewed commit exists")
+    git_text(root, ["merge-base", "--is-ancestor", reviewed_commit, "HEAD"], "reviewed commit ancestor")
+    changed: set[str] = set()
+    for args, label in (
+        (["diff", "--name-only", f"{reviewed_commit}..HEAD"], "committed drift"),
+        (["diff", "--name-only"], "working drift"),
+        (["diff", "--name-only", "--cached"], "staged drift"),
+        (["ls-files", "--others", "--exclude-standard"], "untracked drift"),
+    ):
+        changed.update(line.strip() for line in git_text(root, args, label).splitlines() if line.strip())
+    implementation_drift = sorted(path for path in changed if not path.startswith(".ai_state/"))
+    if implementation_drift:
+        raise GateError(
+            "unreviewed implementation drift after Reviewed implementation commit: "
+            + ", ".join(implementation_drift[:8])
+        )
+    sprint_rel = str(sprint_dir.relative_to(root)).replace("\\", "/")
+    allowed_exact = {
+        ".ai_state/_index.md",
+        *(f"{sprint_rel}/{name}" for name in manifest_files if not name.startswith("architecture/")),
+        f"{sprint_rel}/review-manifest.yaml",
+        f"{sprint_rel}/ship-receipt.md",
+        f"{sprint_rel}/session-log.md",
+        f"{sprint_rel}/subagent-assignments.jsonl",
+        f"{sprint_rel}/subagent-events.jsonl",
+        f"{sprint_rel}/subagent-log.md",
+        f"{sprint_rel}/token-usage.jsonl",
+        f"{sprint_rel}/tool-trace.jsonl",
+        ".ai_state/architecture/ARCHITECTURE.md",
+        ".ai_state/architecture/athena-9.9.2.md",
+    }
+    state_drift = sorted(
+        file for file in changed
+        if file.startswith(".ai_state/")
+        and file not in allowed_exact
+        and not file.startswith(f"{sprint_rel}/reviews/")
+        and not file.startswith(f"{sprint_rel}/evidence/")
+        and not file.startswith(f"{sprint_rel}/user-authorizations/")
+    )
+    if state_drift:
+        raise GateError("unreviewed .ai_state drift outside post-review allowlist: " + ", ".join(state_drift[:8]))
+    return reviewed_commit
+
+
+def validate_tdd_evidence(path: Path) -> None:
+    content = require_file(path, "tdd-evidence.yaml")
+    records = list(re.finditer(r"(?m)^\s*-\s+test_file\s*:\s*([^#\n]+)", content))
+    if not records:
+        raise GateError("tdd-evidence.yaml contains no red-to-green records")
+    for index, item in enumerate(records):
+        end = records[index + 1].start() if index + 1 < len(records) else len(content)
+        block = content[item.start():end]
+        values = {key: evidence_field(block, key) for key in (
+            "red_command", "red_summary", "red_observed_at", "implementation_files",
+            "green_command", "green_summary", "green_observed_at",
+        )}
+        if any(not value for value in values.values()):
+            raise GateError("tdd-evidence record is missing red/implementation/green fields")
+        red = parse_utc_timestamp(values["red_observed_at"], "tdd red_observed_at")
+        green = parse_utc_timestamp(values["green_observed_at"], "tdd green_observed_at")
+        if red >= green:
+            raise GateError("tdd-evidence red timestamp must precede green timestamp")
 
 
 def git_lines(cwd: Path, args: list[str]) -> tuple[bool, set[str]]:
@@ -621,18 +991,6 @@ def validate_existing_policy(
     if roadmap_slug:
         validate_roadmap_items(ai_state, roadmap_slug)
 
-    if truthy(fm.get("design_changed_after_impl", "false")):
-        raise GateError("design_changed_after_impl=true; repeat review before ship")
-
-    design = sprint_dir / "design.md"
-    if (
-        design.is_file()
-        and review_path is not None
-        and review_path.is_file()
-        and design.stat().st_mtime > review_path.stat().st_mtime + 2
-    ):
-        raise GateError(f"design.md is newer than latest review {review_path.name}; repeat review")
-
     if path_type == "Bugfix":
         require_file(sprint_dir / "fix-note.md", "fix-note.md")
 
@@ -648,6 +1006,7 @@ def validate_existing_policy(
             require_file(architecture, "architecture/ARCHITECTURE.md")
 
     if path_type in GENERATOR_PATHS and not truthy(fm.get("plan_critique_disabled", "false")):
+        design = sprint_dir / "design.md"
         design_content = require_file(design, "design.md")
         rounds = len(re.findall(r"Critic Findings", design_content))
         try:
@@ -703,7 +1062,11 @@ def main() -> int:
                     return block("impl stage requires current_sprint_slug for the spec gate")
                 try:
                     validate_spec_gate(
-                        ai_state / "sprints" / impl_sprint_slug, ai_state, fm, impl_sprint_slug
+                        ai_state / "sprints" / impl_sprint_slug,
+                        ai_state,
+                        fm,
+                        impl_sprint_slug,
+                        allow_exception=True,
                     )
                 except GateError as exc:
                     return block(str(exc))
@@ -725,14 +1088,27 @@ def main() -> int:
             review_content = ""
             review_path: Path | None = None
             if path_type in GENERATOR_PATHS:
-                spec_criteria = validate_spec_gate(sprint_dir, ai_state, fm, sprint_slug)
+                spec_criteria = validate_spec_gate(
+                    sprint_dir, ai_state, fm, sprint_slug, allow_exception=False
+                )
                 if not truthy(fm.get("skip_impl_subagent_check", "false")):
                     validate_generator_chain(sprint_dir, sprint_slug)
                 validate_checklist(sprint_dir / "checklist.yaml")
-                validate_evidence(sprint_dir / "evidence.yaml")
-                validate_ac_mapping(sprint_dir, spec_criteria)
+                evidence_records = validate_evidence(sprint_dir / "evidence.yaml")
+                validate_tdd_evidence(sprint_dir / "tdd-evidence.yaml")
                 review_path = select_latest_review(sprint_dir / "reviews")
                 review_content = validate_review(review_path, path_type)
+                reviewed_commit = validate_review_binding(
+                    review_content, review_path, sprint_dir, ai_state, cwd
+                )
+                validate_ac_mapping(
+                    sprint_dir,
+                    spec_criteria,
+                    evidence_records,
+                    review_path,
+                    review_content,
+                    reviewed_commit,
+                )
             validate_existing_policy(
                 ai_state=ai_state,
                 sprint_dir=sprint_dir,
