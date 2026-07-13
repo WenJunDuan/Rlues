@@ -1,15 +1,38 @@
 sprint_slug: "2026-07-13-athena-9-9-2-architecture-review"
-# impl 为主 agent dogfood 直做 (skip_impl_subagent_check=true 合法逃生); 证据=实际跑过的校验命令, 非伪造 tool_use 事件.
+# impl 为主 agent dogfood 直做 (skip_impl_subagent_check=true 用户授权逃生)。
+# tool_use_id 对应本 sprint tool-trace.jsonl 中真实 Bash 调用；result 来自本轮现场退出码/输出。
 collected_evidence:
-  # node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs → 83 PASS / 0 FAIL / 2 SKIP
-  - tool_use_id: cc-runtime-9-9-2
+  - tool_use_id: exec-7b9c9aa3-3e8d-4cf6-8d39-5a5400cc691d
     tool: Bash
+    command: "python3 vibeCoding/scripts/validate-athena-9.9.2.py"
     result: pass
-  # node --check 全 CC hooks
-  - tool_use_id: cc-hooks-node-check
+    actual: "169 PASS / 0 FAIL / 0 SKIP"
+    covers: [AC1, AC2, AC3, AC4, AC5, AC6, AC8, AC9, AC10, AC13]
+  - tool_use_id: exec-dc2e6713-b07a-4841-ab1a-efeb7fedaf58
     tool: Bash
+    command: "python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py"
     result: pass
-  # python3 -m py_compile 全 CX hooks + scripts
-  - tool_use_id: cx-hooks-py-compile
+    actual: "41/41 PASS"
+    covers: [AC5, AC6, AC10]
+  - tool_use_id: exec-8138045b-d66f-4a49-87a3-068421adb2a4
     tool: Bash
+    command: "node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs"
     result: pass
+    actual: "85 PASS / 0 FAIL / 0 SKIP"
+    covers: [AC3, AC5, AC6, AC10]
+  - tool_use_id: exec-bd8bdb10-2d1a-4a68-a8a5-2af3b818dc0e
+    tool: Bash
+    command: "two-tier memory consumer audit"
+    result: unknown
+    actual: "template markers present; pass2 must judge init/checkpoint/session-start/status completeness"
+    covers: [AC7]
+  - tool_use_id: pending-pass2
+    tool: Agent
+    result: unknown
+    actual: "fresh bound 2+1 pass2 completed: VERDICT=REWORK"
+    covers: [AC11]
+  - tool_use_id: pending-ship-state
+    tool: PACE
+    result: unknown
+    actual: "pass2=REWORK; polish/delivery-gate/push not authorized"
+    covers: [AC12]

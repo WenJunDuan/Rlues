@@ -8,7 +8,7 @@
 Workflow 统领 (PACE) · SubAgent 执行 (红黄绿区) · Skill 赋能 (what/知识) · MCP 连接 (reach/外部)。
 
 ## 门禁 (fail-closed)
-delivery-gate (双端): generator 生命周期 · checklist · evidence 分流 · passN PASS-only · runtime-verify · **spec-gate (impl-entry 提示 + ship 机器复核)** · cleanup · architecture · design-newer-than-review。
+delivery-gate (双端): generator 生命周期 · checklist · evidence 分流 · passN PASS-only · runtime-verify · **spec-gate (impl-entry 机器门禁 + ship 机器复核)** · cleanup · architecture · design-newer-than-review。
 
 ## skills 布局 (26)
 Athena 核心 (athena-* / pace / brainstorm / roadmap / polish / compound / context7 / playwright / deps-check / biz-delivery-loop) + **quantum-codegen** (前后端生成 6 合 1, mode 分发) + **quantum-data** (运行期数据读取)。

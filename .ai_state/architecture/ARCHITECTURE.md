@@ -1,5 +1,5 @@
 ---
-last_updated: "2026-07-11"
+last_updated: "2026-07-13"
 triggered_by_sprint: "2026-07-13-athena-9-9-2-architecture-review"
 state: "current"
 ---
@@ -25,10 +25,10 @@ Post-§18 user decisions folded into the release: main-session `model: best` (Fa
 
 ```mermaid
 graph TD
-    Repo["Rlues repo"] --> ClaudePkg["vibeCoding/claude/9.9.1/.claude"]
-    Repo --> CodexPkg["vibeCoding/codex/9.9.1/.codex"]
-    Repo --> Validator["validate-athena-9.9.1.py"]
-    Repo --> Migrator["dual-end transaction migrator"]
+    Repo["Rlues repo"] --> ClaudePkg["vibeCoding/claude/9.9.2/.claude"]
+    Repo --> CodexPkg["vibeCoding/codex/9.9.2/.codex"]
+    Repo --> Validator["validate-athena-9.9.2.py"]
+    Repo --> Migration["AI-MIGRATION-GUIDE + athena-migrate"]
     ClaudePkg --> CCHooks["Claude hooks"]
     CodexPkg --> CXHooks["Codex hooks"]
     ClaudePkg --> CCSkills["Claude skills"]
@@ -39,14 +39,15 @@ graph TD
     CXSkills --> Sprint
     Validator --> ClaudePkg
     Validator --> CodexPkg
-    Migrator --> UserHome["user CC/CX homes"]
+    Migration --> UserHome["user CC/CX homes"]
 ```
 
 ## 子系统索引
 
 | 子系统 | 档案 | 一句话描述 |
 |---|---|---|
-| Athena delivery package | `lib-athena-delivery-pack.md` | 9.9.1 CC/CX package, runtime contracts, transactional setup/migrate, and release validation |
+| Athena 9.9.2 current architecture | `athena-9.9.2.md` | Dual core, four primitives, spec-gate, two-tier memory, quantum 7→2 and AI-guided migration |
+| Athena delivery package history | `lib-athena-delivery-pack.md` | 9.9.1 baseline and prior transactional release mechanics |
 
 ## 数据流
 
@@ -54,7 +55,7 @@ graph TD
 sequenceDiagram
     participant User
     participant Codex
-    participant Package as 9.9.1 Package
+    participant Package as 9.9.2 Package
     participant State as .ai_state
     User->>Codex: request PACE work
     Codex->>Package: load skills/hooks/reference schemas
@@ -68,7 +69,7 @@ sequenceDiagram
 - 不做: target project source generation inside Rlues itself.
 - 不做: installed `~/.claude` / `~/.codex` mutation unless user explicitly asks.
 - 不做: token usage estimation when hook payloads/transcripts lack usage fields.
-- 不做: overwrite an existing user config or hook trust store during setup/migrate.
+- 不做: overwrite an existing user config or hook trust store during setup or AI-guided migration.
 
 ## 关键决策
 
