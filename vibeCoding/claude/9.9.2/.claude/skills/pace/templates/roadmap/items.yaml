@@ -1,0 +1,11 @@
+roadmap_slug: ""
+created: ""
+total_items: 0
+items:
+  - slug: ""
+    title: ""
+    status: pending             # pending | in_progress | completed | blocked
+    sprint_slug: ""             # 进 plan 时填 sprints/ 下对应 slug
+    blocked_by: []
+    estimated_complexity: M     # S | M | L | XL
+    notes: ""

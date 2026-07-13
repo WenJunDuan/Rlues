@@ -1,6 +1,6 @@
 ---
 last_updated: "2026-07-11"
-triggered_by_sprint: "2026-07-10-claude-code-9-9-1-impl"
+triggered_by_sprint: "2026-07-13-athena-9-9-2-architecture-review"
 state: "current"
 ---
 
@@ -8,7 +8,7 @@ state: "current"
 
 ## 一句话
 
-Rlues stores immutable versioned Athena/VibeCoding distribution packages for Claude Code and Codex. `vibeCoding/{claude,codex}/9.9.1` is the current release source; 9.9.0 remains the migration baseline, and installed user-level configs are downstream artifacts.
+Rlues stores immutable versioned Athena/VibeCoding distribution packages for Claude Code and Codex. `vibeCoding/{claude,codex}/9.9.2` is the current release source (see `architecture/athena-9.9.2.md`); 9.9.1 remains the migration baseline (AI-guided); 9.9.0 is historical, and installed user-level configs are downstream artifacts.
 
 ## CC 9.9.1 contract hardening (2026-07-11, Fable5 review pass1→pass3)
 

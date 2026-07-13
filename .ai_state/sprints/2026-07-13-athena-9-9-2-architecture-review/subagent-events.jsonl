@@ -1,0 +1,6 @@
+{"schema_version":1,"event":"SubagentStart","agent_id":"019f5a51-ac49-7423-b5bd-c4e690a9fda9","agent_type":"default","sprint_slug":"2026-07-13-athena-9-9-2-architecture-review","timestamp":"2026-07-13T07:12:09.992034Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019f5a55-5b4a-7423-8b11-1a248a67e950","agent_type":"default","sprint_slug":"2026-07-13-athena-9-9-2-architecture-review","timestamp":"2026-07-13T07:16:11.389251Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019f5a55-5b4a-7423-8b11-1a248a67e950","agent_type":"default","sprint_slug":"2026-07-13-athena-9-9-2-architecture-review","timestamp":"2026-07-13T07:38:40.583376Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019f5a51-ac49-7423-b5bd-c4e690a9fda9","agent_type":"default","sprint_slug":"2026-07-13-athena-9-9-2-architecture-review","timestamp":"2026-07-13T07:38:44.730185Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019f5a6d-7ef1-7cd1-a49b-0391ef8422fc","agent_type":"default","sprint_slug":"2026-07-13-athena-9-9-2-architecture-review","timestamp":"2026-07-13T07:42:33.395189Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019f5a6d-7ef1-7cd1-a49b-0391ef8422fc","agent_type":"default","sprint_slug":"2026-07-13-athena-9-9-2-architecture-review","timestamp":"2026-07-13T07:53:45.509852Z"}

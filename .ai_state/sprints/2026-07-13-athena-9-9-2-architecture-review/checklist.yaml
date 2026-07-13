@@ -1,0 +1,71 @@
+version: 1
+sprint: "2026-07-13-athena-9-9-2-architecture-review"
+path: "System"
+stage: "review"
+tasks:
+  # --- review phase (done) ---
+  - id: R1
+    title: "冻结 9.9.2 整体升级范围与用户版本决策"
+    status: completed
+    evidence: ["route-note.md", "design.md#1-authority-and-scope"]
+  - id: R2
+    title: "定义双内核、四原语与外围能力层的无歧义关系"
+    status: completed
+    evidence: ["design.md#2-target-architecture"]
+  - id: R3
+    title: "定义 spec-gate 的入口门禁与 ship 纵深复核"
+    status: completed
+    evidence: ["design.md#4-spec-gate-contract"]
+  - id: R4
+    title: "定义两层记忆与 _index 检索路由器合同"
+    status: completed
+    evidence: ["design.md#5-two-tier-memory-contract"]
+  - id: R5
+    title: "审查当前 9.9.2 草案与双端包的实现缺口"
+    status: completed
+    evidence: ["reviews/pass1.md"]
+  - id: R6
+    title: "生成 Fable5 可直接执行的 implementation brief"
+    status: completed
+    evidence: ["fable5-implementation-brief.md"]
+  - id: R7
+    title: "验证 review 档案、链接和 diff"
+    status: completed
+    evidence: ["review-validation.md"]
+  # --- impl phase ---
+  - id: I0
+    title: "脚手架 9.9.2 双端 + 版本 bump + 版本漂移 + pace 去重/命名 + 插件策略 + 死码 (B0 已落地)"
+    status: completed
+    evidence: ["../../../vibeCoding/claude/9.9.2/CHANGELOG.md#已落地-p1p3"]
+  - id: I1
+    title: "B1 四原语 (加 MCP) 双端 + references/mcp.md + plugins.md 5 条仲裁/默认态"
+    status: completed
+    design_ref: "design.md#2.2 / #6"
+  - id: I2
+    title: "B2 CX review 门禁真 bug: skip_impl_subagent_check wire + CONCERNS 文案对齐"
+    status: completed
+    design_ref: "implementation-plan.md#B2"
+  - id: I3
+    title: "B3 harness fork 9.9.1→9.9.2 参数化 + fixture 加验收标准段 (spec-gate 前置, P0)"
+    status: completed
+    design_ref: "design.md#8"
+  - id: I4
+    title: "B4 spec-gate: impl-entry 主门禁 + ship 复核 (delivery-gate .cjs/.py, TDD)"
+    status: completed
+    design_ref: "design.md#4"
+  - id: I5
+    title: "B5 两层记忆 + _index 字段消费者审计 (templates/init/checkpoint/session-start/status)"
+    status: completed
+    design_ref: "design.md#5"
+  - id: I6
+    title: "B6 迁移改 AI 引导 (弃脚本): AI-MIGRATION-GUIDE + athena-migrate AI 化 + harness/validator 适配"
+    status: completed
+    design_ref: "design.md#7"
+  - id: I7
+    title: "B7 RELEASE 双端 + spec-gate impl-entry + _index 审计 + .ai_state 证据闭环 (2+1 review 交 codex, py3.11 validator 待你跑)"
+    status: completed
+    design_ref: "design.md#9 AC10-12"
+  - id: I8
+    title: "B8 quantum 7→2 skill 合并 (quantum-codegen + quantum-data) + 调用方更新 + 零散文件清理 (双端)"
+    status: completed
+    design_ref: "design.md#13 (AC13) + compound/2026-07-13-decision-quantum-7-to-2-consolidation.md"

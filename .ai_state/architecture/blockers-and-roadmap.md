@@ -1,7 +1,7 @@
 # Rlues (VibeCoding Athena) · 技术栈 / 阻碍 / 完善设计
 
 > 2026-07-11 由全景对账产出。总路线: **① 完善 quantum → ② 本仓 9.9.1 双端收尾 (本文档) → ③ AI infra (S5 chat 产品, 单开项目)**。
-> quantum 侧对应文档: `quantum-backend/docs/blockers-and-roadmap.md` (含环境/F7 设计)。
+> quantum 侧对应文档: `quantum-backend/.ai_state/architecture/blockers-and-roadmap.md` (含环境/F7 设计)。
 
 ## 技术栈
 

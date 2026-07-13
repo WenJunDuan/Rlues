@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "positive": "complete-chain",
+  "negative": [
+    "missing-assignment",
+    "missing-generator-stop",
+    "agent-id-mismatch",
+    "checklist-incomplete",
+    "evidence-empty",
+    "evidence-unknown-only",
+    "evidence-fail",
+    "review-without-final-pass",
+    "latest-review-rework",
+    "malformed-jsonl",
+    "ambiguous-start",
+    "unbound-start",
+    "isolated-stop",
+    "orphan-stop",
+    "stop-before-assignment",
+    "roadmap-pending",
+    "roadmap-in-progress",
+    "roadmap-malformed",
+    "missing-index",
+    "malformed-index",
+    "unknown-stage",
+    "spec-missing-criteria",
+    "spec-placeholder-criteria",
+    "spec-unmapped-ac-label",
+    "spec-exception-unauthorized"
+  ]
+}

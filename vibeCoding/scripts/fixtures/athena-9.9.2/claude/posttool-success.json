@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_use_id": "bash-pass",
+  "tool_input": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest"
+  },
+  "tool_response": {
+    "stdout": "ok"
+  }
+}
