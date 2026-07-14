@@ -1,0 +1,13 @@
+schema_version: 1
+implementation_commit: "4b67f82e012676320c360fca33be84b46e1887cf"
+index_governance_sha256: "22e7ea30b9e52d18829839f85d9e5388572993eb15959c70da34fe1cc70213e4"
+files:
+  "design.md": "138bfc0e07f831e1e20f8de3edb7976e758fce1557324583a5106472d0190c23"
+  "checklist.yaml": "3dfbbbe9d8bb08b54b804edc12126badce80f51d8e242ca83cb89245a60fca9c"
+  "evidence.yaml": "4911456188119602ce72fa14593791218223afe03c896f56de6a0e5c6c5c9355"
+  "runtime-verify.md": "7636f0542edfd7742cdc05b82383b58fe4e8c380b14c5cf4e40ec40d907c03d0"
+  "rework-notes.md": "822b2ff6ebde40ec3829ebc61642d58e0b9f4e3b5b01e4c526c7e743592cc018"
+  "cleanup-pass.md": "adf493acb4d8a9bcc2ab7c8f175f871e9c5591568a358147dc3520754606dd76"
+  "tdd-evidence.yaml": "35704338053fd354a00b72abf24dfaefa99cf5f1536c001d7a14b9f1f1ec07e7"
+  "architecture/ARCHITECTURE.md": "687a5ce194cac97e63d97319f3e950ca37e41ffd4c68b0903a70c8947112554b"
+  "architecture/athena-9.9.2.md": "12486e7105babb4a0c89d7e51d699145d828e2c07e7a255f5ba8f14d22bdcac2"

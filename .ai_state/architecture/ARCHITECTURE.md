@@ -1,5 +1,5 @@
 ---
-last_updated: "2026-07-13"
+last_updated: "2026-07-14"
 triggered_by_sprint: "2026-07-13-athena-9-9-2-architecture-review"
 state: "current"
 ---
@@ -9,6 +9,8 @@ state: "current"
 ## 一句话
 
 Rlues stores immutable versioned Athena/VibeCoding distribution packages for Claude Code and Codex. `vibeCoding/{claude,codex}/9.9.2` is the current release source (see `architecture/athena-9.9.2.md`); 9.9.1 remains the migration baseline (AI-guided); 9.9.0 is historical, and installed user-level configs are downstream artifacts.
+
+9.9.2 的发布完整性由双端 delivery-gate 机械保证：逐 AC 可采信 PASS evidence、TDD red→green、结构化用户授权、review manifest/hash、实现工作树漂移检查与 PASS-only final review。Tier2 `.ai_state` 通过 `_index` 四个权威 pointer 与有界恢复历史提供跨会话检索。
 
 ## CC 9.9.1 contract hardening (2026-07-11, Fable5 review pass1→pass3)
 
@@ -74,5 +76,5 @@ sequenceDiagram
 ## 关键决策
 
 - Token usage unknown totals use `null`, not `0` -> `compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md`
-- Hook/tool outcomes that cannot be proven remain `unknown`; delivery gates require explicit pass evidence -> `compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md`
+- Hook/tool outcomes that cannot be proven remain `unknown`; 9.9.2 additionally requires every labeled AC to have its own admissible PASS record with captured command/artifact or final review evidence -> `compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md`
 - Fullstack delivery orchestration remains a PACE specialization; Capability Manifest reads are runtime-only and read-only.

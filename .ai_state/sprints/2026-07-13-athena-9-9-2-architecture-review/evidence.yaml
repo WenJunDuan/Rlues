@@ -1,38 +1,36 @@
 sprint_slug: "2026-07-13-athena-9-9-2-architecture-review"
-# impl 为主 agent dogfood 直做 (skip_impl_subagent_check=true 用户授权逃生)。
-# tool_use_id 对应本 sprint tool-trace.jsonl 中真实 Bash 调用；result 来自本轮现场退出码/输出。
+implementation_commit: "3e2e7f889ed61694d938ac648c53f7bc750c12ce"
 collected_evidence:
-  - tool_use_id: exec-7b9c9aa3-3e8d-4cf6-8d39-5a5400cc691d
-    tool: Bash
-    command: "python3 vibeCoding/scripts/validate-athena-9.9.2.py"
+  - tool_use_id: "exec-ec0cbff6-e74b-4441-abba-f9d1590c0c67"
+    covers: [AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10, AC13]
     result: pass
-    actual: "169 PASS / 0 FAIL / 0 SKIP"
-    covers: [AC1, AC2, AC3, AC4, AC5, AC6, AC8, AC9, AC10, AC13]
-  - tool_use_id: exec-dc2e6713-b07a-4841-ab1a-efeb7fedaf58
-    tool: Bash
-    command: "python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py"
+    source: command
+    command_or_artifact: "python3 vibeCoding/scripts/validate-athena-9.9.2.py"
+    observed_at: "2026-07-13T11:19:57Z"
+    summary: "SUMMARY pass=206 fail=0 skip=0"
+    exit_code: 0
+    output_artifact: "evidence/validator-host.txt"
+    artifact_sha256: "f79febd3fffd1faf8f05cc12102290d51d0b57db912ba7dbcf28701b2c15b9bb"
+    implementation_commit: "3e2e7f889ed61694d938ac648c53f7bc750c12ce"
+  - tool_use_id: "exec-a4c1d37c-17bb-4a87-b571-fabf6150aabb"
+    covers: [AC5, AC6, AC7, AC10]
     result: pass
-    actual: "41/41 PASS"
-    covers: [AC5, AC6, AC10]
-  - tool_use_id: exec-8138045b-d66f-4a49-87a3-068421adb2a4
-    tool: Bash
-    command: "node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs"
+    source: command
+    command_or_artifact: "python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py"
+    observed_at: "2026-07-13T11:16:32Z"
+    summary: "57/57 PASS"
+    exit_code: 0
+    output_artifact: "evidence/cx-runtime-host.txt"
+    artifact_sha256: "75d73b2f0b86d86e4c1ac8550ffaf072514534208441a17f422fba9a1c7ef523"
+    implementation_commit: "3e2e7f889ed61694d938ac648c53f7bc750c12ce"
+  - tool_use_id: "exec-79bfc478-d333-4046-ac58-53f12f51b07c"
+    covers: [AC3, AC5, AC6, AC7, AC10]
     result: pass
-    actual: "85 PASS / 0 FAIL / 0 SKIP"
-    covers: [AC3, AC5, AC6, AC10]
-  - tool_use_id: exec-bd8bdb10-2d1a-4a68-a8a5-2af3b818dc0e
-    tool: Bash
-    command: "two-tier memory consumer audit"
-    result: unknown
-    actual: "template markers present; pass2 must judge init/checkpoint/session-start/status completeness"
-    covers: [AC7]
-  - tool_use_id: pending-pass2
-    tool: Agent
-    result: unknown
-    actual: "fresh bound 2+1 pass2 completed: VERDICT=REWORK"
-    covers: [AC11]
-  - tool_use_id: pending-ship-state
-    tool: PACE
-    result: unknown
-    actual: "pass2=REWORK; polish/delivery-gate/push not authorized"
-    covers: [AC12]
+    source: command
+    command_or_artifact: "node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs"
+    observed_at: "2026-07-13T11:22:07Z"
+    summary: "SUMMARY pass=101 fail=0 skip=0"
+    exit_code: 0
+    output_artifact: "evidence/cc-runtime-host.txt"
+    artifact_sha256: "a858d0d71c2870dc74e2728d6c0e2c27335b23801b6b6e2cfafbf46567d6a60f"
+    implementation_commit: "3e2e7f889ed61694d938ac648c53f7bc750c12ce"

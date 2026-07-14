@@ -317,3 +317,209 @@ Existing 9.9.1 validators do not count as 9.9.2 evidence unless parameterized to
 | Historical F-series regressions run from `vibeCoding/scripts/` | `test-scaffold-page-gen.py`, `test-db-unit-gen.py`, `test-security-e2e.py`, `test-biz-delivery-loop.py`, `test-delivery-gate.py`, `test-token-usage-collector.py` (external `workspace/quantum` fixtures required by three of them are environment-dependent and reported, not silently skipped) |
 | Delivery-loop callers reference only hub names | `check_delivery_loop_contract.py` SKILL_MARKERS + runtime harnesses |
 | CX registration = exactly `quantum-codegen` + `quantum-data` | release validator config check |
+
+## Round 1 · Critic Findings
+
+The independent critic returned `NEEDS_REVISION` on the pass2 rework contract:
+
+1. Per-AC evidence was under-specified: label presence, checklist text or an unrelated global PASS must never satisfy an AC whose own evidence is unknown/skip/fail.
+2. Exception authorization lacked a structured user-authorization contract and conflicted with PASS-only shipping.
+3. AC7 lacked a normative producer/consumer matrix for template, init, checkpoint, session-start/recovery, status and hooks.
+4. AC12 mixed pre-ship readiness evidence with the post-push synchronization receipt.
+5. Endpoint install destinations and active identity surfaces needed exact mappings; AC2/AC6/AC7/AC10/AC11 required more observable wording.
+
+## Round 1 · Design Revision (normative addendum)
+
+This addendum supersedes any weaker wording in §§4–9 for the final 9.9.2 rework.
+
+### A. Per-AC evidence schema and gate
+
+Every labeled acceptance criterion `ACn` must have at least one admissible evidence record in `evidence.yaml` with:
+
+```yaml
+- tool_use_id: stable-nonempty-id
+  ac_id: ACn
+  result: pass
+  source: command | artifact | review
+  command_or_artifact: "rerunnable command or sprint-relative existing file"
+  observed_at: "UTC ISO-8601"
+  summary: "actual observable result"
+```
+
+- `covers: [AC1, AC2]` remains allowed only when the same explicit `pass` record truthfully covers every listed AC; it is normalized as one passing mapping per label.
+- `unknown`, `skip`, `fail`, checklist-only/design-only mentions, missing source artifacts and stale review references do not satisfy an AC.
+- A global unrelated PASS cannot satisfy another AC.
+- `source: review` is admissible only when `command_or_artifact` is the latest numeric `reviews/passN.md`, the file contains Spec Compliance + Evidence Cross-Check and its final evaluator verdict is PASS.
+- Ship fails when any labeled AC lacks an admissible pass mapping. Required negative tests: unknown-only, checklist-only, mixed global-pass+unknown-AC, missing artifact and stale/non-PASS review.
+
+### B. Spec-gate exception schema
+
+An impl-entry exception is valid only when all fields are present and non-placeholder:
+
+```yaml
+spec_gate_exception: "<current sprint slug>"
+spec_gate_exception_path: "Feature|Refactor|System"
+spec_gate_exception_reason: "<specific reason>"
+spec_gate_exception_authorized_by: "user:<stable user label>"
+spec_gate_exception_authorized_at: "<UTC ISO-8601>"
+spec_gate_exception_expiry: "<UTC ISO-8601>"
+spec_gate_exception_removal_condition: "<observable condition>"
+spec_gate_exception_emergency_hotfix: false
+```
+
+- Self/agent authorization, generic `user`, placeholders, mismatched path/sprint and expired records fail closed.
+- For Feature/Refactor/System, an active exception may unblock the impl-entry check but **must block ship** until removed and normal acceptance/evidence mappings exist.
+- Hotfix retains its separate emergency path; no Feature+ exception makes CONCERNS shippable. Final ship remains PASS-only.
+
+### C. AC7 two-tier memory consumer matrix
+
+| Surface | Required observable behavior (both endpoints) |
+|---|---|
+| `_index` template | Declare Tier1 as non-authoritative working context, Tier2 `.ai_state` as persistent truth, and `_index` as bounded retrieval router rather than a second database. |
+| `athena-init` | Create the 9.9.2 Tier2 directories/schema from the current template; populate only fields present in that template; output active 9.9.2 identity. |
+| `athena-checkpoint` | Persist stage, next_action, current sprint, authoritative pointers and bounded handoff history; session-log owns detailed turn history. |
+| `session-start` / recovery | Read `_index` first, inject routed state/pointers, warn on missing pointed artifacts, and never elevate Tier1 conversation context over Tier2 truth. |
+| `athena-status` | Report routed state from `_index`, resolve current authoritative pointers and flag missing/stale pointer targets. |
+| hooks | Provide fallback snapshots/index updates only; hooks are not the sole producer of durable decisions or completion evidence. |
+
+Validator/runtime tests must cover positive behavior plus missing/stale-pointer negatives for both endpoints. Fields named by init/status/recovery must exist in the 9.9.2 template; removed fields such as `cx_goal_default_on` are forbidden active references.
+
+### D. Exact endpoint destinations and active identity surfaces
+
+- CC runtime assets/config: `~/.claude`; installed guide: `~/.claude/skills/athena-migrate/references/AI-MIGRATION-GUIDE.md`.
+- CX config/hooks/agents: `~/.codex`; CX skills and installed guide: `~/.agents/skills/{name}` and `~/.agents/skills/athena-migrate/references/AI-MIGRATION-GUIDE.md`.
+- Package-root and installed-skill guide copies remain byte-identical per endpoint.
+- Active identity checks include entry prompt, setup/init/status/checkpoint/session-start docs, package RELEASE current section, template header and validator/runtime commands. Historical CHANGELOG sections may retain historical numbers only when clearly historical.
+
+### E. Refined acceptance semantics
+
+- AC2 read-only same-version verification means no content/hash/mtime change to existing release-owned or user-owned target files.
+- AC6 inherits section A and the latest-review freshness requirement.
+- AC7 is satisfied only by the observable matrix in section C, not prose mention alone.
+- AC10 requires every mandatory suite exit 0 with exact reported counts; skips are allowed only when explicitly reviewed and must not hide a mandatory environment check. Final host release evidence requires zero skips.
+- AC11 requires the latest numeric passN artifact, valid bound reviewer/spec/evaluator lifecycles, Spec Compliance, Evidence Cross-Check and final evaluator PASS.
+
+### F. AC12 pre-ship versus post-push sequence
+
+- Pre-ship AC12 readiness requires route, authoritative design, completed checklist, per-AC passing evidence, runtime PASS, latest final review PASS, polish PASS and current architecture documentation.
+- After the release commit is pushed, the main agent writes a ship receipt containing release commit, push result and fetched `main...origin/main = 0 0`; that receipt is committed and pushed as a final state-only commit, followed by a second `0 0` verification.
+
+## Round 2 · Critic Findings
+
+Round 2 confirmed the evidence schema, AC7 matrix, endpoint destinations and AC12 sequence, but returned `NEEDS_REVISION` for two remaining issues:
+
+1. The latest PASS review needed a machine-verifiable binding to the current design and implementation rather than numeric ordering alone.
+2. `authorized_by: user:*` alone could still be self-filled; an exception needed a stable sprint-local authorization record with matching fields.
+
+## Round 2 · Design Revision (normative addendum)
+
+### G. Review freshness binding
+
+The final numeric review artifact must contain:
+
+```text
+Reviewed design sha256: <64 lowercase hex>
+Reviewed implementation commit: <40 lowercase git commit>
+```
+
+- Ship recomputes SHA-256 of the authoritative current `design.md`; mismatch blocks.
+- Ship verifies the reviewed implementation commit exists and is an ancestor of `HEAD`.
+- Any path outside `.ai_state/**` changed after that commit blocks as unreviewed implementation drift. Subsequent review/polish/ship-receipt state changes may modify `.ai_state/**`; polish that changes packaged implementation requires a new review and new binding.
+- `design_changed_after_impl=true`, a newer design mtime, missing/malformed bindings or a non-PASS latest review also block.
+- Required negative tests: design content changed after review, implementation file changed after reviewed commit, malformed/missing commit and state-only post-review changes (allowed).
+
+### H. User authorization record for a spec exception
+
+The frontmatter exception must additionally include:
+
+```yaml
+spec_gate_exception_authorization_ref: "user-authorizations/<id>.yaml"
+```
+
+The referenced file is resolved under the current sprint and must exist with:
+
+```yaml
+schema_version: 1
+kind: spec_gate_exception_authorization
+sprint_slug: "<exact current sprint>"
+path: "<exact Feature|Refactor|System>"
+reason: "<exact exception reason>"
+decision: approve
+authorization_source: user_prompt
+authorized_by: "user:<stable label>"
+authorized_at: "<same UTC ISO-8601 as frontmatter>"
+expiry: "<same UTC ISO-8601 as frontmatter>"
+removal_condition: "<same observable condition>"
+```
+
+- The gate validates exact field equality, allowed values, timestamps and expiry. A `user:*` string without this record, mismatched data, placeholder values or an authorization record outside the current sprint fails closed.
+- This record is governance evidence, not a cryptographic proof of human identity; Athena must not claim stronger provenance than the platform exposes.
+- Feature/Refactor/System still cannot ship with an active exception, even when the authorization record is valid.
+
+## Round 3 · Critic Findings
+
+Round 3 accepted the authorization record but returned `NEEDS_REVISION` because review freshness still treated a successfully re-reviewed design as permanently dirty, and implementation drift did not explicitly cover staged, unstaged and untracked files.
+
+## Round 3 · Design Revision (normative addendum)
+
+### I. Re-review closure and complete implementation drift
+
+- Current design SHA-256 matching the latest final PASS review is the authoritative proof that a changed design was re-reviewed.
+- `design_changed_after_impl=true` blocks only while no final PASS review is bound to the current design hash. After passN PASS, the main agent sets it false and may record `design_rereviewed_by: reviews/passN.md` in `_index`; an old hash still blocks.
+- Design mtime is only a trigger to recompute/compare the hash binding. It cannot independently reject a matching fresh review.
+- Implementation freshness checks all non-`.ai_state/**` drift:
+  1. committed changes from the reviewed implementation commit to `HEAD`;
+  2. staged/index changes;
+  3. tracked working-tree changes;
+  4. untracked release/package files.
+- Any such implementation drift blocks ship and requires a new review binding. State-only `.ai_state/**` review/polish/receipt changes remain allowed.
+- Required tests: changed design + old review fails; changed design + fresh hash-bound PASS succeeds; committed, staged, unstaged and untracked implementation drift each fail; state-only post-review changes succeed.
+
+## Round 4 · Critic Findings
+
+The final configured critic round returned `NEEDS_REVISION` for four precision gaps: review-critical `.ai_state` drift, command evidence without captured exit/output/hash, undefined AC7 pointer/history bounds, and unverifiable test-first ordering.
+
+## Round 4 · Design Revision (final normative addendum)
+
+### J. Review-critical state manifest
+
+Before the final 2+1 review, the main agent creates `review-manifest.yaml` containing SHA-256 hashes for:
+
+- authoritative `design.md`;
+- `checklist.yaml`, `evidence.yaml`, `runtime-verify.md`, `rework-notes.md`, `cleanup-pass.md`;
+- `.ai_state/architecture/ARCHITECTURE.md` and `architecture/athena-9.9.2.md`;
+- the implementation commit from section G.
+
+The final review records `Reviewed state manifest sha256: <64hex>`. Ship recomputes the manifest and blocks any mismatch. Post-review mutable allowlist is limited to:
+
+- `_index.md`: `stage`, `next_action`, `pointers.latest_review`, `pointers.latest_cleanup`, `active_worktrees`, bounded current-state append;
+- subagent lifecycle/token/tool-trace append-only records for the final review/polish;
+- `ship-receipt.md` after the first release push.
+
+Any other reviewed-state change requires regenerating the manifest and a new final review.
+
+### K. Command evidence capture
+
+`source: command` evidence additionally requires:
+
+```yaml
+exit_code: 0
+output_artifact: "evidence/<name>.txt"
+artifact_sha256: "<64 lowercase hex>"
+implementation_commit: "<40 lowercase git commit>"
+```
+
+The output artifact must exist and contain the exact command, exit code and observed counts/summary. Ship verifies its hash and that the implementation commit matches the final review binding. An asserted summary without the artifact, nonzero/unknown exit, stale commit or hash mismatch fails.
+
+### L. Deterministic AC7 router fields and bounds
+
+- Required `_index.pointers` keys: `latest_design`, `latest_review`, `latest_cleanup`, `latest_requirement`; values may be empty only when no artifact of that kind exists, otherwise they are `.ai_state`-relative paths to existing files.
+- `latest_architecture_update` is an ISO-8601 timestamp, not a file pointer; `ARCHITECTURE.md` is the architecture entry.
+- `route_history` is capped at 10 entries. The human-readable `## 当前状态` recovery log is capped at the 10 newest entries; detailed older history belongs in sprint/session logs and git.
+- status/session-start must flag any nonempty missing pointer, path escaping `.ai_state`, malformed history or over-bound history. Tests cover valid routing, missing target, escaping path and 11-entry overflow.
+
+### M. TDD red-to-green evidence
+
+Behavioral rework batches require `tdd-evidence.yaml` records containing test file, failing command/output summary observed before implementation edit, implementation files, later green command/output summary and timestamps. Reviewer validates the red timestamp precedes implementation/green evidence. This is process evidence, not inferred from final green tests alone; missing red evidence is a review blocker for behavioral changes.
+
+The four-round configured critic budget is now exhausted. The final pass3 reviewer/spec/evaluator must judge this final addendum and implementation together; no critic PASS is claimed.

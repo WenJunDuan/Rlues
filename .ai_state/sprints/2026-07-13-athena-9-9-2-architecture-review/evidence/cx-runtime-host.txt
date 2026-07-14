@@ -1,0 +1,5 @@
+command: python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py
+exit_code: 0
+summary: 57/57 PASS
+environment: Python 3.14.3
+

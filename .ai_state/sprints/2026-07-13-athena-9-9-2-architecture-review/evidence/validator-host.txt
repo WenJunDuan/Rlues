@@ -1,0 +1,5 @@
+command: python3 vibeCoding/scripts/validate-athena-9.9.2.py
+exit_code: 0
+summary: SUMMARY pass=206 fail=0 skip=0
+environment: Python 3.14.3, host online validation
+

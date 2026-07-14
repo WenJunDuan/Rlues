@@ -1,0 +1,5 @@
+command: node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs
+exit_code: 0
+summary: SUMMARY pass=101 fail=0 skip=0
+environment: host online; Claude Code 2.1.203 and 2.1.206 temp-HOME probes PASS
+

@@ -35,7 +35,7 @@ tasks:
   # --- impl phase ---
   - id: I0
     title: "脚手架 9.9.2 双端 + 版本 bump + 版本漂移 + pace 去重/命名 + 插件策略 + 死码 (B0 已落地)"
-    status: pending
+    status: completed
     evidence: ["../../../vibeCoding/claude/9.9.2/CHANGELOG.md#已落地-p1p3"]
   - id: I1
     title: "B1 四原语 (加 MCP) 双端 + references/mcp.md + plugins.md 5 条仲裁/默认态"
@@ -51,19 +51,19 @@ tasks:
     design_ref: "design.md#8"
   - id: I4
     title: "B4 spec-gate: impl-entry 主门禁 + ship 复核 (delivery-gate .cjs/.py, TDD)"
-    status: pending
+    status: completed
     design_ref: "design.md#4"
   - id: I5
     title: "B5 两层记忆 + _index 字段消费者审计 (templates/init/checkpoint/session-start/status)"
-    status: pending
+    status: completed
     design_ref: "design.md#5"
   - id: I6
     title: "B6 迁移改 AI 引导 (弃脚本): AI-MIGRATION-GUIDE + athena-migrate AI 化 + harness/validator 适配"
-    status: pending
+    status: completed
     design_ref: "design.md#7"
   - id: I7
     title: "B7 RELEASE 双端 + spec-gate impl-entry + _index 审计 + .ai_state 证据闭环 (2+1 review 交 codex, py3.11 validator 待你跑)"
-    status: pending
+    status: completed
     design_ref: "design.md#9 AC10-12"
   - id: I8
     title: "B8 quantum 7→2 skill 合并 (quantum-codegen + quantum-data) + 调用方更新 + 零散文件清理 (双端)"

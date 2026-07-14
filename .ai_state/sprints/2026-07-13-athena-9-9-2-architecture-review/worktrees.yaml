@@ -1,0 +1,11 @@
+version: 1
+sprint: "2026-07-13-athena-9-9-2-architecture-review"
+worktrees:
+  - path: "/Users/mi_manchi/workspace/Rlues-wt-athena-9-9-2-pass2-rework"
+    branch: "codex/athena-9-9-2-pass2-rework"
+    base: "d6336a8"
+    purpose: "pass2 REWORK implementation and regression repair"
+    status: removed
+    implementation_commit: "9134a5986be8318f9e1cad7c7e79dcf67be20627"
+    merged_as: "4b67f82e012676320c360fca33be84b46e1887cf"
+    removed_at: "2026-07-14T02:00:00Z"
