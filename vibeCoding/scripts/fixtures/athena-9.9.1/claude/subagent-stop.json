@@ -1,6 +1,0 @@
-{
-  "hook_event_name": "SubagentStop",
-  "agent_id": "cc-agent-77",
-  "agent_type": "generator",
-  "last_assistant_message": "done"
-}

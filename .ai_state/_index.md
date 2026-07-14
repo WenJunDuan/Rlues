@@ -1,6 +1,6 @@
 ---
 # Athena PACE 项目状态 (.ai_state/_index.md)
-# v9.9.2 schema. 项目执行 athena-init 时由模板初始化, 之后由主 agent + hooks 维护.
+# v9.9.3 schema. 项目执行 athena-init 时由模板初始化, 之后由主 agent + hooks 维护.
 version: "9.9.3"
 
 # === PACE 路由状态 ===
@@ -96,7 +96,7 @@ breadcrumb: "on"                 # v9.9.3: per-turn stage breadcrumb; off 可关
 fingerprint: ""
 ---
 
-# Athena Project State Index (v9.9.2)
+# Athena Project State Index (v9.9.3)
 
 > 本文件由 Athena 自动维护. 不要手工修改 frontmatter 字段以外的部分除非你知道你在做什么.
 
@@ -106,6 +106,8 @@ fingerprint: ""
 
 [由主 agent 在 stage 切换时简短追加]
 
+- `2026-07-14`: **9.9.3 发布收口** (`b88f615`)。review-fixes 修 6 项 finding (CX breadcrumb canonical 路径 / evaluator over-eng 语义 / M5 双端产物 / validator 基线 / 行数预算 / 发布卫生)；CX 67/67、CC 107/107、validator 223/223；pass1=PASS，2+1 闭环 (Claude 构建 → Codex 审修 → Claude 复核)。
+- `2026-07-14`: housekeeping — 删 9.9.1 harness 三件 + fixtures (N-1 保留策略)；清 15 个已 ship sprint 的 token-usage.yaml/tool-trace.jsonl 遥测 (5.6M→672K, git 历史可回溯)；_index schema 标识刷 9.9.3。
 - `2026-07-14`: pass3 阻塞修复已合入 main (`4b67f82`)；临时 worktree/分支已清理。用户明确要求不再跑测试并直接发布；保留已有验证证据，不声称新增 post-fix validator PASS。
 - `2026-07-14`: 9.9.2 pass2 rework 已合入 main (`3e2e7f8`)；宿主 validator 206/0/0、CX 57/57、CC 101/0/0，进入 pass3。
 - `2026-07-13`: pass2=REWORK；阻塞为逐 AC evidence fail-open、AC7 consumer 不完整、critic round/RELEASE/迁移指引问题。
@@ -114,8 +116,6 @@ fingerprint: ""
 - `2026-07-11`: CC 9.9.1 pass3=PASS 并发布，worktree/branch 清理完成。
 - `2026-07-11`: CC 9.9.1 Fable5 rework 完成，144/0、72/0/0、migration 11/11。
 - `2026-07-10`: Athena 9.9.1 发布完成，main 推送且 roadmap 4/4 complete。
-- `2026-07-08`: fullstack-delivery roadmap F1–F6 完成。
-- `2026-07-08`: F1 runtime/review/polish 证据闭环并沉淀 architecture/compound。
 
 ## 工具调度建议
 
