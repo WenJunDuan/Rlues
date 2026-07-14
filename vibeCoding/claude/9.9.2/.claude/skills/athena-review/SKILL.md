@@ -3,7 +3,7 @@ name: athena-review
 description: PACE review stage 执行 skill (Claude Code). reviewer 与 spec-compliance 并行只读返回, 主 agent 合并 passN.md 后再运行 evaluator, 最终由主 agent 落盘 VERDICT 与 next_action.
 ---
 
-# /athena-review — Review stage (v9.9.1)
+# /athena-review — Review stage (v9.9.2)
 
 ## 触发
 

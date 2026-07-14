@@ -162,6 +162,19 @@ def check_identity_and_config() -> None:
     check("config skills use ~/.agents/skills", bool(skill_paths) and all("/.agents/skills/" in path for path in skill_paths))
     check("AGENTS identity=9.9.2", "v9.9.2" in text(CX / "AGENTS.md"))
     check("CLAUDE identity=9.9.2", "v9.9.2" in text(CC / "CLAUDE.md"))
+    for endpoint, root in (("CX", CX), ("CC", CC)):
+        active_titles = [
+            root / "skills/athena-dev/SKILL.md",
+            root / "skills/athena-review/SKILL.md",
+            root / "skills/athena-runtime-verify/SKILL.md",
+            root / "skills/pace/SKILL.md",
+            root / "skills/polish/SKILL.md",
+        ]
+        stale_titles = [
+            path.name for path in active_titles
+            if any("v9.9.1" in line for line in text(path).splitlines()[8:10])
+        ]
+        check(f"{endpoint} active skill titles identify 9.9.2", not stale_titles, repr(stale_titles))
 
     settings_path = CC / "settings.json"
     try:
@@ -238,16 +251,24 @@ def check_hooks() -> None:
     # design §4.2/§4.4: executable spec gate at impl entry plus ship recheck.
     check("CX gate has impl-entry spec gate", "validate_spec_gate" in gate and '"impl"' in gate)
     check("CX gate maps labeled ACs to evidence", "validate_ac_mapping" in gate)
+    check("CX registers pre-write spec gate", "apply_patch|Edit|Write|MultiEdit" in hooks_json and "delivery-gate.py" in hooks_json)
     check("CC gate has impl-entry spec gate", "validateImplEntry" in cc_gate and "validateSpecGate" in cc_gate)
     check("CC gate maps labeled ACs to evidence", "validateAcMapping" in cc_gate)
+    check("CC registers pre-write spec gate", '"matcher": "Edit|Write|MultiEdit"' in settings and "delivery-gate.cjs" in settings)
     for endpoint, body in (("CX", gate), ("CC", cc_gate)):
         check(f"{endpoint} gate requires review state manifest", "review-manifest.yaml" in body and "Reviewed state manifest sha256" in body)
-        check(f"{endpoint} gate requires TDD red-green evidence", "tdd-evidence.yaml" in body and "red_observed_at" in body)
+        check(f"{endpoint} gate protects index governance", "index_governance_sha256" in body or "indexGovernanceSha256" in body)
+        check(f"{endpoint} gate requires TDD red-implementation-green evidence", "tdd-evidence.yaml" in body and "implementation_observed_at" in body)
         check(f"{endpoint} gate validates sprint-local user authorization", "user-authorizations/" in body and "authorization_source" in body)
         check(f"{endpoint} gate captures command evidence artifact", "output_artifact" in body and "artifact_sha256" in body and "implementation_commit" in body)
     # P0-3: the acceptance heading matcher must not rely on \b after CJK.
     check("CX gate acceptance heading is CJK-safe", "验收标准)(?=" in gate, "boundary lookahead missing")
     check("CC gate acceptance heading is CJK-safe", "验收标准)(?=" in cc_gate, "boundary lookahead missing")
+
+    cx_plugins = text(CX / "skills/pace/references/plugins.md")
+    for plugin in ("browser@openai-bundled", "computer-use@openai-bundled", "documents@openai-primary-runtime", "pdf@openai-primary-runtime", "spreadsheets@openai-primary-runtime", "presentations@openai-primary-runtime"):
+        check(f"CX plugin defaults document {plugin}", plugin in cx_plugins)
+    check("CX plugin docs cite Codex official docs", "https://developers.openai.com/codex/" in cx_plugins)
 
 
 def check_cc_agents() -> None:
@@ -389,6 +410,7 @@ def check_contract_text() -> None:
         changelog_active = text(release_root / "CHANGELOG.md").split("# Athena CHANGELOG — v9.9.1", 1)[0]
         check(f"{endpoint} RELEASE uses current runtime commands", "test-athena-claude-9.9.2-runtime.cjs" in release and "test-athena-9.9.2-runtime.py" in release)
         check(f"{endpoint} RELEASE has no wrong Node Python command", "node vibeCoding/scripts/test-athena-9.9.2-runtime.py" not in release)
+        check(f"{endpoint} RELEASE records CC host 101/0/0", "101 PASS / 0 FAIL / 0 SKIP" in release)
         stale = re.search(r"83 PASS|73/0/0|33/33|70 PASS|71/0/2|待 py3\.11|本包留待 review", release + changelog_active)
         check(f"{endpoint} active release docs have no stale result/pending text", stale is None, stale.group(0) if stale else "")
 

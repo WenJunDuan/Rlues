@@ -33,6 +33,17 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "apply_patch|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",
+            "timeout": 15,
+            "statusMessage": "Checking implementation spec-gate"
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

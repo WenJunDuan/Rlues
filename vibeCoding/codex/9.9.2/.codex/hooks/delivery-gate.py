@@ -449,7 +449,13 @@ def parse_evidence_records(path: Path) -> list[dict[str, Any]]:
 
 
 def review_explicitly_accepts(review_content: str, label: str) -> bool:
-    return bool(re.search(rf"(?im)^.*(?:^|[^A-Za-z0-9]){re.escape(label)}(?![0-9]).*(?:SATISFIED|\bPASS\b).*$", review_content))
+    """Accept only an exact positive AC result, never prose containing PASS."""
+    negative = re.compile(r"\b(?:NOT\s+SATISFIED|MISSING|DEVIATED|FAIL(?:ED)?|REWORK|DOES\s+NOT\s+PASS|NOT\s+PASS)\b", re.I)
+    positive = re.compile(
+        rf"(?:^|\|)\s*{re.escape(label)}\s*(?:\||:|[-—])\s*(?:SATISFIED|PASS)\s*(?:\||$)",
+        re.I,
+    )
+    return any(not negative.search(line) and positive.search(line) for line in review_content.splitlines())
 
 
 def validate_ac_mapping(
@@ -469,6 +475,10 @@ def validate_ac_mapping(
         return
     missing: list[str] = []
     for label in sorted(labels):
+        # Meta-acceptance is mechanically derived by this gate. Requiring a
+        # future review/evidence row for AC11/AC12 would be circular.
+        if label in {"AC11", "AC12"}:
+            continue
         admissible = False
         for record in records:
             mapped = record["ac_id"] == label or label in record["covers"]
@@ -528,6 +538,23 @@ def validate_ac_mapping(
             f"spec-gate ship 复核: 验收标准 {', '.join(missing)} 缺 admissible per-AC PASS evidence "
             "(unknown/checklist-only/missing artifact/stale review do not count)"
         )
+
+
+def validate_meta_acceptance(
+    criteria: list[str], review_content: str, sprint_dir: Path, cwd: Path
+) -> None:
+    labels = {match.group(1).upper() for item in criteria for match in AC_LABEL.finditer(item)}
+    if "AC11" in labels and final_review_verdict(review_content) != "PASS":
+        raise GateError("AC11 requires the latest bound evaluator verdict PASS")
+    if "AC12" not in labels:
+        return
+    cleanup = require_file(sprint_dir / "cleanup-pass.md", "cleanup-pass.md")
+    if not re.search(r"\bPASS\b|completed|完成", cleanup, re.I):
+        raise GateError("AC12 requires completed polish/cleanup evidence")
+    worktrees = git_text(git_root(cwd), ["worktree", "list", "--porcelain"], "worktree readiness")
+    active = len(re.findall(r"(?m)^worktree\s+", worktrees))
+    if active != 1:
+        raise GateError(f"AC12 requires no extra active worktree; found {active}")
 
 
 def validate_generator_chain(sprint_dir: Path, sprint_slug: str) -> None:
@@ -719,12 +746,13 @@ def git_text(cwd: Path, args: list[str], label: str) -> str:
     return run.stdout
 
 
-def parse_review_manifest(path: Path) -> tuple[str, dict[str, str]]:
+def parse_review_manifest(path: Path) -> tuple[str, str, dict[str, str]]:
     content = require_file(path, "review-manifest.yaml")
     implementation_commit = ""
     files: dict[str, str] = {}
     in_files = False
     schema_version = ""
+    index_governance = ""
     for raw in content.splitlines():
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
@@ -748,12 +776,21 @@ def parse_review_manifest(path: Path) -> tuple[str, dict[str, str]]:
             schema_version = value
         elif key == "implementation_commit":
             implementation_commit = value
+        elif key == "index_governance_sha256":
+            index_governance = value
         elif key == "files" and not value:
             in_files = True
         else:
             raise GateError(f"unsupported review-manifest field: {key}")
-    if schema_version != "1" or not re.fullmatch(r"[0-9a-f]{40}", implementation_commit):
-        raise GateError("review-manifest requires schema_version=1 and a 40-hex implementation_commit")
+    if (
+        schema_version != "1"
+        or not re.fullmatch(r"[0-9a-f]{40}", implementation_commit)
+        or not re.fullmatch(r"[0-9a-f]{64}", index_governance)
+    ):
+        raise GateError(
+            "review-manifest requires schema_version=1, a 40-hex implementation_commit, "
+            "and a 64-hex index_governance_sha256"
+        )
     required = {
         "design.md",
         "checklist.yaml",
@@ -767,11 +804,40 @@ def parse_review_manifest(path: Path) -> tuple[str, dict[str, str]]:
     }
     if set(files) != required:
         raise GateError(f"review-manifest files must be exactly {sorted(required)}")
-    return implementation_commit, files
+    return implementation_commit, index_governance, files
+
+
+INDEX_GOVERNANCE_FIELDS = (
+    "path",
+    "current_sprint_slug",
+    "skip_polish",
+    "skip_runtime_verify",
+    "skip_architecture_check",
+    "skip_impl_subagent_check",
+    "plan_critique_disabled",
+    "plan_critique_min_rounds",
+)
+
+
+def index_governance_sha256(fm: dict[str, str]) -> str:
+    protected = {key: fm.get(key, "") for key in INDEX_GOVERNANCE_FIELDS}
+    body = json.dumps(protected, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def validate_index_governance(sprint_dir: Path, fm: dict[str, str]) -> None:
+    _, expected, _ = parse_review_manifest(sprint_dir / "review-manifest.yaml")
+    if expected != index_governance_sha256(fm):
+        raise GateError("review-manifest index governance does not match protected _index fields")
 
 
 def validate_review_binding(
-    review_content: str, review_path: Path, sprint_dir: Path, ai_state: Path, cwd: Path
+    review_content: str,
+    review_path: Path,
+    sprint_dir: Path,
+    ai_state: Path,
+    cwd: Path,
+    fm: dict[str, str],
 ) -> str:
     design_matches = re.findall(r"(?m)^Reviewed design sha256:\s*([0-9a-f]{64})\s*$", review_content)
     commit_matches = re.findall(r"(?m)^Reviewed implementation commit:\s*([0-9a-f]{40})\s*$", review_content)
@@ -790,9 +856,11 @@ def validate_review_binding(
     manifest_bytes = require_file(manifest_path, "review-manifest.yaml").encode("utf-8")
     if hashlib.sha256(manifest_bytes).hexdigest() != manifest_matches[0]:
         raise GateError("Reviewed state manifest sha256 does not match review-manifest.yaml")
-    manifest_commit, manifest_files = parse_review_manifest(manifest_path)
+    manifest_commit, manifest_governance, manifest_files = parse_review_manifest(manifest_path)
     if manifest_commit != reviewed_commit:
         raise GateError("review-manifest implementation_commit does not match final review binding")
+    if manifest_governance != index_governance_sha256(fm):
+        raise GateError("review-manifest index governance does not match protected _index fields")
     for name, expected_hash in manifest_files.items():
         target = ai_state / name if name.startswith("architecture/") else sprint_dir / name
         if not target.is_file():
@@ -857,14 +925,19 @@ def validate_tdd_evidence(path: Path) -> None:
         block = content[item.start():end]
         values = {key: evidence_field(block, key) for key in (
             "red_command", "red_summary", "red_observed_at", "implementation_files",
-            "green_command", "green_summary", "green_observed_at",
+            "implementation_observed_at", "green_command", "green_summary", "green_observed_at",
         )}
         if any(not value for value in values.values()):
             raise GateError("tdd-evidence record is missing red/implementation/green fields")
         red = parse_utc_timestamp(values["red_observed_at"], "tdd red_observed_at")
+        implementation = parse_utc_timestamp(
+            values["implementation_observed_at"], "tdd implementation_observed_at"
+        )
         green = parse_utc_timestamp(values["green_observed_at"], "tdd green_observed_at")
-        if red >= green:
-            raise GateError("tdd-evidence red timestamp must precede green timestamp")
+        if not red < implementation < green:
+            raise GateError(
+                "tdd-evidence timestamps must satisfy red < implementation < green"
+            )
 
 
 def git_lines(cwd: Path, args: list[str]) -> tuple[bool, set[str]]:
@@ -1023,6 +1096,28 @@ def validate_existing_policy(
         raise GateError("review evidence cross-check missing")
 
 
+def is_implementation_write(payload: dict[str, Any]) -> bool:
+    if payload.get("hook_event_name") != "PreToolUse":
+        return False
+    tool = str(payload.get("tool_name", "")).lower()
+    if tool not in {"edit", "write", "multiedit", "apply_patch"}:
+        return False
+    tool_input = payload.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return True
+    candidates = [
+        str(tool_input.get(key, ""))
+        for key in ("file_path", "path", "patch")
+        if tool_input.get(key)
+    ]
+    if not candidates:
+        return True
+    paths = re.findall(r"(?:\*\*\* (?:Update|Add) File:|^)([^\n]+)", "\n".join(candidates), re.M)
+    if not paths:
+        paths = candidates
+    return any(".ai_state/" not in path.replace("\\", "/") for path in paths)
+
+
 def main() -> int:
     ai_state: Path | None = None
     try:
@@ -1053,6 +1148,22 @@ def main() -> int:
             return block(".ai_state/_index.md has no non-empty stage")
         if stage not in VALID_STAGES:
             return block(f"unknown Athena stage {stage!r}")
+        if is_implementation_write(payload) and stage in {"design", "impl"}:
+            path_type = fm.get("path", "")
+            if path_type in GENERATOR_PATHS:
+                sprint_slug = fm.get("current_sprint_slug", "")
+                if not sprint_slug:
+                    return block("implementation write requires current_sprint_slug for the spec gate")
+                try:
+                    validate_spec_gate(
+                        ai_state / "sprints" / sprint_slug,
+                        ai_state,
+                        fm,
+                        sprint_slug,
+                        allow_exception=True,
+                    )
+                except GateError as exc:
+                    return block(str(exc))
         if stage == "impl":
             # design §4.2 主门禁: Feature/Refactor/System 在 impl 阶段必须已有
             # 机器可识别验收标准; ship 段复核是纵深防御 (design §4.4).
@@ -1080,11 +1191,14 @@ def main() -> int:
         if not sprint_slug:
             return block("ship stage requires current_sprint_slug")
         sprint_dir = ai_state / "sprints" / sprint_slug
-        path_type = fm.get("path", "")
-        if path_type not in VALID_PATHS:
-            return block(f"ship stage has unknown Athena path {path_type!r}")
 
         try:
+            # Governance binding is checked before trusting path/skip/critic
+            # fields, so mutating System→Quick cannot bypass the release gate.
+            validate_index_governance(sprint_dir, fm)
+            path_type = fm.get("path", "")
+            if path_type not in VALID_PATHS:
+                raise GateError(f"ship stage has unknown Athena path {path_type!r}")
             review_content = ""
             review_path: Path | None = None
             if path_type in GENERATOR_PATHS:
@@ -1099,7 +1213,7 @@ def main() -> int:
                 review_path = select_latest_review(sprint_dir / "reviews")
                 review_content = validate_review(review_path, path_type)
                 reviewed_commit = validate_review_binding(
-                    review_content, review_path, sprint_dir, ai_state, cwd
+                    review_content, review_path, sprint_dir, ai_state, cwd, fm
                 )
                 validate_ac_mapping(
                     sprint_dir,
@@ -1117,6 +1231,8 @@ def main() -> int:
                 review_content=review_content,
                 review_path=review_path,
             )
+            if path_type in GENERATOR_PATHS:
+                validate_meta_acceptance(spec_criteria, review_content, sprint_dir, cwd)
         except GateError as exc:
             return block(str(exc))
         except Exception as exc:

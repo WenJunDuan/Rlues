@@ -297,6 +297,7 @@ def bind_review(project: Path, sprint_dir: Path, review_path: Path) -> None:
     manifest_lines = [
         "schema_version: 1",
         f'implementation_commit: "{commit}"',
+        f'index_governance_sha256: "{index_governance_sha256(project / ".ai_state/_index.md")}"',
         "files:",
     ]
     for label, file_path in manifest_paths.items():
@@ -316,6 +317,25 @@ def bind_review(project: Path, sprint_dir: Path, review_path: Path) -> None:
         + f"Reviewed state manifest sha256: {manifest_hash}\n",
         encoding="utf-8",
     )
+
+
+def index_governance_sha256(index_path: Path) -> str:
+    fm: dict[str, str] = {}
+    for raw in index_path.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"^([A-Za-z0-9_.-]+)\s*:\s*(.*?)\s*$", raw)
+        if match:
+            fm[match.group(1)] = match.group(2).strip().strip('"\'')
+    protected = {
+        key: fm.get(key, "")
+        for key in (
+            "path", "current_sprint_slug", "skip_polish", "skip_runtime_verify",
+            "skip_architecture_check", "skip_impl_subagent_check",
+            "plan_critique_disabled", "plan_critique_min_rounds",
+        )
+    }
+    return hashlib.sha256(
+        json.dumps(protected, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def build_complete_feature(project: Path) -> Path:
@@ -431,6 +451,7 @@ def build_complete_feature(project: Path) -> Path:
         "    red_summary: fail-open negative cases failed before implementation\n"
         "    red_observed_at: 2026-07-13T07:00:00Z\n"
         "    implementation_files: [delivery-gate.py]\n"
+        "    implementation_observed_at: 2026-07-13T07:30:00Z\n"
         "    green_command: python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py\n"
         "    green_summary: runtime contract passed\n"
         "    green_observed_at: 2026-07-13T08:00:00Z\n",
@@ -933,6 +954,64 @@ class DeliveryGateTests(unittest.TestCase):
             result = self.run_gate(project)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, "", result.stdout)
+
+    def test_review_acceptance_rejects_negative_phrases(self) -> None:
+        for phrase in ("NOT SATISFIED", "MISSING", "DEVIATED", "FAIL", "does not PASS"):
+            with self.subTest(phrase=phrase), tempfile.TemporaryDirectory(prefix="athena-992-review-negative-") as raw_dir:
+                project = Path(raw_dir)
+                sprint_dir = build_complete_feature(project)
+                (sprint_dir / "evidence.yaml").write_text(
+                    "collected_evidence:\n"
+                    "  - tool_use_id: ac1-review\n"
+                    "    ac_id: AC1\n"
+                    "    result: pass\n"
+                    "    source: review\n"
+                    "    command_or_artifact: reviews/pass1.md\n"
+                    "    observed_at: 2026-07-13T08:00:00Z\n"
+                    "    summary: final review result\n",
+                    encoding="utf-8",
+                )
+                (sprint_dir / "reviews/pass1.md").write_text(
+                    f"# Review\n\n## Spec Compliance\n\n| AC | Result |\n|---|---|\n| AC1 | {phrase} |\n\n"
+                    "## Evidence Cross-Check\n\nPASS\n\nVERDICT: PASS\n",
+                    encoding="utf-8",
+                )
+                bind_review(project, sprint_dir, sprint_dir / "reviews/pass1.md")
+                self.assertIn("AC1", self.run_gate(project).stdout)
+
+    def test_review_binding_blocks_governance_mutations(self) -> None:
+        mutations = {
+            "path": ("path: Feature", "path: Quick"),
+            "sprint": (f'current_sprint_slug: "{SPRINT_SLUG}"', 'current_sprint_slug: "other-sprint"'),
+            "skip_runtime": ("skip_runtime_verify: false", "skip_runtime_verify: true"),
+            "skip_architecture": ("skip_architecture_check: false", "skip_architecture_check: true"),
+            "skip_impl": ("design_changed_after_impl: false", "design_changed_after_impl: false\nskip_impl_subagent_check: true"),
+            "critic": ("plan_critique_min_rounds: 1", "plan_critique_min_rounds: 0"),
+        }
+        for name, (old, new) in mutations.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory(prefix="athena-992-governance-") as raw_dir:
+                project = Path(raw_dir)
+                build_complete_feature(project)
+                replace_text(project / ".ai_state/_index.md", old, new)
+                self.assertIn("governance", self.run_gate(project).stdout.lower())
+
+    def test_prewrite_spec_gate_blocks_first_implementation_write(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="athena-992-prewrite-") as raw_dir:
+            project = Path(raw_dir)
+            sprint_dir = build_complete_feature(project)
+            replace_text(project / ".ai_state/_index.md", "stage: ship", "stage: design")
+            (sprint_dir / "design.md").write_text("# Design\n", encoding="utf-8")
+            result = run_hook(
+                DELIVERY_GATE,
+                {
+                    "hook_event_name": "PreToolUse",
+                    "cwd": str(project),
+                    "tool_name": "apply_patch",
+                    "tool_input": {"patch": "*** Update File: src/app.py\n"},
+                },
+                project,
+            )
+            self.assertIn("spec-gate", result.stdout + result.stderr)
 
     def test_review_binding_allows_state_only_post_review_change(self) -> None:
         with tempfile.TemporaryDirectory(prefix="athena-992-state-only-") as raw_dir:

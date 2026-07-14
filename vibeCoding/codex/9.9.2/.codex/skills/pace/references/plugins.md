@@ -1,6 +1,6 @@
 # PACE References · Plugins 编排 (v9.9.2, Codex)
 
-> enabledPlugins 是 CC settings.json 概念, CX 端等价物: 已注册 skills (playwright/context7 已在 config.toml) + AgentShield CLI (通用) + commit 规范手写. 原则只有一条:
+> enabledPlugins 是 CC settings.json 概念。CX `config.toml` 当前默认启用 browser、computer-use、documents、pdf、spreadsheets、presentations 六个 OpenAI 插件，并注册 Athena skills；AgentShield 走通用 CLI，commit 规范手写。原则只有一条:
 > **插件是能力, 不是工作流** — 与 Athena 流程冲突时, Athena workflow 赢 (铁律[四原语]: Workflow 统领).
 
 ## PACE stage × plugin 路由表
@@ -29,6 +29,8 @@
 - 非 Athena 项目 (无 .ai_state): 插件自由使用, 本表不适用
 - 插件被禁用/缺失: 全部有降级路径 (context7→WebSearch 官方文档 / playwright→curl+CLI 实跑 / commit→手写 conventional commit), 缺插件不 block 流程
 
-## 默认启用态 (9.9.2 · CX 无 CC 式 enabledPlugins)
+## 默认启用态 (9.9.2 · CX)
 
-CX 等价物: config.toml 注册 skill (context7 / playwright / quantum-codegen) + 通用 CLI (ecc-agentshield) + 手写 conventional commit。superpowers / feature-dev / code-review / commit 是 CC 端插件, CX 用 Athena 自有 skill 对应, 不伪造对称插件。
+CX 默认插件与包内 `config.toml` 一致：`browser@openai-bundled`、`computer-use@openai-bundled`、`documents@openai-primary-runtime`、`pdf@openai-primary-runtime`、`spreadsheets@openai-primary-runtime`、`presentations@openai-primary-runtime`。另注册 context7 / playwright / quantum-codegen 等 skills。superpowers / feature-dev / code-review / commit 是 CC 端插件，CX 用 Athena 自有 skill 或手写规范对应，不伪造对称插件。
+
+Codex 官方入口：[Codex documentation](https://developers.openai.com/codex/) · [configuration reference](https://developers.openai.com/codex/config-reference/)。

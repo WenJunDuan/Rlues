@@ -6,7 +6,7 @@ description: |
   Loop Engineering 落地: DOER (generator 改代码) + CHECKER (/goal supervisor + delivery-gate), 不自批不自造 loop.
 ---
 
-# /athena-runtime-verify — 运行时验证环 (v9.9.1)
+# /athena-runtime-verify — 运行时验证环 (v9.9.2)
 
 ## 为什么存在 (痛点)
 

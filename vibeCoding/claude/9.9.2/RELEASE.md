@@ -24,8 +24,8 @@ Baseline: committed Athena 9.9.1 packages (`vibeCoding/claude/9.9.1`, `vibeCodin
 | Target | 2.1.206 | Full settings / hooks / subagent contract |
 
 ## 验证
-- `python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py` — 当前 **57/57 PASS**。
-- `node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs` — offline 复跑 **99 PASS / 0 FAIL / 2 SKIP**（仅 live npm 2.1.203/2.1.206）；正式 host 发布必须在线复跑到零未审 SKIP。
+- `python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py` — 当前 **60/60 PASS**。
+- `node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs` — 正式 host 基线 **101 PASS / 0 FAIL / 0 SKIP**。
 - `python3 vibeCoding/scripts/validate-athena-9.9.2.py` — Python 3.11+；包含双端 runtime、fresh temp-HOME、strict doctor、prompt-input 与 F-series。
 - 正式 2+1 review 是 `.ai_state` 的外部发布门禁；最新数字 passN 必须含 Spec Compliance、Evidence Cross-Check、三项 freshness binding 且最终 PASS，包文档不伪造自证 verdict。
 

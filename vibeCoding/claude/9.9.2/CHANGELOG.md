@@ -18,7 +18,7 @@
 
 ## 已落地 (B3–B5 · CC/CX host runtime 已验证)
 - **scripts 合并**: 根 `/scripts` 7 个 F 系测试并入 `vibeCoding/scripts` (无同名冲突).
-- **harness fork 9.9.1→9.9.2**: 双端 runtime + release validator 独立覆盖 9.9.2；CX **57/57 PASS**，CC offline **99/0/2**（2 SKIP 仅 live npm floor/target，host 发布需在线零未审 SKIP）。
+- **harness fork 9.9.1→9.9.2**: 双端 runtime + release validator 独立覆盖 9.9.2；CX **60/60 PASS**，CC 正式 host 基线 **101/0/0**。
 - **spec-gate (双端)**: Feature+ impl-entry 先验可观测 AC；ship 逐 AC 验 admissible PASS evidence、TDD red→green、最新 PASS review 的 design/implementation/state-manifest binding。unknown/checklist-only/missing artifact/stale review/active exception 全部 fail-closed。
 - **两层记忆 (design §5)**: template/init/checkpoint/session-start/status 双端闭环；`_index` 四个 authoritative pointers + route/current-state≤10，missing/escaping/stale/overflow 可观察告警。
 

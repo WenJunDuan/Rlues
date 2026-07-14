@@ -281,6 +281,7 @@ function parseReviewManifest(filePath) {
   const content = requireFile(filePath, "review-manifest.yaml");
   let schemaVersion = "";
   let implementationCommit = "";
+  let indexGovernanceSha256 = "";
   let inFiles = false;
   const files = {};
   for (const raw of content.split(/\r?\n/)) {
@@ -299,6 +300,7 @@ function parseReviewManifest(filePath) {
     const value = scalar(match[2]);
     if (match[1] === "schema_version") schemaVersion = value;
     else if (match[1] === "implementation_commit") implementationCommit = value;
+    else if (match[1] === "index_governance_sha256") indexGovernanceSha256 = value;
     else if (match[1] === "files" && !value) inFiles = true;
     else throw new GateError(`unsupported review-manifest field: ${match[1]}`);
   }
@@ -306,16 +308,35 @@ function parseReviewManifest(filePath) {
     "design.md", "checklist.yaml", "evidence.yaml", "runtime-verify.md", "rework-notes.md",
     "cleanup-pass.md", "tdd-evidence.yaml", "architecture/ARCHITECTURE.md", "architecture/athena-9.9.2.md",
   ]);
-  if (schemaVersion !== "1" || !/^[0-9a-f]{40}$/.test(implementationCommit)) {
-    throw new GateError("review-manifest requires schema_version=1 and a 40-hex implementation_commit");
+  if (schemaVersion !== "1" || !/^[0-9a-f]{40}$/.test(implementationCommit) || !/^[0-9a-f]{64}$/.test(indexGovernanceSha256)) {
+    throw new GateError("review-manifest requires schema_version=1, a 40-hex implementation_commit, and a 64-hex index_governance_sha256");
   }
   if (Object.keys(files).length !== required.size || Object.keys(files).some(name => !required.has(name))) {
     throw new GateError(`review-manifest files must be exactly ${[...required].sort().join(", ")}`);
   }
-  return { implementationCommit, files };
+  return { implementationCommit, indexGovernanceSha256, files };
 }
 
-function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd) {
+const INDEX_GOVERNANCE_FIELDS = [
+  "path", "current_sprint_slug", "skip_polish", "skip_runtime_verify",
+  "skip_architecture_check", "skip_impl_subagent_check",
+  "plan_critique_disabled", "plan_critique_min_rounds",
+];
+
+function indexGovernanceSha256(fm) {
+  const protectedFields = {};
+  for (const key of [...INDEX_GOVERNANCE_FIELDS].sort()) protectedFields[key] = String(fm[key] || "");
+  return crypto.createHash("sha256").update(JSON.stringify(protectedFields)).digest("hex");
+}
+
+function validateIndexGovernance(sprintDir, fm) {
+  const manifest = parseReviewManifest(path.join(sprintDir, "review-manifest.yaml"));
+  if (manifest.indexGovernanceSha256 !== indexGovernanceSha256(fm)) {
+    throw new GateError("review-manifest index governance does not match protected _index fields");
+  }
+}
+
+function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd, fm) {
   const designMatches = [...reviewContent.matchAll(/^Reviewed design sha256:\s*([0-9a-f]{64})\s*$/gm)];
   const commitMatches = [...reviewContent.matchAll(/^Reviewed implementation commit:\s*([0-9a-f]{40})\s*$/gm)];
   const manifestMatches = [...reviewContent.matchAll(/^Reviewed state manifest sha256:\s*([0-9a-f]{64})\s*$/gm)];
@@ -336,6 +357,9 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
   const manifest = parseReviewManifest(manifestPath);
   if (manifest.implementationCommit !== reviewedCommit) {
     throw new GateError("review-manifest implementation_commit does not match final review binding");
+  }
+  if (manifest.indexGovernanceSha256 !== indexGovernanceSha256(fm)) {
+    throw new GateError("review-manifest index governance does not match protected _index fields");
   }
   for (const [name, expectedHash] of Object.entries(manifest.files)) {
     const target = name.startsWith("architecture/") ? path.join(aiState, name) : path.join(sprintDir, name);
@@ -386,12 +410,15 @@ function validateTddEvidence(filePath) {
     const end = index + 1 < records.length ? records[index + 1].index : content.length;
     const block = content.slice(record.index, end);
     const values = {};
-    for (const key of ["red_command", "red_summary", "red_observed_at", "implementation_files", "green_command", "green_summary", "green_observed_at"]) {
+    for (const key of ["red_command", "red_summary", "red_observed_at", "implementation_files", "implementation_observed_at", "green_command", "green_summary", "green_observed_at"]) {
       values[key] = evidenceField(block, key);
     }
     if (Object.values(values).some(value => !value)) throw new GateError("tdd-evidence record is missing red/implementation/green fields");
-    if (parseUtcTimestamp(values.red_observed_at, "tdd red_observed_at") >= parseUtcTimestamp(values.green_observed_at, "tdd green_observed_at")) {
-      throw new GateError("tdd-evidence red timestamp must precede green timestamp");
+    const red = parseUtcTimestamp(values.red_observed_at, "tdd red_observed_at");
+    const implementation = parseUtcTimestamp(values.implementation_observed_at, "tdd implementation_observed_at");
+    const green = parseUtcTimestamp(values.green_observed_at, "tdd green_observed_at");
+    if (!(red < implementation && implementation < green)) {
+      throw new GateError("tdd-evidence timestamps must satisfy red < implementation < green");
     }
   });
 }
@@ -670,7 +697,9 @@ function parseEvidenceRecords(filePath) {
 }
 
 function reviewExplicitlyAccepts(reviewContent, label) {
-  return reviewContent.split(/\r?\n/).some(line => new RegExp(`(?:^|[^A-Za-z0-9])${label}(?![0-9]).*(?:SATISFIED|\\bPASS\\b)`, "i").test(line));
+  const negative = /\b(?:NOT\s+SATISFIED|MISSING|DEVIATED|FAIL(?:ED)?|REWORK|DOES\s+NOT\s+PASS|NOT\s+PASS)\b/i;
+  const positive = new RegExp(`(?:^|\\|)\\s*${label}\\s*(?:\\||:|[-—])\\s*(?:SATISFIED|PASS)\\s*(?:\\||$)`, "i");
+  return reviewContent.split(/\r?\n/).some(line => !negative.test(line) && positive.test(line));
 }
 
 function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewContent, reviewedCommit) {
@@ -679,7 +708,7 @@ function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewConte
     for (const match of criterion.matchAll(/(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])/g)) labels.add(match[1].toUpperCase());
   }
   if (!labels.size) return;
-  const missing = [...labels].sort().filter(label => !records.some(record => {
+  const missing = [...labels].sort().filter(label => !["AC11", "AC12"].includes(label) && !records.some(record => {
     const mapped = record.ac_id === label || record.covers.includes(label);
     if (!mapped || record.result !== "pass") return false;
     if (![record.source, record.command_or_artifact, record.observed_at, record.summary].every(Boolean)) return false;
@@ -718,6 +747,23 @@ function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewConte
   }
 }
 
+function validateMetaAcceptance(criteria, reviewContent, sprintDir, cwd) {
+  const labels = new Set();
+  for (const criterion of criteria) {
+    for (const match of criterion.matchAll(/(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])/g)) labels.add(match[1].toUpperCase());
+  }
+  if (labels.has("AC11") && finalVerdict(reviewContent, "latest review") !== "PASS") {
+    throw new GateError("AC11 requires the latest bound evaluator verdict PASS");
+  }
+  if (!labels.has("AC12")) return;
+  const cleanup = requireFile(path.join(sprintDir, "cleanup-pass.md"), "cleanup-pass.md");
+  if (!/\bPASS\b|completed|完成/i.test(cleanup)) throw new GateError("AC12 requires completed polish/cleanup evidence");
+  const root = gitText(cwd, ["rev-parse", "--show-toplevel"], "repository root").trim();
+  const worktrees = gitText(root, ["worktree", "list", "--porcelain"], "worktree readiness");
+  const active = (worktrees.match(/^worktree\s+/gm) || []).length;
+  if (active !== 1) throw new GateError(`AC12 requires no extra active worktree; found ${active}`);
+}
+
 // design §4.2 主门禁: Feature/Refactor/System 处于 impl 时必须已有机器可识别验收
 // 标准; 缺标准的 Stop 立即 block. ship 段复核是纵深防御, 不是替代 (design §4.4).
 function validateImplEntry(aiState, fm) {
@@ -731,6 +777,7 @@ function validateShip(aiState, fm, cwd) {
   const sprintSlug = fm.current_sprint_slug;
   if (!SAFE_SLUG.test(sprintSlug || "")) throw new GateError(`invalid current_sprint_slug ${sprintSlug || ""}`);
   const sprintDir = path.join(aiState, "sprints", sprintSlug);
+  validateIndexGovernance(sprintDir, fm);
   const roadmapSlug = fm.current_roadmap_slug || "";
   if (roadmapSlug) validateRoadmap(aiState, roadmapSlug);
   if (fm.path === "Bugfix") requireFile(path.join(sprintDir, "fix-note.md"), "fix-note.md");
@@ -743,7 +790,7 @@ function validateShip(aiState, fm, cwd) {
     validateTddEvidence(path.join(sprintDir, "tdd-evidence.yaml"));
     const reviewPath = selectLatestReview(path.join(sprintDir, "reviews"));
     const reviewContent = validateReview(reviewPath, fm.path);
-    const reviewedCommit = validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd);
+    const reviewedCommit = validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd, fm);
     validateAcMapping(sprintDir, specCriteria, evidenceRecords, reviewPath, reviewContent, reviewedCommit);
     validateCriticRounds(sprintDir, fm);
 
@@ -762,7 +809,20 @@ function validateShip(aiState, fm, cwd) {
         }
       }
     }
+    validateMetaAcceptance(specCriteria, reviewContent, sprintDir, cwd);
   }
+}
+
+function isImplementationWrite(payload) {
+  if (payload.hook_event_name !== "PreToolUse") return false;
+  const tool = String(payload.tool_name || "").toLowerCase();
+  if (!["edit", "write", "multiedit", "apply_patch"].includes(tool)) return false;
+  const input = payload.tool_input && typeof payload.tool_input === "object" ? payload.tool_input : {};
+  const candidates = [input.file_path, input.path, input.patch].filter(Boolean).map(String);
+  if (!candidates.length) return true;
+  const joined = candidates.join("\n");
+  const paths = [...joined.matchAll(/(?:\*\*\* (?:Update|Add) File:|^)([^\n]+)/gm)].map(match => match[1]);
+  return (paths.length ? paths : candidates).some(file => !file.replace(/\\/g, "/").includes(".ai_state/"));
 }
 
 function block(reason) {
@@ -785,6 +845,7 @@ function main() {
     const fm = parseFrontmatter(index);
     if (!VALID_PATHS.has(fm.path || "")) throw new GateError(`unknown or missing path ${fm.path || ""}`);
     if (!VALID_STAGES.has(fm.stage || "")) throw new GateError(`unknown or missing stage ${fm.stage || ""}`);
+    if (isImplementationWrite(payload) && ["design", "impl"].includes(fm.stage)) validateImplEntry(aiState, fm);
     if (fm.stage === "ship") validateShip(aiState, fm, cwd);
     else if (fm.stage === "impl") validateImplEntry(aiState, fm);
   } catch (error) {

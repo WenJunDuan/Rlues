@@ -55,6 +55,14 @@ def digest_tree(root: Path) -> dict[str, str]:
     return result
 
 
+def mtime_tree(root: Path) -> dict[str, int]:
+    return {
+        path.relative_to(root).as_posix(): path.stat().st_mtime_ns
+        for path in root.rglob("*")
+        if path.is_file()
+    }
+
+
 class SetupTests(unittest.TestCase):
     def run_setup(
         self, home: Path, *arguments: str, fault: str | None = None
@@ -124,11 +132,13 @@ class SetupTests(unittest.TestCase):
             home = Path(directory)
             self.assertEqual(self.run_setup(home).returncode, 0)
             before = digest_tree(home)
+            before_mtime = mtime_tree(home)
             result = self.run_setup(home)
             self.assertEqual(STATES["same-version"], "verify-only")
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("no files changed", result.stdout)
             self.assertEqual(digest_tree(home), before)
+            self.assertEqual(mtime_tree(home), before_mtime)
 
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)

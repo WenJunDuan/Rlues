@@ -1,4 +1,4 @@
-# PACE References · Orchestration (v9.9.1, Codex)
+# PACE References · Orchestration (v9.9.2, Codex)
 
 > 编排机制选型. 铁律[四原语]: Workflow 统领 · SubAgent 执行 · Skill 赋能 · MCP 连接.
 

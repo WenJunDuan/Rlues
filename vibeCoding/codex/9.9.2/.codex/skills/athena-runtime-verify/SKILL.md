@@ -3,7 +3,7 @@ name: athena-runtime-verify
 description: PACE impl 后的运行时验证环 (Codex). 实跑接口、CLI 或 UI, 覆盖正常/边界/失败场景并自测自改. System/Refactor 强制, Feature 可选; 仅在用户显式要求或已有 Goal 时用 Goals 承载.
 ---
 
-# /athena-runtime-verify — 运行时验证环 (v9.9.1, Codex)
+# /athena-runtime-verify — 运行时验证环 (v9.9.2, Codex)
 
 ## 目的
 

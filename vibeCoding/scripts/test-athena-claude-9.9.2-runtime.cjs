@@ -147,7 +147,12 @@ function bindReview(ctx, reviewPath) {
     "architecture/ARCHITECTURE.md": path.join(ctx.ai, "architecture/ARCHITECTURE.md"),
     "architecture/athena-9.9.2.md": path.join(ctx.ai, "architecture/athena-9.9.2.md"),
   };
-  const manifestLines = ["schema_version: 1", `implementation_commit: "${commit}"`, "files:"];
+  const manifestLines = [
+    "schema_version: 1",
+    `implementation_commit: "${commit}"`,
+    `index_governance_sha256: "${indexGovernanceSha256(path.join(ctx.ai, "_index.md"))}"`,
+    "files:",
+  ];
   for (const [name, filePath] of Object.entries(manifestFiles)) manifestLines.push(`  "${name}": "${sha256File(filePath)}"`);
   const manifestPath = path.join(ctx.sprintDir, "review-manifest.yaml");
   write(manifestPath, `${manifestLines.join("\n")}\n`);
@@ -159,6 +164,22 @@ function bindReview(ctx, reviewPath) {
   body += `\nReviewed implementation commit: ${commit}`;
   body += `\nReviewed state manifest sha256: ${sha256File(manifestPath)}\n`;
   write(reviewPath, body);
+}
+
+function indexGovernanceSha256(indexPath) {
+  const fm = {};
+  for (const raw of fs.readFileSync(indexPath, "utf8").split(/\r?\n/)) {
+    const match = raw.match(/^([A-Za-z0-9_.-]+)\s*:\s*(.*?)\s*$/);
+    if (match) fm[match[1]] = match[2].replace(/^['"]|['"]$/g, "");
+  }
+  const keys = [
+    "path", "current_sprint_slug", "skip_polish", "skip_runtime_verify",
+    "skip_architecture_check", "skip_impl_subagent_check",
+    "plan_critique_disabled", "plan_critique_min_rounds",
+  ].sort();
+  const protectedFields = {};
+  for (const key of keys) protectedFields[key] = fm[key] || "";
+  return crypto.createHash("sha256").update(JSON.stringify(protectedFields)).digest("hex");
 }
 
 function writeAuthorization(sprintDir, {
@@ -340,6 +361,7 @@ function createCompleteProject(options = {}) {
     "    red_summary: fail-open negative cases failed before implementation",
     "    red_observed_at: 2026-07-13T07:00:00Z",
     "    implementation_files: [delivery-gate.cjs]",
+    "    implementation_observed_at: 2026-07-13T07:30:00Z",
     "    green_command: node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs",
     "    green_summary: runtime contract passed",
     "    green_observed_at: 2026-07-13T08:00:00Z",
@@ -654,6 +676,60 @@ test("explicit final review acceptance can cover a labeled AC", () => {
     bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
     const gate = runGate(ctx.project);
     assert.strictEqual(gate.blocked, false, gate.reason);
+  } finally { rmProject(ctx.project); }
+});
+
+test("review acceptance rejects negative phrases", () => {
+  for (const phrase of ["NOT SATISFIED", "MISSING", "DEVIATED", "FAIL", "does not PASS"]) {
+    const ctx = createCompleteProject();
+    try {
+      write(path.join(ctx.sprintDir, "evidence.yaml"), [
+        "collected_evidence:",
+        "  - tool_use_id: ac1-review",
+        "    ac_id: AC1",
+        "    result: pass",
+        "    source: review",
+        "    command_or_artifact: reviews/pass2.md",
+        "    observed_at: 2026-07-13T08:00:00Z",
+        "    summary: final review result",
+        "",
+      ].join("\n"));
+      write(path.join(ctx.sprintDir, "reviews/pass2.md"), `# Review\n\n## Spec Compliance\n\n| AC | Result |\n|---|---|\n| AC1 | ${phrase} |\n\n## Evidence Cross-Check\n\nPASS\n\nVERDICT: PASS\n`);
+      bindReview(ctx, path.join(ctx.sprintDir, "reviews/pass2.md"));
+      assert.match(runGate(ctx.project).reason, /AC1/);
+    } finally { rmProject(ctx.project); }
+  }
+});
+
+test("review binding blocks protected index governance mutations", () => {
+  for (const [oldText, newText] of [
+    ['path: "Feature"', 'path: "Quick"'],
+    [`current_sprint_slug: "${SPRINT}"`, 'current_sprint_slug: "other-sprint"'],
+    ["skip_runtime_verify: false", "skip_runtime_verify: true"],
+    ["skip_architecture_check: false", "skip_architecture_check: true"],
+    ["skip_impl_subagent_check: false", "skip_impl_subagent_check: true"],
+    ["plan_critique_min_rounds: 1", "plan_critique_min_rounds: 0"],
+  ]) {
+    const ctx = createCompleteProject();
+    try {
+      const index = path.join(ctx.ai, "_index.md");
+      write(index, fs.readFileSync(index, "utf8").replace(oldText, newText));
+      assert.strictEqual(runGate(ctx.project).blocked, true);
+    } finally { rmProject(ctx.project); }
+  }
+});
+
+test("pre-write spec-gate blocks first implementation write", () => {
+  const ctx = createCompleteProject({ stage: "design" });
+  try {
+    write(path.join(ctx.sprintDir, "design.md"), "# Design\n");
+    const result = runNode(GATE, {
+      hook_event_name: "PreToolUse",
+      cwd: ctx.project,
+      tool_name: "Write",
+      tool_input: { file_path: path.join(ctx.project, "src/app.js") },
+    }, ctx.project);
+    assert.match(result.stdout + result.stderr, /spec-gate/);
   } finally { rmProject(ctx.project); }
 });
 

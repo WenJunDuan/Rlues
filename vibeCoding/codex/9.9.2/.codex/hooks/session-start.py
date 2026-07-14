@@ -183,7 +183,7 @@ def memory_router_context(ai_state: Path, idx_path: Path, fm: dict) -> str:
         lines.append("⚠ malformed route_history: expected inline list capped at 10")
     else:
         inner = route_history[1:-1].strip()
-        count = 0 if not inner else len([part for part in inner.split(",") if part.strip()])
+        count = inline_list_count(inner)
         if count > 10:
             lines.append(f"⚠ route_history overflow: {count} entries (max 10)")
 
@@ -194,6 +194,25 @@ def memory_router_context(ai_state: Path, idx_path: Path, fm: dict) -> str:
         if len(entries) > 10:
             lines.append(f"⚠ current-state log overflow: {len(entries)} entries (max 10)")
     return "\n".join(lines)
+
+
+def inline_list_count(inner: str) -> int:
+    if not inner:
+        return 0
+    count, quote, escaped = 1, "", False
+    for char in inner:
+        if escaped:
+            escaped = False
+        elif char == "\\" and quote == '"':
+            escaped = True
+        elif quote:
+            if char == quote:
+                quote = ""
+        elif char in {'"', "'"}:
+            quote = char
+        elif char == ",":
+            count += 1
+    return count
 
 
 def main() -> int:

@@ -6,7 +6,7 @@ description: |
   v9.9.1: 路由输出可审计决策摘要 (候选、证据、权衡、决策、置信度), 不要求暴露私有思维链; re-route 只升不降.
 ---
 
-# /athena-dev — Athena 主入口 (Codex, v9.9.1)
+# /athena-dev — Athena 主入口 (Codex, v9.9.2)
 
 ## 触发
 

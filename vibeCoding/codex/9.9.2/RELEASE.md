@@ -10,7 +10,7 @@ Baseline: committed Athena 9.9.1 packages (`vibeCoding/claude/9.9.1`, `vibeCodin
 - **spec-gate**: Feature+ impl-entry 先拦不可测试意图，ship 再验逐 AC passing evidence、最新 PASS review 与设计/实现/状态 manifest 绑定。
 - **两层记忆**: Tier1 非权威；Tier2 `.ai_state` 为持久真相；`_index` 是有界检索路由器。
 - pace 路由真相源单一化 (`athena-dev`) + stage 命名诚实化 (4 核心 + 5 条件)。
-- **技法 (CX 插件集独立: openai-bundled)**: feature-dev / superpowers off; ECC-AgentShield / code-review / commit / context7 / playwright-skill / codex-plugin-cc on。
+- **CX 默认插件**: browser / computer-use / documents / pdf / spreadsheets / presentations；Athena skills 独立注册，不伪造 CC 插件对称。
 - **skill 合并 7→2**: `quantum-codegen` (前后端生成 6 合 1, mode 分发) + `quantum-data` (运行期数据读取)。
 - CX review 门禁修 (`skip_impl_subagent_check` wire / CONCERNS 文案)。
 
@@ -21,10 +21,10 @@ Baseline: committed Athena 9.9.1 packages (`vibeCoding/claude/9.9.1`, `vibeCodin
 Codex 端以包内 `config.toml` + `codex --strict-config doctor --json` + `codex debug prompt-input` 为当前兼容契约；Claude Code 2.1.203/2.1.206 只属于 CC 端矩阵，不是 Codex 版本。
 
 ## 验证
-- `python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py` — 当前 **57/57 PASS**。
-- `node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs` — offline 复跑 **99 PASS / 0 FAIL / 2 SKIP**（仅 live npm 2.1.203/2.1.206）；正式 host 发布必须在线复跑到零未审 SKIP。
+- `python3 vibeCoding/scripts/test-athena-9.9.2-runtime.py` — 当前 **60/60 PASS**。
+- `node vibeCoding/scripts/test-athena-claude-9.9.2-runtime.cjs` — 正式 host 基线 **101 PASS / 0 FAIL / 0 SKIP**。
 - `python3 vibeCoding/scripts/validate-athena-9.9.2.py` — Python 3.11+；包含双端 runtime、fresh temp-HOME、strict doctor、prompt-input 与 F-series。
 - 正式 2+1 review 是 `.ai_state` 的外部发布门禁；最新数字 passN 必须含 Spec Compliance、Evidence Cross-Check、三项 freshness binding 且最终 PASS，包文档不伪造自证 verdict。
 
 ## 官方引用
-Hooks / Subagents / Worktrees / Settings / Model / MCP / Plugins — https://code.claude.com/docs/en/
+Codex 官方文档 — https://developers.openai.com/codex/ · 配置参考 — https://developers.openai.com/codex/config-reference/

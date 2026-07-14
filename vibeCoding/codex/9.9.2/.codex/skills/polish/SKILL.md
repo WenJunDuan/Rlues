@@ -5,7 +5,7 @@ description: |
   v9.6.4 升级: 加 finishing-a-development-branch 流程 (借 Superpowers), 加 compound/ 触发.
 ---
 
-# /polish — Polish stage (v9.9.1, Codex)
+# /polish — Polish stage (v9.9.2, Codex)
 
 ## 触发
 

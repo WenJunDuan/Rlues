@@ -1,6 +1,6 @@
 # Athena 9.9.2 — AI 引导安装 / 升级 / 数据迁移指南
 
-> 9.9.2 起, Athena **不再维护逐版本 migrate/setup 脚本**。安装、升级、`.ai_state` 数据迁移一律**推荐由 AI 执行**:
+> 9.9.2 起, Athena **不再以逐版本 migrate 脚本作为升级主路径**。fresh/same-version 安装仍由 `athena-setup` 验证；旧版升级与 `.ai_state` 数据迁移**推荐由 AI 引导执行**:
 > AI 读 CHANGELOG + 新旧包 `diff`, 智能应用变更并逐一保留用户配置。脚本化迁移脆、易漏字段, 已弃用。
 
 ## 为什么用 AI 而非脚本

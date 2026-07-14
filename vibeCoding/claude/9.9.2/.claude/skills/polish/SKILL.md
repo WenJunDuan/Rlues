@@ -5,7 +5,7 @@ description: |
   含 finishing-a-development-branch 流程 (借 Superpowers) + compound/ 触发.
 ---
 
-# /polish — Polish stage (v9.9.1)
+# /polish — Polish stage (v9.9.2)
 
 ## 触发
 

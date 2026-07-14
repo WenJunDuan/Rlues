@@ -1,4 +1,4 @@
-# PACE References · Stages (v9.9.1, Codex)
+# PACE References · Stages (v9.9.2, Codex)
 
 > 从 pace/SKILL.md 下沉的 stage 详解. 进入某 stage 前 Read 对应段即可, 不必全读.
 

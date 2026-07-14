@@ -12,7 +12,7 @@ skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
-# === 路由审议 (v9.9.1) ===
+# === 路由审议 (v9.9.2) ===
 route_confidence: 0               # 0-1, 主 agent 路由决策摘要中的置信度
 route_history: []                 # re-route 记录, 最多 10 条; 详情归 sprint/session-log
 plan_model: ""                    # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)

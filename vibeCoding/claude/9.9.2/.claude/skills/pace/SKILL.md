@@ -6,7 +6,7 @@ description: |
   v9.9.1: 路由记录候选、证据、权衡、决策与置信度, 不要求暴露私有思维链; 中途 re-route 只升不降.
 ---
 
-# PACE — Router & State Machine (v9.9.1)
+# PACE — Router & State Machine (v9.9.2)
 
 ## 6 路径
 

@@ -206,7 +206,7 @@ function memoryRouterContext(aiState, idxPath, fm) {
     lines.push('⚠ malformed route_history: expected inline list capped at 10');
   } else {
     const inner = routeHistory.slice(1, -1).trim();
-    const count = inner ? inner.split(',').filter(part => part.trim()).length : 0;
+    const count = inlineListCount(inner);
     if (count > 10) lines.push(`⚠ route_history overflow: ${count} entries (max 10)`);
   }
   const content = fs.readFileSync(idxPath, 'utf8');
@@ -216,6 +216,21 @@ function memoryRouterContext(aiState, idxPath, fm) {
     if (entries > 10) lines.push(`⚠ current-state log overflow: ${entries} entries (max 10)`);
   }
   return lines.join('\n');
+}
+
+function inlineListCount(inner) {
+  if (!inner) return 0;
+  let count = 1;
+  let quote = '';
+  let escaped = false;
+  for (const char of inner) {
+    if (escaped) escaped = false;
+    else if (char === '\\' && quote === '"') escaped = true;
+    else if (quote) { if (char === quote) quote = ''; }
+    else if (char === '"' || char === "'") quote = char;
+    else if (char === ',') count += 1;
+  }
+  return count;
 }
 
 function main() {
