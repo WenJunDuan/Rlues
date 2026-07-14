@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Static/TDD release contract for Athena 9.9.3.
 
-The first run against the untouched 9.9.1 copy is intentionally red. Runtime
+The first run against the untouched 9.9.2 copy is intentionally red. Runtime
 fixtures are expanded by the validation sprint; this file keeps the release
 identity and drift checks executable throughout implementation.
 """
@@ -82,7 +82,18 @@ def collect_baseline_states(root: Path, expected_trees: dict[str, str]) -> dict[
             capture_output=True,
             text=True,
         )
-        states[f"{endpoint}_worktree"] = worktree.returncode == 0
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", "--", package_path],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        states[f"{endpoint}_worktree"] = (
+            worktree.returncode == 0
+            and untracked.returncode == 0
+            and not untracked.stdout.strip()
+        )
         committed = subprocess.run(
             ["git", "rev-parse", f"HEAD:{tree_path}"],
             cwd=root,

@@ -1,0 +1,4 @@
+binary: /tmp/athena-codex-global-0.144.1/bin/codex
+command: /tmp/athena-codex-global-0.144.1/bin/codex --version
+exit_code: 0
+stdout: codex-cli 0.144.1

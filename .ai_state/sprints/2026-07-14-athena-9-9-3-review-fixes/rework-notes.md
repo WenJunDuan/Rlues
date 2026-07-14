@@ -11,4 +11,4 @@
 
 ## Status
 
-Implementation pending TDD generator.
+Implementation complete at `8234f0b54852d553469a9126b734fb1820592d92`; CX 67/67、CC 107/107、validator 223/223 全绿，进入正式 review。

@@ -1,0 +1,3 @@
+command: PYTHONDONTWRITEBYTECODE=1 python3 vibeCoding/scripts/test-athena-9.9.3-runtime.py
+exit_code: 0
+result: Ran 67 tests in 8.581s; OK

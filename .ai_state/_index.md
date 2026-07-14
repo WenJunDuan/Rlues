@@ -5,7 +5,7 @@ version: "9.9.3"
 
 # === PACE 路由状态 ===
 path: "System"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
-stage: "impl"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
+stage: "ship"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
 current_sprint_slug: "2026-07-14-athena-9-9-3-review-fixes"          # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
 current_roadmap_slug: ""  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
@@ -57,10 +57,10 @@ counts:
   refactors_count: 1
   systems_count: 8
   requirements_count: 1
-  reviews_count: 16
-  cleanup_count: 5
+  reviews_count: 17
+  cleanup_count: 6
   compound:
-    learning: 3
+    learning: 4
     trick: 0
     decision: 3
     explore: 0
@@ -68,16 +68,16 @@ counts:
 # === Pointers (指向最新相关文件) ===
 pointers:
   latest_design: "sprints/2026-07-14-athena-9-9-3-review-fixes/design.md"
-  latest_review: "sprints/2026-07-13-athena-9-9-2-architecture-review/reviews/pass3.md"
-  latest_cleanup: "sprints/2026-07-13-athena-9-9-2-architecture-review/cleanup-pass.md"
+  latest_review: "sprints/2026-07-14-athena-9-9-3-review-fixes/reviews/pass1.md"
+  latest_cleanup: "sprints/2026-07-14-athena-9-9-3-review-fixes/cleanup-pass.md"
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
-  latest_lessons: ["compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-14T01:14:59.588651Z"
+  latest_lessons: ["compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
+  latest_architecture_update: "2026-07-14T05:43:03.644616Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: ""  # 9.9.3 review-fix sprint active
+next_action: "release_complete"  # 9.9.3 verified and user-directed expedited ship
 last_subagent: "generator"
 last_subagent_at: "2026-07-10T08:53:02.056859Z"
 active_worktrees: []

@@ -1,0 +1,3 @@
+command: ATHENA_CODEX_BIN=/tmp/athena-codex-global-0.144.1/bin/codex NPM_CONFIG_PREFIX=/tmp/athena-codex-global-0.144.1 python3 vibeCoding/scripts/validate-athena-9.9.3.py
+exit_code: 0
+result: SUMMARY pass=223 fail=0 skip=0

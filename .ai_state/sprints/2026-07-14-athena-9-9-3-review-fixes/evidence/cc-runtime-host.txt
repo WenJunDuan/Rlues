@@ -1,0 +1,3 @@
+command: node vibeCoding/scripts/test-athena-claude-9.9.3-runtime.cjs
+exit_code: 0
+result: SUMMARY pass=107 fail=0 skip=0
