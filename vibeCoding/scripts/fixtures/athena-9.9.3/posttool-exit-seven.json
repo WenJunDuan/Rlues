@@ -1,0 +1,13 @@
+{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_use_id": "fixture-exit-seven",
+  "tool_input": {
+    "command": "python3 -m pytest"
+  },
+  "tool_response": {
+    "exit_code": 7,
+    "stdout": "",
+    "stderr": "collection failed"
+  }
+}

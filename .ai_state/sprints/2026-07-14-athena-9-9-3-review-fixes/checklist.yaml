@@ -1,0 +1,18 @@
+sprint_slug: "2026-07-14-athena-9-9-3-review-fixes"
+design_ref: "design.md"
+tasks:
+  - id: T1
+    title: Add failing regression coverage for all review findings
+    status: pending
+  - id: T2
+    title: Repair breadcrumb paths, budget, and evaluator policy
+    status: pending
+  - id: T3
+    title: Restore release artifacts, baseline protection, diagnostics, and hygiene
+    status: pending
+  - id: T4
+    title: Run full dual-endpoint regression and fresh Codex verification
+    status: pending
+  - id: T5
+    title: Complete formal review, polish, architecture, merge, cleanup, and push
+    status: pending

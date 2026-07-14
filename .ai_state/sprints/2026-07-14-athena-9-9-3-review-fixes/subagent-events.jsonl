@@ -1,0 +1,5 @@
+{"schema_version":1,"event":"SubagentStart","agent_id":"019f5edd-7846-7c52-b340-de7b0b80f26c","agent_type":"default","sprint_slug":"2026-07-14-athena-9-9-3-review-fixes","timestamp":"2026-07-14T04:23:20.564028Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019f5edd-7846-7c52-b340-de7b0b80f26c","agent_type":"default","sprint_slug":"2026-07-14-athena-9-9-3-review-fixes","timestamp":"2026-07-14T04:27:37.678509Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019f5edd-7846-7c52-b340-de7b0b80f26c","agent_type":"default","sprint_slug":"2026-07-14-athena-9-9-3-review-fixes","timestamp":"2026-07-14T04:29:10.129330Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019f5ee4-aff2-73c3-a7dd-bac1200b2974","agent_type":"default","sprint_slug":"2026-07-14-athena-9-9-3-review-fixes","timestamp":"2026-07-14T04:31:13.571053Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019f5ee4-aff2-73c3-a7dd-bac1200b2974","agent_type":"default","sprint_slug":"2026-07-14-athena-9-9-3-review-fixes","timestamp":"2026-07-14T05:19:40.012876Z"}

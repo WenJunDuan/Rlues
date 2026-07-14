@@ -1,0 +1,183 @@
+# VibeCoding Athena v9.9.3 · Codex Configuration
+# 位置: ~/.codex/config.toml
+
+project_root_markers = [".git", ".hg", ".sl"]
+project_doc_max_bytes = 65536
+
+model_provider = "custom_openai"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+plan_mode_reasoning_effort = "xhigh"
+
+windows_wsl_setup_acknowledged = true
+web_search = "live"
+
+suppress_unstable_features_warning = true
+
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+[sandbox_workspace_write]
+network_access = true
+
+[features]
+goals = true
+hooks = true
+multi_agent = true
+shell_tool = true
+shell_snapshot = true
+unified_exec = true
+memories = true
+
+[memories]
+generate_memories = true
+use_memories = true
+disable_on_external_context = true
+
+[agents]
+max_threads = 6
+max_depth = 1
+job_max_runtime_seconds = 1800
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-dev/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-init/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-setup/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-migrate/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-preferences/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-review/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-status/SKILL.md"
+enabled = true
+
+# --- workflow skills ---
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/pace/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-runtime-verify/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-checkpoint/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-vm/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-requirements/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/athena-issue/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/polish/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/compound/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/brainstorm/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/roadmap/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/architect-doc/SKILL.md"
+enabled = true
+
+# --- tool-dispatch skills ---
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/augment/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/context7/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/playwright/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/antigravity/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/deps-check/SKILL.md"
+enabled = true
+
+# --- fullstack-delivery skills (7→2 合并: quantum-codegen + quantum-data) ---
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/quantum-codegen/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/quantum-data/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "<USER_HOME>/.agents/skills/biz-delivery-loop/SKILL.md"
+enabled = true
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.9.3"
+
+[model_providers.custom_openai]
+name = "custom_openai"
+# base_url = ""
+wire_api = "responses"
+requires_openai_auth = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[desktop]
+preventSleepWhileRunning = true
+show-context-window-usage = true
+composerEnterBehavior = "cmdIfMultiline"
+git-show-sidebar-pr-icons = true
