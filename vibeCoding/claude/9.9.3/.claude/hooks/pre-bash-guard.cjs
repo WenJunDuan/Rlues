@@ -343,7 +343,9 @@ function main() {
     if (verdict.push && !verdict.allowPush) {
       const cwd = path.resolve(payload.cwd || process.cwd());
       const stage = findStage(cwd);
-      if (stage !== null && stage !== "ship") {
+      // P8: idle (empty stage, no sprint in flight) allows maintenance pushes —
+      // closed-out projects must be able to sync state without opening a sprint.
+      if (stage !== null && stage !== "ship" && stage !== "") {
         process.stderr.write(`[pre-bash-guard] BLOCKED: stage=${stage || "unknown"}; git push requires ship.\n`);
         process.exitCode = 2;
       }

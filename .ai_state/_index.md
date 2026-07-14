@@ -4,9 +4,9 @@
 version: "9.9.3"
 
 # === PACE 路由状态 ===
-path: "System"                   # Hotfix | Bugfix | Quick | Feature | Refactor | System
-stage: "ship"                     # brainstorm | roadmap | plan | design | impl | runtime-verify | review | polish | ship
-current_sprint_slug: "2026-07-14-athena-9-9-3-review-fixes"          # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
+path: ""                        # idle: 9.9.3 release_complete, 无进行中 sprint (P8 idle 态)
+stage: ""                        # idle
+current_sprint_slug: ""          # 上一 sprint: 2026-07-14-athena-9-9-3-review-fixes (expedited ship)
 current_roadmap_slug: ""  # 仅 roadmap stage 期间填
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
@@ -73,7 +73,7 @@ pointers:
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-14T05:45:11.915913Z"
+  latest_architecture_update: "2026-07-14T05:45:11.915Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===

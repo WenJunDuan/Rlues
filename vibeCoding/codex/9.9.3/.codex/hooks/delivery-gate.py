@@ -721,7 +721,9 @@ def validate_review(path: Path, path_type: str) -> str:
         raise GateError(f"latest review {path.name} VERDICT is {verdict!r}, expected PASS")
     if "## Spec Compliance" not in content:
         raise GateError(f"latest review {path.name} lacks ## Spec Compliance")
-    if "## Evidence Cross-Check" not in content:
+    # P8: mandatory Evidence Cross-Check stays scoped to Refactor/System (9.9.1
+    # semantics); widening it retroactively blocked shipped Feature sprints.
+    if path_type in REFACTOR_SYSTEM and "## Evidence Cross-Check" not in content:
         raise GateError(f"latest review {path.name} lacks ## Evidence Cross-Check")
     return content
 
@@ -746,7 +748,15 @@ def git_text(cwd: Path, args: list[str], label: str) -> str:
     return run.stdout
 
 
-def parse_review_manifest(path: Path) -> tuple[str, str, dict[str, str]]:
+# P8: manifest required-file sets are tiered by path; extra declared files are
+# hash-verified but nothing beyond the tier is mandated (declared-then-verified).
+MANIFEST_REQUIRED_CORE = ("design.md", "checklist.yaml", "evidence.yaml")
+MANIFEST_REQUIRED_REFACTOR_SYSTEM = MANIFEST_REQUIRED_CORE + (
+    "runtime-verify.md", "cleanup-pass.md", "architecture/ARCHITECTURE.md",
+)
+
+
+def parse_review_manifest(path: Path, path_type: str) -> tuple[str, str, dict[str, str]]:
     content = require_file(path, "review-manifest.yaml")
     implementation_commit = ""
     files: dict[str, str] = {}
@@ -791,19 +801,12 @@ def parse_review_manifest(path: Path) -> tuple[str, str, dict[str, str]]:
             "review-manifest requires schema_version=1, a 40-hex implementation_commit, "
             "and a 64-hex index_governance_sha256"
         )
-    required = {
-        "design.md",
-        "checklist.yaml",
-        "evidence.yaml",
-        "runtime-verify.md",
-        "rework-notes.md",
-        "cleanup-pass.md",
-        "tdd-evidence.yaml",
-        "architecture/ARCHITECTURE.md",
-        "architecture/athena-9.9.3.md",
-    }
-    if set(files) != required:
-        raise GateError(f"review-manifest files must be exactly {sorted(required)}")
+    required = (
+        MANIFEST_REQUIRED_REFACTOR_SYSTEM if path_type in REFACTOR_SYSTEM else MANIFEST_REQUIRED_CORE
+    )
+    missing = [name for name in required if name not in files]
+    if missing:
+        raise GateError(f"review-manifest missing required file hashes for {path_type}: {missing}")
     return implementation_commit, index_governance, files
 
 
@@ -826,7 +829,7 @@ def index_governance_sha256(fm: dict[str, str]) -> str:
 
 
 def validate_index_governance(sprint_dir: Path, fm: dict[str, str]) -> None:
-    _, expected, _ = parse_review_manifest(sprint_dir / "review-manifest.yaml")
+    _, expected, _ = parse_review_manifest(sprint_dir / "review-manifest.yaml", fm.get("path", ""))
     if expected != index_governance_sha256(fm):
         raise GateError("review-manifest index governance does not match protected _index fields")
 
@@ -856,7 +859,7 @@ def validate_review_binding(
     manifest_bytes = require_file(manifest_path, "review-manifest.yaml").encode("utf-8")
     if hashlib.sha256(manifest_bytes).hexdigest() != manifest_matches[0]:
         raise GateError("Reviewed state manifest sha256 does not match review-manifest.yaml")
-    manifest_commit, manifest_governance, manifest_files = parse_review_manifest(manifest_path)
+    manifest_commit, manifest_governance, manifest_files = parse_review_manifest(manifest_path, fm.get("path", ""))
     if manifest_commit != reviewed_commit:
         raise GateError("review-manifest implementation_commit does not match final review binding")
     if manifest_governance != index_governance_sha256(fm):
@@ -1144,6 +1147,10 @@ def main() -> int:
         except GateError as exc:
             return block(str(exc))
         stage = fm.get("stage", "")
+        # P8: idle state (no sprint in flight) is legal — path/stage/slug all
+        # empty means a closed-out project between sprints; nothing to validate.
+        if not stage and not fm.get("path", "") and not fm.get("current_sprint_slug", ""):
+            return EXIT_SUCCESS
         if not stage:
             return block(".ai_state/_index.md has no non-empty stage")
         if stage not in VALID_STAGES:
@@ -1192,37 +1199,52 @@ def main() -> int:
             return block("ship stage requires current_sprint_slug")
         sprint_dir = ai_state / "sprints" / sprint_slug
 
+        # P8 deadlock fix: during ship, .ai_state maintenance writes (state pointer
+        # moves, archive backfills) must not re-run ship validation, otherwise a
+        # failing check can never be resolved. Implementation writes and the Stop
+        # final gate still validate in full.
+        if payload.get("hook_event_name") == "PreToolUse" and not is_implementation_write(payload):
+            return EXIT_SUCCESS
+
         try:
-            # Governance binding is checked before trusting path/skip/critic
-            # fields, so mutating System→Quick cannot bypass the release gate.
-            validate_index_governance(sprint_dir, fm)
             path_type = fm.get("path", "")
             if path_type not in VALID_PATHS:
                 raise GateError(f"ship stage has unknown Athena path {path_type!r}")
+            # P8: the 9.9.3 review-manifest contract is opt-in per sprint (declared
+            # by the manifest file's presence) except Refactor/System, where it is
+            # mandatory. Pre-9.9.3 sprints keep the full 9.9.1 check set below.
+            has_manifest = (sprint_dir / "review-manifest.yaml").exists()
+            if path_type in REFACTOR_SYSTEM and not has_manifest:
+                raise GateError("Refactor/System ship requires review-manifest.yaml (9.9.3 review contract)")
+            if has_manifest:
+                # Governance binding is checked before trusting skip/critic fields,
+                # so mutating System→Quick cannot bypass the release gate.
+                validate_index_governance(sprint_dir, fm)
             review_content = ""
             review_path: Path | None = None
             if path_type in GENERATOR_PATHS:
-                spec_criteria = validate_spec_gate(
-                    sprint_dir, ai_state, fm, sprint_slug, allow_exception=False
-                )
                 if not truthy(fm.get("skip_impl_subagent_check", "false")):
                     validate_generator_chain(sprint_dir, sprint_slug)
                 validate_checklist(sprint_dir / "checklist.yaml")
                 evidence_records = validate_evidence(sprint_dir / "evidence.yaml")
-                validate_tdd_evidence(sprint_dir / "tdd-evidence.yaml")
                 review_path = select_latest_review(sprint_dir / "reviews")
                 review_content = validate_review(review_path, path_type)
-                reviewed_commit = validate_review_binding(
-                    review_content, review_path, sprint_dir, ai_state, cwd, fm
-                )
-                validate_ac_mapping(
-                    sprint_dir,
-                    spec_criteria,
-                    evidence_records,
-                    review_path,
-                    review_content,
-                    reviewed_commit,
-                )
+                if has_manifest:
+                    spec_criteria = validate_spec_gate(
+                        sprint_dir, ai_state, fm, sprint_slug, allow_exception=False
+                    )
+                    validate_tdd_evidence(sprint_dir / "tdd-evidence.yaml")
+                    reviewed_commit = validate_review_binding(
+                        review_content, review_path, sprint_dir, ai_state, cwd, fm
+                    )
+                    validate_ac_mapping(
+                        sprint_dir,
+                        spec_criteria,
+                        evidence_records,
+                        review_path,
+                        review_content,
+                        reviewed_commit,
+                    )
             validate_existing_policy(
                 ai_state=ai_state,
                 sprint_dir=sprint_dir,
@@ -1231,7 +1253,7 @@ def main() -> int:
                 review_content=review_content,
                 review_path=review_path,
             )
-            if path_type in GENERATOR_PATHS:
+            if path_type in GENERATOR_PATHS and has_manifest:
                 validate_meta_acceptance(spec_criteria, review_content, sprint_dir, cwd)
         except GateError as exc:
             return block(str(exc))

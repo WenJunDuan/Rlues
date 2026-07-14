@@ -31,12 +31,16 @@
 | P3 drill 增补 F7 动态段 | ♻️ **转化**: F7 不再挂 drill, 改由 biz-delivery-loop + quantum-codegen(mode=e2e) 承载 (见 quantum 侧路线) |
 | P4 G4 门禁产物级校验 | ⏳ **待核**: 是否已吸收进 quantum-codegen page-playbook 校验环, 下次 mode=page 实跑时核验 |
 | P5 frontmatter 解析共享库 | ❌ **仍开放** (`~/.claude/hooks/lib` 不存在, 多份拷贝仍在) |
-| skip_impl_subagent_check sprint 级粒度 (追加) | ❌ **仍开放** (delivery-gate 无 no_generator 声明支持; cowork 仓当前带 ⚠️ 注释绕行) |
+| skip_impl_subagent_check sprint 级粒度 (追加) | ❌ 仍开放 (但 P8 hotfix 后压力大减: manifest opt-in + idle 态已解主要死锁) |
 | P7 DEPT/SELF fail-open | 归 quantum-backend 自留, 与本仓无关 |
 
 ## 当前阻碍 / 未完成 (重排后)
 
 1. **[小] 残余 proposals 2 条**: P5 frontmatter 共享库 + sprint 级豁免粒度 (+P4 若核验未吸收) — 攒一个小维护 sprint / 9.9.4 patch 即可清。
+   **P8 (gate 追溯误拦) 已于 2026-07-14 hotfix 双端修复并同步分发包**: manifest required 集按 path 分级 +
+   declared-then-verified / review-manifest 对非 R/S 路径 opt-in (R/S 仍强制) / Evidence Cross-Check 恢复
+   R/S 限定 / ship 期 .ai_state 维护写入放行 (死锁解) / idle 态 (path/stage/slug 三空) 合法化。
+   验证矩阵: quantum 三仓收口态全放行, R/S 无 manifest 仍拦, Rlues 本仓已置 idle。
 2. **[验证缺口·主体] 9.9.3 新形态实跑验证**: quantum-codegen 六 mode 是**合并重构后从未在真实项目实跑过的新路径** (旧家族 skill 在 S2/S4 被验证过, 合并后等价性未实证); CX 端同样未经实战。**最佳验证载体 = 阶段① quantum 完善本身** — 在 quantum 上用新 skill 干真活, 一石二鸟。
 3. [依赖·外部] F7 等 quantum 环境 (postgres+redis, 见 quantum 侧阻碍 1)。
 

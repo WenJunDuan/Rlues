@@ -262,7 +262,10 @@ function validateReview(reviewPath, pathType) {
   const verdict = finalVerdict(content, path.basename(reviewPath));
   if (verdict !== "PASS") throw new GateError(`latest review ${path.basename(reviewPath)} VERDICT is ${verdict}; expected PASS`);
   if (!content.includes("## Spec Compliance")) throw new GateError(`latest review ${path.basename(reviewPath)} lacks ## Spec Compliance`);
-  if (!content.includes("## Evidence Cross-Check")) {
+  // P8: mandatory Evidence Cross-Check section stays scoped to Refactor/System
+  // (the 9.9.1 semantics) — widening it to every path retroactively blocked
+  // already-shipped Feature sprints whose reviews predate the requirement.
+  if (REFACTOR_SYSTEM.has(pathType) && !content.includes("## Evidence Cross-Check")) {
     throw new GateError(`latest review ${path.basename(reviewPath)} lacks ## Evidence Cross-Check`);
   }
   return content;
@@ -277,7 +280,17 @@ function gitText(cwd, args, label) {
   }
 }
 
-function parseReviewManifest(filePath) {
+// Manifest required-file sets are tiered by path (P8): a Feature sprint has no
+// polish/rework artifacts by design, and version-specific architecture notes
+// (e.g. architecture/athena-9.9.3.md) belong to individual sprints, not the
+// generic schema. Files beyond the required tier are declared-then-verified:
+// whatever the manifest lists gets hash-checked, nothing extra is mandated.
+const MANIFEST_REQUIRED_CORE = ["design.md", "checklist.yaml", "evidence.yaml"];
+const MANIFEST_REQUIRED_REFACTOR_SYSTEM = [
+  ...MANIFEST_REQUIRED_CORE, "runtime-verify.md", "cleanup-pass.md", "architecture/ARCHITECTURE.md",
+];
+
+function parseReviewManifest(filePath, pathType) {
   const content = requireFile(filePath, "review-manifest.yaml");
   let schemaVersion = "";
   let implementationCommit = "";
@@ -304,15 +317,13 @@ function parseReviewManifest(filePath) {
     else if (match[1] === "files" && !value) inFiles = true;
     else throw new GateError(`unsupported review-manifest field: ${match[1]}`);
   }
-  const required = new Set([
-    "design.md", "checklist.yaml", "evidence.yaml", "runtime-verify.md", "rework-notes.md",
-    "cleanup-pass.md", "tdd-evidence.yaml", "architecture/ARCHITECTURE.md", "architecture/athena-9.9.3.md",
-  ]);
+  const required = REFACTOR_SYSTEM.has(pathType) ? MANIFEST_REQUIRED_REFACTOR_SYSTEM : MANIFEST_REQUIRED_CORE;
   if (schemaVersion !== "1" || !/^[0-9a-f]{40}$/.test(implementationCommit) || !/^[0-9a-f]{64}$/.test(indexGovernanceSha256)) {
     throw new GateError("review-manifest requires schema_version=1, a 40-hex implementation_commit, and a 64-hex index_governance_sha256");
   }
-  if (Object.keys(files).length !== required.size || Object.keys(files).some(name => !required.has(name))) {
-    throw new GateError(`review-manifest files must be exactly ${[...required].sort().join(", ")}`);
+  const missing = required.filter(name => !Object.hasOwn(files, name));
+  if (missing.length) {
+    throw new GateError(`review-manifest missing required file hashes for ${pathType}: ${missing.join(", ")}`);
   }
   return { implementationCommit, indexGovernanceSha256, files };
 }
@@ -330,7 +341,7 @@ function indexGovernanceSha256(fm) {
 }
 
 function validateIndexGovernance(sprintDir, fm) {
-  const manifest = parseReviewManifest(path.join(sprintDir, "review-manifest.yaml"));
+  const manifest = parseReviewManifest(path.join(sprintDir, "review-manifest.yaml"), fm.path);
   if (manifest.indexGovernanceSha256 !== indexGovernanceSha256(fm)) {
     throw new GateError("review-manifest index governance does not match protected _index fields");
   }
@@ -354,7 +365,7 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
   if (crypto.createHash("sha256").update(manifestBuffer).digest("hex") !== manifestMatches[0][1]) {
     throw new GateError("Reviewed state manifest sha256 does not match review-manifest.yaml");
   }
-  const manifest = parseReviewManifest(manifestPath);
+  const manifest = parseReviewManifest(manifestPath, fm.path);
   if (manifest.implementationCommit !== reviewedCommit) {
     throw new GateError("review-manifest implementation_commit does not match final review binding");
   }
@@ -777,21 +788,32 @@ function validateShip(aiState, fm, cwd) {
   const sprintSlug = fm.current_sprint_slug;
   if (!SAFE_SLUG.test(sprintSlug || "")) throw new GateError(`invalid current_sprint_slug ${sprintSlug || ""}`);
   const sprintDir = path.join(aiState, "sprints", sprintSlug);
-  validateIndexGovernance(sprintDir, fm);
+  // P8: the 9.9.3 review-manifest contract is opt-in per sprint (declared by the
+  // manifest file's presence) except for Refactor/System, where it is mandatory.
+  // Sprints shipped under the pre-9.9.3 contract have no manifest and must not be
+  // retroactively blocked — they are still held to the full 9.9.1 check set below.
+  const hasManifest = fs.existsSync(path.join(sprintDir, "review-manifest.yaml"));
+  if (REFACTOR_SYSTEM.has(fm.path) && !hasManifest) {
+    throw new GateError("Refactor/System ship requires review-manifest.yaml (9.9.3 review contract)");
+  }
+  if (hasManifest) validateIndexGovernance(sprintDir, fm);
   const roadmapSlug = fm.current_roadmap_slug || "";
   if (roadmapSlug) validateRoadmap(aiState, roadmapSlug);
   if (fm.path === "Bugfix") requireFile(path.join(sprintDir, "fix-note.md"), "fix-note.md");
   if (GENERATOR_PATHS.has(fm.path)) {
-    const specCriteria = validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException: false });
     if (!truthy(fm.skip_impl_subagent_check)) validateGeneratorChain(sprintDir, sprintSlug);
     validateChecklist(path.join(sprintDir, "checklist.yaml"));
     const evidencePath = path.join(sprintDir, "evidence.yaml");
     const evidenceRecords = validateEvidence(evidencePath);
-    validateTddEvidence(path.join(sprintDir, "tdd-evidence.yaml"));
     const reviewPath = selectLatestReview(path.join(sprintDir, "reviews"));
     const reviewContent = validateReview(reviewPath, fm.path);
-    const reviewedCommit = validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd, fm);
-    validateAcMapping(sprintDir, specCriteria, evidenceRecords, reviewPath, reviewContent, reviewedCommit);
+    if (hasManifest) {
+      const specCriteria = validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException: false });
+      validateTddEvidence(path.join(sprintDir, "tdd-evidence.yaml"));
+      const reviewedCommit = validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd, fm);
+      validateAcMapping(sprintDir, specCriteria, evidenceRecords, reviewPath, reviewContent, reviewedCommit);
+      validateMetaAcceptance(specCriteria, reviewContent, sprintDir, cwd);
+    }
     validateCriticRounds(sprintDir, fm);
 
     if (REFACTOR_SYSTEM.has(fm.path)) {
@@ -809,7 +831,6 @@ function validateShip(aiState, fm, cwd) {
         }
       }
     }
-    validateMetaAcceptance(specCriteria, reviewContent, sprintDir, cwd);
   }
 }
 
@@ -843,10 +864,21 @@ function main() {
   try {
     const index = requireFile(path.join(aiState, "_index.md"), "_index.md");
     const fm = parseFrontmatter(index);
+    // P8: idle state (no sprint in flight) is legal — path/stage/current_sprint_slug
+    // all empty means a closed-out project between sprints; nothing to validate.
+    // Without this, a shipped sprint can never be released from the ship gate
+    // except by immediately opening the next sprint.
+    if (!(fm.path || "") && !(fm.stage || "") && !(fm.current_sprint_slug || "")) return;
     if (!VALID_PATHS.has(fm.path || "")) throw new GateError(`unknown or missing path ${fm.path || ""}`);
     if (!VALID_STAGES.has(fm.stage || "")) throw new GateError(`unknown or missing stage ${fm.stage || ""}`);
     if (isImplementationWrite(payload) && ["design", "impl"].includes(fm.stage)) validateImplEntry(aiState, fm);
-    if (fm.stage === "ship") validateShip(aiState, fm, cwd);
+    // P8 deadlock fix: during ship, .ai_state maintenance writes (state pointer
+    // moves, archive backfills) must not be blocked by ship validation — otherwise
+    // a failing check can never be resolved (fixing state requires a write, and
+    // every write re-runs the failing check). Implementation writes and the Stop
+    // final gate still validate in full.
+    const shipMustValidate = payload.hook_event_name !== "PreToolUse" || isImplementationWrite(payload);
+    if (fm.stage === "ship" && shipMustValidate) validateShip(aiState, fm, cwd);
     else if (fm.stage === "impl") validateImplEntry(aiState, fm);
   } catch (error) {
     block(error instanceof GateError ? error.message : `internal fail-closed error: ${error.message}`);
