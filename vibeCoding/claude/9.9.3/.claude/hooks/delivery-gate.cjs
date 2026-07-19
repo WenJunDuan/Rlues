@@ -434,29 +434,41 @@ function validateTddEvidence(filePath) {
   });
 }
 
-function validateRoadmap(aiState, roadmapSlug) {
+function validateRoadmap(aiState, roadmapSlug, sprintSlug) {
   if (!SAFE_SLUG.test(roadmapSlug)) throw new GateError(`invalid current_roadmap_slug ${roadmapSlug}`);
   const filePath = path.join(aiState, "roadmap", roadmapSlug, "items.yaml");
   const content = requireFile(filePath, `roadmap/${roadmapSlug}/items.yaml`);
-  const declared = [...content.matchAll(/^roadmap_slug\s*:\s*([^#\n]*)/gm)];
-  if (declared.length !== 1 || scalar(declared[0][1]) !== roadmapSlug) throw new GateError("roadmap slug is missing or mismatched");
-  const totalRows = [...content.matchAll(/^total_items\s*:\s*([^#\n]*)/gm)];
-  if (totalRows.length !== 1 || !/^\d+$/.test(scalar(totalRows[0][1]))) throw new GateError("roadmap total_items must be one integer");
-  const total = Number(scalar(totalRows[0][1]));
-  const items = [...content.matchAll(/^\s*-\s+slug\s*:\s*([^#\n]*)/gm)];
-  if (total < 1 || items.length !== total) throw new GateError(`roadmap total_items=${total} but parsed ${items.length}`);
-  const seen = new Set();
-  items.forEach((item, index) => {
-    const slug = scalar(item[1]);
-    if (!slug || seen.has(slug)) throw new GateError(`roadmap contains empty or duplicate item slug ${slug}`);
-    seen.add(slug);
-    const end = index + 1 < items.length ? items[index + 1].index : content.length;
-    const block = content.slice(item.index + item[0].length, end);
-    const statuses = [...block.matchAll(/^\s+status\s*:\s*([^#\n]*)/gm)];
-    if (statuses.length !== 1) throw new GateError(`roadmap item ${slug} must have exactly one status`);
-    const status = scalar(statuses[0][1]).toLowerCase();
-    if (status !== "completed") throw new GateError(`roadmap item ${slug} status is ${status}; ship requires completed`);
+  // Roadmap slug consistency: the current template declares a top-level `slug:`; the
+  // pre-9.6 template used `roadmap_slug:`. Accept either so migrated roadmaps still pass.
+  const declared = [...content.matchAll(/^(?:roadmap_slug|slug)\s*:\s*([^#\n]*)/gm)];
+  if (declared.length < 1 || scalar(declared[0][1]) !== roadmapSlug) {
+    throw new GateError("roadmap slug is missing or mismatched");
+  }
+  // Parse items. The current template opens each item with `- id:` (slug is a child field);
+  // the pre-9.6 template opened with `- slug:`. Try id-first, fall back to slug-first.
+  let itemStarts = [...content.matchAll(/^\s*-\s+id\s*:\s*[^#\n]*/gm)];
+  if (itemStarts.length === 0) itemStarts = [...content.matchAll(/^\s*-\s+slug\s*:\s*[^#\n]*/gm)];
+  if (itemStarts.length < 1) throw new GateError("roadmap items.yaml declares no items");
+  // 9.9.3 mid-program fix (see .ai_state/proposals.md P1): shipping ONE sprint only requires
+  // the roadmap item it maps to (the item whose slug is a trailing segment of the sprint
+  // slug) to be done/completed — sibling items may still be pending. Requiring EVERY item
+  // completed made every mid-program sprint ship structurally impossible. An ad-hoc sprint
+  // with no matching item is not gated on item status here; its own per-sprint 9.9.3
+  // contract (manifest / reviews / tdd-evidence) still applies below.
+  let matched = null;
+  itemStarts.forEach((item, index) => {
+    const end = index + 1 < itemStarts.length ? itemStarts[index + 1].index : content.length;
+    const block = content.slice(item.index, end);
+    const slugRow = block.match(/^\s+slug\s*:\s*([^#\n]*)/m) || block.match(/-\s+slug\s*:\s*([^#\n]*)/);
+    if (!slugRow) return;
+    const itemSlug = scalar(slugRow[1]);
+    if (!itemSlug || !sprintSlug || !sprintSlug.endsWith(itemSlug)) return;
+    const statusRow = block.match(/^\s+status\s*:\s*([^#\n]*)/m);
+    matched = { slug: itemSlug, status: statusRow ? scalar(statusRow[1]).toLowerCase() : "" };
   });
+  if (matched && matched.status !== "completed" && matched.status !== "done") {
+    throw new GateError(`roadmap item ${matched.slug} status is ${matched.status || "(none)"}; ship requires it completed/done`);
+  }
 }
 
 function gitLines(cwd, args) {
@@ -798,7 +810,7 @@ function validateShip(aiState, fm, cwd) {
   }
   if (hasManifest) validateIndexGovernance(sprintDir, fm);
   const roadmapSlug = fm.current_roadmap_slug || "";
-  if (roadmapSlug) validateRoadmap(aiState, roadmapSlug);
+  if (roadmapSlug) validateRoadmap(aiState, roadmapSlug, sprintSlug);
   if (fm.path === "Bugfix") requireFile(path.join(sprintDir, "fix-note.md"), "fix-note.md");
   if (GENERATOR_PATHS.has(fm.path)) {
     if (!truthy(fm.skip_impl_subagent_check)) validateGeneratorChain(sprintDir, sprintSlug);

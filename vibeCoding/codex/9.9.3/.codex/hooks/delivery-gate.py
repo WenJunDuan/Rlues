@@ -1005,51 +1005,48 @@ def yaml_scalar(raw_value: str) -> str:
     return value.strip()
 
 
-def validate_roadmap_items(ai_state: Path, roadmap_slug: str) -> None:
+def validate_roadmap_items(ai_state: Path, roadmap_slug: str, sprint_slug: str) -> None:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", roadmap_slug):
         raise GateError(f"invalid current_roadmap_slug {roadmap_slug!r}")
     path = ai_state / "roadmap" / roadmap_slug / "items.yaml"
     content = require_file(path, f"roadmap/{roadmap_slug}/items.yaml")
 
-    slug_matches = re.findall(r"(?m)^roadmap_slug\s*:\s*([^#\n]*)", content)
-    if len(slug_matches) != 1 or yaml_scalar(slug_matches[0]) != roadmap_slug:
-        raise GateError("roadmap items.yaml has missing or mismatched roadmap_slug")
-    total_matches = re.findall(r"(?m)^total_items\s*:\s*([^#\n]*)", content)
-    if len(total_matches) != 1:
-        raise GateError("roadmap items.yaml must have exactly one total_items")
-    try:
-        total_items = int(yaml_scalar(total_matches[0]))
-    except ValueError as exc:
-        raise GateError("roadmap items.yaml total_items must be an integer") from exc
-    if total_items < 1:
-        raise GateError("roadmap items.yaml must contain at least one item")
-    item_headers = re.findall(r"(?m)^items\s*:\s*(?:#.*)?$", content)
-    if len(item_headers) != 1:
-        raise GateError("roadmap items.yaml must have exactly one items list")
-
-    item_matches = list(re.finditer(r"(?m)^\s+-\s+slug\s*:\s*([^#\n]*)", content))
-    if len(item_matches) != total_items:
-        raise GateError(
-            f"roadmap items.yaml total_items={total_items} but parsed {len(item_matches)} items"
-        )
-    seen_slugs: set[str] = set()
+    # Roadmap slug consistency: the current template declares a top-level `slug:`; the
+    # pre-9.6 template used `roadmap_slug:`. Accept either so migrated roadmaps still pass.
+    slug_matches = re.findall(r"(?m)^(?:roadmap_slug|slug)\s*:\s*([^#\n]*)", content)
+    if not slug_matches or yaml_scalar(slug_matches[0]) != roadmap_slug:
+        raise GateError("roadmap items.yaml has missing or mismatched slug")
+    # Parse items. The current template opens each item with `- id:` (slug is a child
+    # field); the pre-9.6 template opened with `- slug:`. Try id-first, fall back to slug.
+    item_matches = list(re.finditer(r"(?m)^\s*-\s+id\s*:\s*[^#\n]*", content))
+    if not item_matches:
+        item_matches = list(re.finditer(r"(?m)^\s*-\s+slug\s*:\s*[^#\n]*", content))
+    if not item_matches:
+        raise GateError("roadmap items.yaml declares no items")
+    # 9.9.3 mid-program fix (see .ai_state/proposals.md P1): shipping ONE sprint only
+    # requires the roadmap item it maps to (the item whose slug is a trailing segment of
+    # the sprint slug) to be done/completed -- sibling items may still be pending. Requiring
+    # EVERY item completed made every mid-program sprint ship structurally impossible. An
+    # ad-hoc sprint with no matching item is not gated on item status here; its own
+    # per-sprint 9.9.3 contract still applies.
+    matched: tuple[str, str] | None = None
     for index, item_match in enumerate(item_matches):
-        item_slug = yaml_scalar(item_match.group(1))
-        if not item_slug:
-            raise GateError("roadmap items.yaml contains an item with empty slug")
-        if item_slug in seen_slugs:
-            raise GateError(f"roadmap items.yaml contains duplicate item slug {item_slug!r}")
-        seen_slugs.add(item_slug)
         block_end = item_matches[index + 1].start() if index + 1 < len(item_matches) else len(content)
-        item_block = content[item_match.end() : block_end]
-        status_matches = re.findall(r"(?m)^\s+status\s*:\s*([^#\n]*)", item_block)
-        if len(status_matches) != 1:
-            raise GateError(f"roadmap item {item_slug!r} must have exactly one status")
-        status = yaml_scalar(status_matches[0]).lower()
-        if status != "completed":
-            raise GateError(
-                f"roadmap item {item_slug!r} status is {status or 'missing'!r}; ship requires completed"
-            )
+        item_block = content[item_match.start() : block_end]
+        slug_row = re.search(r"(?m)^\s+slug\s*:\s*([^#\n]*)", item_block) or re.search(
+            r"-\s+slug\s*:\s*([^#\n]*)", item_block
+        )
+        if not slug_row:
+            continue
+        item_slug = yaml_scalar(slug_row.group(1))
+        if not item_slug or not sprint_slug or not sprint_slug.endswith(item_slug):
+            continue
+        status_row = re.search(r"(?m)^\s+status\s*:\s*([^#\n]*)", item_block)
+        matched = (item_slug, yaml_scalar(status_row.group(1)).lower() if status_row else "")
+    if matched and matched[1] not in ("completed", "done"):
+        raise GateError(
+            f"roadmap item {matched[0]!r} status is {matched[1] or 'missing'!r}; ship requires it completed/done"
+        )
 
 
 def validate_existing_policy(
@@ -1065,7 +1062,7 @@ def validate_existing_policy(
 
     roadmap_slug = fm.get("current_roadmap_slug", "")
     if roadmap_slug:
-        validate_roadmap_items(ai_state, roadmap_slug)
+        validate_roadmap_items(ai_state, roadmap_slug, fm.get("current_sprint_slug", ""))
 
     if path_type == "Bugfix":
         require_file(sprint_dir / "fix-note.md", "fix-note.md")
