@@ -956,6 +956,78 @@ def git_lines(cwd: Path, args: list[str]) -> tuple[bool, set[str]]:
     return True, {line.strip() for line in result.stdout.splitlines() if line.strip()}
 
 
+# 9.9.3 P2: a ship whose net diff vs the tracked upstream stays within this many changed
+# lines AND touches only docs/config/deps/state/tests (no source logic, no harness/hooks)
+# is a "light" ship -- no TDD red/green story -- and takes the light gate in main().
+SHIP_LIGHT_MAX_LINES = 60
+
+
+def is_light_ship_file(file: str) -> bool:
+    # Harness/hook/gate files and harness config are high-risk -- never light.
+    if re.search(r"(^|/)hooks/", file):
+        return False
+    if re.search(r"(^|/)settings(\.local)?\.json$", file):
+        return False
+    # Source logic (non-test code) needs review even when small -- never light.
+    is_test = bool(
+        re.search(r"(^|/)(tests?|__tests__|specs?)/", file)
+        or re.search(r"\.(test|spec)\.[A-Za-z]+$", file)
+    )
+    is_code = bool(
+        re.search(
+            r"\.(py|ts|tsx|js|jsx|mjs|cjs|go|rs|java|rb|php|c|cc|cpp|h|hpp|swift|kt|scala|sh|bash|zsh|sql)$",
+            file,
+        )
+    )
+    if is_code and not is_test:
+        return False
+    # Docs / config / deps-lockfiles / .ai_state / tests / prompts are light-eligible.
+    return True
+
+
+def ship_change_is_light(cwd: Path) -> bool:
+    # Shipped change = local commits ahead of the tracked upstream (fallback origin/<branch>).
+    base: str | None = None
+    ok, up = git_lines(cwd, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])
+    if ok and up:
+        cand = next(iter(up))
+        if cand and cand != "@{upstream}":
+            base = cand
+    if base is None:
+        ok, branch_set = git_lines(cwd, ["rev-parse", "--abbrev-ref", "HEAD"])
+        if ok and branch_set:
+            branch = next(iter(branch_set))
+            if branch and branch != "HEAD":
+                ok2, _ = git_lines(cwd, ["rev-parse", "--verify", "--quiet", f"origin/{branch}"])
+                if ok2:
+                    base = f"origin/{branch}"
+    if base is None:
+        return False
+    ok, rows = git_lines(cwd, ["diff", "--numstat", f"{base}..HEAD"])
+    if not ok:
+        return False
+    total_lines = 0
+    files: list[str] = []
+    for row in rows:
+        cols = row.split("\t")
+        if len(cols) < 3:
+            continue
+        file = cols[2]
+        files.append(file)
+        # .ai_state/ is auto-maintained state (token-usage churn, logs, pointers) and does
+        # not count toward the line budget -- only toward file eligibility below.
+        if re.search(r"(^|/)\.ai_state/", file):
+            continue
+        added = int(cols[0]) if cols[0].isdigit() else 0
+        deleted = int(cols[1]) if cols[1].isdigit() else 0
+        total_lines += added + deleted
+    if not files:
+        return False
+    if total_lines > SHIP_LIGHT_MAX_LINES:
+        return False
+    return all(is_light_ship_file(f) for f in files)
+
+
 def git_root(cwd: Path) -> Path:
     try:
         result = subprocess.run(
@@ -1207,6 +1279,17 @@ def main() -> int:
             path_type = fm.get("path", "")
             if path_type not in VALID_PATHS:
                 raise GateError(f"ship stage has unknown Athena path {path_type!r}")
+            # 9.9.3 P2 fix (see .ai_state/proposals.md): a light ship -- small net diff vs
+            # upstream, touching only docs/config/deps/state/tests (no source logic, no
+            # harness/hooks) -- has no TDD red/green story and takes the light gate: roadmap
+            # consistency only, skipping the review-manifest / tdd-evidence / review-artifact
+            # contract mechanical changes cannot honestly produce. Substantive, harness-
+            # touching, or over-budget ships run the full contract below (fail-closed).
+            if ship_change_is_light(cwd):
+                light_roadmap = fm.get("current_roadmap_slug", "")
+                if light_roadmap:
+                    validate_roadmap_items(ai_state, light_roadmap, sprint_slug)
+                return EXIT_SUCCESS
             # P8: the 9.9.3 review-manifest contract is opt-in per sprint (declared
             # by the manifest file's presence) except Refactor/System, where it is
             # mandatory. Pre-9.9.3 sprints keep the full 9.9.1 check set below.

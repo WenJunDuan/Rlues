@@ -796,10 +796,74 @@ function validateImplEntry(aiState, fm) {
   validateSpecGate(path.join(aiState, "sprints", sprintSlug), aiState, fm, sprintSlug, { allowException: true });
 }
 
+// 9.9.3 P2: a ship whose net diff vs the tracked upstream stays within this many changed
+// lines AND touches only docs/config/deps/state/tests (no source logic, no harness/hooks)
+// is a "light" ship — no TDD red/green story — and takes the light gate in validateShip.
+const SHIP_LIGHT_MAX_LINES = 60;
+
+function isLightShipFile(file) {
+  // Harness/hook/gate files and harness config are high-risk — never light.
+  if (/(^|\/)hooks\//.test(file)) return false;
+  if (/(^|\/)settings(\.local)?\.json$/.test(file)) return false;
+  // Source logic (non-test code) needs review even when small — never light.
+  const isTest = /(^|\/)(tests?|__tests__|specs?)\//.test(file) || /\.(test|spec)\.[A-Za-z]+$/.test(file);
+  const isCode = /\.(py|ts|tsx|js|jsx|mjs|cjs|go|rs|java|rb|php|c|cc|cpp|h|hpp|swift|kt|scala|sh|bash|zsh|sql)$/.test(file);
+  if (isCode && !isTest) return false;
+  // Docs / config / deps-lockfiles / .ai_state / tests / prompts are light-eligible.
+  return true;
+}
+
+// Classify the shipped change = local commits ahead of the tracked upstream (fallback
+// origin/<branch>). Light iff net diff <= SHIP_LIGHT_MAX_LINES and every changed file is
+// light-eligible. Fail-closed: if the range/diff cannot be determined, return false.
+function shipChangeIsLight(cwd) {
+  let base = null;
+  const up = gitLines(cwd, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]);
+  if (up.ok && up.lines[0] && up.lines[0] !== "@{upstream}") base = up.lines[0];
+  if (!base) {
+    const branch = gitLines(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    if (branch.ok && branch.lines[0] && branch.lines[0] !== "HEAD") {
+      const remote = gitLines(cwd, ["rev-parse", "--verify", "--quiet", `origin/${branch.lines[0]}`]);
+      if (remote.ok && remote.lines[0]) base = `origin/${branch.lines[0]}`;
+    }
+  }
+  if (!base) return false;
+  const stat = gitLines(cwd, ["diff", "--numstat", `${base}..HEAD`]);
+  if (!stat.ok) return false;
+  let totalLines = 0;
+  const files = [];
+  for (const row of stat.lines) {
+    const cols = row.split("\t");
+    if (cols.length < 3) continue;
+    const file = cols[2];
+    files.push(file);
+    // .ai_state/ is auto-maintained state (token-usage churn, logs, pointers) and does not
+    // count toward the line budget — only toward file eligibility below.
+    if (/(^|\/)\.ai_state\//.test(file)) continue;
+    const added = cols[0] === "-" ? 0 : Number(cols[0]) || 0;
+    const deleted = cols[1] === "-" ? 0 : Number(cols[1]) || 0;
+    totalLines += added + deleted;
+  }
+  if (files.length === 0) return false;
+  if (totalLines > SHIP_LIGHT_MAX_LINES) return false;
+  return files.every(isLightShipFile);
+}
+
 function validateShip(aiState, fm, cwd) {
   const sprintSlug = fm.current_sprint_slug;
   if (!SAFE_SLUG.test(sprintSlug || "")) throw new GateError(`invalid current_sprint_slug ${sprintSlug || ""}`);
   const sprintDir = path.join(aiState, "sprints", sprintSlug);
+  // 9.9.3 P2 fix (see .ai_state/proposals.md): a light ship — small net diff vs upstream,
+  // touching only docs/config/deps/state/tests (no source logic, no harness/hooks) — has no
+  // TDD red/green story and takes the light gate: roadmap consistency only, skipping the
+  // review-manifest / tdd-evidence / review-artifact contract mechanical changes cannot
+  // honestly produce. Substantive, harness-touching, or over-budget ships run the full
+  // contract below (fail-closed: an unclassifiable diff is treated as full).
+  if (shipChangeIsLight(cwd)) {
+    const lightRoadmap = fm.current_roadmap_slug || "";
+    if (lightRoadmap) validateRoadmap(aiState, lightRoadmap, sprintSlug);
+    return;
+  }
   // P8: the 9.9.3 review-manifest contract is opt-in per sprint (declared by the
   // manifest file's presence) except for Refactor/System, where it is mandatory.
   // Sprints shipped under the pre-9.9.3 contract have no manifest and must not be
