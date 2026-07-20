@@ -26,3 +26,17 @@
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-07-14T05:33:08.468Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-07-14T05:33:08.468Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-07-14T05:33:08.469Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"doc-style.md","timestamp":"2026-07-14T12:30:54.454Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-07-14T12:30:54.454Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-07-14T12:30:54.454Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"git-conventions.md","timestamp":"2026-07-14T12:30:54.455Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"CLAUDE.md","timestamp":"2026-07-14T12:30:54.455Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-07-14T12:30:54.456Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-07-14T12:30:54.457Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"CLAUDE.md","timestamp":"2026-07-14T13:32:43.508Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"git-conventions.md","timestamp":"2026-07-14T13:32:43.508Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-07-14T13:32:43.509Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-07-14T13:32:43.510Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"doc-style.md","timestamp":"2026-07-14T13:32:43.510Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-07-14T13:32:43.510Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-07-14T13:32:43.513Z"}
