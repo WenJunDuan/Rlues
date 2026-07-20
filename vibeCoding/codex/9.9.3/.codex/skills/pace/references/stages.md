@@ -96,6 +96,13 @@ VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 - current_roadmap_slug 非空: 提示主 agent 继续下个 item
 - 长任务建议: ship 前核对 Goals 完成条件, 承载铁律[门禁] Sisyphus 语义 (见 references/orchestration.md)
 
+### 推送门禁 (pre-bash-guard) 与合法放行
+
+两道独立门禁, 合法推送均无需伪造产物:
+
+- **pre-bash-guard** (Bash 前置) 拦 `git push`: 当前项目 stage 非 ship 且非空 (idle) → BLOCK。放行 = 走到 ship 再推, 或 `ATHENA_ALLOW_PUSH=1 git push …` (命令含此标即放行)。后者用于**推非当前 sprint 的维护性改动** (Athena 源仓自身 / 跨仓同步 / sprint 未 ship 但需推的记账 commit) —— **取代"切 stage=ship→推→回 plan"绕行**, 该绕行会连带触发下面的 ship 契约、制造记账噪声。
+- **delivery-gate 轻门禁 (v9.9.3)**: ship 时若净 diff (对 upstream) ≤60 行且仅触及文档 / 配置 / 依赖 / `.ai_state` / 测试 (排除 hooks/settings/源码逻辑) → 只校验 roadmap 一致性, 跳过 review-manifest / tdd-evidence / 三件套; 源码 / harness / 超预算仍走完整契约 (fail-closed)。让纯文档 / 依赖类 ship 不再被迫产出机械改动无法诚实给出的 red→green。
+
 ## evidence 平台差异 (诚实降级, 铁律[证据与出处] CX 语义)
 
 Codex hooks 可覆盖 shell、`apply_patch` 与部分 MCP 调用, 但是否触发取决于当前工具映射和 matcher; 不把 hook 当完整审计或安全边界.
