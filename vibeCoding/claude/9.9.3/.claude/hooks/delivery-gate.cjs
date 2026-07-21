@@ -153,17 +153,22 @@ function validateGeneratorChain(sprintDir, sprintSlug) {
   if (![...assignmentMap.values()].some(row => row.role === "generator")) {
     throw new GateError("no role=generator assignment found");
   }
+  // generator-chain 只校验 generator 生命周期。events 由 hook 记录全部 subagent 类型且
+  // agent_type 在本 harness 恒为 "default", 无法据此识别 generator; 唯一可靠判据是 assign
+  // 握手写入的 role=generator。critic/reviewer/evaluator/spec-compliance 无握手且多轮 Start/Stop,
+  // 不属于本校验范围, 按 role 过滤后跳过, 避免误报 unbound / 多重 Start-Stop。
+  const generatorKeys = new Set(
+    [...assignmentMap.values()].filter(row => row.role === "generator").map(lifecycleKey),
+  );
   const eventMap = new Map();
   for (const row of events) {
     const key = lifecycleKey(row);
-    if (!assignmentMap.has(key)) {
-      const kind = row.event === "SubagentStop" ? "orphan SubagentStop" : "unbound SubagentStart";
-      throw new GateError(`${kind}: agent_id=${row.agent_id}`);
-    }
+    if (!generatorKeys.has(key)) continue;
     if (!eventMap.has(key)) eventMap.set(key, []);
     eventMap.get(key).push(row);
   }
   for (const [key, assignment] of assignmentMap.entries()) {
+    if (assignment.role !== "generator") continue;
     const rows = eventMap.get(key) || [];
     const starts = rows.filter(row => row.event === "SubagentStart");
     const stops = rows.filter(row => row.event === "SubagentStop");

@@ -580,24 +580,29 @@ def validate_generator_chain(sprint_dir: Path, sprint_slug: str) -> None:
             )
         assignments_by_key[key] = assignment
 
-    events_by_key: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    for event in events:
-        key = join_key(event)
-        if key not in assignments_by_key:
-            lifecycle = "unbound SubagentStart" if event["event"] == "SubagentStart" else "orphan SubagentStop"
-            raise GateError(f"{lifecycle}: agent_id={key[0]!r}, sprint_slug={key[1]!r}")
-        events_by_key.setdefault(key, []).append(event)
-
-    generator_keys = [key for key, row in assignments_by_key.items() if row["role"] == "generator"]
+    # generator-chain 只校验 generator 生命周期。events 记录全部 subagent 类型且 agent_type
+    # 在本 harness 恒为 "default", 无法据此识别 generator; 唯一可靠判据是 assign 握手写入的
+    # role=generator。critic/reviewer/evaluator/spec-compliance 无握手且多轮 Start/Stop, 不属于
+    # 本校验范围, 按 role 过滤后跳过, 避免误报 unbound / 多重生命周期。
+    generator_keys = {
+        key for key, row in assignments_by_key.items() if row["role"] == "generator"
+    }
     if not generator_keys:
         raise GateError("no role=generator assignment found")
 
+    events_by_key: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for event in events:
+        key = join_key(event)
+        if key not in generator_keys:
+            continue
+        events_by_key.setdefault(key, []).append(event)
+
     for key, assignment in assignments_by_key.items():
+        if assignment["role"] != "generator":
+            continue
         matching = events_by_key.get(key, [])
         if not matching:
-            if assignment["role"] == "generator":
-                raise GateError(f"generator {key[0]!r} has no lifecycle events")
-            raise GateError(f"assignment {key[0]!r} has no lifecycle events")
+            raise GateError(f"generator {key[0]!r} has no lifecycle events")
         starts = [event for event in matching if event["event"] == "SubagentStart"]
         stops = [event for event in matching if event["event"] == "SubagentStop"]
         if len(starts) > 1:
