@@ -37,3 +37,17 @@ Tailscale documents that tailnet node addresses use the `100.x.y.z` CGNAT range.
 4. The `PROCESS-NAME,tailscale*` rules are not sufficient for a macOS Network Extension; CIDR/domain exclusions and the active proxy's TUN route policy are the effective controls.
 
 No host VPN state was changed during this check.
+
+## Remote Windows follow-up: 192.168.31.2:7890
+
+Server-side checks from the current host:
+
+- TCP `192.168.31.2:7890` succeeded 5/5 times.
+- A plain HTTP request returned `400 Bad Request`, which is normal for a proxy listener.
+- An HTTPS CONNECT through `http://192.168.31.2:7890` succeeded and the target returned HTTP 204.
+- The repository config has `mixed-port: 7890`, `allow-lan: true`, and `bind-address: "*"`.
+- The runtime controller rejects the repository secret, so the service on `192.168.31.2` is not loading this file unchanged (or a client override replaces the controller settings). This does not affect the successful 7890 proxy test.
+
+Most likely cause: Tailscale access control for the shared user allows web ports but omits 7890. Tailscale's official sharing example grants `autogroup:shared` only ports 80 and 443, exactly matching "web page works, 7890 fails". Also, sharing a machine does not advertise its subnet routes into the recipient's tailnet; external users must be invited into the owner tailnet to use subnet routers. Source: https://tailscale.com/docs/features/sharing
+
+Windows evidence needed: `Test-NetConnection 192.168.31.2 -Port 80`, the same command for port 7890, `route print 192.168.31.2`, and the relevant tailnet `grants`/`acls` entry.
