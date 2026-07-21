@@ -1,67 +1,25 @@
 # ==========================================
-# 🚀 Mihomo 终极配置 · v4.9
-# 🧭 基于 v4.8 + Sparkle GUI 延迟测试直连超时修正
-# 📅 2026-07-06
+# 🚀 Mihomo 配置 · v5.2 · 2026-07-21
 # ==========================================
+# 更新记录
+# v5.2: 完整修复 TUN + Tailscale 共存 (exclude-interface / MagicDNS / 规则)
+# v5.1: 跨平台 TUN 基础层; Tailscale/私网绕过; 删除平台专属 TUN 参数
+# v5.0: 修正 Windows TUN 与 Tailscale 路由、DNS、进程冲突
+# v4.9: 修正 GUI 延迟测试; GeoIP 改用 lite 数据
+# v4.8: Speedtest 优先于 QUIC 阻断并补充测速域名
+# v4.7: 适配 mihomo v1.19.27; 收紧控制器; 优化 geodata/DNS
+# v4.6: Speedtest 改为独立手动出口组; 恢复通用组默认策略
+# v4.4: 安全、健康检查、规则源和海外 QUIC 优化
 #
-# 📌 v4.9 变更 (Sparkle GUI 延迟测试)
+# 平台说明
+# Linux 可本地启用 auto-redirect/gso; Windows 使用客户端覆盖接口名
+# macOS 由客户端分配 utun; iOS/Android 无法同时运行两个独立 VPN
 #
-# 🧪 延迟测试 URL 从 https://www.gstatic.com/generate_204 改为 http://www.gstatic.com/generate_204
-#    实测本机 DIRECT: HTTPS 超时, HTTP 稳定 204 / 80-100ms
-# 🎛️ select 组显式写入 url, 适配 Sparkle delayTestUrlScope: group
-# 🗺️ GeoIP 数据改用 geoip-lite.dat, 当前规则只需 CN/private, 首次下载从 18MB 降到约 200KB
-#
-# 📌 v4.8 变更 (Speedtest 直连超时修正)
-#
-# 🚀 Speedtest 规则提前到海外 QUIC 阻断之前, 避免 UDP/443 先被 REJECT
-# 🧩 补充 speedtestcustom / ookla 关键字 / speed.cloudflare.com 等测速域名直达 speedtest 组
-# ✅ 保持 speedtest 组默认 DIRECT, 需要测代理出口时在本组手动切换
-#
-# 📌 v4.7 变更 (mihomo v1.19.27 适配)
-#
-# 🔒 external-controller 实际回收至 127.0.0.1:9090, 与安全注释保持一致
-# 🌐 geox-url 从 GitHub release 改为 jsDelivr release 分支, 避免 GeoIP.dat 首次下载超时
-# 🧭 find-process-mode 回到 Windows 端更合适的 strict (off 主要推荐路由器场景)
-# 🧩 nameserver-policy 拆分 Tailscale 域名 key, 避免逗号写法误作单个通配模式
-# ℹ️ v1.19.27 新增 empty-fallback 仅支持代理节点名, 当前订阅节点名不稳定, 不强行写入
-#
-# 📌 v4.6 变更 (speedtest 语义修正)
-#
-# 🔧 speedtest 由"全局 url-test 自动组" 改为 "独立 select 测速组":
-#       - 用途: 在 DIRECT / 各代理出口间手动切换, 对比测速
-#       - 默认出口 DIRECT (测真实物理线路)
-#       - 新增 Ookla Speedtest rule-set (fast.com/ooklaserver.net/speedtest 等) 指向本组
-#         → 在组里选什么出口, speedtest.net 实际就走什么, 名副其实
-# ↩️ 还原所有通用组默认出口回 🎯 节点选择 (v4.5 误设为 speedtest 的全部回退):
-#       🎯 节点选择 / 🌍 全球加速 / 🐟 兜底分流 / 🎬 国际媒体 / 🔍 谷歌 / ✈️ 电报 / 📱 社交
-# ✅ 优选链保持不变 (确认无误): 节点选择 → 故障转移(列表顺序兜底) → 地区策略 → 地区自动(url-test 选最快)
-#
-# 🤖 人工智能      → 狮城策略 优先 (保留 v4.5)
-# 🏠 默认直连组    → DIRECT 优先, 仍可手动切节点 (保留 v4.5):
-#       Ⓜ️ 微软 / 🍎 苹果 / 🎮 游戏 / 💳 PayPal / 🪙 加密货币
-#       ⚠️ 加密货币: 多数交易所 (Binance/OKX 等) 被墙, 直连会失败, 需手动切节点
-#
-# 📌 v4.4 变更摘要
-#
-# 🔒 [安全]
-#    🔁 external-controller: 0.0.0.0 → 127.0.0.1 (v4.3 又被回退, 本版加防呆注释锁死)
-#
-# ⚡ [性能]
-#    🧠 geodata-loader → standard (本机非低内存设备, 整库入内存匹配更快)
-#    🌐 规则集 GitHub 源统一换 jsdelivr CDN (CN 直连可达, 规避冷启动竞态)
-#
-# 🧹 [清理 no-op] 删除以下"伪优化" (仅复述官方默认值, 不改变任何行为):
-#    🟡 global-ua          默认即 clash.meta
-#    🟡 etag-support       默认启用
-#    🟡 experimental.quic  默认即 false
-#    🟡 max-failed-times   默认即 5
-#
-# ✅ [保留的真优化] (确实改变行为):
-#    ⏱️ 策略组 timeout + expected-status:204 (与 generate_204 校验对齐)
-#    🧩 direct-nameserver-follow-policy: true (DIRECT 解析也遵守 nameserver-policy)
-#    🛰️ rule-providers proxy: 🎯 节点选择 (GitHub 类源走代理下载)
-#    🚫 海外 QUIC 拦截 (UDP/443 且 NOT CN → REJECT, 强制 TCP 回退)
-#    🩹 prefer-h3: false (与 QUIC 拦截自洽)
+# Tailscale 共存要点
+# 1) 先连 Tailscale，再开 Mihomo TUN
+# 2) Windows 网卡名一般为 Tailscale；Linux 为 tailscale0
+# 3) 若 MagicDNS 仍异常: tailscale up --accept-dns=false
+# 4) Linux 若 auto-detect 误选网卡，顶层加 interface-name: eth0 并关 auto-detect-interface
 #
 # ==========================================
 # 🏗️ 设计原则
@@ -240,6 +198,9 @@ tcp-concurrent: true
 log-level: warning
 find-process-mode: strict
 
+# Linux 若 auto-detect 误选 Tailscale 相关路径，取消下一行注释并改成真实物理网卡
+# interface-name: eth0
+
 keep-alive-interval: 30
 keep-alive-idle: 600
 
@@ -278,6 +239,8 @@ sniffer:
   override-destination: true
   skip-dst-address:
     - 100.64.0.0/10
+    - 100.100.100.100/32
+    - fd7a:115c:a1e0::/48
   sniff:
     HTTP:
       ports: [80, 8080, 8443, 8888]
@@ -295,30 +258,36 @@ sniffer:
   skip-domain:
     - "Mijia Cloud"
     - "+.push.apple.com"
+    - "+.ts.net"
+    - "+.tailscale.com"
+    - "+.tailscale.io"
 
-# 🧱 ============================= TUN 配置 =============================
+# 🧱 ============================= TUN 配置 (Tailscale 共存) =============================
 tun:
   enable: true
   stack: mixed
-  device: Mihomo
   auto-route: true
-  auto-redirect: true
   auto-detect-interface: true
-  strict-route: true
+  strict-route: false
   dns-hijack:
     - any:53
     - tcp://any:53
-  mtu: 1500
-  gso: true
-  gso-max-size: 65536
   udp-timeout: 300
-  route-exclude-address:
-    - 100.64.0.0/10
-  # 仅排除 Tailscale 相关接口
+  # 排除 Tailscale 虚拟网卡（与 include-interface 互斥，只能二选一）
   exclude-interface:
-    - tailscale0
-    - "Tailscale*"
-    - utun0
+    - Tailscale # Windows
+    - tailscale0 # Linux
+    # macOS 多为 utunX，用 ifconfig / 网络面板确认后自行添加
+  route-exclude-address:
+    - 10.0.0.0/8
+    - 100.64.0.0/10
+    - 100.100.100.100/32
+    - 169.254.0.0/16
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - fd7a:115c:a1e0::/48
+    - fc00::/7
+    - fe80::/10
 
 # 🌐 ============================= DNS 配置 =============================
 dns:
@@ -326,8 +295,8 @@ dns:
   ipv6: false
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
-  respect-rules: true
-  prefer-h3: false
+  respect-rules: true # ≈ encrypted-dns-follow-outbound-mode = true
+  prefer-h3: false # 与 respect-rules 同时开官方不推荐
   use-hosts: true
   use-system-hosts: true
   cache-algorithm: arc
@@ -346,8 +315,15 @@ dns:
     - "*.battlenet.com"
     - "*.blzstatic.cn"
     - "*.battle.net"
+    # Tailscale / MagicDNS
     - "*.ts.net"
+    - "+.ts.net"
     - "tailscale.com"
+    - "+.tailscale.com"
+    - "+.tailscale.io"
+    - "controlplane.tailscale.com"
+    - "log.tailscale.com"
+    - "login.tailscale.com"
     - "+.local"
     - "+.home.arpa"
     - "time.*.com"
@@ -363,35 +339,52 @@ dns:
     - "+.stun.playstation.net"
     - "+.stun.xboxlive.com"
 
-  proxy-server-nameserver:
-    - https://1.1.1.1/dns-query
-    - https://8.8.8.8/dns-query
-    - https://dns.alidns.com/dns-query
-    - https://doh.pub/dns-query
-
+  # ≈ Surge dns-server：只做 bootstrap / 连通，必须是 IP（或可达加密 DNS）
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
 
+  # 解析代理节点域名：优先国内 DoH，稳定、不依赖节点
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+    - https://1.1.1.1/dns-query
+
+  # 国际加密 DNS（走节点）≈ Surge 列表中的 1.1.1.1 + AdGuard
+  # #🎯 节点选择 ≈ encrypted-dns-follow-outbound-mode 生效后的代理出站
   nameserver:
     - "https://1.1.1.1/dns-query#🎯 节点选择"
-    - "https://8.8.8.8/dns-query#🎯 节点选择"
-    - "https://9.9.9.9/dns-query#🎯 节点选择"
+    - "https://dns.adguard-dns.com/dns-query#🎯 节点选择"
+    - "quic://dns.adguard-dns.com#🎯 节点选择"
 
+  # 直连域名用的加密 DNS ≈ Surge 列表中的阿里 / DNSPod
   direct-nameserver:
     - https://dns.alidns.com/dns-query
     - https://doh.pub/dns-query
   direct-nameserver-follow-policy: true
 
   nameserver-policy:
-    "+.ts.net": system
-    "tailscale.com": system
+    # Tailscale MagicDNS（保持）
+    "+.ts.net":
+      - 100.100.100.100
+    "tailscale.com":
+      - 100.100.100.100
+      - system
+    "+.tailscale.com":
+      - 100.100.100.100
+      - system
+    "+.tailscale.io":
+      - system
+
+    # 国内 / 私有：强制国内加密 DNS（直连）
     "geosite:cn,private":
       - https://dns.alidns.com/dns-query
       - https://doh.pub/dns-query
+
+    # 常见国际站：强制国际加密 DNS 走节点
     "geosite:google,youtube,telegram,twitter":
-      - "https://8.8.8.8/dns-query#🎯 节点选择"
       - "https://1.1.1.1/dns-query#🎯 节点选择"
+      - "https://dns.adguard-dns.com/dns-query#🎯 节点选择"
 
 # 📡 ============================= 代理提供者 =============================
 proxy-providers:
@@ -989,16 +982,27 @@ rule-providers:
 
 # 🧭 ============================= 分流规则 =============================
 rules:
-  # 🔌 ===== 1. 网络基础设施直连 =====
+  # 🔌 ===== 1. Tailscale / 私网 / 基础设施 =====
+  - PROCESS-NAME,tailscaled.exe,DIRECT
+  - PROCESS-NAME,tailscale-ipn.exe,DIRECT
+  - PROCESS-NAME,tailscale.exe,DIRECT
+  - PROCESS-NAME,tailscaled,DIRECT
+  - PROCESS-NAME,tailscale,DIRECT
+  - PROCESS-NAME,Tailscale,DIRECT
+  - IP-CIDR,100.100.100.100/32,DIRECT,no-resolve
   - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
-  - IP-CIDR,192.168.31.0/24,DIRECT,no-resolve
-  - IP-CIDR,47.80.24.122/32,DIRECT,no-resolve
+  - IP-CIDR6,fd7a:115c:a1e0::/48,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
   - DOMAIN-SUFFIX,ts.net,DIRECT
+  - DOMAIN-SUFFIX,tailscale.com,DIRECT
+  - DOMAIN-SUFFIX,tailscale.io,DIRECT
   - DOMAIN-KEYWORD,tailscale,DIRECT
   - RULE-SET,lan_non_ip,DIRECT
   - RULE-SET,lan_ip,DIRECT
 
-  # 🚀 ===== 1b. Ookla / Speedtest 先匹配, 避免被 QUIC 阻断或兜底分流截走 =====
+  # 🚀 ===== 1b. Ookla / Speedtest =====
   - DOMAIN-SUFFIX,speedtest.net,speedtest
   - DOMAIN-SUFFIX,speedtestcustom.com,speedtest
   - DOMAIN-SUFFIX,ooklaserver.net,speedtest
@@ -1008,15 +1012,31 @@ rules:
   - DOMAIN-KEYWORD,ookla,speedtest
   - RULE-SET,Speedtest,speedtest
 
-  # 🚫 ===== 1c. 阻断海外 QUIC (强制 TCP/443 回退) =====
+  # 🚫 ===== 1c. 阻断海外 QUIC =====
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
 
-  # 🛡️ ===== 2. DNS 服务器走代理 =====
-  - IP-CIDR,8.8.8.8/32,🎯 节点选择,no-resolve
-  - IP-CIDR,8.8.4.4/32,🎯 节点选择,no-resolve
+  # 🛡️ ===== 2. 加密 DNS 出站 =====
+  # 国内 DoH → DIRECT
+  - DOMAIN-SUFFIX,alidns.com,DIRECT
+  - DOMAIN-SUFFIX,doh.pub,DIRECT
+  - DOMAIN-SUFFIX,dns.pub,DIRECT
+  - IP-CIDR,223.5.5.5/32,DIRECT,no-resolve
+  - IP-CIDR,223.6.6.6/32,DIRECT,no-resolve
+  - IP-CIDR,1.12.12.12/32,DIRECT,no-resolve
+  - IP-CIDR,120.53.53.53/32,DIRECT,no-resolve
+
+  # 国际 DoH / DoQ → 节点
+  - DOMAIN-SUFFIX,adguard-dns.com,🎯 节点选择
+  - DOMAIN-SUFFIX,adguard.com,🎯 节点选择
+  - DOMAIN-SUFFIX,cloudflare-dns.com,🎯 节点选择
   - IP-CIDR,1.1.1.1/32,🎯 节点选择,no-resolve
   - IP-CIDR,1.0.0.1/32,🎯 节点选择,no-resolve
+  - IP-CIDR,8.8.8.8/32,🎯 节点选择,no-resolve
+  - IP-CIDR,8.8.4.4/32,🎯 节点选择,no-resolve
   - IP-CIDR,9.9.9.9/32,🎯 节点选择,no-resolve
+  # AdGuard 常见 Anycast
+  - IP-CIDR,94.140.14.14/32,🎯 节点选择,no-resolve
+  - IP-CIDR,94.140.15.15/32,🎯 节点选择,no-resolve
 
   # 🏠 ===== 3. 用户自定义直连 =====
   - DOMAIN-SUFFIX,juejin.cn,DIRECT
@@ -1040,6 +1060,7 @@ rules:
   - DOMAIN-SUFFIX,makerworld.com,🌍 全球加速
   - DOMAIN-SUFFIX,openlist.team,🌍 全球加速
   - DOMAIN-SUFFIX,qinzhiai.com,🌍 全球加速
+  - DOMAIN-SUFFIX,biubiusub001.top,🌍 全球加速
 
   # 🛑 ===== 5. 广告拦截 (按需启用) =====
   # - RULE-SET,reject_non_ip,REJECT
@@ -1071,7 +1092,7 @@ rules:
   - RULE-SET,Copilot,🤖 人工智能
 
   # 📱 ===== 7. 社交媒体 =====
-  # X / Twitter / Grok /Discord
+  # X / Twitter / Grok / Discord
   - RULE-SET,Twitter,📱 社交媒体
   - RULE-SET,ai_non_ip,🤖 人工智能
   - RULE-SET,Discord,📱 社交媒体
