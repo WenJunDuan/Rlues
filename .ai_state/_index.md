@@ -4,17 +4,17 @@
 version: "9.9.3"
 
 # === PACE 路由状态 ===
-path: ""                        # idle: 9.9.3 release_complete, 无进行中 sprint (P8 idle 态)
-stage: ""                        # idle
-current_sprint_slug: ""          # 上一 sprint: 2026-07-14-athena-9-9-3-review-fixes (expedited ship)
-current_roadmap_slug: ""  # 仅 roadmap stage 期间填
+path: "System"                  # 9.9.6 双端提示词工程与状态架构升级
+stage: "roadmap"                # 先调研并拆分版本更新项，不进入实现
+current_sprint_slug: "2026-07-25-athena-9-9-6-prompt-engineering"
+current_roadmap_slug: "athena-9-9-6-prompt-engineering"
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.0) ===
-route_confidence: 0.99             # 0-1, 入口路由审议置信度 (主 agent 审议 Step 3 写)
-route_history: ["2026-07-07 System: F1 orchestrator framework design (fullstack-delivery roadmap 首片, 档案由 quantum session 移交)", "2026-07-10 System: Athena 9.9.1 compatibility release from 9.9.0 baseline", "2026-07-10 System: CC 9.9.1 redesign from CC 9.9.0 baseline, awaiting Fable5 review", "2026-07-10 System: user approved impl-first flow; Fable5 post-implementation review remains mandatory", "2026-07-13 System: user-approved Athena 9.9.2 overall architecture upgrade; four primitives + spec-gate + two-tier memory are mandatory", "2026-07-14 System: repair Athena 9.9.3 review findings, full regression, formal review, merge and publish"]  # re-route 记录
+route_confidence: 0.97             # 0-1, 入口路由审议置信度 (主 agent 审议 Step 3 写)
+route_history: ["2026-07-07 System: F1 orchestrator framework design (fullstack-delivery roadmap 首片, 档案由 quantum session 移交)", "2026-07-10 System: Athena 9.9.1 compatibility release from 9.9.0 baseline", "2026-07-10 System: CC 9.9.1 redesign from CC 9.9.0 baseline, awaiting Fable5 review", "2026-07-10 System: user approved impl-first flow; Fable5 post-implementation review remains mandatory", "2026-07-13 System: user-approved Athena 9.9.2 overall architecture upgrade; four primitives + spec-gate + two-tier memory are mandatory", "2026-07-14 System: repair Athena 9.9.3 review findings, full regression, formal review, merge and publish", "2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex"]  # re-route 记录
 plan_model: "fable"                    # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
@@ -55,7 +55,7 @@ counts:
   features_count: 5
   issues_count: 0
   refactors_count: 1
-  systems_count: 8
+  systems_count: 9
   requirements_count: 1
   reviews_count: 17
   cleanup_count: 6
@@ -63,25 +63,25 @@ counts:
     learning: 4
     trick: 0
     decision: 3
-    explore: 0
+    explore: 1
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: "sprints/2026-07-14-athena-9-9-3-review-fixes/design.md"
+  latest_design: "sprints/2026-07-25-athena-9-9-6-prompt-engineering/design.md"
   latest_review: "sprints/2026-07-14-athena-9-9-3-review-fixes/reviews/pass1.md"
   latest_cleanup: "sprints/2026-07-14-athena-9-9-3-review-fixes/cleanup-pass.md"
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-14T05:45:11.915913Z"
+  latest_architecture_update: "2026-07-25T01:42:57Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "release_complete"  # 9.9.3 verified and user-directed expedited ship
+next_action: ""  # 等待用户确认 roadmap；确认后由主 agent 进入 item 2 plan/design
 last_subagent: "generator"
 last_subagent_at: "2026-07-10T08:53:02.056859Z"
 active_worktrees: []
-last_critic_round: 2              # 当前 sprint critic 轮次
+last_critic_round: 0              # 当前研究版 design 尚未通过独立 critic gate
 design_changed_after_impl: false  # 4b67f82 按最终 design/pass3 findings 完成；之后未再改设计
 
 # === 用户偏好 ===
@@ -106,6 +106,7 @@ fingerprint: ""
 
 [由主 agent 在 stage 切换时简短追加]
 
+- `2026-07-25`: **9.9.6 调研与 roadmap 草案完成，等待用户确认**。已形成官方/外部 source map、9.9.3 现状审计、6-item roadmap、研究版 design 与更新计划；确认前不进入实现。关键现状 P0：CC 全局 subagent model 覆盖角色配置、Opus pin 停在 4.8、API timeout 仅 30s；CX 空 custom provider 与 1M/900k 手工元数据回归。
 - `2026-07-14`: **9.9.3 发布收口** (`b88f615`)。review-fixes 修 6 项 finding (CX breadcrumb canonical 路径 / evaluator over-eng 语义 / M5 双端产物 / validator 基线 / 行数预算 / 发布卫生)；CX 67/67、CC 107/107、validator 223/223；pass1=PASS，2+1 闭环 (Claude 构建 → Codex 审修 → Claude 复核)。
 - `2026-07-14`: housekeeping — 删 9.9.1 harness 三件 + fixtures (N-1 保留策略)；清 15 个已 ship sprint 的 token-usage.yaml/tool-trace.jsonl 遥测 (5.6M→672K, git 历史可回溯)；_index schema 标识刷 9.9.3。
 - `2026-07-14`: pass3 阻塞修复已合入 main (`4b67f82`)；临时 worktree/分支已清理。用户明确要求不再跑测试并直接发布；保留已有验证证据，不声称新增 post-fix validator PASS。

@@ -1,0 +1,54 @@
+roadmap_slug: "athena-9-9-6-prompt-engineering"
+created: "2026-07-25"
+total_items: 6
+items:
+  - slug: "research-and-audit"
+    title: "官方/外部调研与 9.9.3 现状审计"
+    status: completed
+    sprint_slug: "2026-07-25-athena-9-9-6-prompt-engineering"
+    blocked_by: []
+    estimated_complexity: M
+    notes: "研究与本地审计已落盘；未修改 9.9.3 package。"
+
+  - slug: "shared-kernel-and-evals"
+    title: "共享语义核、skill catalog 与 prompt eval baseline"
+    status: pending
+    sprint_slug: ""
+    blocked_by: ["research-and-audit"]
+    estimated_complexity: XL
+    notes: "先验证 subagent binding，再完成正式两轮 critic；无 baseline 不删 prompt。"
+
+  - slug: "claude-opus5-adapter"
+    title: "Claude Code 2.1.219 / Opus 5 配置与角色 adapter"
+    status: pending
+    sprint_slug: ""
+    blocked_by: ["shared-kernel-and-evals"]
+    estimated_complexity: L
+    notes: "独立 worktree；删除 stale model/global override/default feature 配置。"
+
+  - slug: "codex-gpt56-adapter"
+    title: "Codex 0.144.4 / GPT-5.6 配置与角色 adapter"
+    status: pending
+    sprint_slug: ""
+    blocked_by: ["shared-kernel-and-evals"]
+    estimated_complexity: L
+    notes: "独立 worktree；built-in provider、正式 agents 字段、移除默认 features/skill 注册。"
+
+  - slug: "skills-pace-state-convergence"
+    title: "skills / PACE / .ai_state 提炼与迁移"
+    status: pending
+    sprint_slug: ""
+    blocked_by: ["shared-kernel-and-evals"]
+    estimated_complexity: XL
+    notes: "共享面单写者；trigger-only catalog、state budget、consumer migration。"
+
+  - slug: "integration-release"
+    title: "双端集成、迁移、runtime、review、polish 与发布"
+    status: pending
+    sprint_slug: ""
+    blocked_by:
+      - "claude-opus5-adapter"
+      - "codex-gpt56-adapter"
+      - "skills-pace-state-convergence"
+    estimated_complexity: XL
+    notes: "exact stable versions；prompt A/B；2+1 review；architecture/compound；ship gate。"

@@ -1,6 +1,6 @@
 ---
-last_updated: "2026-07-14"
-triggered_by_sprint: "2026-07-14-athena-9-9-3-review-fixes"
+last_updated: "2026-07-25"
+triggered_by_sprint: "2026-07-25-athena-9-9-6-prompt-engineering"
 state: "current"
 ---
 
@@ -8,7 +8,7 @@ state: "current"
 
 ## 一句话
 
-Rlues stores immutable versioned Athena/VibeCoding distribution packages for Claude Code and Codex. `vibeCoding/{claude,codex}/9.9.3` is the current release source (see `architecture/athena-9.9.3.md`); 9.9.2 is the immutable upgrade baseline, and installed user-level configs are downstream artifacts.
+Rlues stores immutable versioned Athena/VibeCoding distribution packages for Claude Code and Codex. `vibeCoding/{claude,codex}/9.9.3` is the current release source (see `architecture/athena-9.9.3.md`); 9.9.2 is the immutable upgrade baseline, installed user-level configs are downstream artifacts, and planned releases live in roadmap/sprint design documents rather than this current-state index.
 
 9.9.2 的发布完整性由双端 delivery-gate 机械保证：逐 AC 可采信 PASS evidence、TDD red→green、结构化用户授权、review manifest/hash、实现工作树漂移检查与 PASS-only final review。Tier2 `.ai_state` 通过 `_index` 四个权威 pointer 与有界恢复历史提供跨会话检索。
 
@@ -48,7 +48,7 @@ graph TD
 
 | 子系统 | 档案 | 一句话描述 |
 |---|---|---|
-| Athena 9.9.3 current architecture | `athena-9.9.3.md` | Canonical stage breadcrumb, anti-overengineering policy and 9.9.2 baseline validator |
+| Athena 9.9.3 current architecture | `athena-9.9.3.md` | Current prompt/config/skill/hook topology, validation baseline and audited platform drift |
 | Athena 9.9.2 current architecture | `athena-9.9.2.md` | Dual core, four primitives, spec-gate, two-tier memory, quantum 7→2 and AI-guided migration |
 | Athena delivery package history | `lib-athena-delivery-pack.md` | 9.9.1 baseline and prior transactional release mechanics |
 
