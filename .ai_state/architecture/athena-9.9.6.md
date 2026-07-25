@@ -112,7 +112,7 @@ python3 vibeCoding/scripts/validate-athena-9.9.6.py     # 76 断言, 0 FAIL (loc
 ## 未决与风险
 
 1. **无 runtime 验证** —— 未在真机 CC 2.1.219 / Codex 0.145.0 上装过、跑过完整 PACE 流程。这是最大风险面。
-2. Codex 0.145 MultiAgent V2 的 `spawn_agent` handler 不派发 PreToolUse；已删除无效 Hook，CX pre-spawn worktree 约束只能由 PACE 编排和事后证据承担。
+2. **CX 红区 worktree 只有审计、没有门禁。** Codex 0.145 MultiAgent V2 的 `spawn_agent` handler 不派发 `PreToolUse`，故不注册该 matcher（死分支）。改用 `subagent-worktree-audit.py` 挂 `SubagentStart` 事后检测 + 落 `worktree-violations.jsonl`；CC 端仍为 `PreToolUse(Agent)` 真阻断。剩余缺口：违规记录未接入 ship 门禁。
 3. 模型实调仍受阻：CC CLI 未登录；Terra 在账户目录可见，但直连和本地代理均因 TLS handshake EOF 未完成请求。
 4. 无 A/B eval，无 migration/rollback fixture，无 N≥3 统计。
 5. **并行写者风险已实证**：本次迭代中另一会话多次覆盖 `settings.json` / `config.toml`；旧 validator 还曾把错误合同硬编码为 PASS。当前已确认单一写者并把用户最终合同写入 validator。

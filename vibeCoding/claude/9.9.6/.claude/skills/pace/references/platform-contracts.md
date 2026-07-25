@@ -20,7 +20,8 @@ every prompt and does not create a shared contract or capability state tree.
 
 ## User-owned configuration
 
-Fresh-install permission mode is `default`. Upgrade logic must preserve
+Fresh-install permission mode is `default`; Claude Code 2.1.200+ also accepts
+`manual` as an alias for `default`. Upgrade logic must preserve
 an installed user's permission mode, allow/deny policy, credentials, plugins,
 and other user preferences. The adapter keeps its worktree, required hooks, and
 plugin declarations. It ships `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` as
@@ -40,6 +41,10 @@ manufacture symmetry. PACE policy aligns outcomes only.
 Hooks may enforce only observable host events. Spec and delivery contract read
 failures remain fail-closed; startup, breadcrumb, and restore diagnostics may
 fail open as specified by PACE.
+
+The canonical 2+1 review starts reviewer and spec-compliance as foreground
+tasks, collects both returns, writes passN, and only then starts evaluator.
+Those two agent definitions must not force `background: true`.
 
 ## Deferred release proof
 

@@ -9,9 +9,9 @@ shared contract, runtime capability schema, or second state tree.
 - `model_provider = "openai"` selects Codex's built-in provider.
 - `model = "gpt-5.6-sol"` is the release model selection.
 - ChatGPT login and OpenAI API keys use the built-in provider.
-- The fresh template exposes `openai_base_url=https://api.openai.com/v1` for
-  direct API use and as the replaceable proxy entry. Migration preserves an
-  existing gateway; the release tree never stores credentials.
+- The fresh template omits `openai_base_url`, allowing the built-in provider to
+  select its official endpoint. Migration preserves an existing non-empty
+  gateway/base URL; the release tree never stores credentials or an empty URL.
 
 WSL acknowledgement, `[desktop]`, plugins, `approval_policy`, `sandbox_mode`,
 and `web_search` remain explicit user-surface defaults in the adapter and must
@@ -33,6 +33,19 @@ V1-only `max_depth` and compatibility `job_max_runtime_seconds` are not V2
 gates. Athena nesting remains a policy and runtime-test responsibility through
 PACE orchestration and the spawn-binding handshake.
 
+Codex 0.145 function-tool hooks expose `spawn_agent` to PreToolUse and also
+match it as `Agent`. Athena uses that native path for the red-zone worktree
+pre-check, with SubagentStart audit evidence as defense in depth.
+
+## GPT-5.6 gateway risk
+
+openai/codex#31882 reproduces Responses-Lite and collaboration-tool 400 errors
+with GPT-5.6 Sol on Azure OpenAI using Codex 0.144.0. The issue is still an
+upstream report, not proof that every custom `openai_base_url` fails. Exact
+0.145.0 dogfood must cover the configured gateway, and Sol's `code_mode_only`
+path must prove Bash/apply_patch hook dispatch before release. Until then,
+gateway users should use a provider/model combination their endpoint supports.
+
 ## Native execution boundaries
 
 Codex agents, tools, hooks, plugins, login surfaces, and sandbox semantics are
@@ -49,3 +62,5 @@ does not claim that proof exists.
 Official reference:
 
 - https://developers.openai.com/codex/config-reference/
+- https://learn.chatgpt.com/docs/hooks
+- https://github.com/openai/codex/issues/31882

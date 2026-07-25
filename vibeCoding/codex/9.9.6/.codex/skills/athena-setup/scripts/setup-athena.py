@@ -10,9 +10,26 @@ import os
 from pathlib import Path
 import shutil
 import stat
-import sys
 import tempfile
-import tomllib
+import sys
+
+if sys.version_info < (3, 9):
+    raise SystemExit(
+        f"Athena setup 需要 Python 3.9+, 当前 {sys.version.split()[0]}。\n"
+        "macOS 自带 python3 常为 3.9 以下, 请用 `brew install python@3.12` 后重试, "
+        "或显式指定解释器: python3.12 setup-athena.py ..."
+    )
+
+try:  # Python 3.11+
+    import tomllib
+except ModuleNotFoundError:  # 3.9 / 3.10 回退
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        raise SystemExit(
+            "缺少 TOML 解析器。Python 3.11+ 自带 tomllib; 3.9/3.10 请先 `pip install tomli`。\n"
+            "Athena 用它校验 config.toml, 跳过校验会让坏配置直接落到 ~/.codex/。"
+        )
 
 
 VERSION = "9.9.6"
@@ -283,19 +300,10 @@ def verify_same(package: Path, kind: str, home: Path) -> bool:
         if kind == "cx":
             data = tomllib.loads(config.read_text(encoding="utf-8"))
             entries = data.get("skills", {}).get("config", [])
-            expected_names = {
-                path.name for path in (package / "skills").iterdir() if path.is_dir()
-            }
-            configured_names: set[str] = set()
-            for item in entries:
-                path = str(item.get("path", ""))
-                name = Path(path).parent.name if path.endswith("/SKILL.md") else ""
-                if name in expected_names:
-                    configured_names.add(name)
-                if "/.codex/skills/" in path or not path.endswith("/SKILL.md"):
-                    drifted.append(config)
-                    break
-            if configured_names != expected_names:
+            # 9.9.6 installs skills under ~/.agents/skills, which Codex discovers
+            # natively. Re-introducing 26 explicit skills.config entries is stale
+            # registration noise and would contradict the release contract.
+            if entries:
                 drifted.append(config)
     except (OSError, ValueError, tomllib.TOMLDecodeError):
         drifted.append(config)

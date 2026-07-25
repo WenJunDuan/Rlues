@@ -32,9 +32,9 @@ restored; Tool Search remains on by platform default. The local proxy overlay is
 opt-in. Existing user permission and gateway choices win during migration.
 
 Codex uses the built-in `openai` provider and `gpt-5.6-sol`. ChatGPT login and
-OpenAI API keys use that provider. The fresh template exposes
-`openai_base_url=https://api.openai.com/v1`; migration preserves an existing
-gateway and never copies credentials.
+OpenAI API keys use that provider. The fresh template omits `openai_base_url`
+so the built-in provider selects its official endpoint; migration preserves an
+existing non-empty gateway/base URL and never copies credentials.
 
 ## Rollback
 

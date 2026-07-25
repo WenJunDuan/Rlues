@@ -10,7 +10,6 @@ permissionMode: plan
 tools: [Read, Grep, Glob, Bash]
 disallowedTools: [Write, Edit, Agent]
 maxTurns: 30
-background: true
 skills: [athena-review]
 ---
 
@@ -101,7 +100,7 @@ skills: [athena-review]
 review stage 分两步:
   - reviewer (看代码质量: bug / security / test / quality)
   - spec-compliance (看 design 覆盖: MISSING / EXTRA / DEVIATED)
-  - 主 agent 合并前两份结果到 pass1.md 后, evaluator 再综合给 VERDICT
+  - 两个 agent 均以前台任务返回；主 agent 收齐并合并到 pass1.md 后, evaluator 再综合给 VERDICT
 ```
 
 三家返回结果由主 agent 串行汇总到数字最大的 `reviews/passN.md`, 用 `##` 段分隔.

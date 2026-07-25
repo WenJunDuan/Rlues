@@ -26,7 +26,6 @@ PACE 到 impl 为止, review 三件套 + 单测只验证 **"我们想的问题�
 > 不在小改动上强制 (铁律[反过度工程]). 单测能覆盖的别上 /goal, 杀鸡用牛刀。
 
 ## VERDICT: PASS | REWORK(回 impl)
-```
 
 ## 不做
 

@@ -76,13 +76,15 @@ VERDICT: PASS|CONCERNS|REWORK|FAIL  (纯文本, 不加粗; delivery-gate 按此�
 
 ## VERDICT 决策规则
 
+按下表自上而下判定；多条同时命中时始终取最严结果。已修复并有证据关闭的 finding 不再计入未解决数量。
+
 | 触发条件 | VERDICT |
 |---|---|
 | 任一 P0 未修 | FAIL |
 | ≥ 1 P0 但已确认会修 | REWORK |
-| ≥ 3 P1 或 Sisyphus 不完整 | CONCERNS |
 | done_without_evidence ≥ 1 | CONCERNS (不得 ship) |
 | unresolved_over_engineering ≥ 1 (including exactly 1 or 2) | CONCERNS (不得 ship) |
+| ≥ 3 P1 或 Sisyphus 不完整 | CONCERNS |
 | < 3 P1 + 仅 P2/INFO | PASS |
 
 `unresolved_over_engineering` 指 reviewer 已指出、但本轮尚未删除、证明必要性或获明确 defer 的过度工程 finding。即使只有 1 或 2 个 unresolved finding, VERDICT 也不得为 PASS, 上限为 CONCERNS。resolved over-engineering does not independently cap or trigger VERDICT; 已关闭项只记录关闭证据, 不重复计数。其他 over-engineering findings 仍按严重度正常计入; "多写的防御/抽象"不是加分项。

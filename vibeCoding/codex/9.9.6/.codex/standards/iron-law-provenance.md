@@ -18,6 +18,7 @@ note: "冷路径, 不自动注入。要判断某条铁律能不能动时 Read �
 | [证据与出处] | Codex 侧 wire evidence 缺失时被当作通过, 需改 fail-closed | `compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md` |
 | [复利颗粒化] | 经验写成长文档后无人回读, 一事一档才被复用 | `compound/README.md` |
 | [反过度工程] | v9.7 一次调研产出 24 个文件, 无痛点数据支撑, 被自己否决 | 9.9.3 CHANGELOG "Anti-Overengineering" |
+| [Standards ≠ Codex .rules] | 曾把用户工程规范与 Starlark 命令权限文件混为一谈，导致规范被写进不会注入 prompt 的权限层 | 9.9.6 `AGENTS.md` 平台边界审计 |
 | [Hook 是进化器] | 规训写在 prompt 里会被模型自行权衡掉, 机械规则必须落 hook | `compound/2026-07-08-learning-hook-order-and-worktree-counts.md` |
 | [四原语] | CC/CX 伪造对称工具名, 产生永不触发的死分支 | 9.9.6 review: CX matcher 曾含 `MultiEdit` (Codex 无此工具名) |
 

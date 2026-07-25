@@ -20,6 +20,10 @@ description: impl 之后的运行时验证环。System/Refactor 强制；需要�
 - 不从本地文件猜账号、密码、cookie 或 token
 - 不用人工描述代替可复跑证据
 
+## 循环载体
+
+用官方 `/goal` 承载 (Codex 自 rust-v0.133.0 起 default-on)，不自造循环。
+
 ## 详细 playbook
 
 完整工作流、模板、schema 与联动细节见 `references/playbook.md` —— 按需 Read, 不进热路径。

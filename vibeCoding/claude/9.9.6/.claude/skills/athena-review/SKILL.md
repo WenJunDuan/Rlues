@@ -11,9 +11,9 @@ impl 完成、checklist 全绿、测试通过; Refactor/System 还须先完成 r
 
 ## 工作流 (2 + 1)
 
-1. 主 agent 用 CC 当前 subagent 机制并行运行 reviewer 与 spec-compliance.
+1. 主 agent 用 CC 当前 subagent 机制并行启动 reviewer 与 spec-compliance，并要求两者以前台任务返回；agent frontmatter 不得强制 `background: true`.
 2. 两个 read-only agent 只返回完整 markdown 段, 不创建或修改文件.
-3. 主 agent 收齐结果, 串行写入 `sprints/{current_sprint_slug}/reviews/passN.md`.
+3. 主 agent 等待并收齐两份结果后, 串行写入 `sprints/{current_sprint_slug}/reviews/passN.md`.
 4. 主 agent 再运行 evaluator; evaluator 读取已合并的 passN.md、design、checklist 与 evidence, 返回 Evidence Cross-Check + VERDICT.
 5. 主 agent 追加 evaluator 结果并更新 `_index.next_action`.
 

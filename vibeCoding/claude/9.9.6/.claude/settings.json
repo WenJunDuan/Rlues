@@ -10,7 +10,9 @@
     "VIBECODING_ATHENA_VERSION": "9.9.6",
     "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0"
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "DISABLE_INSTALLATION_CHECKS": "1",
+    "API_TIMEOUT_MS": "600000"
   },
   "permissions": {
     "defaultMode": "default",
@@ -34,8 +36,10 @@
       "Bash(pnpm run lint*)",
       "Bash(yarn test*)",
       "Bash(bun test*)",
-      "Bash(npx playwright*)",
-      "Bash(npx ecc-agentshield*)",
+      "Bash(npx playwright)",
+      "Bash(npx playwright *)",
+      "Bash(npx ecc-agentshield)",
+      "Bash(npx ecc-agentshield *)",
       "Bash(node --check*)",
       "Bash(python3 -m pytest*)",
       "Bash(python3 -m unittest*)",
@@ -60,6 +64,16 @@
       "Bash(tsc --noEmit*)"
     ],
     "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gcloud/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/credentials.json)",
       "Bash(rm -rf /)",
       "Bash(rm -rf ~)",
       "Bash(rm -rf $HOME*)",
@@ -321,7 +335,7 @@
   "enabledPlugins": {
     "superpowers@anthropic-official": false,
     "code-review@anthropic-official": true,
-    "feature-dev@anthropic-official": true,
+    "feature-dev@anthropic-official": false,
     "commit@anthropic-official": true,
     "playwright-skill@anthropic-official": true,
     "context7@anthropic-official": true,

@@ -10,7 +10,6 @@ permissionMode: plan
 tools: [Read, Grep, Glob, Bash]
 disallowedTools: [Write, Edit, Agent]
 maxTurns: 30
-background: true
 skills: [athena-review]
 ---
 
@@ -74,7 +73,7 @@ skills: [athena-review]
 4. Read 关键变更文件 (Grep 找新增 export / 危险 API 使用)
 5. Read `rules/coding-standards.md`, `rules/security-checklist.md` (规范对照)
 6. 返回 finding 列表; 不写文件
-7. 与同轮 spec-compliance 并行独立返回; 不读取或合并对方结果
+7. 与同轮 spec-compliance 并行独立返回; 不读取或合并对方结果。主 agent 必须在前台收齐两份返回后才启动 evaluator
 8. 完成后**不要**写 VERDICT, 那是主 agent 合并 passN.md 后串行启动的 evaluator 工作
 
 ## 约束

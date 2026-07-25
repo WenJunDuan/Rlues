@@ -1,6 +1,6 @@
 # Athena Codex 9.9.6 — DRAFT
 
-Status: reviewable draft; **not released**. 结构与预算已由本地 `scripts/validate-athena-9.9.6.py` 校验 (76 PASS / 0 FAIL); runtime 验证未做。
+Status: reviewable draft; **not released**. 修复后本地 validator **63 PASS / 0 FAIL / 0 SKIP**；完整 runtime-verify 尚未执行。
 
 Baseline: 不可变的 `vibeCoding/{claude,codex}/9.9.3`。9.9.6 是完整 fork。
 
@@ -11,7 +11,7 @@ Baseline: 不可变的 `vibeCoding/{claude,codex}/9.9.3`。9.9.6 是完整 fork�
 - 删除 dated Opus/Sonnet pin 与旧 Sonnet 全局 subagent override；保留 root `effortLevel=xhigh`、Fable 5 pin、privacy/attribution/installation-check，并把 API timeout 更新为 600 秒。Tool Search 默认已开，不重复配置。
 - `settings.proxy.json` 提供 `127.0.0.1:6152/6153` 本地代理 overlay，默认不加载；用 `claude --settings ~/.claude/settings.proxy.json` 显式启用。
 - 保留 `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` 作为隐私保守默认；迁移保留用户现值。
-- `permissions.defaultMode` 维持 `default`。官方 JSON schema 枚举为 `acceptEdits/bypassPermissions/default/delegate/dontAsk/plan/auto` —— **无 `manual`**，2.1.200 改的是 UI 显示名。
+- `permissions.defaultMode` 维持规范值 `default`；Claude Code 2.1.200+ 也接受 `manual` 作为 `default` alias，迁移须保留用户现值。
 - Codex 用内置 `model_provider = "openai"`(保留 ID，不得自定义)，网关用户走 `openai_base_url`；保留 1M context、900K compact、Memories、warning、WSL acknowledgement、`[desktop]` 与 plugins；只删空 provider、stable default-on feature 重复开关和冗余 skill 注册。
 - 保留 `[features.multi_agent_v2] enabled=true`(0.145.0 stable 但仍 opt-in) 与 `hide_spawn_agent_metadata=false` —— 后者缺失会让 Sol 下 `spawn_agent` 丢掉 model/reasoning_effort (openai/codex#31814)。
 
@@ -48,7 +48,7 @@ root effort=`xhigh`，各 agent frontmatter 保留 3×xhigh + 4×high 的角色�
 
 - **sprint contract(新)**：`checklist.yaml` 顶部落 `done_contract`，把验收标准写成可机械判定的条件。generator 与 evaluator 判**同一份契约**；evaluator 不得另造判据，generator 不得自行放宽；要改回 design 改。
 - **`/goal` 双端对齐**：Codex goals 自 rust-v0.133.0 起 default-on 且不再 experimental，CX 不再自造 runtime-verify 循环(铁律[不抱金饭碗讨饭])。
-- **CX 补齐两个可观察 hook**：`design-change-detector.py`、`pace-continuator.py`。Codex 0.145 的 MultiAgent V2 handler 不派发 PreToolUse，因此不注册虚假的 `spawn_agent` matcher；worktree 约束仍由 PACE 编排与 SubagentStart 证据复核。
+- **CX 补齐可观察 hook**：`design-change-detector.py`、`pace-continuator.py`，并用 Codex 0.145 function-tool PreToolUse 的 `spawn_agent|Agent` matcher 做红区 worktree 前置阻断；SubagentStart audit 作为纵深证据。
 - **铁律溯源表(新)**：`rules/iron-law-provenance.md` / `standards/iron-law-provenance.md`，冷路径不注入，把 9 条铁律逐条挂到 `compound/` 的具体事故，并列出 5 条 9.9.6 待立候选。
 - PACE 4 核心 + 5 条件 stage、红黄绿区、2+1 review、fail-closed gates 语义**不变**。26 个 skill 一个未删未并。
 
@@ -58,7 +58,8 @@ root effort=`xhigh`，各 agent frontmatter 保留 3×xhigh + 4×high 的角色�
 
 ## 已知未验证 (交付给 review 的显式风险面)
 
-1. **无 runtime 验证** —— 未在真机 CC 2.1.219 / Codex 0.145.0 上装过、跑过完整 PACE 流程。
-2. Codex 0.145 的 `spawn_agent` 不派发 PreToolUse；CX 不提供 pre-spawn Hook 门禁，必须依赖 PACE 编排与事后证据，不能宣称与 CC 对称。
-3. `gpt-5.6-terra` 与 `fable` alias 在本账号下的可用性未实跑(fable 需 org 权限，ZDR 下不可用)。
-4. 无 A/B eval，无 migration/rollback fixture，无 N≥3 统计。
+1. **无完整 runtime-verify。** 已完成临时 HOME 双端 fresh setup 与 exact Codex 0.145.0 `config.load`；尚未在 exact CC 2.1.219/Codex 上跑完整 PACE 流程。
+2. **CX worktree 门禁仍需 exact-host dogfood。** `spawn_agent|Agent` 已接入 PreToolUse 真阻断，SubagentStart 事后审计记录由 delivery-gate 消费；仍须在 exact 0.145.0 Sol `code_mode_only` 路径实测 matcher 与 exit-2 阻断 wire。
+3. **GPT-5.6 gateway 上游风险。** openai/codex#31882 在 Codex 0.144.0 + Azure OpenAI 复现 Responses-Lite/collaboration 400；这不证明所有自定义 base URL 必现。release 前必须对实际 gateway dogfood，未通过时使用该 endpoint 已验证支持的 provider/model 组合。
+4. `gpt-5.6-terra` 与 `fable` alias 在本账号下的可用性未实跑(fable 需 org 权限，ZDR 下不可用)。
+5. 无 A/B eval，无 migration/rollback fixture，无 N≥3 统计。

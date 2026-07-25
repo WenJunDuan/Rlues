@@ -1,9 +1,42 @@
 version: 1
 sprint_slug: "2026-07-25-athena-9-9-6-prompt-engineering"
 design_ref: "design.md"
+done_contract:
+  - "Fresh CX config omits openai_base_url; setup renders and installs no empty endpoint override."
+  - "CC reviewer and spec-compliance are foreground-capable and the 2+1 flow deterministically waits for both results before evaluator."
+  - "CX PreToolUse covers spawn_agent/Agent and blocks red-zone spawns without an isolated worktree; SubagentStart audit remains defense in depth."
+  - "All CC/CX SKILL.md files have balanced Markdown fences and parseable frontmatter."
+  - "Validator retains 9.9.3 package-parity, install, regression, runtime and fresh-Codex coverage, plus new review-finding assertions."
+  - "Hooks documentation, evaluator precedence, CC npx permission boundaries, permission-mode wording, critic count, provenance and JSON formatting match executable configuration."
+  - "GPT-5.6 gateway behavior is documented as an upstream Azure reproduction and mandatory dogfood risk, not a universal proven failure."
 scope:
   current: "reviewable-bottom-draft"
   final_release: "deferred-until-local-evals-and-separate-user-authorization"
+deployment:
+  version: "9.9.6"
+  mode: "local-draft-install"
+  done_contract:
+    - "CC and CX managed assets resolve to the 9.9.6 package with no user-owned authentication, history, session, project-state, permission, plugin, gateway, or base-url data removed."
+    - "A timestamped full endpoint backup and a deployment history record exist before the first managed-file write."
+    - "CC settings.json and CX config.toml remain syntactically valid and preserve values that differ from the 9.9.3 release defaults."
+    - "Post-deploy file manifests, version markers, and history/session readability checks pass for both endpoints."
+    - "Only explicitly classified disposable caches/junk are removed, with paths and byte counts recorded; no history, database, auth, or project-state path is removed."
+  tasks:
+    - id: preflight
+      status: completed
+      acceptance: "Package is 9.9.6; installed paths and config drift are inventoried without secret values."
+    - id: backup
+      status: completed
+      acceptance: "Full ~/.claude and ~/.codex snapshots plus project .ai_state snapshot are complete and checksummed."
+    - id: migrate
+      status: completed
+      acceptance: "Release-owned assets are updated atomically; user-owned config/data are preserved."
+    - id: verify
+      status: completed
+      acceptance: "Version, syntax, manifest, and history/session checks pass."
+    - id: cleanup
+      status: completed
+      acceptance: "Only safe disposable cache/junk paths are removed and logged."
 tasks:
   - id: D1
     title: "Round 1 critic identifies stale v1 architecture"
@@ -86,10 +119,35 @@ tasks:
     expected_evidence: "settings JSON parse; no global subagent override; architect/critic=fable; remaining five agents=opus; no sonnet frontmatter"
     status: completed
 
+  - id: R1
+    title: "Repair review-blocking provider, foreground review and CX spawn guard contracts"
+    ac_refs: [AC4, AC5, AC8]
+    blocked_by: [B7]
+    expected_evidence: "fresh config assertion; CC agent frontmatter scan; CX PreToolUse allow/block fixtures"
+    status: completed
+  - id: R2
+    title: "Repair structural, security and documentation drift findings"
+    ac_refs: [AC3, AC7, AC8, AC13]
+    blocked_by: [R1]
+    expected_evidence: "fence/frontmatter scan; hooks parity; evaluator precedence; permission wildcard and provenance assertions"
+    status: completed
+  - id: R3
+    title: "Restore 9.9.6 validator coverage without function-count coupling"
+    ac_refs: [AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC11, AC14, AC15]
+    blocked_by: [R2]
+    expected_evidence: "validator exercises retained 9.9.3 invariants plus review regressions and exits zero"
+    status: completed
+  - id: R4
+    title: "Run targeted repair regression and record remaining upstream risks"
+    ac_refs: [AC4, AC5, AC8, AC11]
+    blocked_by: [R3]
+    expected_evidence: "syntax, setup, hook, permission and validator outputs; Azure-only scope documented"
+    status: completed
+
   - id: F1
     title: "Implement and test controlled skill invocation"
     ac_refs: [AC7]
-    blocked_by: [B7]
+    blocked_by: [R4]
     expected_evidence: "explicit and natural-language invocation fixtures"
     status: pending
   - id: F2

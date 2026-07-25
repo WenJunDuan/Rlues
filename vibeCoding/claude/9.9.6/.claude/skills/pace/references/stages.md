@@ -69,7 +69,7 @@ impl 写完代码 + 单测后, 不直接进 review, 先做运行时自测自改:
 ## review (6 维度)
 
 **两步执行**:
-1. 并行运行 reviewer + spec-compliance; 两者只返回结果
+1. 并行以前台任务运行 reviewer + spec-compliance; 两者只返回结果
 2. 主 agent 合并 `reviews/passN.md`, 再运行 evaluator; evaluator 只返回 VERDICT, 主 agent 追加并更新 `_index.next_action`
 
 VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
@@ -77,7 +77,7 @@ VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 - PASS (其他) → ship
 - CONCERNS / REWORK / FAIL → 回 impl 或明确 defer 后重跑 review; 不直接 ship
 
-> 注: review stage 本身不设同步 Stop 门禁 (后台 review agent 异步写产物, 同步等待会死锁).
+> 注: review stage 不靠 Stop hook 同步；主 agent 必须在流程内等待两个前台返回，并且只有主 agent 写 review 产物。
 > spec-compliance 完整性由 delivery-gate 在 **ship** stage 检查 (此时产物已落盘).
 
 ## polish (Refactor/System 强制)

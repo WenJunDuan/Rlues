@@ -9,3 +9,7 @@ __pycache__/
 vibeCoding/scripts/validate-athena-9.9.6.*
 vibeCoding/scripts/test-*-9.9.6-runtime.*
 vibeCoding/scripts/evals/athena-9.9.6/
+
+# Athena hook 并发安全 IO 的锁与原子写临时文件 (v9.9.6)
+.ai_state/_index.md.lock
+.ai_state/_index.md.tmp.*

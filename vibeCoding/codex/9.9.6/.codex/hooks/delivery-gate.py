@@ -204,6 +204,56 @@ def join_key(record: dict[str, Any]) -> tuple[str, str]:
     return record["agent_id"], record["sprint_slug"]
 
 
+def validate_worktree_violations(sprint_dir: Path) -> None:
+    """Fail ship only for agents that actually started outside an isolated worktree.
+
+    PreToolUse attempts that were successfully blocked remain useful audit rows but
+    are not delivery violations. Malformed audit data is fail-closed.
+    """
+    path = sprint_dir / "worktree-violations.jsonl"
+    if not path.exists():
+        return
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise GateError(f"cannot read worktree-violations.jsonl: {exc}") from exc
+    started: list[str] = []
+    for line_number, raw_line in enumerate(lines, start=1):
+        if not raw_line.strip():
+            continue
+        try:
+            row = json.loads(raw_line)
+        except json.JSONDecodeError as exc:
+            raise GateError(
+                f"malformed worktree-violations.jsonl line {line_number}: {exc.msg}"
+            ) from exc
+        if not isinstance(row, dict) or row.get("schema_version") != 1:
+            raise GateError(
+                f"worktree-violations.jsonl line {line_number} must use schema_version 1"
+            )
+        blocked = row.get("blocked_before_start")
+        if not isinstance(blocked, bool):
+            raise GateError(
+                f"worktree-violations.jsonl line {line_number} lacks boolean blocked_before_start"
+            )
+        resolved = row.get("resolved", False)
+        if not isinstance(resolved, bool):
+            raise GateError(
+                f"worktree-violations.jsonl line {line_number} has non-boolean resolved"
+            )
+        if resolved and not str(row.get("resolution", "")).strip():
+            raise GateError(
+                f"worktree-violations.jsonl line {line_number} marks resolved without resolution evidence"
+            )
+        if not blocked and not resolved:
+            started.append(str(row.get("reason", f"line {line_number}")))
+    if started:
+        raise GateError(
+            f"{len(started)} red-zone agent(s) started without an isolated worktree; "
+            f"first violation: {started[0]}"
+        )
+
+
 # P0-3 对齐 CC: 标题匹配用显式边界 lookahead (兼容中文标题与编号前缀), 不依赖 \\b.
 ACCEPTANCE_HEAD = re.compile(
     r"^#{2,3}\s*\**\s*(?:\d+[.)]\s*)?(?:acceptance criteria|验收标准)(?=$|[\s*:：()（）\[\]【】·—-])",
@@ -1272,6 +1322,7 @@ def main() -> int:
         if not sprint_slug:
             return block("ship stage requires current_sprint_slug")
         sprint_dir = ai_state / "sprints" / sprint_slug
+        validate_worktree_violations(sprint_dir)
 
         # P8 deadlock fix: during ship, .ai_state maintenance writes (state pointer
         # moves, archive backfills) must not re-run ship validation, otherwise a

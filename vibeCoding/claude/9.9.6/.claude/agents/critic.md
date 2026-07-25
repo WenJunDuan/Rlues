@@ -71,7 +71,7 @@ skills: [pace]
 2. Read .ai_state/_index.md, 解析 pointers.latest_decisions + latest_lessons
 3. 读列表中的 compound/decision-*.md 和 compound/learning-*.md (最多各 5 个)
 4. 用 Grep / Glob 探索项目相关模块代码 (确认上下文)
-5. **使用 ultrathink 综合评估 6 维度**
+5. **使用 ultrathink 综合评估 7 维度**
 6. 返回 `## Round N · Critic Findings` 段, 由主 agent 追加到 design.md
 7. 输出 VERDICT: PASS | NEEDS_REVISION
 ```

@@ -42,9 +42,9 @@ the optional local 6152/6153 proxy and is inactive unless passed with
 `claude --settings`; migration preserves existing gateway and permission choices.
 
 Codex uses the built-in `openai` provider and `gpt-5.6-sol`. ChatGPT login and
-OpenAI API keys use that provider. The fresh template exposes
-`openai_base_url=https://api.openai.com/v1`; migration preserves an existing
-gateway and never copies credentials.
+OpenAI API keys use that provider. The fresh template omits `openai_base_url`
+so the built-in provider selects its official endpoint; migration preserves an
+existing non-empty gateway/base URL and never copies credentials.
 
 ## Rollback
 

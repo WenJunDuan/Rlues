@@ -53,6 +53,17 @@
             "statusMessage": "Checking Bash command"
           }
         ]
+      },
+      {
+        "matcher": "spawn_agent|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-worktree-audit.py",
+            "timeout": 5,
+            "statusMessage": "Checking subagent worktree"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -90,6 +101,12 @@
             "type": "command",
             "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-tracker.py",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-worktree-audit.py",
+            "timeout": 5,
+            "statusMessage": "Athena worktree audit"
           }
         ]
       }

@@ -94,7 +94,7 @@ flowchart LR
 - API timeout 更新为官方 600 秒；保留 attribution、installation-check 与 privacy 显式偏好；默认已开的 Tool Search 不重复配置；
 - `settings.proxy.json` 提供 6152/6153 本地代理 overlay，默认不加载；
 - permissions、worktree、必要 hooks/plugins 保留；
-- fresh package 的 `permissions.defaultMode` 使用官方有效值 `default`；不存在 `manual` 枚举。迁移时不得覆盖用户已有的 `default` / `acceptEdits` / `plan` / `auto` / `dontAsk` / `bypassPermissions` 选择。
+- fresh package 的 `permissions.defaultMode` 使用官方规范值 `default`；Claude Code 2.1.200+ 也接受 `manual` 作为 `default` alias。迁移时不得覆盖用户已有的 `default` / `manual` / `acceptEdits` / `plan` / `auto` / `dontAsk` / `bypassPermissions` 选择。
 
 ### 5.2 角色策略
 
@@ -114,6 +114,8 @@ flowchart LR
 - 保留 `[desktop]` 与 plugins；
 - 保留当前显式 approval/sandbox 产品选择，迁移时 preserve 用户覆盖；
 - API Key 和 ChatGPT login 均走内置 provider；用户已有 `openai_base_url` 或 gateway 只 preserve，不由发行模板伪造空值。
+
+Fresh `config.toml` 必须完全省略 `openai_base_url`。空字符串不是“使用官方默认”的表达，setup/validator 必须把该键存在且为空视为失败。
 
 删除：空 custom provider、1M/900k 手工上下文元数据、experimental memories、stable/default-on feature 重复开关、unstable-warning suppression、26 条手工 skill 注册。
 
@@ -181,6 +183,8 @@ Spec Kit 启发的 N10 只检查 roadmap → design → checklist 的 slug、依
 - Notification 只在 exact host 实测 payload 后配置；
 - 不使用 `EndConversation` 代替 ship；
 - Stop proposals 只记录具体、重复出现且有证据的演进建议，避免每轮制造文档噪声。
+- Codex 0.145 的 function-tool hook 路径覆盖 `spawn_agent`，并兼容 `Agent` matcher alias；红区 spawn 在 PreToolUse 前置校验 worktree，SubagentStart audit 仅作事后证据与纵深防御。
+- CC review 两个首轮 agent 不得由 frontmatter 强制后台；主线程必须收齐 reviewer/spec-compliance 返回后再启动 evaluator。
 
 ## 11. Local-only validation
 
@@ -196,6 +200,8 @@ Spec Kit 启发的 N10 只检查 roadmap → design → checklist 的 slug、依
 8. N9 token catalog audit、N10 artifact consistency；
 9. fresh install、same-version、9.9.3 migrate/rollback；
 10. `git status --porcelain` 不包含本地测试资产，且完整包含两个 release adapter。
+11. 9.9.3 validator 的 package parity、install、F-series regression、runtime contract 与 fresh Codex 行为覆盖不得在 9.9.6 消失；覆盖按断言与 fixture 锁定，不按 `check_*` 函数数量锁定。
+12. GPT-5.6 Sol/Terra 的 gateway dogfood 区分已复现的 Azure 0.144.0 问题与尚未证实的其他自定义 base URL，不把上游 issue 外推为所有网关必现。
 
 完整 fork 证据不能只看 `git diff --stat`：B1 在任何迁移前生成排除 `.DS_Store`/cache 后的相对路径 + SHA-256 manifest，并证明 9.9.3→9.9.6 一致；B6 再做目标文件清单完整性比较、9.9.3 hash 不变与预期迁移 deny/allow scan。manifest 放临时目录，仅输出摘要，不进入 Git。
 
@@ -206,11 +212,11 @@ Spec Kit 启发的 N10 只检查 roadmap → design → checklist 的 slug、依
 - [ ] AC1: 9.9.3 两个目录零 diff；9.9.6 两个目录从其完整 fork，排除 `.DS_Store`/cache。
 - [ ] AC2: CC adapter 不被 `.gitignore` 吞掉；`git status --porcelain` 可见完整底稿。
 - [ ] AC3: CC 无 dated model pins、全局 subagent override、30s timeout/default-on noise；Opus 5 exact-version smoke 通过。
-- [ ] AC4: CX 使用 built-in `openai`，无空 custom provider；保留 1M context、900K compact、Memories、warning 与用户态配置；省略 stable default-on flags 和冗余 skill 注册。
+- [ ] AC4: CX 使用 built-in `openai`，fresh config 不含 `openai_base_url` 或空 custom provider；保留 1M context、900K compact、Memories、warning 与用户态配置；省略 stable default-on flags 和冗余 skill 注册。
 - [ ] AC5: WSL、`[desktop]`、plugins、App/CLI、ChatGPT/API Key 与 gateway preserve 合同存在并通过 smoke。
 - [ ] AC6: Codex V2 配置职责符合 exact 0.145.0；不使用 V1-only `max_depth` 假装限制 V2。
 - [ ] AC7: 双端 26 skills 可发现；受控 skill 自然语言不误触发、显式调用可用。
-- [ ] AC8: PACE 4+5、红黄绿区、2+1 review、runtime-verify/polish 和 fail-closed gates 语义不退化。
+- [ ] AC8: PACE 4+5、红黄绿区、前台收齐的 2+1 review、CX spawn 前置 worktree 门禁、runtime-verify/polish 和 fail-closed gates 语义不退化。
 - [ ] AC9: `.ai_state` 不新增第二状态层；SessionStart ≤2500 bytes、breadcrumb ≤400 bytes，恢复和异常场景通过。
 - [ ] AC10: retention policy 有 consumer proof、N-1 边界与可回溯证据，不以磁盘大小粗暴删除。
 - [ ] AC11: local-only 测试树符合用户指定路径且不在 Git diff；N9/N10、migration、rollback 全覆盖。

@@ -77,7 +77,7 @@ VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 - PASS (其他) → ship
 - CONCERNS / REWORK / FAIL → 回 impl 或修复/defer 后生成新 passN；不得直接 polish/ship
 
-> 注: review stage 本身不设同步 Stop 门禁 (后台 review agent 异步写产物, 同步等待会死锁).
+> 注: review stage 不靠 Stop hook 同步；主 agent 用原生 wait 收齐两个返回，并且只有主 agent 写 review 产物。
 > spec-compliance 完整性由 delivery-gate 在 **ship** stage 检查 (此时产物已落盘).
 
 ## polish (Refactor/System 强制)
