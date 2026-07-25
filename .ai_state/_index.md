@@ -5,7 +5,7 @@ version: "9.9.3"
 
 # === PACE 路由状态 ===
 path: "System"                  # 9.9.6 双端提示词工程与状态架构升级
-stage: "roadmap"                # 先调研并拆分版本更新项，不进入实现
+stage: "impl"                   # v3.1 Round 4 PASS；隔离 worktree 执行 B1-B6 底稿
 current_sprint_slug: "2026-07-25-athena-9-9-6-prompt-engineering"
 current_roadmap_slug: "athena-9-9-6-prompt-engineering"
 skip_polish: false                # 项目级 opt-out (默认 false)
@@ -19,8 +19,8 @@ plan_model: "fable"                    # "" | "fable" — System/Refactor 的 pl
 
 # === 平台与版本 ===
 platforms_enabled: ["both"]       # cc | cx | both
-cc_version: "claude-code (unknown, desktop app 会话, CLI 不在 PATH)"
-cx_version: "codex-cli 0.144.1"
+cc_version: "claude-code 2.1.211"
+cx_version: "codex-cli 0.145.0"
 ag_callable: false                # antigravity (agy) 未安装
 
 # === 平台原生能力 (athena-init 探测) ===
@@ -31,8 +31,8 @@ platform_features:
   cc_subagent_stop_hook: true     # CC SubagentStop 原生事件
   cc_worktree_hooks: true         # CC WorktreeCreate/Remove 原生事件
   cc_stop_prompt_hook: true       # CC Stop hook prompt 类型 (2026-03+)
-  cx_spawn_agent: true            # Codex 0.144.1 native multi-agent v2
-  cx_plan_mode_reasoning_effort: true    # Codex 0.144.1
+  cx_spawn_agent: true            # Codex 0.145.0 native multi-agent v2
+  cx_plan_mode_reasoning_effort: true    # Codex 0.145.0
   cx_spawn_agents_on_csv: false   # 当前 surfaced v2 无 CSV fan-out；按实际工具能力判定
   ag_parallel_subagents: false    # Antigravity 并行
   ag_headless_p: false            # agy -p
@@ -73,16 +73,16 @@ pointers:
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-25T01:42:57Z"
+  latest_architecture_update: "2026-07-25T01:57:55.602573Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: ""  # 等待用户确认 roadmap；确认后由主 agent 进入 item 2 plan/design
+next_action: "complete F1-F6 local runtime/eval evidence before formal review"
 last_subagent: "generator"
-last_subagent_at: "2026-07-10T08:53:02.056859Z"
+last_subagent_at: "2026-07-25T05:29:15.189465Z"
 active_worktrees: []
-last_critic_round: 0              # 当前研究版 design 尚未通过独立 critic gate
-design_changed_after_impl: false  # 4b67f82 按最终 design/pass3 findings 完成；之后未再改设计
+last_critic_round: 4              # v3.1 design Round 4 PASS
+design_changed_after_impl: true   # impl 后修正 CC defaultMode 官方枚举；最终 review 前必须重新核对
 
 # === 用户偏好 ===
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
@@ -106,6 +106,9 @@ fingerprint: ""
 
 [由主 agent 在 stage 切换时简短追加]
 
+- `2026-07-25`: **用户最终确认 CC 角色矩阵**：main `model=best`；无全局 subagent override；architect/critic=Fable，evaluator 与其余四个实现/审查角色=Opus；effort 保持 3×xhigh + 4×high。
+- `2026-07-25`: **9.9.6 reviewable bottom draft 已收敛到当前 Rlues/main 工作目录**（uncommitted；临时 worktree/branch 已删除）。CC 117 / CX 115 文件，26 skills/端；Codex 0.145.0 实际加载配置成功；9.9.3 零 diff；本地 tests/evals 尚未创建，F1-F7 保持 pending。证据见当前 sprint `bottom-draft-evidence.md`。
+- `2026-07-25`: **用户授权开始构建 9.9.6 底稿**。roadmap→plan；以 9.9.3 为不可变模板，v3.1 删除 shared/contracts/renderer/runtime-capabilities，锁定双端自包含、local-only tests、App/WSL/API 用户与 AI-state injection+retention 边界；不授权 commit/push/release。
 - `2026-07-25`: **9.9.6 调研与 roadmap 草案完成，等待用户确认**。已形成官方/外部 source map、9.9.3 现状审计、6-item roadmap、研究版 design 与更新计划；确认前不进入实现。关键现状 P0：CC 全局 subagent model 覆盖角色配置、Opus pin 停在 4.8、API timeout 仅 30s；CX 空 custom provider 与 1M/900k 手工元数据回归。
 - `2026-07-14`: **9.9.3 发布收口** (`b88f615`)。review-fixes 修 6 项 finding (CX breadcrumb canonical 路径 / evaluator over-eng 语义 / M5 双端产物 / validator 基线 / 行数预算 / 发布卫生)；CX 67/67、CC 107/107、validator 223/223；pass1=PASS，2+1 闭环 (Claude 构建 → Codex 审修 → Claude 复核)。
 - `2026-07-14`: housekeeping — 删 9.9.1 harness 三件 + fixtures (N-1 保留策略)；清 15 个已 ship sprint 的 token-usage.yaml/tool-trace.jsonl 遥测 (5.6M→672K, git 历史可回溯)；_index schema 标识刷 9.9.3。

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Playwright Testing"
+  short_description: "Runtime browser and E2E test workflow"
+  default_prompt: "Use $playwright to add and run browser-based runtime verification for this app."

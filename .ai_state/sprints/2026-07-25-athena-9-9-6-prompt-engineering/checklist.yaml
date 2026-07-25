@@ -1,0 +1,130 @@
+version: 1
+sprint_slug: "2026-07-25-athena-9-9-6-prompt-engineering"
+design_ref: "design.md"
+scope:
+  current: "reviewable-bottom-draft"
+  final_release: "deferred-until-local-evals-and-separate-user-authorization"
+tasks:
+  - id: D1
+    title: "Round 1 critic identifies stale v1 architecture"
+    ac_refs: [AC13]
+    blocked_by: []
+    expected_evidence: "design.md Round 1 findings"
+    status: completed
+  - id: D2
+    title: "Rewrite design as v3.1 with user-locked decisions"
+    ac_refs: [AC1, AC2, AC4, AC5, AC6, AC9, AC10, AC11, AC14]
+    blocked_by: [D1]
+    expected_evidence: "design.md locked decisions and acceptance criteria"
+    status: completed
+  - id: D3
+    title: "Round 2 independent critique"
+    ac_refs: [AC13]
+    blocked_by: [D2]
+    expected_evidence: "design.md Round 2 findings"
+    status: completed
+  - id: D4
+    title: "Resolve Round 2 dependency, Fable, checklist and retention findings"
+    ac_refs: [AC3, AC9, AC10, AC11, AC13]
+    blocked_by: [D3]
+    expected_evidence: "design.md Round 3 revision response"
+    status: completed
+  - id: D5
+    title: "Round 3 independent critique"
+    ac_refs: [AC13]
+    blocked_by: [D4]
+    expected_evidence: "critic verdict appended to design.md"
+    status: completed
+
+  - id: B1
+    title: "Fork both 9.9.3 endpoints into isolated 9.9.6 bottom draft"
+    ac_refs: [AC1]
+    blocked_by: [D5]
+    roadmap_item: "baseline-and-design"
+    expected_evidence: "pre-migration normalized relative-path plus SHA-256 manifests match; cache excluded"
+    status: completed
+  - id: B2
+    title: "Make nested CC release adapter trackable without exposing root user state"
+    ac_refs: [AC2]
+    blocked_by: [B1]
+    roadmap_item: "baseline-and-design"
+    expected_evidence: "git check-ignore and git status assertions"
+    status: completed
+  - id: B3
+    title: "Apply atomic Claude baseline migration including Fable to opus"
+    ac_refs: [AC3]
+    blocked_by: [B1, B2]
+    roadmap_item: "opus5-behavior-migration"
+    expected_evidence: "JSON parse plus denylist and role alias scan"
+    status: completed
+  - id: B4
+    title: "Apply exact Codex 0.145 provider, V2 and user-surface baseline"
+    ac_refs: [AC4, AC5, AC6]
+    blocked_by: [B1]
+    roadmap_item: "platform-contract-refresh"
+    expected_evidence: "TOML parse plus exact field allow/deny scan"
+    status: completed
+  - id: B5
+    title: "Add endpoint-local cold platform contract and release draft"
+    ac_refs: [AC3, AC4, AC5, AC6]
+    blocked_by: [B3, B4]
+    roadmap_item: "architecture-freeze"
+    expected_evidence: "tracked endpoint files; no shared contract tree"
+    status: completed
+  - id: B6
+    title: "Run bottom-draft syntax, Git-boundary and 9.9.3 immutability smoke"
+    ac_refs: [AC1, AC2, AC3, AC4, AC5, AC6, AC14]
+    blocked_by: [B3, B4, B5]
+    roadmap_item: "reviewable-bottom-draft"
+    expected_evidence: "target file-list completeness, unchanged 9.9.3 hashes, expected migration delta, no commit/push"
+    status: completed
+  - id: B7
+    title: "Apply the user-confirmed CC quality-first role matrix"
+    ac_refs: [AC3, AC15]
+    blocked_by: [B6]
+    roadmap_item: "opus5-behavior-migration"
+    expected_evidence: "settings JSON parse; no global subagent override; architect/critic=fable; remaining five agents=opus; no sonnet frontmatter"
+    status: completed
+
+  - id: F1
+    title: "Implement and test controlled skill invocation"
+    ac_refs: [AC7]
+    blocked_by: [B7]
+    expected_evidence: "explicit and natural-language invocation fixtures"
+    status: pending
+  - id: F2
+    title: "Verify PACE, hooks and gates retain delivery semantics"
+    ac_refs: [AC8]
+    blocked_by: [F1]
+    expected_evidence: "runtime scenarios including fail-open and fail-closed paths"
+    status: pending
+  - id: F3
+    title: "Implement bounded AI-state injection"
+    ac_refs: [AC9]
+    blocked_by: [F2]
+    expected_evidence: "startup/resume/clear/compact fixtures and byte counts"
+    status: pending
+  - id: F4
+    title: "Implement consumer-proven atomic retention"
+    ac_refs: [AC10]
+    blocked_by: [F3]
+    expected_evidence: "consumer inventory, concurrency/corruption/permission fixtures"
+    status: pending
+  - id: F5
+    title: "Run local-only N9/N10, migration and rollback suite"
+    ac_refs: [AC11]
+    blocked_by: [F4]
+    expected_evidence: "local-only scripts output and clean Git diff for test assets"
+    status: pending
+  - id: F6
+    title: "Run N≥3 prompt A/B and Pareto evaluation"
+    ac_refs: [AC12]
+    blocked_by: [F5]
+    expected_evidence: "same-model/effort/account fixtures and aggregated result"
+    status: pending
+  - id: F7
+    title: "Complete runtime review polish architecture and ship gates"
+    ac_refs: [AC13, AC14]
+    blocked_by: [F6]
+    expected_evidence: "runtime-verify, 2+1 review, cleanup, architecture; separate authorization"
+    status: pending
