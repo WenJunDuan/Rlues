@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Athena v9.9.6 · Codex 铁律[零写入] 红区 worktree 护栏。
 
-**双事件设计 — 因为 Codex 的预防面未经验证**
+**双事件设计 — PreToolUse 阻断 (已按官方核实) + SubagentStart 纵深审计**
 
 | 事件 | 能力 | 效力 |
 |---|---|---|
 | ``PreToolUse`` matcher ``spawn_agent|Agent`` | spawn 前阻断 | Codex 0.145 function-tool hook 路径；红区写 agent 没有声明真实的隔离 worktree 时 exit 2 阻断 |
 | ``SubagentStart`` | 起来之后检测 | 纵深防御；把已经启动的违规写进 ``sprints/{slug}/worktree-violations.jsonl`` 并由 ship gate 消费 |
 
-两端都在各自的原生 function-tool hook 路径做前置阻断；SubagentStart
-审计不宣称能撤销已发生的 spawn，只负责留下可复核的纵深证据。
+``PreToolUse`` 是唯一能在 spawn 前阻断的原生路径 (官方: exit 2 + 阻断原因写 stderr)。
+``SubagentStart`` 没有阻断语义 —— ``continue: false`` 仅为兼容解析, 不会阻止 subagent
+启动; 它只负责留下可复核的纵深证据, 不宣称能撤销已发生的 spawn。
 """
 
 from __future__ import annotations
@@ -116,6 +117,7 @@ def record_violation(
 
 
 def main() -> int:
+    event = ""
     try:
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}
@@ -157,6 +159,11 @@ def main() -> int:
         sys.stderr.write(f"[subagent-worktree-audit] VIOLATION after agent start: {reason}\n")
         return EXIT_SUCCESS
     except Exception as exc:  # noqa: BLE001 — hook payload 是跨进程信任边界
+        # 只有 PreToolUse 有 exit 2 阻断语义; 在 SubagentStart 上返回 2 拦不住任何东西,
+        # 只会产生 hook 失败噪声并让日志说谎。事件不可知时保守 fail-closed。
+        if event == "SubagentStart":
+            sys.stderr.write(f"[subagent-worktree-audit] audit skipped on invalid hook input: {exc}\n")
+            return EXIT_SUCCESS
         sys.stderr.write(f"[subagent-worktree-audit] BLOCKED on invalid hook input: {exc}\n")
         return 2
 

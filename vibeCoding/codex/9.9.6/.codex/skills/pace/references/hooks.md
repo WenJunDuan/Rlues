@@ -8,8 +8,8 @@
 | UserPromptSubmit | user-prompt-submit.py + index-updater.py | 预检 + counts 同步 (mtime 比对); v9.9.0 index-updater 加 re-route 机械触发 (文件数超路径上限 → next_action=re-route) |
 | PreToolUse | pre-bash-guard.py + delivery-gate.py + subagent-worktree-audit.py | 灾难命令、spec/push 门禁，以及 `spawn_agent|Agent` 红区 worktree 前置阻断 |
 | PostToolUse | evidence-collector.py + index-updater.py + design-change-detector.py | 使用 `tool_response` 记录可观察过程证据; 无法确认状态时记 unknown, 不默认成功 |
-| SubagentStart / SubagentStop | subagent-tracker.py + SubagentStart 的 subagent-worktree-audit.py | 记录生命周期；审计已启动的越界 agent；不从 Start 推断完成或从 Stop 猜 exit code |
-| Stop | delivery-gate.py | 交付门禁; Feature+ 要求 generator 的 Stop 完成记录 + checklist/review 产物, Start 记录不能解锁 |
+| SubagentStart / SubagentStop | subagent-tracker.py + SubagentStart 的 subagent-worktree-audit.py + SubagentStop 的 token-usage-collector.py | 记录生命周期与 token 用量；审计已启动的越界 agent；不从 Start 推断完成或从 Stop 猜 exit code |
+| Stop | token-usage-collector.py + delivery-gate.py + pace-continuator.py | token 记账; 交付门禁 (Feature+ 要求 generator 的 Stop 完成记录 + checklist/review 产物, Start 记录不能解锁); 历史与软提醒 |
 | PreCompact | compact-snapshot.py | compact 前快照 _index.md (v9.7.0 新, CX 0.129+) |
 | PostCompact | compact-restore.py | compact 后注回 _index.md 摘要 (v9.7.0 新) |
 
@@ -19,6 +19,9 @@
 > - Stop 事件要求 JSON 输出 (plain text 无效); `decision:"block"` + `reason` 生成续跑提示
 > - additionalContext 放 `hookSpecificOutput` 并带 `hookEventName`
 > - PostToolUse 支持 systemMessage / continue:false / stopReason; PreToolUse 返回这些会被标 hook 失败
+> - **PreToolUse 阻断信道只有三条**: `hookSpecificOutput.permissionDecision:"deny"` + `permissionDecisionReason` / 旧式 `{"decision":"block","reason":…}` / **exit 2 且阻断原因写 stderr**。多 hook 时任一 deny 胜出; 无人决策走正常审批流; stdout 纯文本被忽略
+> - **fail-open 陷阱**: `permissionDecision:"ask"` / `continue:false` / `stopReason` 会被解析但**不支持** — Codex 标记该 hook 运行失败、报错、然后**继续执行工具调用**
+> - SubagentStart **无阻断语义** (`continue:false` 仅为兼容解析, 不阻止 subagent 启动), 只能注入 additionalContext 与留证据; 要拦 spawn 必须用 PreToolUse
 > - 输入含 `permission_mode` (default/acceptEdits/plan/dontAsk/bypassPermissions); turn 级含 `turn_id`
 > - SubagentStop 提供生命周期字段, 不提供可安全默认的命令退出码
 > - hooks 可覆盖 shell、`apply_patch` 与部分 MCP, 但实际 handler/matcher 覆盖必须实测; evidence 走降级链 (见 stages.md)
