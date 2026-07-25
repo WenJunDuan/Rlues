@@ -1,0 +1,68 @@
+# TDD evidence · harness 门禁修复 P1-P8 (2026-07-25)
+#
+# 被测对象是门禁自身 (~/.claude/hooks/delivery-gate.cjs 与 ~/.codex/hooks/delivery-gate.py),
+# 不在项目 repo 内, 没有 bun test 载体。可执行测试 = design 定义的 G1-G5 dry-run 组:
+#   echo '<payload>' | node ~/.claude/hooks/delivery-gate.cjs   放行 = 无 stdout, 拦截 = stdout 出 decision block
+#
+# RED 的两层证据 (二者都真跑过, 时间语义不同):
+#   1. red_observed_at = design 阶段亲验缺陷的时刻 (route-note.md 落盘 2026-07-25T15:24:56Z 为下界),
+#      早于任何实现 commit;
+#   2. 事后 A/B 复现: 同一 fixture 同一 payload 分别喂 改后 gate 与 S0 备份 gate
+#      (~/.claude/backups/delivery-gate.cjs.pre-p1p8-20260725T153939Z), 备份侧的 block 原文即 RED 实录,
+#      写在 red_summary 里。备份 gate 是改动前的逐字节副本, 故该 A/B 等价于改前实跑。
+#
+# fixture: git clone --local --no-hardlinks 主仓 到 /tmp/gate-fx-20260725T155519Z, 检出批次3 契约
+# commit 426b8a5; 另 git worktree add 一个 linked worktree 专测 W3。跑完全部删除, 主仓零污染。
+# fixture 内的档案改动 (补 evidence.yaml / 补 6 条 backfill red_command / 重算 manifest 与 pass2 绑定)
+# 只发生在 /tmp 副本, 真实批次3 存档未动。
+
+tdd_records:
+  - test_file: "G1 放行面 (W1 白名单) · /tmp/gate-fx-20260725T155519Z"
+    red_command: "rg -c 'token-usage\\.yaml|stop-failures\\.jsonl' ~/.claude/hooks/delivery-gate.cjs"
+    red_summary: "RED: 命中 0 (design 阶段亲验, route-note 表格第 1 行) —— token-usage-collector.cjs:397 每次 Stop 改写 token-usage.yaml, stop-failure-recorder 每次 block 追加 stop-failures.jsonl, 两者都不在 allowedExact, 被 ship 契约当作未授权 .ai_state drift。事后 A/B 复现 (2026-07-25T16:18:46Z, 备份 gate 同 fixture 同 payload): decision block, reason = unreviewed .ai_state drift outside post-review allowlist, 列出 stop-failures.jsonl 与 token-usage.yaml 两个文件 —— 且这是死结: recorder 因 block 而写的档案本身就是下一次 block 的理由"
+    red_observed_at: "2026-07-25T15:24:56Z"
+    implementation_files: "~/.claude/hooks/delivery-gate.cjs allowedExact 区 (加 token-usage.yaml 与 stop-failures.jsonl 两项, 保留 token-usage.jsonl 向后兼容, 不加 proposals.md)"
+    implementation_observed_at: "2026-07-25T15:46:28Z"
+    green_command: "echo '{\"cwd\":\"/tmp/gate-fx-20260725T155519Z\",\"hook_event_name\":\"Stop\"}' | node ~/.claude/hooks/delivery-gate.cjs"
+    green_summary: "GREEN: 同 fixture 同 payload, 改后 gate 无任何 stdout = 放行 (fixture 内 token-usage.yaml 与 stop-failures.jsonl 均有 working drift, git status 实见 M 两行)。同一秒备份 gate 仍 block, A/B 差异唯一来源即本次白名单改动"
+    green_observed_at: "2026-07-25T16:18:46Z"
+
+  - test_file: "G2 拦截面回归 6 项 (防修成筛子) · /tmp/gate-g2.sh"
+    red_command: "backfill 声明: 本组是放宽白名单后的护栏回归, 既有拦截逻辑本就正确, 无独立 red 阶段, 缺口证据见 red_summary"
+    red_summary: "真实缺口: W1 放宽了 .ai_state drift 白名单, 而放宽类改动最典型的失败模式是连带把整条拦截面变成筛子; 改动前全仓没有任何一条可执行断言覆盖 delivery-gate 的拦截面 (Rlues 现成脚本 scripts/test-delivery-gate.py:14-15 硬编码指向 9.9.0 老副本, 跑绿与安装态这份 gate 无关, design Round 3 F14 已判定不作基线), 即无人能机械证明 拦截仍然有效。故本组按 backfill 记法落盘"
+    red_observed_at: "2026-07-25T15:24:56Z"
+    implementation_files: "~/.claude/hooks/delivery-gate.cjs (W1 白名单改动的护栏面), 测试脚本 /tmp/gate-g2.sh"
+    implementation_observed_at: "2026-07-25T15:46:28Z"
+    green_command: "zsh /tmp/gate-g2.sh /tmp/gate-fx-20260725T155519Z"
+    green_summary: "GREEN 6/6 全部仍 block, reason 逐项对应: G2-1 manifest 哈希篡改 -> Reviewed state manifest sha256 does not match review-manifest.yaml; G2-1b 篡改 route-note.md 条目哈希并同步重绑 manifest sha -> review-manifest hash mismatch route-note.md (证明 per-file 哈希本身仍咬, 不是只靠外层 sha); G2-2 删 cleanup-pass.md -> review-manifest target missing cleanup-pass.md; G2-3 pass2 VERDICT 改 REWORK -> latest review pass2.md VERDICT is REWORK expected PASS; G2-4 checklist 留一条 pending -> checklist.yaml is incomplete pending,completed,completed,completed,completed; G2-5 W1 反向 .ai_state/handoff.md drift -> unreviewed .ai_state drift outside post-review allowlist .ai_state/handoff.md。每项还原后回归跑均放行"
+    green_observed_at: "2026-07-25T16:19:19Z"
+
+  - test_file: "G3 P2 generator 生命周期四边界 · /tmp/gate-g3-setup.py + /tmp/gate-g3-cases.py"
+    red_command: "echo '<batch3 payload>' | node ~/.claude/backups/delivery-gate.cjs.pre-p1p8-20260725T153939Z"
+    red_summary: "RED: 改前判据是 starts.length !== 1 与 stops.length !== 1 (design 阶段读码亲验, route-note 表格第 2 行)。事后 A/B 复现 (2026-07-25T16:19:57Z): 批次3 真实 generator agent_id=ac0c19601d65a07ea 形态 4 Start / 2 Stop / 末次 SubagentStop (合法的断点续跑收束), 备份 gate 判 block, reason = agent_id=ac0c19601d65a07ea requires exactly one SubagentStart —— 即凡是 API 瞬断后续跑过的 generator 一律结构性不可 ship"
+    red_observed_at: "2026-07-25T15:24:56Z"
+    implementation_files: "~/.claude/hooks/delivery-gate.cjs validateGeneratorChain 循环体 (>=1 Start, >=1 Stop, 末次须 Stop, 按 parsedTimestamp 排序且同秒 tie 用 lineNumber 稳定排序, agent_type 全事件唯一, 时序基准改 firstStart/lastStop) 及 readJsonl 记录 lineNumber"
+    implementation_observed_at: "2026-07-25T15:46:28Z"
+    green_command: "python3 /tmp/gate-g3-cases.py /tmp/gate-fx-20260725T155519Z"
+    green_summary: "GREEN 4 边界全如期: 1 收束形态 (4 Start/2 Stop/末次 Stop, fixture 已补 role=generator 握手行, 批次3 原档无 assignments 文件) -> 放行, 且 reason 不含 missing subagent assignments, 证明放行来自 W2 判据而非绕过; 2a 批次3 自带截断 generator aff318932a2f9a92b (3 Start/0 Stop/末次 Start) -> block agent_id=aff318932a2f9a92b requires at least one SubagentStop; 2b design 指定的批次1 ac31263f64122bda9 (8 Start/0 Stop/末次 Start) 原样导入 -> block requires at least one SubagentStop, 即真截断仍拦, 不推翻 2026-07-22 决策; 3 合成 Start->Stop->Start (末次为 Start 但中间有 Stop) -> block must end with SubagentStop work not settled; 4 握手改 role=reviewer -> block no role=generator assignment found。还原后回归放行"
+    green_observed_at: "2026-07-25T16:19:57Z"
+
+  - test_file: "G4 W3 项目根解析四情形 · /tmp/gate-g4.sh"
+    red_command: "git -C <linked worktree> rev-parse --show-toplevel"
+    red_summary: "RED: worktree 内 --show-toplevel 返回 worktree 路径而非主仓根 (design 阶段亲验 git 2.54.0 三列对照表, route-note P3 修法实测节; 本次 fixture 复测同样为 /private/tmp/gate-wt-... 而 --path-format=absolute --git-common-dir 返回 /private/tmp/gate-fx-.../.git)。后果实录 A/B (2026-07-25T16:21:00Z): 同一 linked worktree cwd 喂备份 gate -> block, reason = missing evidence.yaml /tmp/gate-wt-.../.ai_state/sprints/2026-07-24-src-health-batch3/evidence.yaml —— 新检出必然缺 gitignored 档案 (.gitignore:28 .ai_state/**/evidence.yaml), 于是 worktree 内任何 Stop 都被误拦"
+    red_observed_at: "2026-07-25T15:24:56Z"
+    implementation_files: "~/.claude/hooks/delivery-gate.cjs 新增 tryRepoRoot 不抛版 helper, main 内 root 与 aiState 同源解析 (早退保持 try 之前), validateShip(aiState, fm, root 或 cwd) 单点传递; 386 与 789 两处保持不动"
+    implementation_observed_at: "2026-07-25T15:46:28Z"
+    green_command: "zsh /tmp/gate-g4.sh /tmp/gate-fx-20260725T155519Z /tmp/gate-wt-20260725T155519Z /tmp/gate-nongit-20260725T155519Z"
+    green_summary: "GREEN 四情形全过, 七次 probe 的 stderr 均无 JS 栈帧: 1 主仓根 cwd 放行; 2 主仓子目录 cwd 放行; 3a 真 linked worktree cwd 放行 (root 与 aiState 一起归一到主仓, 同一 payload 备份 gate 仍 block, 见 red_summary); 4a 非 git 且无 .ai_state 的 /tmp + PreToolUse Write 静默 no-op exit 0; 4b/4c 非 git 但有 .ai_state 副本 + PreToolUse Write 与 Stop 均 exit 0 不崩栈 (stage=ship 时给出 fail-closed block review freshness git check failed, 与备份 gate 同为 block, 非崩溃; stage=impl 时两侧同为静默 no-op, 即 P3 原始症状形态零回归)"
+    green_observed_at: "2026-07-25T16:21:00Z"
+
+  - test_file: "G5 W8 light-ship 护栏 (CC 与 codex 两端) · /tmp/gate-g5.sh"
+    red_command: "rg -n 'harness-patches' ~/.claude/hooks/delivery-gate.cjs ~/.codex/hooks/delivery-gate.py"
+    red_summary: "RED: 两端各 0 命中 (design Round 2 F4 亲验)。缺口: isLightShipFile 的 hooks/ 护栏只认仓内路径, 而 harness 改动落在 ~/.claude 与 ~/.codex, 对 gate 天然不可见 —— 于是改门禁自身的 sprint 只要仓内净 diff 小于等于 60 行且都是文档态, 就会被判 light ship, manifest/tdd-evidence/review 契约整段跳过, 门禁改动零机械复核。事后 A/B 复现见 green_summary 的 A 组: 同一 fixture 不含台账文件时两端都放行, 而该 sprint 的 checklist 六条全 pending, 全契约本应立即拦"
+    red_observed_at: "2026-07-25T15:24:56Z"
+    implementation_files: "~/.claude/hooks/delivery-gate.cjs isLightShipFile 与 ~/.codex/hooks/delivery-gate.py is_light_ship_file 各加 harness-patches.md 分支"
+    implementation_observed_at: "2026-07-25T15:52:29Z"
+    green_command: "zsh /tmp/gate-g5.sh /tmp/gate-fx2-c"
+    green_summary: "GREEN 两端各证一次, A/B 只差一个文件且不碰任何 governance 绑定字段 (只把 _index 的 stage 切成 ship, path 与 current_sprint_slug 原样)。A 组 diff = README 3 行 + _index 1 行: CC 与 codex 两端均无 stdout = 放行, 即走了 light 路径 (该 sprint checklist 六条全 pending 且无 subagent-assignments.jsonl, 全契约必拦, 故放行只可能来自 light 早退)。B 组 = 同 diff 再加一个 .ai_state/harness-patches.md: CC 端 block reason = missing subagent assignments /private/tmp/gate-fx2-c/.ai_state/sprints/2026-07-25-harness-gate-p1-p4/subagent-assignments.jsonl, codex 端同一 reason 逐字一致 —— 该检查只在 light 早退之后才可达, 证明台账文件确实把 ship 拉回全契约"
+    green_observed_at: "2026-07-25T16:23:14Z"

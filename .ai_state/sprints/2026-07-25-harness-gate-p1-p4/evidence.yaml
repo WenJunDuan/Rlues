@@ -1,0 +1,37 @@
+sprint_slug: "2026-07-25-harness-gate-p1-p4"
+collected_evidence:
+  - tool_use_id: "toolu_01TtWL2ktWd5cz52DQBYkmiL"
+    tool: "Bash"
+    result: pass
+    command: "node --check ~/.claude/hooks/delivery-gate.cjs; echo \"EXIT=$?\""
+    timestamp: "2026-07-25T15:42:12.103Z"
+  - tool_use_id: "toolu_01SdRofhW39VmuNcSXBhC2GF"
+    tool: "Bash"
+    result: pass
+    command: "node --check ~/.claude/hooks/delivery-gate.cjs; echo \"EXIT=$?\""
+    timestamp: "2026-07-25T15:42:40.173Z"
+  - tool_use_id: "toolu_015KcvPKSoXq5cVkheN3h655"
+    tool: "Bash"
+    result: pass
+    command: "node --check ~/.claude/hooks/delivery-gate.cjs; echo \"EXIT=$?\""
+    timestamp: "2026-07-25T15:43:20.199Z"
+  - tool_use_id: "toolu_01JowrMy8LvZbe7PvKfuN6oV"
+    tool: "Bash"
+    result: pass
+    command: "node --check ~/.claude/hooks/delivery-gate.cjs; echo \"CHECK_EXIT=$?\"; echo \"--- AC1 whitelist region ---\"; sed -n '404,425p' ~/.claude/hooks/delivery-gate.cjs"
+    timestamp: "2026-07-25T15:43:53.205Z"
+  - tool_use_id: "toolu_01LpDpA1NY9Mnxvd6kM1q3DQ"
+    tool: "Bash"
+    result: pass
+    command: "cd /Users/mi_manchi/workspace/quantum/quantum-cowork; echo \"=== 被改的 repo 外文件 (与备份 diff 确认) ===\"; for f in ~/.claude/hooks/delivery-gate.cjs ~/.codex/hooks/delivery-gate.py ~/.claude/rules/doc-style.md ~/.claude/rules/coding-standards.md ~/.claude/skills/pace/references/stages.md; do echo \"$f\"; done; echo; echo \"=== 备份文件 ===\"; ls -la ~/.claude/backups/ | rg 'p1p8' ; echo; echo \"=== 双端语法复核 ===\"; node --check ~/.claude/hooks/delivery-gate.cjs && echo \"CC gate: syntax OK\"; python3 -m py_compile ~/.c"
+    timestamp: "2026-07-25T16:28:48.431Z"
+  - tool_use_id: "toolu_01W5QNWET2yMKPcu798gFDTU"
+    tool: "Bash"
+    result: pass
+    command: "bun test 2>&1 | tail -4 && bunx tsc --noEmit && echo TSC_OK"
+    timestamp: "2026-07-25T16:29:01.754Z"
+  - tool_use_id: "toolu_01TwEgS3pTUZ88hLxFmUSuYv"
+    tool: "Bash"
+    result: pass
+    command: "cd /Users/mi_manchi/workspace/quantum/quantum-cowork; bun test 2>&1 | tail -3 && bunx tsc --noEmit && echo TSC_OK; echo \"=== gate 自检 (改后的门禁能正常跑) ===\"; echo \"{\\\"cwd\\\":\\\"$PWD\\\",\\\"hook_event_name\\\":\\\"Stop\\\"}\" | node ~/.claude/hooks/delivery-gate.cjs; echo \"GATE_EXIT=$?\""
+    timestamp: "2026-07-25T16:35:07.132Z"

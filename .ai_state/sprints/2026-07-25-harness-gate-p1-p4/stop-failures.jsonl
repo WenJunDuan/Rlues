@@ -1,0 +1,3 @@
+{"schema_version":1,"event":"StopFailure","error":"server_error","is_interrupt":false,"duration_ms":null,"timestamp":"2026-07-25T14:54:05.773Z"}
+{"schema_version":1,"event":"StopFailure","error":"rate_limit","is_interrupt":false,"duration_ms":null,"timestamp":"2026-07-25T15:07:19.033Z"}
+{"schema_version":1,"event":"StopFailure","error":"unknown","is_interrupt":false,"duration_ms":null,"timestamp":"2026-07-25T16:11:53.718Z"}

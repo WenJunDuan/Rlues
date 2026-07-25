@@ -1,0 +1,30 @@
+# harness 门禁修复 P1-P8 · Sisyphus 任务清单
+# path=Refactor · 对象在项目 repo 外 (~/.claude, ~/.codex, Rlues) → generator 不加 isolation (W5 的第一个应用), 隔离=手工备份+单写者串行
+# design_ref: .ai_state/sprints/2026-07-25-harness-gate-p1-p4/design.md (Round 3 收口指针为各轮修订的权威解读)
+sprint: 2026-07-25-harness-gate-p1-p4
+tasks:
+  - id: S0
+    desc: "备份先行: cp ~/.claude/hooks/delivery-gate.cjs 与 ~/.codex/hooks/delivery-gate.py 到 ~/.claude/backups/*.pre-p1p8-<UTC ts> (无 git 回滚, 备份是唯一回滚路径, AC6)"
+    status: completed
+    note: "2026-07-25T15:39:39Z 双端备份落盘: ~/.claude/backups/delivery-gate.cjs.pre-p1p8-20260725T153939Z (51k) + delivery-gate.py.pre-p1p8-20260725T153939Z (63k); AC6 复核见 harness-patches.md"
+  - id: S1
+    desc: "CC 端代码 (W1+W3+W2+W8): 白名单加 token-usage.yaml/stop-failures.jsonl (不加 proposals) · tryRepoRoot 不抛版 + main 内 root/aiState 同源 (早退保持 try 外) + validateShip(aiState,fm,root) 单点传递 (不改 :386/:789) · generator 生命周期 starts>=1 + Stop 必存 + 末次须 Stop + 稳定排序 + agent_type 全事件唯一 · isLightShipFile 加 harness-patches 分支; 每步 node --check"
+    status: completed
+    note: "delivery-gate.cjs 四处改动全落盘, 每步 node --check EXIT=0; AC1 行域计数=2 且无 proposals; tryRepoRoot 含 try/catch + basename 兜底 + 返回 null; main 早退保持 try 外; validateShip(aiState, fm, root || cwd); :386/:789 未动; 行为化证据 = S4 的 G1-G5"
+  - id: S2
+    desc: "codex 端对称 (W9, 三件事严格对称): 白名单两项 (:958 区) · find_ai_state(cwd) 与 root 同源 + git_root() (:1086) 加 basename 兜底 · is_light_ship_file (:1020) 加 harness-patches 分支; python3 -m py_compile 验语法"
+    status: completed
+    note: "三件事全对称落盘; python3 -m py_compile EXIT=0; AC1 codex 行域计数=2 无 proposals; git_root 复用 git_lines (本就非抛) 并加 --path-format=absolute --git-common-dir + basename 兜底; main 内 root/ai_state 同源且 ship 四处调用 (ship_change_is_light / validate_review_binding / validate_existing_policy / validate_meta_acceptance) 统一收 root; codex gate 可独立执行 (实测 EXIT=0), G5 codex 侧有证"
+  - id: S3
+    desc: "规范文档 (W4+W5+W7): rules/doc-style.md 增 backfill 三字段记法 (禁写会被占位符检测命中的缩写) · skills/pace/references/stages.md polish 段增 spawn 决策注记 (polish_worker 不加 isolation; 对象在 repo 外时不用 worktree) · rules/coding-standards.md 增量化 AC 必先核基线段"
+    status: completed
+    note: "三处落盘 (doc-style.md 新增 '## tdd-evidence backfill 记法' 10 行 / stages.md polish 段 spawn 决策注记 1 段 / coding-standards.md 新增 '## P1 · 量化验收标准必先核基线' 7 行); rg 复核三份文档均无会被 PLACEHOLDER_PHRASES 命中的缩写"
+  - id: S4
+    desc: "验证 G1-G5 (fixture = git clone --local --no-hardlinks + git worktree add, 不污染主档): G1 放行面 · G2 五项拦截面含 W1 反向 · G3 P2 四边界 (fixture 补 role=generator 握手行, 举证用 batch3 ac0c1960 4/2/末次Stop 与 batch1 ac31263f 8/0) · G4 W3 四情形含 PreToolUse 非 git 用例 · G5 W8 两端; 实际 stdout 入 tdd-evidence.yaml; 收尾断言主仓 git status --porcelain .ai_state 为空"
+    status: completed
+    note: "S4 证据: G1-G5 五组 dry-run 实跑, tdd-evidence.yaml 5 条记录 (含实际 stdout 摘要); fixture 用 git clone --local + worktree, 已清理; 主仓 .ai_state 仅余 hook churn"
+    note: "G1-G5 全组按 design 期望通过, 实际 stdout 摘要入 tdd-evidence.yaml (gate 自身 validateTddEvidence 复核 OK)。关键 A/B 均以 S0 备份 gate 作对照: G1 白名单 (备份 block 两文件 / 改后放行) · G2 六项拦截全 block 含 per-file 哈希与 W1 反向 · G3 四边界 (批次3 ac0c1960 4/2/末次Stop 放行且 reason 无 missing assignments, 批次1 ac31263f 8/0 与批次3 aff31893 3/0 仍拦, 末次 Start 拦, 无握手拦) · G4 四情形 (worktree 内备份 gate block missing evidence.yaml, 改后放行; 非 git 含 PreToolUse 零栈帧) · G5 两端各证 (A 组 light 放行 / B 组加台账文件后两端同一 reason block)。G5 首轮因 fixture 的 _index stage=impl 测成空, 已识别并重做。fixture 全删, 主仓无额外 worktree"
+  - id: S5
+    desc: "W6 根治 + 收口: Rlues 建 vibeCoding/{claude,codex}/9.9.6/hooks/ 存被改文件并 commit (只入被改文件, 不做全量镜像) · .ai_state/harness-patches.md 台账 (每条: 文件/理由/可执行复核命令/Rlues 对应路径) · proposals.md P1-P7 标处置 + 新增 P8 (截断致 Stop 缺失 → subagent-tracker/平台) · 项目 bun test 1811 + tsc 0 复跑"
+    status: completed
+    note: "S5 收口: Rlues 入库 b4f45eb (6 文件, 与安装态 diff 空) + 重复文档清理 cd4e0f9; 台账按用户指示移交 Rlues/.ai_state/harness-patches.md (ad4a446); proposals P1-P4 标处置 + P5-P9 记录; 项目 1811 pass + tsc 0 复跑通过"

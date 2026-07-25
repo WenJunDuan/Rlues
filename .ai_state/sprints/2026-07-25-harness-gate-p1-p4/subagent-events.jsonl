@@ -1,0 +1,8 @@
+{"schema_version":1,"event":"SubagentStart","agent_id":"ade978812441f720c","agent_type":"critic","sprint_slug":"2026-07-25-harness-gate-p1-p4","timestamp":"2026-07-25T15:07:16.283Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a0f00ab32d65402c6","agent_type":"critic","sprint_slug":"2026-07-25-harness-gate-p1-p4","timestamp":"2026-07-25T15:08:36.723Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a0f00ab32d65402c6","agent_type":"critic","sprint_slug":"2026-07-25-harness-gate-p1-p4","timestamp":"2026-07-25T15:20:11.465Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a0f00ab32d65402c6","agent_type":"critic","sprint_slug":"2026-07-25-harness-gate-p1-p4","timestamp":"2026-07-25T15:25:25.073Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a0f00ab32d65402c6","agent_type":"critic","sprint_slug":"2026-07-25-harness-gate-p1-p4","timestamp":"2026-07-25T15:29:21.240Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a6cf6122e463e1e6f","agent_type":"generator","sprint_slug":"2026-07-25-harness-gate-p1-p4","timestamp":"2026-07-25T15:37:56.904Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a6cf6122e463e1e6f","agent_type":"generator","sprint_slug":"2026-07-25-harness-gate-p1-p4","timestamp":"2026-07-25T16:04:59.942Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a6cf6122e463e1e6f","agent_type":"generator","sprint_slug":"2026-07-25-harness-gate-p1-p4","timestamp":"2026-07-25T16:14:11.065Z"}
