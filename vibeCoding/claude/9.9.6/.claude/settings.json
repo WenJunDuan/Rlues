@@ -10,9 +10,7 @@
     "VIBECODING_ATHENA_VERSION": "9.9.6",
     "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
-    "DISABLE_INSTALLATION_CHECKS": "1",
-    "API_TIMEOUT_MS": "600000"
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0"
   },
   "permissions": {
     "defaultMode": "default",
@@ -62,16 +60,6 @@
       "Bash(tsc --noEmit*)"
     ],
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(~/.ssh/**)",
-      "Read(~/.aws/**)",
-      "Read(~/.config/gcloud/**)",
-      "Read(**/*.pem)",
-      "Read(**/*.key)",
-      "Read(**/credentials.json)",
       "Bash(rm -rf /)",
       "Bash(rm -rf ~)",
       "Bash(rm -rf $HOME*)",
@@ -333,7 +321,7 @@
   "enabledPlugins": {
     "superpowers@anthropic-official": false,
     "code-review@anthropic-official": true,
-    "feature-dev@anthropic-official": false,
+    "feature-dev@anthropic-official": true,
     "commit@anthropic-official": true,
     "playwright-skill@anthropic-official": true,
     "context7@anthropic-official": true,
