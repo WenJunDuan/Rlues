@@ -88,6 +88,8 @@ spawn `polish_worker` subagent:
 - 产出 `cleanup-pass.md`
 - 触发 architecture/ 更新 (≥5 文件改动)
 
+**spawn 决策 (2026-07-25 实测, proposals P4)**: polish_worker 是串行唯一写者, **不加 `isolation: worktree`** —— 带隔离后它写不了主仓的 `.ai_state/` 与 `architecture/` (平台 isolation 语义), 产物只能靠分支合并或 cp 回传, 多一跳且易漏。同理, **改动对象在项目 repo 之外时 (如 `~/.claude` / `~/.codex` harness) 一律不用 worktree**: worktree 对 repo 外路径零隔离效果, 却照样阻断写入; 隔离手段改为手工备份 + 单写者串行。红区默认强制 worktree 仍然成立, 上述两种情形是按证据的例外, 需在 route-note 记明。
+
 ## ship
 
 主 agent commit + push. delivery-gate 检查:

@@ -125,7 +125,9 @@ function readJsonl(filePath, label, sprintSlug, validator) {
     let value;
     try { value = JSON.parse(raw); }
     catch (error) { throw new GateError(`malformed ${label} line ${index + 1}: ${error.message}`); }
-    records.push(validator(value, `${label} line ${index + 1}`, sprintSlug));
+    // lineNumber is the stable tiebreaker for same-timestamp events (see
+    // validateGeneratorChain): the events file has 1-second resolution.
+    records.push({ ...validator(value, `${label} line ${index + 1}`, sprintSlug), lineNumber: index + 1 });
   });
   if (!records.length) throw new GateError(`${label} contains no records`);
   return records;
@@ -153,10 +155,10 @@ function validateGeneratorChain(sprintDir, sprintSlug) {
   if (![...assignmentMap.values()].some(row => row.role === "generator")) {
     throw new GateError("no role=generator assignment found");
   }
-  // generator-chain 只校验 generator 生命周期。events 由 hook 记录全部 subagent 类型且
-  // agent_type 在本 harness 恒为 "default", 无法据此识别 generator; 唯一可靠判据是 assign
-  // 握手写入的 role=generator。critic/reviewer/evaluator/spec-compliance 无握手且多轮 Start/Stop,
-  // 不属于本校验范围, 按 role 过滤后跳过, 避免误报 unbound / 多重 Start-Stop。
+  // generator-chain 只校验 generator 生命周期。events 由 hook 记录全部 subagent 类型, 而
+  // agent_type 记的是平台 subagent 类型, 不区分 Athena 角色, 无法据此识别 generator;
+  // 唯一可靠判据是 assign 握手写入的 role=generator。critic/reviewer/evaluator/spec-compliance
+  // 无握手且多轮 Start/Stop, 不属于本校验范围, 按 role 过滤后跳过, 避免误报 unbound。
   const generatorKeys = new Set(
     [...assignmentMap.values()].filter(row => row.role === "generator").map(lifecycleKey),
   );
@@ -169,21 +171,42 @@ function validateGeneratorChain(sprintDir, sprintSlug) {
   }
   for (const [key, assignment] of assignmentMap.entries()) {
     if (assignment.role !== "generator") continue;
-    const rows = eventMap.get(key) || [];
+    // P2 fix (2026-07-25, .ai_state/proposals.md P2; 台账见 .ai_state/harness-patches.md):
+    // "exactly one Start/Stop" made every legitimately resumed generator structurally
+    // unshippable — an API blip plus SendMessage continuation appends a second
+    // Start/Stop pair to the same agent_id. What this check actually needs to guarantee
+    // is that the work *settled*, not that it physically ran once: at least one Start,
+    // at least one Stop, and the final lifecycle event is a Stop. A truncated agent
+    // (Starts with no Stop, or a Stop only in the middle) still blocks, which is the
+    // correct outcome — it really did not finish; releasing that case stays explicit via
+    // skip_impl_subagent_check (compound/2026-07-22-decision-e3-4-generator-truncation-
+    // subagent-check.md).
+    // Sort is stable for equal timestamps: subagent-events.jsonl has 1-second
+    // resolution, so a same-second Start/Stop pair must keep file append order,
+    // otherwise "which event is last" would be arbitrary.
+    const rows = [...(eventMap.get(key) || [])]
+      .sort((a, b) => a.parsedTimestamp - b.parsedTimestamp || a.lineNumber - b.lineNumber);
     const starts = rows.filter(row => row.event === "SubagentStart");
     const stops = rows.filter(row => row.event === "SubagentStop");
-    if (starts.length !== 1) throw new GateError(`agent_id=${assignment.agent_id} requires exactly one SubagentStart`);
-    if (stops.length !== 1) throw new GateError(`agent_id=${assignment.agent_id} requires exactly one SubagentStop`);
-    if (starts[0].agent_type !== stops[0].agent_type) {
+    if (starts.length < 1) throw new GateError(`agent_id=${assignment.agent_id} requires at least one SubagentStart`);
+    if (stops.length < 1) throw new GateError(`agent_id=${assignment.agent_id} requires at least one SubagentStop`);
+    if (rows.at(-1).event !== "SubagentStop") {
+      throw new GateError(`agent_id=${assignment.agent_id} must end with SubagentStop (work not settled)`);
+    }
+    // Stronger than the old first-Start-vs-first-Stop comparison and resume-safe: every
+    // event recorded for this agent_id must agree on agent_type.
+    if (new Set(rows.map(row => row.agent_type)).size !== 1) {
       throw new GateError(`inconsistent agent_type lifecycle for agent_id=${assignment.agent_id}`);
     }
-    if (assignment.parsedTimestamp < starts[0].parsedTimestamp) {
+    const firstStart = starts[0];
+    const lastStop = stops.at(-1);
+    if (assignment.parsedTimestamp < firstStart.parsedTimestamp) {
       throw new GateError(`assignment handshake precedes SubagentStart for agent_id=${assignment.agent_id}`);
     }
-    if (stops[0].parsedTimestamp < starts[0].parsedTimestamp) {
+    if (lastStop.parsedTimestamp < firstStart.parsedTimestamp) {
       throw new GateError(`SubagentStop precedes SubagentStart for agent_id=${assignment.agent_id}`);
     }
-    if (stops[0].parsedTimestamp < assignment.parsedTimestamp) {
+    if (lastStop.parsedTimestamp < assignment.parsedTimestamp) {
       throw new GateError(`SubagentStop precedes assignment handshake for agent_id=${assignment.agent_id}`);
     }
   }
@@ -283,6 +306,37 @@ function gitText(cwd, args, label) {
     const detail = String(error.stderr || error.stdout || error.message || "").trim();
     throw new GateError(`review freshness git check failed (${label}): ${detail}`);
   }
+}
+
+/**
+ * Resolve the main repository root for `cwd`, or null when it cannot be determined.
+ *
+ * P3 fix (2026-07-25, .ai_state/proposals.md P3; 台账见 .ai_state/harness-patches.md):
+ * inside a linked worktree `--show-toplevel` returns the *worktree* path, so the gate
+ * resolved `.ai_state` against a fresh checkout that legitimately lacks the archive and
+ * blocked every ship. `--git-common-dir` points at the main repo's .git from anywhere in
+ * the repo; `--path-format=absolute` (git >= 2.31) keeps it absolute in the main checkout
+ * too, where the bare form prints a relative ".git". Submodules (`.git/modules/<name>`)
+ * and bare repos (`repo.git`) yield no ".git" basename, so they fall back to
+ * `--show-toplevel` instead of being permanently mis-rooted.
+ *
+ * Non-throwing by contract: this runs on every PreToolUse, including writes in
+ * directories that are not Git repositories at all — any failure returns null and the
+ * caller keeps the pre-existing cwd semantics rather than crashing the hook.
+ */
+function tryRepoRoot(cwd) {
+  const run = args => {
+    try {
+      return execFileSync("git", args, {
+        cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 15000,
+      }).trim();
+    } catch (_) {
+      return "";
+    }
+  };
+  const commonDir = run(["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  if (commonDir && path.basename(commonDir) === ".git") return path.dirname(commonDir);
+  return run(["rev-parse", "--show-toplevel"]) || null;
 }
 
 // Manifest required-file sets are tiered by path (P8): a Feature sprint has no
@@ -406,7 +460,14 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
     ...Object.keys(manifest.files).filter(name => !name.startsWith("architecture/")).map(name => `${sprintRel}/${name}`),
     `${sprintRel}/review-manifest.yaml`, `${sprintRel}/ship-receipt.md`, `${sprintRel}/session-log.md`,
     `${sprintRel}/subagent-assignments.jsonl`, `${sprintRel}/subagent-events.jsonl`, `${sprintRel}/subagent-log.md`,
-    `${sprintRel}/token-usage.jsonl`, `${sprintRel}/tool-trace.jsonl`,
+    // Hook-maintained process bookkeeping, not review subjects: token-usage-collector.cjs
+    // writes token-usage.yaml on every Stop (before this gate runs) and stop-failure-
+    // recorder.cjs appends stop-failures.jsonl on every block — so a blocked ship could
+    // never become unblocked, the recorder's own write was the next drift.
+    // token-usage.jsonl kept for back-compat with pre-9.9.3 sprints.
+    // 9.9.3 已修 → 9.9.6 升级回归 → 2026-07-25 重修, 台账见 .ai_state/harness-patches.md
+    `${sprintRel}/token-usage.jsonl`, `${sprintRel}/token-usage.yaml`,
+    `${sprintRel}/stop-failures.jsonl`, `${sprintRel}/tool-trace.jsonl`,
     ".ai_state/architecture/ARCHITECTURE.md", ".ai_state/architecture/athena-9.9.6.md",
   ]);
   const stateDrift = [...changed].filter(file => file.startsWith(".ai_state/")
@@ -809,6 +870,10 @@ const SHIP_LIGHT_MAX_LINES = 60;
 function isLightShipFile(file) {
   // Harness/hook/gate files and harness config are high-risk — never light.
   if (/(^|\/)hooks\//.test(file)) return false;
+  // Patches to the installed harness live outside every project repo (~/.claude,
+  // ~/.codex), so the hooks/ guard above cannot see them — the ledger entry is their only
+  // in-repo trace. Touching it means this sprint changed the gate: run the full contract.
+  if (/(^|\/)harness-patches\.md$/.test(file)) return false;
   if (/(^|\/)settings(\.local)?\.json$/.test(file)) return false;
   // Source logic (non-test code) needs review even when small — never light.
   const isTest = /(^|\/)(tests?|__tests__|specs?)\//.test(file) || /\.(test|spec)\.[A-Za-z]+$/.test(file);
@@ -940,9 +1005,18 @@ function main() {
     if (input.trim()) payload = JSON.parse(input);
   } catch (_) {}
   const cwd = path.resolve(payload.cwd || process.cwd());
-  const aiState = findAiState(cwd);
-  if (!aiState) return;
+  // Fast quiet exit for non-Athena directories stays *before* any git call: this hook
+  // fires on every PreToolUse, and a write to /tmp must neither pay for a subprocess nor
+  // be able to crash (design Round 3 F12).
+  const aiStateLocal = findAiState(cwd);
+  if (!aiStateLocal) return;
   try {
+    // P3: root and .ai_state must be resolved from the same checkout. Taking root from
+    // the main repo while reading .ai_state from a worktree cwd made `sprintRel` come out
+    // as "../wt-x/..." and mis-framed every drift comparison (design Round 3 F17), so the
+    // main-repo root is the single source both here and inside validateShip.
+    const root = tryRepoRoot(cwd);
+    const aiState = (root && findAiState(root)) || aiStateLocal;
     const index = requireFile(path.join(aiState, "_index.md"), "_index.md");
     const fm = parseFrontmatter(index);
     // P8: idle state (no sprint in flight) is legal — path/stage/current_sprint_slug
@@ -959,7 +1033,7 @@ function main() {
     // every write re-runs the failing check). Implementation writes and the Stop
     // final gate still validate in full.
     const shipMustValidate = payload.hook_event_name !== "PreToolUse" || isImplementationWrite(payload);
-    if (fm.stage === "ship" && shipMustValidate) validateShip(aiState, fm, cwd);
+    if (fm.stage === "ship" && shipMustValidate) validateShip(aiState, fm, root || cwd);
     else if (fm.stage === "impl") validateImplEntry(aiState, fm);
   } catch (error) {
     block(error instanceof GateError ? error.message : `internal fail-closed error: ${error.message}`);

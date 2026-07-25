@@ -90,6 +90,16 @@ export function foo(x: number): string { ... }
 - **风险与缓解**: 已知风险 + mitigation
 - **验收标准**: 怎么验证完成 (测试 / 手动验证步骤)
 
+## tdd-evidence backfill 记法 (2026-07-25)
+
+delivery-gate 要求 `tdd-evidence.yaml` 每条记录八字段全非空。给**既有实现已正确**的代码补测试 (backfill) 时没有独立 red 阶段, 但这是合法工程形态, 不得留空字段, 也不得编造 red。三字段这样写:
+
+- `red_command`: 写成显式 backfill 声明, 例如 `"backfill 声明: 既有实现已正确, 无独立 red 阶段; 缺口证据见 red_summary"` (**禁止写会被占位符检测命中的缩写**, 见 delivery-gate 的 `PLACEHOLDER_PHRASES`)
+- `red_summary`: 必须给**真实缺口证据** (改动前该文件/分支的实测覆盖数字或未覆盖清单), 不能只写"缺测试"
+- `red_observed_at`: 语义 = **缺口核实时刻**, 不是"测试失败时刻"
+
+仅适用于 backfill。**修 bug / 改行为的改动仍须真 red→green**, 用本记法掩盖等同伪造证据。
+
 ## polish stage 特殊检查
 
 polish_worker 加载本规则后, 重点扫描:
