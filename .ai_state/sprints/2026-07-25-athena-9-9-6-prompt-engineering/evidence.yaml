@@ -1,0 +1,12 @@
+sprint_slug: "2026-07-25-athena-9-9-6-prompt-engineering"
+collected_evidence:
+  - tool_use_id: "toolu_01FKdopP9XBsrqrLHdmXDqqj"
+    tool: "Bash"
+    result: pass
+    command: "cd /Users/mi_manchi/workspace/Rlues/vibeCoding/codex/9.9.6/hooks && sed -n \"$(grep -n 'def validate_review_binding' delivery-gate.py | cut -d: -f1),+8p\" delivery-gate.py && python3 -c \"import ast;ast.parse(open('delivery-gate.py').read());print('py 语法 OK')\" && node --check /Users/mi_manchi/workspace/Rlues/vibeCoding/claude/9.9.6/.claude/hooks/delivery-gate.cjs && echo \"cjs 语法 OK\""
+    timestamp: "2026-07-27T03:18:49.414Z"
+  - tool_use_id: "toolu_01MAKFLbi4KSHcBPg2FssoUJ"
+    tool: "Bash"
+    result: pass
+    command: "cd /Users/mi_manchi/workspace/Rlues/vibeCoding/claude/9.9.6/.claude/hooks && node --check session-start.cjs && echo \"语法 OK\" && head -20 session-start.cjs | grep -n \"require\" "
+    timestamp: "2026-07-27T03:21:49.903Z"

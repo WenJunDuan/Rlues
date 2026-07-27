@@ -139,7 +139,36 @@ function specialAlerts(fm, aiState) {
     alerts.push(`🌿 **worktree 提示**: _index 记录 ${activeWts}; 先运行 git worktree list 现场核对. 默认 hook 不替代原生 Git 创建/清理.`);
   }
 
+  // 4. 未消解的 delivery-gate 熔断升级 (design §10.1 AC16i)
+  // 熔断"不是放水"的承重腿: escalation 不发 block, 若无人告警就等于静默吞掉失败。
+  // 尤其外包 exec 会话的 stderr 不回喂编排者, 编排侧只会看到一次干净的 Stop。
+  const escalation = pendingEscalation(aiState, fm.current_sprint_slug || '');
+  if (escalation) {
+    alerts.push(`🛑 **门禁升级未消解**: 上次 Stop 连续 ${escalation.consecutive} 次同因阻断后已熔断 (ESCALATED, ${escalation.ts}). 阻断本身**未解除**, 只是停止了空转. 查 \`.ai_state/sprints/${fm.current_sprint_slug}/stop-failures.jsonl\`, 修掉根因再继续; 不得当作已通过.`);
+  }
+
   return alerts;
+}
+
+/** 尾部是 GateEscalated 且其后无 GatePass = 升级尚未消解。读取有界, 失败即静默 (fail-open)。 */
+function pendingEscalation(aiState, sprintSlug) {
+  if (!sprintSlug) return null;
+  try {
+    const file = path.join(aiState, 'sprints', sprintSlug, 'stop-failures.jsonl');
+    const raw = fs.readFileSync(file, 'utf8');
+    const rows = [];
+    for (const line of raw.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      try {
+        const row = JSON.parse(line);
+        if (row && ['GateBlock', 'GateEscalated', 'GatePass'].includes(row.event)) rows.push(row);
+      } catch (_) { /* 跳过非本类记录 */ }
+    }
+    const last = rows[rows.length - 1];
+    return last && last.event === 'GateEscalated' ? last : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 function memoryRouterContext(aiState, idxPath, fm) {

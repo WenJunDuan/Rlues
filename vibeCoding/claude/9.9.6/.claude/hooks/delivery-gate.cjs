@@ -431,14 +431,27 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
   if (manifest.indexGovernanceSha256 !== indexGovernanceSha256(fm)) {
     throw new GateError("review-manifest index governance does not match protected _index fields");
   }
+  const root = gitText(cwd, ["rev-parse", "--show-toplevel"], "repository root").trim();
+  if (!root) throw new GateError("review freshness cannot determine Git repository root");
+  // 治理哈希只对**版本化**文件有意义。被 gitignore 的档案 (典型: evidence.yaml ——
+  // evidence-collector 每次 PostToolUse 都追加, 消费侧项目因此有意把它排除出 git)
+  // 哈希必然漂移, 且不在 git 里就没有任何来源可还原成 manifest 记录的值; 重算 manifest
+  // 去迁就它又正是 block 消息自己禁止的绕过。净效果是**一个已 ship 的 sprint 在往后每个
+  // 新会话都卡死且无合法出路** (2026-07-27 实测)。故未跟踪文件跳过哈希校验并留声明。
+  const tracked = new Set(
+    gitText(root, ["ls-files"], "tracked files").split(/\r?\n/).map(line => line.trim()).filter(Boolean),
+  );
   for (const [name, expectedHash] of Object.entries(manifest.files)) {
     const target = name.startsWith("architecture/") ? path.join(aiState, name) : path.join(sprintDir, name);
     if (!fs.existsSync(target) || !fs.statSync(target).isFile()) throw new GateError(`review-manifest target missing: ${name}`);
+    const rel = path.relative(fs.realpathSync(root), fs.realpathSync(target)).split(path.sep).join("/");
+    if (!tracked.has(rel)) {
+      process.stderr.write(`[delivery-gate] manifest 跳过未跟踪文件的哈希校验: ${name} (gitignored, 无版本化真相源)\n`);
+      continue;
+    }
     const actual = crypto.createHash("sha256").update(fs.readFileSync(target)).digest("hex");
     if (actual !== expectedHash) throw new GateError(`review-manifest hash mismatch: ${name}`);
   }
-  const root = gitText(cwd, ["rev-parse", "--show-toplevel"], "repository root").trim();
-  if (!root) throw new GateError("review freshness cannot determine Git repository root");
   gitText(root, ["cat-file", "-e", `${reviewedCommit}^{commit}`], "reviewed commit exists");
   gitText(root, ["merge-base", "--is-ancestor", reviewedCommit, "HEAD"], "reviewed commit ancestor");
   const changed = new Set();
@@ -938,6 +951,21 @@ function validateShip(aiState, fm, cwd) {
   // manifest file's presence) except for Refactor/System, where it is mandatory.
   // Sprints shipped under the pre-9.9.6 contract have no manifest and must not be
   // retroactively blocked — they are still held to the full 9.9.1 check set below.
+  // 解锁动作正确化 (design §10.1): 先判 polish 产物再判 manifest。缺 polish 时报缺
+  // review-manifest 是**误导** —— manifest 是 review 的下游产物, polish 角色造不出来,
+  // 给出的解锁动作物理不可执行, 正是 290 次活锁的起因。manifest 仍为必需项, 只是后报。
+  if (REFACTOR_SYSTEM.has(fm.path)) {
+    let cleanup = "";
+    try {
+      cleanup = requireFile(path.join(sprintDir, "cleanup-pass.md"), "cleanup-pass.md");
+    } catch (_) { /* 缺失与空壳走同一分支 */ }
+    // 复用 validateMetaAcceptance 的既有判据, 不新造机制 (R1-F5a)。
+    if (!/\bPASS\b|completed|完成/i.test(cleanup)) {
+      throw new GateError(
+        "Refactor/System polish stage 未跑; 解锁链: 跑 polish → 产出 cleanup-pass.md → 再补 review-manifest.yaml",
+      );
+    }
+  }
   const hasManifest = fs.existsSync(path.join(sprintDir, "review-manifest.yaml"));
   if (REFACTOR_SYSTEM.has(fm.path) && !hasManifest) {
     throw new GateError("Refactor/System ship requires review-manifest.yaml (9.9.6 review contract)");
@@ -998,6 +1026,137 @@ function block(reason) {
   process.stdout.write(`${JSON.stringify({ decision: "block", reason: message })}\n`);
 }
 
+// ---------------------------------------------------------------------------
+// Stop 阻断活锁熔断器 (design §10.1 / AC16)。
+// 起因: 同一条阻断在一个会话里重复 290 次 / 42 分钟, 零进展 —— 门禁的判定没错, 但它
+// 要求的产物当前角色**造不出来** (polish 造不出 review-manifest), 解锁动作物理不可执行。
+// 熔断只停止无意义重试并交还人类, 不放行任何东西: PreToolUse 的实现写入门禁完全不变。
+// ---------------------------------------------------------------------------
+const GATE_LEDGER_WINDOW_MS = 30 * 60 * 1000;
+const GATE_EVENTS = new Set(["GateBlock", "GateEscalated", "GatePass"]);
+const GATE_ESCALATE_AT = 3;
+
+function gateLedgerPath(ctx) {
+  return path.join(ctx.sprintDir, "stop-failures.jsonl");
+}
+
+/** 只读取本熔断器写的记录; stop-failure-recorder 的 StopFailure 行原样跳过。 */
+function parseGateLedger(filePath) {
+  let raw;
+  try {
+    raw = fs.readFileSync(filePath, "utf8");
+  } catch (_) {
+    return [];
+  }
+  const rows = [];
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      const row = JSON.parse(line);
+      if (row && typeof row === "object" && GATE_EVENTS.has(row.event)) rows.push(row);
+    } catch (_) { /* 半截行或他人写的行, 跳过 */ }
+  }
+  return rows;
+}
+
+function gateRowIsRecent(row, now) {
+  const ts = Date.parse(String(row.ts || ""));
+  if (!Number.isFinite(ts)) return false;
+  const age = now - ts;
+  return age >= 0 && age <= GATE_LEDGER_WINDOW_MS;
+}
+
+/** session_id 缺失时退化为仅按 reason 匹配 (兜底, 不报错)。 */
+function gateRowMatchesSession(row, sessionId) {
+  return sessionId ? row.session_id === sessionId : true;
+}
+
+/**
+ * 尾部连续、同会话、同 reason 且在窗口内的记录数。
+ * 其他会话的记录用 continue 跳过而非 break —— 红区强制并行 worktree, 多会话共写同一
+ * ledger, 若 break 则交替 reason 会打断彼此链条, 熔断在并行场景永不触发 (R1-F2)。
+ */
+function gateChainCount(filePath, sessionId, reasonSha1) {
+  const now = Date.now();
+  const rows = parseGateLedger(filePath);
+  let count = 0;
+  for (let i = rows.length - 1; i >= 0; i -= 1) {
+    const row = rows[i];
+    if (!gateRowMatchesSession(row, sessionId)) continue;
+    if (!gateRowIsRecent(row, now)) break;
+    if (row.reason_sha1 !== reasonSha1 || row.event === "GatePass") break;
+    count += 1;
+  }
+  return count;
+}
+
+function latestGateRecord(filePath, sessionId) {
+  const now = Date.now();
+  const rows = parseGateLedger(filePath);
+  for (let i = rows.length - 1; i >= 0; i -= 1) {
+    if (gateRowMatchesSession(rows[i], sessionId) && gateRowIsRecent(rows[i], now)) return rows[i];
+  }
+  return null;
+}
+
+function appendGateRecord(filePath, record) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  // O_APPEND 单次 write: 并发 worktree 会同时追加同一文件。
+  fs.appendFileSync(filePath, `${JSON.stringify(record)}\n`, { encoding: "utf8", mode: 0o600 });
+}
+
+/**
+ * Stop 路径专用。**必须只在 Stop 事件生效** —— 若把熔断塞进共用的 block(),
+ * 同因重试的 PreToolUse 实现写入第 3 次就会被放行执行, 那是 P0 越权。
+ */
+function stopFailure(payload, reason, ctx) {
+  if (payload.hook_event_name !== "Stop" || !ctx) return block(reason);
+  const sessionId = typeof payload.session_id === "string" ? payload.session_id.trim() : "";
+  const reasonSha1 = crypto.createHash("sha1").update(reason, "utf8").digest("hex");
+  const ledger = gateLedgerPath(ctx);
+  const consecutive = gateChainCount(ledger, sessionId, reasonSha1) + 1;
+  const record = {
+    event: consecutive >= GATE_ESCALATE_AT ? "GateEscalated" : "GateBlock",
+    ts: new Date().toISOString(),
+    session_id: sessionId,
+    reason_sha1: reasonSha1,
+    stage: ctx.stage,
+    path: ctx.pathType,
+    consecutive,
+  };
+  appendGateRecord(ledger, record);
+  if (record.event === "GateEscalated") {
+    // 不发 decision:block —— 停止空转, 让 turn 正常结束并交还人类。判定本身没有改变:
+    // 状态真实变化 (reason 变) 或窗口过期后, 阻断照常恢复。
+    process.stderr.write(`[delivery-gate] ESCALATED: ${reason}\n`);
+    return;
+  }
+  block(reason);
+}
+
+/**
+ * 清零 = 一次**通过全部校验**的 Stop, 不是"未发 block"的 Stop ——
+ * escalated 的 Stop 本身就不发 block, 若按后者清零会退化成 3 block + 1 escalate 的
+ * 无限循环, 活锁只降 25% (R1-F1)。仅在有链可断时写哨兵, 无链时零成本。
+ */
+function appendGatePass(payload, ctx) {
+  if (payload.hook_event_name !== "Stop" || !ctx) return;
+  const sessionId = typeof payload.session_id === "string" ? payload.session_id.trim() : "";
+  const ledger = gateLedgerPath(ctx);
+  const latest = latestGateRecord(ledger, sessionId);
+  if (!latest || !["GateBlock", "GateEscalated"].includes(latest.event)) return;
+  if (typeof latest.reason_sha1 !== "string" || !latest.reason_sha1) return;
+  appendGateRecord(ledger, {
+    event: "GatePass",
+    ts: new Date().toISOString(),
+    session_id: sessionId,
+    reason_sha1: latest.reason_sha1,
+    stage: ctx.stage,
+    path: ctx.pathType,
+    consecutive: 0,
+  });
+}
+
 function main() {
   let payload = {};
   try {
@@ -1010,6 +1169,9 @@ function main() {
   // be able to crash (design Round 3 F12).
   const aiStateLocal = findAiState(cwd);
   if (!aiStateLocal) return;
+  // 熔断器上下文: 需要 sprintDir 才能写 ledger。_index 尚未解析出 slug 时为 null,
+  // 此时 stopFailure 退化为普通 block (已知局限, 见 gate-breaker-evidence.md §5)。
+  let breakerCtx = null;
   try {
     // P3: root and .ai_state must be resolved from the same checkout. Taking root from
     // the main repo while reading .ai_state from a worktree cwd made `sprintRel` come out
@@ -1024,6 +1186,13 @@ function main() {
     // Without this, a shipped sprint can never be released from the ship gate
     // except by immediately opening the next sprint.
     if (!(fm.path || "") && !(fm.stage || "") && !(fm.current_sprint_slug || "")) return;
+    if (fm.current_sprint_slug) {
+      breakerCtx = {
+        sprintDir: path.join(aiState, "sprints", fm.current_sprint_slug),
+        stage: fm.stage || "",
+        pathType: fm.path || "",
+      };
+    }
     if (!VALID_PATHS.has(fm.path || "")) throw new GateError(`unknown or missing path ${fm.path || ""}`);
     if (!VALID_STAGES.has(fm.stage || "")) throw new GateError(`unknown or missing stage ${fm.stage || ""}`);
     if (isImplementationWrite(payload) && ["design", "impl"].includes(fm.stage)) validateImplEntry(aiState, fm);
@@ -1035,8 +1204,9 @@ function main() {
     const shipMustValidate = payload.hook_event_name !== "PreToolUse" || isImplementationWrite(payload);
     if (fm.stage === "ship" && shipMustValidate) validateShip(aiState, fm, root || cwd);
     else if (fm.stage === "impl") validateImplEntry(aiState, fm);
+    appendGatePass(payload, breakerCtx);
   } catch (error) {
-    block(error instanceof GateError ? error.message : `internal fail-closed error: ${error.message}`);
+    stopFailure(payload, error instanceof GateError ? error.message : `internal fail-closed error: ${error.message}`, breakerCtx);
   }
 }
 
