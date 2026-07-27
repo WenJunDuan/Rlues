@@ -6,8 +6,8 @@ VibeCoding Athena v9.9.6 · Codex index updater (UserPromptSubmit/PostToolUse, �
 
 v9.6.4 改动 (vs v9.6.2):
 - sprints/ 替代 details/ → 按 path 字段分类计数
-- compound/ 替代 lessons.md → 按 doc_type 分类计数 + latest 5 列表
-- 维护 latest_architecture_update
+- compound/ 替代 lessons.md → 按 doc_type 分类计数 + 按 git 提交时间取 latest 5
+- 维护 latest_architecture_update（ARCHITECTURE.md 最后提交时间）
 
 v9.9.0 新: re-route 机械触发 — sprint 改动文件数超路径上限 (Quick>3 / Bugfix>3 / Feature>10)
   且 stage ∈ {impl, runtime-verify} 且 next_action 为空 → 写 next_action="re-route" (只升不降的地板检测)
@@ -17,6 +17,7 @@ v9.9.0 新: re-route 机械触发 — sprint 改动文件数超路径上限 (Qui
 import datetime
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -88,7 +89,46 @@ def scan_sprints(ai_state: Path):
     return counts
 
 
-def scan_compound(ai_state: Path):
+def git_commit_times(ai_state: Path, files: list[Path], scopes: list[Path]) -> dict[str, str] | None:
+    """Return each tracked file's latest commit time from one batched git log."""
+    if not files or not scopes:
+        return None
+    try:
+        repo_root = Path(subprocess.run(
+            ["git", "-C", str(ai_state), "rev-parse", "--show-toplevel"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip())
+        relative_to_absolute = {
+            os.path.relpath(file.resolve(), repo_root).replace(os.sep, "/"): str(file.resolve())
+            for file in files
+        }
+        scope_paths = list(dict.fromkeys(
+            os.path.relpath(scope.resolve(), repo_root).replace(os.sep, "/") for scope in scopes
+        ))
+        output = subprocess.run(
+            ["git", "-C", str(repo_root), "log", "--format=%cI%x00", "--name-only", "-z", "--", *scope_paths],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        times: dict[str, str] = {}
+        current_time = ""
+        timestamp = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$")
+        for raw_token in output.split("\0"):
+            token = raw_token.lstrip("\n")
+            if timestamp.fullmatch(token):
+                current_time = token
+            elif token in relative_to_absolute and current_time:
+                times.setdefault(relative_to_absolute[token], current_time)
+        return times
+    except (OSError, subprocess.SubprocessError) as exc:
+        sys.stderr.write(f"[index-updater] git metadata unavailable; falling back to mtime: {exc}\n")
+        return None
+
+
+def scan_compound(ai_state: Path, git_times: dict[str, str] | None):
     compound_dir = ai_state / "compound"
     counts = {"learning": 0, "trick": 0, "decision": 0, "explore": 0}
     by_type = {"learning": [], "trick": [], "decision": [], "explore": []}
@@ -100,17 +140,22 @@ def scan_compound(ai_state: Path):
         dt = parse_doc_type(f.name)
         if dt in counts:
             counts[dt] += 1
-            by_type[dt].append((f.name, f.stat().st_mtime))
+            commit_time = git_times.get(str(f.resolve())) if git_times else None
+            sort_time = datetime.datetime.fromisoformat(commit_time).timestamp() if commit_time else f.stat().st_mtime
+            by_type[dt].append((f.name, sort_time))
     for t in by_type:
         by_type[t].sort(key=lambda x: x[1], reverse=True)
         by_type[t] = [f"compound/{name}" for name, _ in by_type[t][:5]]
     return counts, by_type
 
 
-def scan_architecture(ai_state: Path):
+def scan_architecture(ai_state: Path, git_times: dict[str, str] | None):
     arch = ai_state / "architecture" / "ARCHITECTURE.md"
     if not arch.exists():
         return ""
+    commit_time = git_times.get(str(arch.resolve())) if git_times else None
+    if commit_time:
+        return commit_time
     return datetime.datetime.utcfromtimestamp(arch.stat().st_mtime).isoformat() + "Z"
 
 
@@ -203,7 +248,15 @@ def main() -> int:
         content = update_field(content, "reviews_count", sprint_counts["reviews"])
         content = update_field(content, "cleanup_count", sprint_counts["cleanup"])
 
-        cmp_counts, by_type = scan_compound(ai_state)
+        compound_dir = ai_state / "compound"
+        compound_files = [f for f in compound_dir.iterdir() if f.is_file()] if compound_dir.exists() else []
+        arch = ai_state / "architecture" / "ARCHITECTURE.md"
+        git_times = git_commit_times(
+            ai_state,
+            [*compound_files, *([arch] if arch.exists() else [])],
+            [*([compound_dir] if compound_dir.exists() else []), *([arch] if arch.exists() else [])],
+        )
+        cmp_counts, by_type = scan_compound(ai_state, git_times)
         # compound nested counts (in counts.compound)
         # v9.9.0 修: 限定 compound: 块内替换 (旧实现撞任意同名缩进键)
         # Keep the trailing newline inside the nested block.  The previous
@@ -228,7 +281,7 @@ def main() -> int:
         content = update_field(content, "latest_decisions", by_type["decision"])
         content = update_field(content, "latest_lessons", by_type["learning"])
 
-        arch_mtime = scan_architecture(ai_state)
+        arch_mtime = scan_architecture(ai_state, git_times)
         if arch_mtime:
             content = update_field(content, "latest_architecture_update", arch_mtime)
 

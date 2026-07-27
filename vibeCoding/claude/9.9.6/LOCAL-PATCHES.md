@@ -14,6 +14,7 @@
 | `claude/9.9.6/rules/coding-standards.md` | `~/.claude/rules/coding-standards.md` | 量化验收标准必先核基线 |
 | `claude/9.9.6/skills/pace/references/stages.md` | `~/.claude/skills/pace/references/stages.md` | polish 段 spawn 决策 (不加 isolation / repo 外对象不用 worktree) |
 | `codex/9.9.6/hooks/delivery-gate.py` | `~/.codex/hooks/delivery-gate.py` | P1 白名单 / P3 root 归一 / W8 台账护栏 (codex 无 P2) |
+| `claude/9.9.6/.claude/hooks/index-updater.cjs`、`codex/9.9.6/.codex/hooks/index-updater.py` | 对应端安装态 index-updater hook | latest architecture / compound pointers 改由批量 git 提交时间派生，非 git 时带 stderr 回退 mtime |
 
 ## 升级后怎么用
 
