@@ -2,6 +2,10 @@ roadmap_slug: "athena-9-9-6-prompt-engineering"
 created: "2026-07-25"
 revision: "v3.1"
 total_items: 12
+closure:
+  status: "superseded-by-user-closure"
+  closed_at: "2026-07-28"
+  reason: "原本的改动反复且叙述冗长；用户决定后续不再考虑该方向。"
 items:
   - slug: "research-and-audit"
     title: "调研与 9.9.3 审计"
@@ -45,32 +49,32 @@ items:
     notes: "Current sprint checklist B6; completion means reviewable bottom draft only, not final adapters/release."
   - slug: "claude-adapter"
     title: "Claude Code 9.9.6 final adapter（底稿后的 F1-F4）"
-    status: pending
+    status: superseded
     sprint_slug: ""
     blocked_by: ["reviewable-bottom-draft"]
     estimated_complexity: L
-    notes: "CC reviewable bottom adapter 已落仓；本 item 只表示 invocation/PACE/hooks/state 等最终实现尚未完成。"
+    notes: "CC reviewable bottom adapter 已落仓；最终 invocation/PACE/hooks/state 实现因用户关闭方向而不再推进。"
   - slug: "codex-adapter"
     title: "Codex 9.9.6 final adapter（底稿后的 F1-F4）"
-    status: pending
+    status: superseded
     sprint_slug: ""
     blocked_by: ["reviewable-bottom-draft"]
     estimated_complexity: L
-    notes: "CX reviewable bottom adapter 已落仓；本 item 只表示 invocation/PACE/hooks/state 等最终实现尚未完成。"
+    notes: "CX reviewable bottom adapter 已落仓；最终 invocation/PACE/hooks/state 实现因用户关闭方向而不再推进。"
   - slug: "local-validation-and-migration"
     title: "本地测试、迁移与集成"
-    status: pending
+    status: superseded
     sprint_slug: ""
     blocked_by: ["claude-adapter", "codex-adapter"]
     estimated_complexity: L
-    notes: "vibeCoding/scripts local-only; test/eval assets remain untracked"
+    notes: "vibeCoding/scripts local-only；剩余 test/eval 资产因用户关闭方向而不再推进。"
   - slug: "review-polish-release"
     title: "Review、polish 与发布"
-    status: pending
+    status: superseded
     sprint_slug: ""
     blocked_by: ["local-validation-and-migration"]
     estimated_complexity: L
-    notes: "requires separate commit/push/release authorization"
+    notes: "用户关闭方向；review、polish、commit/push/release 不再追做。"
   - slug: "harness-gate-p1-p4"
     title: "计划外: P1-P4/P9 门禁死锁修复 (补录)"
     status: completed

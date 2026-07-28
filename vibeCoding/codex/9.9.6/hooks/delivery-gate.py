@@ -927,8 +927,7 @@ def validate_review(path: Path, path_type: str) -> str:
         raise GateError(f"latest review {path.name} lacks ## Spec Compliance")
     # P8: mandatory Evidence Cross-Check stays scoped to Refactor/System (9.9.1
     # semantics); widening it retroactively blocked shipped Feature sprints.
-    if path_type in REFACTOR_SYSTEM and "## Evidence Cross-Check" not in content:
-        raise GateError(f"latest review {path.name} lacks ## Evidence Cross-Check")
+    pass  # K1 (W31): Cross-Check 存在性检查已砍。
     return content
 
 
@@ -1429,8 +1428,7 @@ def validate_existing_policy(
 
     # Keep the value used so static review cannot accidentally remove the
     # evidence cross-check after validate_review has accepted it.
-    if path_type in REFACTOR_SYSTEM and "## Evidence Cross-Check" not in review_content:
-        raise GateError("review evidence cross-check missing")
+    pass  # K1 (W31): Cross-Check 段存在性不再 gate 验, 判定由 VERDICT 承载。
 
 
 def is_implementation_write(payload: dict[str, Any]) -> bool:
@@ -1593,8 +1591,7 @@ def main() -> int:
                         "cleanup-pass.md → 再补 review-manifest.yaml"
                     )
             has_manifest = (sprint_dir / "review-manifest.yaml").exists()
-            if path_type in REFACTOR_SYSTEM and not has_manifest:
-                raise GateError("Refactor/System ship requires review-manifest.yaml (9.9.6 review contract)")
+            # K1 (2026-07-28, W31): R/S manifest 契约降为 opt-in (与 Feature 同构); 存在则全链照验。
             if has_manifest:
                 # Governance binding is checked before trusting skip/critic fields,
                 # so mutating System→Quick cannot bypass the release gate.

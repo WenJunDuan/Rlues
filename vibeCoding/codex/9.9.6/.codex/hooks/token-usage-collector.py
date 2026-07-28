@@ -419,8 +419,10 @@ def main() -> int:
 
         # A2 (2026-07-28, 台账 W21): Stop 全量聚合只在 ship 跑; SubagentStop 保留。
         # 事件名不匹配时不跳过 (fail-open 到旧行为)。
-        evt = str(payload.get("hook_event_name") or payload.get("event") or "")
-        if evt == "Stop" and stage != "ship":
+        # K3 (2026-07-28, 台账 W33): 判定改按 payload 形状而非事件名 — CX 事件名不可枚举,
+        # 旧条件 fail-open 导致 533KB 照写 (sensory-retirement 实测)。非 per-subagent 采集
+        # (无 agent_transcript_path) 且 stage != ship → 跳过全量聚合。
+        if stage != "ship" and not payload.get("agent_transcript_path"):
             return EXIT_SUCCESS
 
         sprint_dir = ai_state / "sprints" / sprint_slug

@@ -1,5 +1,5 @@
 sprint_slug: 2026-07-25-athena-9-9-6-prompt-engineering
-updated_at: "2026-07-28T03:40:56.424Z"
+updated_at: "2026-07-28T06:09:31.978865+00:00"
 status: "ok"
 totals:
   cache_creation_input_tokens: 1682606
@@ -12,98 +12,98 @@ totals:
 by_model:
   "<synthetic>":
     calls: 1
-    cache_creation_input_tokens: 0
     cache_read_input_tokens: 0
     cached_input_tokens: 0
     input_tokens: 0
     output_tokens: 0
-    reasoning_output_tokens: 0
     total_tokens: 0
+    reasoning_output_tokens: 0
+    cache_creation_input_tokens: 0
   "claude-fable-5":
     calls: 30
-    cache_creation_input_tokens: 333059
     cache_read_input_tokens: 1863484
     cached_input_tokens: 2196543
     input_tokens: 3079
     output_tokens: 26928
-    reasoning_output_tokens: 0
     total_tokens: 30007
+    reasoning_output_tokens: 0
+    cache_creation_input_tokens: 333059
   "claude-opus-5":
     calls: 416
-    cache_creation_input_tokens: 1349547
     cache_read_input_tokens: 65397077
     cached_input_tokens: 66746624
     input_tokens: 45843
     output_tokens: 463411
-    reasoning_output_tokens: 0
     total_tokens: 509254
+    reasoning_output_tokens: 0
+    cache_creation_input_tokens: 1349547
   "unknown":
     calls: 1149
-    cache_creation_input_tokens: 0
     cache_read_input_tokens: 77357
     cached_input_tokens: 115788077
     input_tokens: 121735216
     output_tokens: 710274
-    reasoning_output_tokens: 289155
     total_tokens: 123153658
+    reasoning_output_tokens: 289155
+    cache_creation_input_tokens: 0
 by_stage:
   "impl":
     "<synthetic>":
       calls: 1
-      cache_creation_input_tokens: 0
       cache_read_input_tokens: 0
       cached_input_tokens: 0
       input_tokens: 0
       output_tokens: 0
-      reasoning_output_tokens: 0
       total_tokens: 0
+      reasoning_output_tokens: 0
+      cache_creation_input_tokens: 0
     "claude-fable-5":
       calls: 30
-      cache_creation_input_tokens: 333059
       cache_read_input_tokens: 1863484
       cached_input_tokens: 2196543
       input_tokens: 3079
       output_tokens: 26928
-      reasoning_output_tokens: 0
       total_tokens: 30007
+      reasoning_output_tokens: 0
+      cache_creation_input_tokens: 333059
     "claude-opus-5":
       calls: 416
-      cache_creation_input_tokens: 1349547
       cache_read_input_tokens: 65397077
       cached_input_tokens: 66746624
       input_tokens: 45843
       output_tokens: 463411
-      reasoning_output_tokens: 0
       total_tokens: 509254
+      reasoning_output_tokens: 0
+      cache_creation_input_tokens: 1349547
     "unknown":
       calls: 838
-      cache_creation_input_tokens: 0
       cache_read_input_tokens: 77357
       cached_input_tokens: 82871597
       input_tokens: 87391127
       output_tokens: 511585
-      reasoning_output_tokens: 199825
       total_tokens: 88553079
+      reasoning_output_tokens: 199825
+      cache_creation_input_tokens: 0
   "plan":
     "unknown":
       calls: 78
-      cache_creation_input_tokens: 0
       cache_read_input_tokens: 0
       cached_input_tokens: 5604864
       input_tokens: 5773746
       output_tokens: 40132
-      reasoning_output_tokens: 15483
       total_tokens: 5813878
+      reasoning_output_tokens: 15483
+      cache_creation_input_tokens: 0
   "roadmap":
     "unknown":
       calls: 233
-      cache_creation_input_tokens: 0
       cache_read_input_tokens: 0
       cached_input_tokens: 27311616
       input_tokens: 28570343
       output_tokens: 158557
-      reasoning_output_tokens: 73847
       total_tokens: 28786701
+      reasoning_output_tokens: 73847
+      cache_creation_input_tokens: 0
 records:
   - fingerprint: "0332b0534cf1eab2"
     platform: "cx"

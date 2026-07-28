@@ -101,3 +101,16 @@ architect.md 已精简 (24 行) 无需动。CX 端模型路由不对称项 (无 
 | W28/B3 | compact-restore 白名单化: CC 抽 `_index-render.cjs` 共享模块 (session-start 复用同源, 消双写), 注入 4KB→523B 实测且带告警; CX 内联同构 | 冒烟: fixture 注入 523B 含 design_changed 告警 ✅; session-start 回归输出正常 ✅ |
 | W29/A5 | pace-continuator 双端砍 ## 历史 写入 (B5 空条目一并消灭), hook 变纯读; 模板段废除 | node --check / py_compile ✅ |
 | W30/C3 | roadmap 编号收敛为 items.yaml slug 单源 + F↔item 映射 + 计划外批次补录 (items 10→12, gate 的 endsWith 匹配校验兼容) | 文本 diff; item slug 与 sprint slug 后缀匹配 ✅ |
+
+## 12. 实测归因刀 (2026-07-28 · W31-W34)
+
+下午 dogfood (sensory-retirement, Refactor) 实测: 代码 7%、ship 同因 block×4 熔断、CX 每消息全扫、533KB 遥测照写、CODEX-TASK 自造。归因→改动:
+
+| 病根 | 改动 | 验证 |
+|---|---|---|
+| R/S 完整契约 (manifest→binding→tdd) 是 ship 空转与 review/cleanup/ship 文书劳役主源 | W31: manifest 全路径 opt-in; Cross-Check 段 gate 检查砍; R/S 底线=runtime-verify+cleanup+PASS | R/S ship 无 manifest 双端 exit 0 ✅ |
+| CX 布线: index-updater 挂 UserPromptSubmit+PostToolUse(Bash|MCP), 无路径事件 fail-open 全扫 | W32: 无写入路径 no-op | Bash/UPS 事件 _index 零写入 ✅ |
+| CX token-usage 事件名对不上 "Stop" → W21 失效 | W33: payload 形状判定 | impl 跳过 ✅ |
+| 宪法「阶段转换前同步」= architecture 层 5 文档更新的合法性来源; 握手「任务文件」= CODEX-TASK 诱因; 铁律3 route-note 措辞 | W34: 宪法两处改写 + 握手内联化 + stages 派工禁落盘 | 文本 diff; 宪法 21/23 行预算内 ✅ |
+
+**残余已知项**: evaluator/passN 产物约定仍要求 Cross-Check 段 (prompt 层, gate 不验 — 判定价值保留, 成本一段表格); design.md 体积仍 warn-only。下轮 dogfood 若 AC1 (代码占比≥40%) 仍不达标, 候选下一刀: design 体积 block (新 sprint 生效) + polish/cleanup 并入 review。

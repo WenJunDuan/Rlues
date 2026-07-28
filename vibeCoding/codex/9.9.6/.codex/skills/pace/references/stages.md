@@ -110,11 +110,11 @@ VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 - Refactor/System (≥5 文件): 必须更新 architecture/ (铁律[门禁]); 文件数优先用 git diff 现场计算, evidence.yaml 为辅
 - design_changed_after_impl=true: block 直到重新 review
 - Feature/Refactor/System: pass1.md 必须含 `## Spec Compliance` 段
-- v9.9.0: Refactor/System 的 pass1.md 必须含 `## Evidence Cross-Check` 段 (U3)
 - v9.9.0 (U1): Feature+ 的 subagent-log.md 必须含 generator 记录 (逃生: skip_impl_subagent_check)
 - design.md 的 Critic Findings **标题行** ≥ min 轮 (默认全路径 1; plan_critique_min_rounds 覆写); design.md >300 行 stderr 警告
-- review-manifest 必钉集: 全路径 design.md; R/S 另加 runtime-verify.md (checklist/evidence/cleanup/architecture 改为声明即验, 不强制钉)
+- review-manifest **全路径 opt-in** (2026-07-28 W31; 存在才验全链, 必钉集 design.md + R/S runtime-verify.md); Evidence Cross-Check 段不再 gate 验
 - checklist.yaml 存在才验; 记账文件 (token-usage/tool-trace/stop-failures/harness-patches/proposals) 不受 post-review drift 拦截
+- 派工任务书**不落盘** (2026-07-28 W34): spawn 任务内容全部内联在 spawn/Agent message, CODEX-TASK.md 类自造任务文档禁止
 - AC 证据记法 (2026-07-28 W23): 跑真实验证命令后 evidence-collector 已自动落记录, agent 在该记录**补一行 `covers: [ACn]`** 即 admissible; 十字段手写 artifact 记录仅当命令证据不适用 (source: artifact/review) 时用
 - v9.9.0: design.md mtime 晚于 pass1.md → block 重新 review (CC=兜底 / CX=主检测)
 - current_roadmap_slug 非空: 提示主 agent 继续下个 item

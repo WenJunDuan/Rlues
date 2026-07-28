@@ -35,7 +35,7 @@ hook 只知道原生生命周期里的真实 `agent_id`; `task_name` / `role` �
 
 1. **冻结新 spawn**: 同一主 thread 同时只允许一个未绑定 spawn. 读取当前 sprint slug 与已有 `subagent-assignments.jsonl` 的 `agent_id` 集合.
 2. **记录 raw boundary**: 在调用 `spawn_agent` 前, 记录 `subagent-events.jsonl` 当前完整行数 `N` (文件不存在则 `N=0`). 后续只检查第 `N+1` 行起的增量, 不重绑旧事件.
-3. **启动但先不执行**: `spawn_agent.message` 必须携带 `task_name`、`role`、`sprint_slug`、允许写集, 并明确要求 agent 在收到主 thread 的 `BOUND` 消息前不得读取或修改任务文件.
+3. **启动但先不执行**: `spawn_agent.message` 必须携带 `task_name`、`role`、`sprint_slug`、允许写集, 与**全部任务内容 (内联在 message, 不落盘任务书 — CODEX-TASK.md 类自造文档禁止, 见 stages.md 文书预算)**, 并明确要求 agent 在收到主 thread 的 `BOUND` 消息前不得开始修改目标文件.
 4. **等待唯一 Start**: 有界等待 hook 写入增量; 严格解析 raw event schema v1, 在当前 sprint 内筛选尚未出现在 assignment ledger 的 `SubagentStart`. 必须得到**恰好一条 Start 且恰好一个新 `agent_id`**. `spawn_agent` 返回 target/id 时还必须与该 id 一致.
 5. **fail closed**: 到达等待上限仍为 0 条, 出现 >1 条、重复 Start、畸形行或 id 不一致时, 立即向已知 target 发送 `STOP: binding failed`, 记录 block reason, 停止本轮编排; 不创建猜测 assignment, 不继续 spawn.
 6. **追加 assignment schema v1**: 主 thread 向 `sprints/{sprint_slug}/subagent-assignments.jsonl` 追加且只追加一行:

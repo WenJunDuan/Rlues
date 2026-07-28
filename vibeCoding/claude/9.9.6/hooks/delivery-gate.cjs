@@ -290,12 +290,8 @@ function validateReview(reviewPath, pathType) {
   const verdict = finalVerdict(content, path.basename(reviewPath));
   if (verdict !== "PASS") throw new GateError(`latest review ${path.basename(reviewPath)} VERDICT is ${verdict}; expected PASS`);
   if (!content.includes("## Spec Compliance")) throw new GateError(`latest review ${path.basename(reviewPath)} lacks ## Spec Compliance`);
-  // P8: mandatory Evidence Cross-Check section stays scoped to Refactor/System
-  // (the 9.9.1 semantics) — widening it to every path retroactively blocked
-  // already-shipped Feature sprints whose reviews predate the requirement.
-  if (REFACTOR_SYSTEM.has(pathType) && !content.includes("## Evidence Cross-Check")) {
-    throw new GateError(`latest review ${path.basename(reviewPath)} lacks ## Evidence Cross-Check`);
-  }
+  // K1 (2026-07-28, 台账 W31): Evidence Cross-Check 段不再由 gate 强制 — evaluator prompt
+  // 仍产出该段 (行为不变), 但缺段不 block; 段落存在性检查是文档剧场, 判定由 VERDICT 承载。
   return content;
 }
 
@@ -998,9 +994,10 @@ function validateShip(aiState, fm, cwd) {
     }
   }
   const hasManifest = fs.existsSync(path.join(sprintDir, "review-manifest.yaml"));
-  if (REFACTOR_SYSTEM.has(fm.path) && !hasManifest) {
-    throw new GateError("Refactor/System ship requires review-manifest.yaml (9.9.6 review contract)");
-  }
+  // K1 (2026-07-28, 台账 W31): R/S 的 review-manifest 契约从强制降为 opt-in (与 Feature 同构)。
+  // 实测 (quantum-cowork sensory-retirement): 强制 manifest→binding→tdd-evidence 链在 ship
+  // 同因 block×4 直到熔断, 期间产出全是文档不是修复。声明即验语义不变: manifest 存在则全链
+  // fail-closed 照验。R/S 行为证据底线改由 runtime-verify + cleanup-pass + PASS 承载。
   if (hasManifest) validateIndexGovernance(sprintDir, fm);
   const roadmapSlug = fm.current_roadmap_slug || "";
   if (roadmapSlug) validateRoadmap(aiState, roadmapSlug, sprintSlug);

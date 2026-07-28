@@ -254,9 +254,22 @@ def main() -> int:
             payload = {}
         tool_input = payload.get("tool_input") if isinstance(payload.get("tool_input"), dict) else {}
         written = str(tool_input.get("file_path") or tool_input.get("path") or "").replace("\\", "/")
+        # K2 (2026-07-28, 台账 W32): CX 布线在 UserPromptSubmit + PostToolUse(Bash|MCP) 也跑本
+        # hook, 这些事件 payload 无写入路径 → 旧逻辑 fail-open 全量扫 = 每条消息/每次 Bash 都
+        # 交全扫税 (实测 327 Bash/sprint)。无写入路径直接 no-op: counts/pointers 只在 .ai_state
+        # 写入时刷新, re-route 只在实现写入 (含 apply_patch 路径) 时检查。
+        if not written and isinstance(tool_input, dict):
+            cmd = tool_input.get("command")
+            if isinstance(cmd, str) and "File:" in cmd:
+                import re as _re2
+                mm = _re2.search(r"(?:Update|Add) File: (\S+)", cmd)
+                if mm:
+                    written = mm.group(1)
+        if not written:
+            return EXIT_SUCCESS
         is_state_write = ".ai_state/" in written
-        do_scan = (not written) or is_state_write
-        do_reroute = (not written) or (not is_state_write)
+        do_scan = is_state_write
+        do_reroute = not is_state_write
 
         cwd = Path(payload.get("cwd")) if isinstance(payload.get("cwd"), str) and payload.get("cwd") else Path.cwd()
         ai_state = find_ai_state(cwd)

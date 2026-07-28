@@ -2,13 +2,17 @@
 roadmap_slug: "athena-9-9-6-prompt-engineering"
 created: "2026-07-25"
 revision: "v3.1"
-status: "approved-for-draft"
-implementation_authorized: true
+status: "superseded-by-user-closure"
+implementation_authorized: false
 git_commit_authorized: false
 estimated_total_complexity: "XXL"
 ---
 
 # Roadmap — Athena 9.9.6 Prompt Engineering v3.1
+
+## Closure
+
+2026-07-28 用户决定停止 9.9.6 prompt-engineering / gate-descaling 方向：原本的改动反复且叙述冗长，后续不再考虑同类扩展。已完成实现、同步、验证输出与历史会话保留；未执行的剩余 adapter、验证、review、polish 与 release 不改写为 completed，本 roadmap 仅作为历史记录。
 
 ## Direction
 

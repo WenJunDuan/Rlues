@@ -2,16 +2,18 @@
 sprint_slug: "2026-07-25-athena-9-9-6-prompt-engineering"
 path: "System"
 created: "2026-07-25"
-last_updated: "2026-07-28"   # §12 追加范围 (gate 契约可见性与派工时序) + AC 重编号; 待 R6 critic
-document_status: "scope-extended-awaiting-r6-critic"   # §1-§11/AC1-AC18 已过 R1-R5; §12/AC19-AC28 未经 critic
-implementation_authorized: true
-git_commit_authorized: true   # 用户 2026-07-27 显式授权 (AC14 满足)
+last_updated: "2026-07-28"   # 用户关闭该方向
+document_status: "closed-by-user-no-release-claim"
+implementation_authorized: false
+git_commit_authorized: false
 roadmap_slug: "athena-9-9-6-prompt-engineering"
 baseline_release: "9.9.3"
 target_release: "9.9.6"
 ---
 
 # Design — Athena 9.9.6 Prompt Architecture v3.1
+
+> Closure (2026-07-28): 用户决定停止本路线。原本的改动反复且叙述冗长，后续不再考虑同类扩展；本设计保留为历史记录，不代表最终 release 已完成。
 
 ## 1. Outcome
 

@@ -293,3 +293,17 @@ W3/W9 改为 `≥1` 或同样锚定到 `tryRepoRoot` / `git_root` 函数体内�
 | W30 | C3: roadmap 编号收敛 (唯一权威 = items.yaml slug, F↔item 映射入档) + 计划外批次补录 completed items ×2 (total 10→12) | `rg -c '编号收敛' roadmap.md` · `rg -c 'gate-descaling' items.yaml` |
 
 - 本批后 live `_index.md` 的 `## 历史` 段成为遗留数据 (hook 不再写), 可在下次 checkpoint 时手动清除。
+
+## 2026-07-28 · 实测归因刀批次 (W31-W34, 下午 dogfood 数据驱动)
+
+> 依据: quantum-cowork `2026-07-28-sensory-retirement` 实测 — 代码写入 3/43=7%, ai_state 手写 36 次, route-note 5KB 仍写, 自造 CODEX-TASK.md 9.8KB, ship 同因 block×4 熔断, token-usage 533KB 非 ship 期写入。设计: `sprints/2026-07-28-gate-descaling/design.md` §12。
+
+| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
+|---|---|---|
+| W31 | **R/S 契约降为 opt-in**: review-manifest 不再强制 (存在才验全链); Evidence Cross-Check 段 gate 检查砍 (双端 3 处); R/S 行为底线 = runtime-verify + cleanup + PASS。ship 空转熔断根因消除 | `rg -c 'W31' delivery-gate.cjs delivery-gate.py` (cjs ≥2 / py ≥3) |
+| W32 | CX index-updater 事件面止血: 无写入路径事件 (UserPromptSubmit/Bash/MCP) 直接 no-op — 旧行为每条消息+每次 Bash 全量扫 (327 Bash/sprint 实测); apply_patch 路径解析补上 | `rg -c 'W32' index-updater.py` |
+| W33 | CX token-usage 判定改 payload 形状 (agent_transcript_path / stage=ship), 不依赖事件名 — 旧条件 fail-open 致 533KB 照写 | `rg -c 'W33' token-usage-collector.py` |
+| W34 | 指令面催写源砍除: 宪法铁律[文档即真相]「阶段转换前同步」→「ship 前一次」(5 个 architecture 文档更新的宪法级来源); 铁律[分诊] route-note → route_history 一行; CX 握手「任务文件」措辞 → 任务内联 (CODEX-TASK.md 诱因); stages 派工禁落盘条目 | `rg -c 'ship 前做一次' CLAUDE.md AGENTS.md` (各 1) · `rg -c '不落盘任务书' orchestration.md` (CX 1) |
+
+- 冒烟: R/S ship 无 manifest 双端放行 ✅; CX Bash/UserPromptSubmit 事件 _index 零写入 ✅; CX 非 ship 无 agent 转写跳过聚合 ✅。
+- 双端 gate 双副本随本批再次对齐。**安装态需再同步一次** (本批 12 文件)。
