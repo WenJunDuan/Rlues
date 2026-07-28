@@ -1,0 +1,18 @@
+AC20 · 红绿对照实测 (delivery-gate spec-gate)
+observed_at: 2026-07-28T03:30:22Z
+command: node ~/.claude/hooks/delivery-gate.cjs  (PreToolUse Write payload)
+fixture: path=Refactor, stage=impl, cwd=fixture 根, file_path=<fixture>/src/x.ts (非 .ai_state)
+红绿共用同一 fixture, 仅替换 design.md
+
+===== 绿例: 改后模板骨架 + 一条真 AC =====
+exit_code: 0
+断言: 无 decision:block → 合规骨架不被拦 ✓
+
+===== 红例: 消费侧原失败形态 (CJK 序号标题 + 表格行) =====
+[delivery-gate] spec-gate: design.md (或其显式链接的 requirements 档) 缺机器可识别的验收标准段 (## Acceptance Criteria / ## 验收标准 + ≥1 条可观测 checkbox/编号/列表项); 占位符/TODO/泛化陈述不算
+解锁动作: 修复上述档案或流程后重试 Stop；不得用旧 PASS 或未知证据绕过。
+{"decision":"block","reason":"[delivery-gate] spec-gate: design.md (或其显式链接的 requirements 档) 缺机器可识别的验收标准段 (## Acceptance Criteria / ## 验收标准 + ≥1 条可观测 checkbox/编号/列表项); 占位符/TODO/泛化陈述不算\n解锁动作: 修复上述档案或流程后重试 Stop；不得用旧 PASS 或未知证据绕过。"}
+exit_code: 0
+断言: decision:block 且 reason 含 "缺机器可识别的验收标准段" ✓
+
+summary: AC20 双向成立 — 改后模板骨架可被 spec-gate 解析; 原失败形态仍被 fail-closed 拦截

@@ -9,6 +9,10 @@ done_contract:
   - "Validator retains 9.9.3 package-parity, install, regression, runtime and fresh-Codex coverage, plus new review-finding assertions."
   - "Hooks documentation, evaluator precedence, CC npx permission boundaries, permission-mode wording, critic count, provenance and JSON formatting match executable configuration."
   - "GPT-5.6 gateway behavior is documented as an upstream Azure reproduction and mandatory dogfood risk, not a universal proven failure."
+  # 2026-07-28 追加范围 (design §12)
+  - "delivery-gate 的机器判据 (标题白名单/仅列表项/保留元标号 11-12/critic 字面计数/per-AC evidence 绑定) 在它所约束的 design 模板里明示可见, 并有 /tmp fixture 红绿对照实证。"
+  - "stage 翻 impl 先于首次派工的时序规则、已验证基线的随工下传、类型不可见依赖检索清单与量化 AC 绝对值记法, 均落到两端 references/rules 且双端语义对称。"
+  - "§12 G 系列本身零 hook 改动 (限定语: 不含本 sprint 早前已落的 fe3296d 熔断器改动); 每处安装态 (~/.claude, ~/.codex) 改动在 .ai_state/harness-patches.md 有带复核命令的台账行; batch/debt 路径未拍板前零实施。"
 scope:
   current: "reviewable-bottom-draft"
   final_release: "deferred-until-local-evals-and-separate-user-authorization"
@@ -46,7 +50,7 @@ tasks:
     status: completed
   - id: D2
     title: "Rewrite design as v3.1 with user-locked decisions"
-    ac_refs: [AC1, AC2, AC4, AC5, AC6, AC9, AC10, AC11, AC14]
+    ac_refs: [AC1, AC2, AC4, AC5, AC6, AC9, AC10, AC17, AC14]
     blocked_by: [D1]
     expected_evidence: "design.md locked decisions and acceptance criteria"
     status: completed
@@ -58,7 +62,7 @@ tasks:
     status: completed
   - id: D4
     title: "Resolve Round 2 dependency, Fable, checklist and retention findings"
-    ac_refs: [AC3, AC9, AC10, AC11, AC13]
+    ac_refs: [AC3, AC9, AC10, AC17, AC13]
     blocked_by: [D3]
     expected_evidence: "design.md Round 3 revision response"
     status: completed
@@ -133,16 +137,27 @@ tasks:
     status: completed
   - id: R3
     title: "Restore 9.9.6 validator coverage without function-count coupling"
-    ac_refs: [AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC11, AC14, AC15]
+    ac_refs: [AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC17, AC14, AC15]
     blocked_by: [R2]
     expected_evidence: "validator exercises retained 9.9.3 invariants plus review regressions and exits zero"
     status: completed
   - id: R4
     title: "Run targeted repair regression and record remaining upstream risks"
-    ac_refs: [AC4, AC5, AC8, AC11]
+    ac_refs: [AC4, AC5, AC8, AC17]
     blocked_by: [R3]
     expected_evidence: "syntax, setup, hook, permission and validator outputs; Azure-only scope documented"
     status: completed
+
+  # 2026-07-28 补登: AC16 (§10.1 Stop 阻断活锁熔断) 此前无任务承载, ship 时会出现
+  # "AC 有验收、无人产出证据" 的缺口。实现已落 commit fe3296d 且两端安装态可见
+  # (rg 'ESCALATED|GateEscalated' 命中 cjs=5 / py=4), 但 AC16a-i 逐项 fixture 证据
+  # 未在本 sprint 留档 (无 tdd-evidence.yaml), 故状态为 pending 而非 completed。
+  - id: H1
+    title: "Produce falsifiable fixtures for Stop-block circuit breaker (AC16a-i)"
+    ac_refs: [AC16]
+    blocked_by: [R4]
+    expected_evidence: "AC16a/b/b2/c/e/f/h/i 逐项 fixture 输出; 含并发双会话与 ≥12 次 Stop 重放; CX stop-failure-recorder.py 独立小项单独验收"
+    status: pending
 
   - id: F1
     title: "Implement and test controlled skill invocation"
@@ -170,19 +185,60 @@ tasks:
     status: pending
   - id: F5
     title: "Run local-only N9/N10, migration and rollback suite"
-    ac_refs: [AC11]
+    ac_refs: [AC17]
     blocked_by: [F4]
     expected_evidence: "local-only scripts output and clean Git diff for test assets"
     status: pending
   - id: F6
     title: "Run N≥3 prompt A/B and Pareto evaluation"
-    ac_refs: [AC12]
+    ac_refs: [AC18]
     blocked_by: [F5]
     expected_evidence: "same-model/effort/account fixtures and aggregated result"
     status: pending
   - id: F7
     title: "Complete runtime review polish architecture and ship gates"
     ac_refs: [AC13, AC14]
-    blocked_by: [F6]
+    blocked_by: [F6, G6]
     expected_evidence: "runtime-verify, 2+1 review, cleanup, architecture; separate authorization"
+    status: pending
+
+  # === G 系列: 2026-07-28 追加范围 (design §12, gate 契约可见性与派工时序) ===
+  # 与 F 系列无逻辑依赖, 但必须在 F7 ship 之前收口 —— G2 定义的 per-AC 绑定义务正是本 sprint
+  # 自己 ship 时要行使的契约 (evidence.yaml 现有 0 条绑定字段)。全部文档面, 两端对称, 不改 hook。
+  - id: G1
+    title: "Add machine-contract callout to both design templates"
+    ac_refs: [AC19, AC20, AC27, AC28]
+    blocked_by: [R4]
+    expected_evidence: "两端模板 diff; /tmp fixture 红绿对照 gate 输出 (合规骨架不 block / CJK 序号+表格形态被 block)"
+    status: pending
+  - id: G2
+    title: "Document per-AC evidence binding duty in both stages.md ship sections"
+    ac_refs: [AC21, AC27, AC28]
+    blocked_by: [G1]
+    expected_evidence: "两端 stages.md diff; admissible 三形态速查与自动采集记录不构成绑定的警示到位"
+    status: pending
+  - id: G3
+    title: "Add dispatch-ordering step 0 to stages.md impl and orchestration"
+    ac_refs: [AC22, AC27, AC28]
+    blocked_by: [G2]
+    expected_evidence: "两端 stages.md + orchestration.md diff; 派工前 AC 段自检命令可复跑"
+    status: pending
+  - id: G4
+    title: "Add verified-baseline section to both route-note templates"
+    ac_refs: [AC23, AC27, AC28]
+    blocked_by: [G3]
+    expected_evidence: "两端模板 diff; 边界句逐字核对; orchestration 派工段注明随契约下传"
+    status: pending
+  - id: G5
+    title: "Add invisible-dependency checklist and quantitative-AC notation to rules"
+    ac_refs: [AC24, AC25, AC27, AC28]
+    blocked_by: [G4]
+    expected_evidence: "三份 coding-standards + 三份 doc-style diff (USER 级 + 两端发行件)"
+    status: pending
+  - id: G6
+    title: "Close out ledger, snapshot freshness and dual-write consistency"
+    ac_refs: [AC26, AC27, AC28]
+    blocked_by: [G5]
+    expected_evidence: "harness-patches.md 新增台账行 (每处带复核命令) + 2026-07-28 复核记录中 W3/W8/W9 三条失真期望值已按'锚定到被修的那一处'修正; 安装态与发行件逐文件 diff 空; LOCAL-PATCHES 快照已刷新或已登记不刷新理由; ship 前 git worktree list --porcelain 计数=1 实测留档 (AC28a); git diff 审读确认无 batch/debt 实现"
+    ordering_constraint: "R6-F5: harness-patches.md 是 git 跟踪文件, 不在 validateReviewBinding 漂移白名单 (cjs:471-491) 且永判非轻 (cjs:889/py:1188)。台账必须先收口 → 再进 reviewed commit → 之后冻结; review 绑定 commit 之后补台账 = unreviewed .ai_state drift, 直接卡死 ship。review 期间若新增安装态改动, 须重走绑定。"
     status: pending

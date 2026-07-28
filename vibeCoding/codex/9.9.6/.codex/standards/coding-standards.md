@@ -56,6 +56,22 @@ attach_to_subagents: [generator, reviewer, polish_worker]
 - 测试覆盖关键路径 (每个 Feature ≥ 1 个测试, 边界条件覆盖)
 - 错误处理统一 (不要一会 throw 一会 return null)
 
+## P1 · 可达性论证的检索式必须能抓住它要防的失败 (2026-07-28, 违反 = CONCERNS)
+
+声称「纯重构 / 测试零修改 / 无外部消费者 / 可安全删除」之前, 检索式**至少**要覆盖类型系统看不见的依赖:
+
+- `as unknown as` / `as any` 之类的双重断言 (改了运行时形状, `tsc --noEmit` 仍 EXIT=0)
+- 对私有 / 内部字段的运行时访问, 含索引访问与 `obj.db` 式内部读
+- prototype 打桩 / monkey patch
+- 动态 `require()` / `import()` / 字符串拼出来的模块名
+- 反射式访问 (`Object.keys` 驱动的调用、字符串键查表)
+
+> **原则句: 可达性论证所用的检索式, 必须能抓住该 AC 自己要防的那类失败。**
+
+清单是**下限不是上限** —— 换一门语言、换一种耦合方式, 就换一套检索式, 原则句兜底。
+起因: 一次「纯重构可做到测试零修改」的判断只查了 prototype 打桩与直接 import,
+漏掉 `(childLoop as unknown as { tools: ToolRegistry }).tools` 这类访问, 对类型检查与 import 分析双隐形。
+
 ## P2 (建议)
 
 - 复杂逻辑有 docstring / JSDoc

@@ -91,3 +91,13 @@
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-07-25T08:48:50.809Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-07-25T08:48:50.811Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-07-25T08:48:50.812Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"doc-style.md","timestamp":"2026-07-28T01:21:06.087Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"CLAUDE.md","timestamp":"2026-07-28T01:21:06.084Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"git-conventions.md","timestamp":"2026-07-28T01:21:06.085Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-07-28T01:21:06.087Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-07-28T01:21:06.089Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-07-28T01:21:06.092Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"iron-law-provenance.md","timestamp":"2026-07-28T01:21:06.103Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-07-28T01:21:06.104Z"}
+{"schema_version":1,"event":"ConfigChange","source":"skills","file_name":"stages.md","timestamp":"2026-07-28T03:01:28.866Z"}
+{"schema_version":1,"event":"ConfigChange","source":"skills","file_name":"stages.md","timestamp":"2026-07-28T03:02:08.954Z"}

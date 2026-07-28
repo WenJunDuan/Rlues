@@ -39,6 +39,19 @@ System 路径专用, plan 通过后进 design 出详细架构. 可 spawn `archit
 ## impl (铁律[零写入] 按区路由)
 
 **工作流**:
+0. **派工时序 (2026-07-28, 实测驱动)** — 三条, 违反会让在飞写者整轮撞墙:
+   - **翻 stage 先于派工**: `stage` 进 impl (含 `current_sprint_slug` 切换) 必须在**首次派工之前**完成。
+     delivery-gate 挂 PreToolUse `Edit|Write|MultiEdit`, 且从**主 checkout** 解析 `_index.md` ——
+     worktree 里的写者同样受主仓 stage 支配, 门禁从翻转那一刻起对所有在飞写者即时生效。
+   - **派工前自检 AC 段可被 gate 解析**: 合成一个 PreToolUse payload 喂**安装态 gate 本体**,
+     期待无 `decision:block`。**禁止**手搓正则复刻 gate 判据 —— 复刻品与 gate 双写必漂, 是新的隐藏考纲。
+     ```sh
+     printf '{"cwd":"%s","hook_event_name":"PreToolUse","tool_name":"Write",
+       "tool_input":{"file_path":"%s/src/__gate_probe__"}}' "$PWD" "$PWD" \
+       | node ~/.claude/hooks/delivery-gate.cjs; echo "exit=$?"   # 期望: 无输出, exit 0
+     ```
+   - **在飞写者存在时禁改 stage**: `active_worktrees` 非空, 或 subagent-events 有未配对 Start 时,
+     不得修改 `_index` 的 `stage` / `current_sprint_slug`。
 1. 主 agent 写 `checklist.yaml` (tasks 列表, design_ref 引用), 并在顶部落 **`done_contract`** 段:
    逐条把 design.md 的验收标准写成**可机械判定**的完成条件 (命令 + 期望输出 / 文件 + 断言)。
    铁律: generator 与 evaluator 判的是**同一份 done_contract**; evaluator 不得在 review 时另造判据,
@@ -103,6 +116,27 @@ spawn `polish_worker` subagent:
 - design.md mtime 晚于最新 passN.md → block 重新 review
 - current_roadmap_slug 非空: 提示主 agent 继续下个 item
 - 长任务建议: ship 前用 `/goal` 设完成条件, 承载铁律[门禁] Sisyphus 语义 (见 references/orchestration.md)
+
+**per-AC 证据绑定义务 (2026-07-28 新增, review PASS 后、翻 ship 前做)**
+
+`validateAcMapping` 要求 design.md 里**每条业务 ACn** 在 `evidence.yaml` 有一条 admissible 的绑定记录。
+触发条件: 该校验**仅在 `review-manifest.yaml` 存在时执行**, 而 Refactor/System 的 manifest 是强制的
+→ **红区必踩**; 其余路径不带 manifest 时业务 AC 完全不绑定 (同一份 AC 强制力差一整级, 别误以为通用)。
+
+⚠️ **hook 自动采集的 evidence 记录不含 `ac_id` / `covers` 两个字段, 一条都不构成绑定**;
+写者交的 `tdd-evidence.yaml` 走 `validateTddEvidence` 另一条校验, **不参与 AC 绑定**。
+绑定必须是**有意为之的断言** —— 谁声称这条命令/审查覆盖了 ACn, 谁签名 (铁律[证据与出处])。
+
+admissible 三形态速查:
+
+| source | 要求 |
+|---|---|
+| `command` | `output_artifact` 在 sprint 目录内 + `artifact_sha256` 对得上 + `exit_code: 0` + `implementation_commit` = reviewed commit; 产物内容须含该命令、`exit_code: 0` 行与 summary |
+| `artifact` | `command_or_artifact` 指向 sprint 目录内一个真实存在的文件 |
+| `review` | **最低成本形态**: 指向最新 passN.md, 前提是该档含 `## Spec Compliance` + `## Evidence Cross-Check` + 逐 AC SATISFIED 行 + 最终 VERDICT PASS |
+
+最低成本路径: review 档写全逐 AC SATISFIED 表 → 每条 ACn 追加一条 `source: review` 记录指向它。
+公共字段 (`result: pass` / `source` / `command_or_artifact` / `observed_at` UTC ISO-8601 / `summary`) 缺一即不算。
 
 ### 推送门禁 (pre-bash-guard) 与合法放行
 

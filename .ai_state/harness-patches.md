@@ -166,6 +166,75 @@ rg -n '不加 `isolation: worktree`' ~/.claude/skills/pace/references/stages.md 
 
 ---
 
+## 9. G1-G5 · gate 契约可见性与派工时序 (W10, 2026-07-28)
+
+- **理由**: 门禁的机器判据 (标题白名单 / 仅列表项 / 保留元标号 11-12 / critic 字面计数 / per-AC
+  evidence 绑定) 从不出现在它所约束的模板里 = 隐藏考纲。消费侧一次 Refactor sprint 因此三个写者
+  整轮撞墙。设计见 sprint `2026-07-25-athena-9-9-6-prompt-engineering` design §12 + annex。
+  **纯文档面, 零 hook 改动。**
+- **改了什么** (安装态 10 文件, 与 Rlues 发行件逐字节同步):
+
+  | 落点 | 改动 |
+  |---|---|
+  | `~/.{claude,codex}/skills/pace/templates/sprints/design.md` | 加 ≤20 行「⚙ 机器契约」注记块; **清除模板自带的幻影 critic 轮次段头** |
+  | `~/.{claude,codex}/skills/pace/references/stages.md` | ship 段加 per-AC 绑定义务 + admissible 三形态; impl 加 step 0 派工时序 |
+  | `~/.{claude,codex}/skills/pace/templates/sprints/route-note.md` | 加「已验证基线」表 + 两句硬边界 |
+  | `~/.claude/rules/coding-standards.md` · `~/.codex/standards/coding-standards.md` | 加 P1 类型不可见依赖检索清单 |
+  | `~/.claude/rules/doc-style.md` · `~/.codex/standards/doc-style.md` | 加量化 AC 记法 (禁 `≥`) |
+
+- **备份 (唯一回滚路径)**: `~/.claude/backups/*.pre-g1g5-20260728T024943Z` (6) +
+  `~/.codex/backups/*.pre-g1g5-20260728T024943Z` (6)。
+- **复核命令** (每条锚定到被改的那一处, 不用全文件计数 —— 见下方 2026-07-28 复核记录的判据沉淀):
+
+```sh
+# 注记块五锚点 (每份模板各 ≥1)
+for f in ~/.claude/skills/pace/templates/sprints/design.md ~/.codex/skills/pace/templates/sprints/design.md; do
+  for t in ACCEPTANCE_HEAD isPlaceholderCriterion validateCriticRounds validateMetaAcceptance validateAcMapping; do
+    printf '%s %s=%s\n' "$f" "$t" "$(grep -c "$t" "$f")"; done; done
+# 幻影 critic 轮次已清除 (两份均须 = 0)
+grep -c 'Critic Findings' ~/.claude/skills/pace/templates/sprints/design.md \
+                          ~/.codex/skills/pace/templates/sprints/design.md
+# stages: 绑定义务 + 派工 step0 + 禁正则复刻 (各 ≥1)
+rg -c 'ac_id\|covers' ~/.claude/skills/pace/references/stages.md ~/.codex/skills/pace/references/stages.md
+rg -c '派工时序' ~/.claude/skills/pace/references/stages.md ~/.codex/skills/pace/references/stages.md
+rg -c '禁止.*手搓正则复刻' ~/.claude/skills/pace/references/stages.md ~/.codex/skills/pace/references/stages.md
+# route-note 基线节边界句 (各 1)
+rg -c '不得退化为采信不复核' ~/.claude/skills/pace/templates/sprints/route-note.md \
+                              ~/.codex/skills/pace/templates/sprints/route-note.md
+# rules 两条 (各 1)
+rg -c '必须能抓住该 AC 自己要防的那类失败' ~/.claude/rules/coding-standards.md ~/.codex/standards/coding-standards.md
+rg -c '量化 AC 记法' ~/.claude/rules/doc-style.md ~/.codex/standards/doc-style.md
+```
+
+- **行为面复核 (最强的一条, AC20)**: 红绿对照产物
+  `sprints/2026-07-25-athena-9-9-6-prompt-engineering/ac20-red-green.txt`
+  (sha256 `1a5c0627f1acb2e9d174493525c6483c330bf18eb525e35d7c2dd06c7c5e9479`) ——
+  改后模板骨架不被 spec-gate 拦; CJK 序号 + 表格形态仍被 fail-closed 拦且 reason 正确。
+- **Rlues 对应路径**: `vibeCoding/claude/9.9.6/.claude/{skills/pace/{templates/sprints,references},rules}/` +
+  `vibeCoding/codex/9.9.6/.codex/{skills/pace/{templates/sprints,references},standards}/` (10 文件)。
+- **已知不对称 (登记, 非缺陷)**: CX `route-note.md` 安装态版本行仍写 v9.9.3 (发行件 v9.9.6);
+  CX `doc-style.md` 无 CC 的「tdd-evidence backfill 记法」段。二者均为本刀之前的既存差异, 未顺手改。
+
+## 复核记录
+
+### 2026-07-28 · 全量逐条复跑 (8/8 存活)
+
+备份两份均在 (`delivery-gate.{cjs,py}.pre-p1p8-20260725T153939Z`)。八条补丁全部命中, 无一被升级覆盖。
+
+**但三条的"期望命中数"已失真, 需在 G6/AC28 一并修正** —— 台账的判据是"0 命中 = 已被覆盖",
+命中数偏大不代表补丁失效, 但写着"期望 1"却实测 2 会让下一个复核者误判, 削弱机制本身:
+
+| 条 | 复核命令 | 台账写的期望 | 2026-07-28 实测 | 原因 |
+|---|---|---|---|---|
+| W3 | `rg -c 'path-format=absolute' delivery-gate.cjs` | 1 | **2** | 2026-07-27 治理哈希/熔断修复新增了第二处调用 |
+| W9 | 同上, `delivery-gate.py` | 1 | **2** | 同上, CX 侧对称 |
+| W8 | `rg -c 'harness-patches' <两端>` | 两端各 1 | **cjs 4 / py 3** | 期望值只算了 `isLightShipFile` 那一处, 未计 P2/P3/P1 修复的注释引用 |
+
+**修正方向** (不在本次改, 留给 G6): W8 的复核命令应收窄到护栏本身
+(`rg -c 'harness-patches\.md\$' ...` 或直接匹配 `isLightShipFile` 内那行), 而不是全文件计数;
+W3/W9 改为 `≥1` 或同样锚定到 `tryRepoRoot` / `git_root` 函数体内。
+**判据沉淀: 复核命令必须锚定到被修的那一处, 全文件计数会随无关改动漂移。**
+
 ## 已知验证缺口 / 观察 (不在本 sprint 修)
 
 - **Rlues `vibeCoding/scripts/test-delivery-gate.py:14-15` 硬编码指向 9.9.0 老副本**: 跑绿与安装态这份

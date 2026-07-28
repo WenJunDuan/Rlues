@@ -27,3 +27,12 @@ Main thread copied the exact-hash result into `/Users/mi_manchi/workspace/Rlues`
 - RED: global subagent override missing; 4 agents still used Sonnet.
 - SUPERSEDED: early all-Opus interpretation was replaced by the user's final role matrix: main `best`; no global override; architect/critic=Fable; remaining five agents=Opus.
 - Scope: CC 9.9.6 only; no worktree, commit, push, stage, CX, 9.9.3 or HOME write.
+## 2026-07-28T02:13:29.654Z · critic
+- Event: SubagentStart
+- Agent ID: a122f21cc530e189c
+
+## 2026-07-28T02:25:01.438Z · critic
+- Event: SubagentStop
+- Agent ID: a122f21cc530e189c
+- Last message: 核验完毕。§12.1 五条契约事实我已逐条对照安装态 `~/.claude/hooks/delivery-gate.cjs` 与 `~/.codex/hooks/delivery-gate.py` 源码，全部属实（锚点行号见 findings）；字面串计数实测 = 5，全部落在 R1-R5 段头，你的新增文字零污染。但重编号"纯加严"的说法核出一处净损失，另在 G1 将要改的模板文件里当场抓到一个
+

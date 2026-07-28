@@ -2,8 +2,8 @@
 sprint_slug: "2026-07-25-athena-9-9-6-prompt-engineering"
 path: "System"
 created: "2026-07-25"
-last_updated: "2026-07-27"   # §10.1 + AC16 增量 (Stop 阻断活锁熔断), 经 R5 critic 定稿
-document_status: "critic-pass-ready-for-bottom-draft"
+last_updated: "2026-07-28"   # §12 追加范围 (gate 契约可见性与派工时序) + AC 重编号; 待 R6 critic
+document_status: "scope-extended-awaiting-r6-critic"   # §1-§11/AC1-AC18 已过 R1-R5; §12/AC19-AC28 未经 critic
 implementation_authorized: true
 git_commit_authorized: true   # 用户 2026-07-27 显式授权 (AC14 满足)
 roadmap_slug: "athena-9-9-6-prompt-engineering"
@@ -301,7 +301,149 @@ Spec Kit 启发的 N10 只检查 roadmap → design → checklist 的 slug、依
 
 行为 eval 使用相同模型、effort、账户档位和 fixture，N≥3；正确性不得低于 9.9.3，效率改进使用 Pareto 判断。
 
-## 12. Acceptance Criteria
+## 12. Gate 契约可见性与派工时序 (2026-07-28 追加范围)
+
+> 完整论证、逐条源码行号锚点、备选方案对比与风险表见同目录 `annex-2026-07-27-gate-contract.md`
+> (原独立 sprint design, 用户 2026-07-28 拍板并入本 sprint 作追加范围)。本节是压缩版契约。
+>
+> **判据原则**: **门禁的判据必须在它所约束的文档模板里可见, 否则就是隐藏考纲。**
+> 八条失败全部追溯到消费侧 `quantum-cowork` 2026-07-27 `ledger-debt-batch` sprint 的实测,
+> 其中两个 worktree 写者整轮撞墙、约 21 万 token 花在被阻断的运行上。
+
+**本刀边界: 只改文档面 (模板 + rules + references), 两端 `delivery-gate.cjs`/`.py`、evidence-collector
+与任何 hook 一行不动。** hook 侧机械化 (A 的 block 消息增强、B-m1 spawn 关口拦截、critic 计数锚定到标题行)
+列为下刀候选, 起因与判据已在 annex 留痕。
+
+### 12.1 A · 把 delivery-gate 的机器契约写进它所约束的模板
+
+契约事实 (2026-07-27 逐条对源码核实, 锚点用函数/常量名, 行号为辅):
+
+1. `ACCEPTANCE_HEAD` 只认 `## Acceptance Criteria` / `## 验收标准` (2-3 级标题), 序号前缀只允许
+   ASCII `\d+[.)]` —— CJK 序数 `## 六、验收标准` 不匹配, 解析结果 0 条。
+2. `acceptanceCriteria()` 节内只收列表项 (`-` / `*` / `\d+.` / `[ ]`), **markdown 表格行一条都不算**;
+   占位符与泛化陈述被 `isPlaceholderCriterion` 剔除。
+3. `validateCriticRounds` 数的是 design.md 里**字面** `Critic` + 空格 + `Findings` 的**全文出现次数**
+   (无位置约束), Refactor/System 地板 = 2 —— 段头必须逐字保留, **改写一个段头就少计一轮**
+   (不是清零, R6-F7 校正)。双向失真: 正文讨论该契约会**虚增** (§12.7-1),
+   而模板 scaffold 自带的段头让每个新 sprint **起算即 1** (§12.7-4, R6-F2 实测)。
+4. **编号 11/12 是 harness 保留元标号**: `validateMetaAcceptance` 命中 11 号要求 evaluator
+   VERDICT=PASS, 命中 12 号要求 cleanup 证据 + 活动 worktree 数 = 1; 且 `validateAcMapping`
+   把这两个标号**排除在 per-AC 绑定校验之外**。排除本身有正当理由 (给元 AC 造 evidence 行是循环论证),
+   缺陷在**保留语义任何模板都没写**, 业务 AC 占用即静默免检。**本 sprint 自己踩中**: 原 AC11/AC12
+   是业务 AC, 已按本条重编号为 AC17/AC18 (见 §13 表头注)。
+5. `validateAcMapping` 只认 `evidence.yaml` 记录里的 `ac_id` / `covers`, admissible 三形态为
+   `source: command` (要 output_artifact + sha256 + exit 0 + implementation_commit 绑 reviewedCommit)
+   / `source: artifact` / `source: review` (指向含 `## Spec Compliance` + `## Evidence Cross-Check`
+   + 逐 AC SATISFIED 行 + VERDICT PASS 的最新 review)。**hook 自动采集的记录没有这两个字段**
+   (evidence-collector 不写); 写者交的 `tdd-evidence.yaml` 走另一条校验, **不参与 AC 绑定**。
+   该校验仅在 `review-manifest.yaml` 存在时执行, 而 Refactor/System 的 manifest 是强制的 ——
+   **红区必踩, 非红区则业务 AC 完全不绑定证据, 同一份 AC 在两条路径下强制力差一整级**。
+
+修法 (双端对称, 全部文档面):
+
+- **A1 模板注记块**: 两端 `skills/pace/templates/sprints/design.md` 的验收标准节上方加「⚙ 机器契约
+  (delivery-gate 同步)」引用块, ≤20 行, 覆盖上述五要素, 每要素附函数/常量名锚点, 尾行标同步日期。
+  模板既有骨架本身合规, **不改骨架** —— 修的是消费者重写骨架时零警示这个可见性缺陷。
+- **A2 stages.md ship 段**: 新增 per-AC 绑定记录义务 —— review PASS 后、翻 ship 前, 主 agent 为每条
+  业务 ACn 向 `evidence.yaml` 追加绑定记录 (最低成本形态 = `source: review` 指向最新 passN),
+  附 admissible 三形态速查与「hook 自动采集记录不构成绑定」的显式警示。
+- **落点权衡**: 不改采集器 (它不可能知道一条命令覆盖哪条 AC, 自动补 `covers` = 机器替人签名 = 伪造绑定,
+  违反铁律[证据与出处]); 不放宽 hook (会把三形态中最强的 sha256/commit 锚定形态边缘化)。
+  绑定必须是**有意为之的断言** —— 谁声称这条命令/审查覆盖了 ACn, 谁签名。
+
+### 12.2 B · stage 翻转时序规则
+
+事实: delivery-gate 挂 PreToolUse `Edit|Write|MultiEdit` + Stop; P3 修复后从**主 checkout** 解析
+`_index.md`, 故 worktree 里的写者同样受主仓 stage 支配, 门禁从翻转那一刻起对所有在飞写者即时生效。
+消费侧当天三个写者开工后 stage 才翻 impl, 全部锁死。
+
+规则文本 (落 references, **不进 CLAUDE.md 铁律** —— stages.md 是 stage 义务真相, 且 CLAUDE.md
+受常驻预算约束):
+
+> stage 进 impl (含 `current_sprint_slug` 切换) 必须在**首次派工之前**完成;
+> 派工前主 agent 必须自检本 sprint design 的 AC 段可被 gate 解析 (见模板机器契约块);
+> 存在在飞写者 (`active_worktrees` 非空, 或 subagent-events 有未配对 Start) 时,
+> 不得修改 `_index` 的 `stage` / `current_sprint_slug`。
+
+落点: 两端 `stages.md` impl 工作流新增 step 0; `orchestration.md`「worktree 规则速查」追加同义一条。
+
+### 12.3 C · 共享「已验证基线」载体
+
+事实: 同一组基线被 5 个独立主体从零重测。**复核本身是对的** —— 正是复核推翻了 critic R1 建议的判据
+(实测命中 0 行) 和主 agent 自己的 AC 判据 (未修代码上恒绿)。**设计目标 = 降低复核成本, 不是取消复核。**
+
+修法: 两端 `pace/templates/sprints/route-note.md` 新增「已验证基线」五列表格节 (事实 / 测量命令
+(单条可复跑) / 实测值 / 测于 commit 或时刻 / 已复核方), 派工契约随附该节 (orchestration.md 派工段注明)。
+边界必须写死:
+
+> 写者对自己依赖的每条基线**必须复跑所附命令核对** (一条命令, 而非从零推导); 不一致 → 立即停下上报,
+> 两个值都留档。**不得退化为采信不复核** —— 无测量命令的基线条目视同未验证, 不得作为 AC 或裁决依据。
+
+### 12.4 D · 类型不可见依赖进 review 检查单
+
+事实: critic 判「纯重构可做到测试零修改」用的检索式抓不到 `(x as unknown as { tools: T }).tools`
+这类私有字段访问 —— 它对 `tsc --noEmit` 隐形 (运行时形状改了仍 EXIT=0), 对 import 分析也隐形。
+
+> **原则句: 可达性论证所用的检索式, 必须能抓住该 AC 自己要防的那类失败。**
+
+修法: 三份 `coding-standards.md` (USER 级 + 两端发行件) 的 review 段新增 P1 检查项 —— 声称
+「纯重构 / 测试零修改 / 无外部消费者」前, 检索式至少覆盖 `as unknown as` · `as any` ·
+对私有/内部字段的运行时访问 (含索引访问与 `.db` 式内部读) · prototype 打桩 · 动态 require/import。
+清单是下限不是上限, 原则句兜底。
+
+### 12.5 E · 量化 AC 写绝对值而非 `≥`
+
+事实: `≥1966` 在三写者并行时允许「一片删测试、另一片加测试」互相抵消; 改为绝对相等 + 构成式后,
+合并实测 1976 与构成式吻合。
+
+修法: 三份 `doc-style.md` 新增「量化 AC 记法」—— 并行多写者场景的计数类 AC 必须写**绝对相等 + 构成式**
+(基线 + 各片增量 = 总量), 禁 `≥`; 单写者可用下界, 但基线值必须附测量命令与出处 (与 12.3 基线节、
+coding-standards「量化验收标准必先核基线」互为引用)。
+
+### 12.6 F · batch/debt 路径 (只记录, **待用户拍板, 本刀零实施**)
+
+Refactor 地板 = critic ×2 + 3 写者 + 2+1 review ≈ 9 次冷启动 subagent, 对「六项互不相干的小债」是超配。
+但 **critic 不可削**: 两轮 18 条 findings 含 3 条 P0, 其中「验收判据在未修代码上恒绿」若漏掉整片就是假绿。
+三案: F-a 维持现状 (批次按最重切片取路径地板) · F-b 新增 batch/debt 档 (一次分诊 + 一份 design +
+各片单写者 + 合并后一次 2+1 review; 机械边界 = 各片文件面互不相交、单片 ≤10 文件、跨片 AC 显式署名) ·
+F-c 逐片走 Feature 挂同一 roadmap。annex 撰写者推荐 F-b。**未拍板前一切照 F-a 执行**, AC26 是反向断言。
+
+### 12.7 已知脆弱性 (留痕, 不在本刀扩面)
+
+1. **critic 轮次字面计数可被正文讨论污染**: `validateCriticRounds` 全文匹配, 任何**讨论**该契约的
+   design (含本节、含 A1 修后的模板注记块) 都可能虚增计数 → 检查被平凡满足。本节与 annex 均以转写规避。
+   根治 = 计数锚定到 2-3 级标题行内出现该字面串, 属 hook 改动, 记 proposals 待下刀。
+2. **LOCAL-PATCHES 快照漂移**: `vibeCoding/claude/9.9.6/hooks/delivery-gate.cjs` 入库快照 (2026-07-26)
+   已落后于 `.claude/hooks/` 发行件与安装态 (2026-07-27 熔断器 + manifest gitignore 修复未同步),
+   而 LOCAL-PATCHES.md 仍声称「与安装态逐字节一致」。AC28 要求实施时刷新或显式登记不刷新理由。
+3. **模板注记块随 gate 演进过期**: 契约写两处必漂。缓解 = 以函数/常量名为锚 + 尾行标同步日期 +
+   把「gate 判据变更须同步模板注记」写进注记块自身; 根治 (契约单源生成) 超出本刀, 记 proposals。
+4. **模板 scaffold 自带幻影 critic 轮次** (R6-F2 发现, 主 agent 复核确认): 两端安装态与两端发行件的
+   `pace/templates/sprints/design.md` **`:72` 均含一行 Round 1 scaffold 段头**, 其中原样带有该字面串
+   (本档为免污染自身计数, 不复写该行原文; 复核用 `sed -n '72p' <模板>`)
+   —— 四份 `grep -c` 全部 = 1。任何由模板实例化的 sprint **起算即 1 轮**, Refactor/System 地板 2
+   于是只强制**1 轮真实审议**, Feature 地板 1 更是零。这不是本 sprint 的局部问题, 是**全体消费方的
+   ratchet 侵蚀**, 且与 §12 要治的"考纲失真"同源。本刀顺 A1 之刀改 scaffold 段头为转写占位
+   (仍是文档面, "不改骨架"约束指的是 AC 节骨架), 核验并入 AC19 第 ② 条。
+
+## 13. Acceptance Criteria
+
+> **编号约定 (2026-07-28)**: 编号 **11/12 是 harness 保留元标号**, 业务 AC 一律避开 (见 §12.1 第 4 条)。
+> 原 AC11 → **AC17**, 原 AC12 → **AC18** (checklist.yaml 的 `ac_refs` 已同步)。
+> §12 追加范围的验收为 **AC19-AC28**, 与 annex 原 AC1-AC10 按序一一对应。
+>
+> **重编号的净效果 = 加严一处 + 失守一处 (R6-F1 核出, 不是纯加严)**:
+> ①**加严**: AC17/AC18 从 `validateAcMapping` 的静默免检名单里挪出来了, ship 时必须交
+> admissible per-AC PASS evidence。②**失守**: 标号集不再含 11/12 → `validateMetaAcceptance`
+> (cjs:852-867/py:730-744) 永不触发。其中 evaluator VERDICT=PASS 半边由 `validateReview`
+> (cjs:291/py:912-913) 对全部 generator 路径无条件强制、cleanup 半边由 ship 前置判
+> (cjs:957-967/1000) 覆盖, **均零损失**; 但 **"ship 时活动 worktree 计数 = 1" 这一谓词全 gate
+> 仅此一处** (`rg 'worktree list --porcelain'` 两端各 1 命中, 均在该函数内), 重编号后无人执行
+> → 由 **AC28a** 以 `source: command` 证据人工补回。
+>
+> **条目正文内禁写其他 AC 编号**: 标号抽取扫的是条目正文 (cjs:810/py:401,
+> 形如 `(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])` —— 前有非字母数字边界、后不接数字), 在 AC17 正文写
+> "(原 AC11)" 会把保留标号重新注射进标号集, 使重编号失效。映射一律只写在本表头注里。
 
 - [ ] AC1: 9.9.3 两个目录零 diff；9.9.6 两个目录从其完整 fork，排除 `.DS_Store`/cache。
 - [ ] AC2: CC adapter 不被 `.gitignore` 吞掉；`git status --porcelain` 可见完整底稿。
@@ -313,8 +455,6 @@ Spec Kit 启发的 N10 只检查 roadmap → design → checklist 的 slug、依
 - [ ] AC8: PACE 4+5、红黄绿区、前台收齐的 2+1 review、CX spawn 前置 worktree 门禁、runtime-verify/polish 和 fail-closed gates 语义不退化。
 - [ ] AC9: `.ai_state` 不新增第二状态层；SessionStart ≤2500 bytes、breadcrumb ≤400 bytes，恢复和异常场景通过。
 - [ ] AC10: retention policy 有 consumer proof、N-1 边界与可回溯证据，不以磁盘大小粗暴删除。
-- [ ] AC11: local-only 测试树符合用户指定路径且不在 Git diff；N9/N10、migration、rollback 全覆盖。
-- [ ] AC12: prompt A/B N≥3，正确性不低于 9.9.3，至少一个效率指标 Pareto 改善。
 - [ ] AC13: System design 至少两轮独立 critic 后 PASS；runtime-verify、2+1 review、polish、architecture 更新后才允许 ship。
 - [ ] AC14: 未经用户后续授权，不 commit、push 或 release。
 - [ ] AC15: CC `model=best` 且无全局 subagent override；architect/critic=Fable，其余五个角色=Opus；无 Sonnet agent 残留。
@@ -330,6 +470,25 @@ Spec Kit 启发的 N10 只检查 roadmap → design → checklist 的 slug、依
 
 > **拆出，不与 AC16 捆绑** (R1-F4): CX 侧补装 `stop-failure-recorder.py` 与活锁修复**无因果关系**
 > (熔断记录由 gate 自己写)，属搭车项。列为独立小项验收: 存在且非阻断、路径与字段同 CC `.cjs`、密钥脱敏。
+
+- [ ] AC17: local-only 测试树符合用户指定路径且不在 Git diff；N9/N10、migration、rollback 全覆盖。
+- [ ] AC18: prompt A/B N≥3，正确性不低于 9.9.3，至少一个效率指标 Pareto 改善。
+
+<!-- 以下 AC19-AC28 为 2026-07-28 追加范围 (§12), 与 annex 原 AC1-AC10 按序对应。
+     编号映射与"条目正文禁写其他 AC 编号"的理由见本节表头注, 此处不重复
+     (契约写两处必漂, §12.7-3)。 -->
+
+- [ ] AC19: CC/CX 两份 design 模板的验收标准节上方各有一个 ≤20 行的机器契约注记块，覆盖五要素（标题白名单+ASCII 序号 / 仅列表项 / 保留元标号语义与业务 AC 避让 / critic 字面计数 / evidence 绑定义务含红区与非红区强制力分级）。**机械核验三条**（R6-F4：不接受"人工比对"式软验收）：① 五个 gate 锚点 token 在每份模板各 `rg -c` ≥1 —— `ACCEPTANCE_HEAD`、`isPlaceholderCriterion`、`validateCriticRounds`、`validateMetaAcceptance`、`validateAcMapping`；② 注记块**自身**对 critic 计数字面串一律转写，`grep -c` 该字面串在每份模板 **= 0**（R6-F2：包括必须顺刀改掉的既有 Round 1 scaffold 段头）；③ 注记块引用的标号抽取正则须与 cjs:810/py:401 实际判据一致（带前界 + 后禁数字），不得写成过度简化的形式（R6-F7）。
+- [ ] AC20: 红绿对照实测 —— /tmp fixture 项目，红绿**共用同一 fixture 仅替换 design.md**，用 `node ~/.claude/hooks/delivery-gate.cjs` 喂 PreToolUse 实现写入 payload。四条防假绿钉死（R6-F3）：① fixture `_index.md` 的 `path` 取 **Refactor**（path ∉ Feature/Refactor/System 时 `validateImplEntry` 直接 return，绿例会平凡通过）；② payload 的 `cwd` = fixture 根，`file_path` 指向 fixture 内**非 `.ai_state/`** 的实现文件（否则 quiet-exit 同样平凡通过）；③ 绿例（按改后模板骨架填一条真 AC）**无 `decision:block`**；④ 红例（复现 `## 六、验收标准` + 表格行形态）不仅要 block，**reason 须含"缺机器可识别的验收标准段"**。两次完整输出留档进本 sprint evidence。
+- [ ] AC21: CC/CX 两份 stages.md 的 ship 段含 per-AC 绑定记录义务（触发条件、admissible 三形态速查、`source: review` 最低成本路径、hook 自动采集记录不构成绑定的警示）；核验 = `rg -n "ac_id|covers" <两份 stages.md>` ≥1 且义务段完整。
+- [ ] AC22: CC/CX 两份 stages.md 的 impl 工作流含 step 0 派工时序规则（翻 stage 先于派工 + 派工前 AC 段自检 + 在飞写者存在时禁改 stage/current_sprint_slug），orchestration.md worktree 速查含同义条目；核验 = `rg -n "派工" <三档>` 命中对应句。**自检形态钉死（R6-F6）**：写进 stages.md 的自检**必须**是"合成一个 PreToolUse payload 喂安装态 gate 本体、期待无 `decision:block`"（与 AC20 fixture 同源），**禁止**给出手搓正则复刻 gate 判据的命令 —— 那是 §12.7-3 双写漂移的新实例。
+- [ ] AC23: CC/CX 两份 route-note 模板含「已验证基线」五列表格节，orchestration.md 派工段注明随契约下传；边界句逐字含「不得退化为采信不复核」与「无测量命令的基线条目视同未验证」。
+- [ ] AC24: 三份 coding-standards（USER 级 + CC/CX 发行件）的 review 检查项含类型不可见依赖检索清单（至少 `as unknown as` / `as any` / 私有字段运行时访问 / prototype 打桩 / 动态导入 五类）与「检索式必须能抓住该 AC 自己要防的那类失败」原则句及出处引用。
+- [ ] AC25: 三份 doc-style（USER 级 + CC/CX 发行件）含量化 AC 记法（并行多写者 = 绝对相等 + 构成式、禁 `≥`；单写者下界须附基线测量命令与出处），并交叉引用 §12.3 的基线节。
+- [ ] AC26 (反向断言): F 条保持「待用户拍板」形态 —— 本 sprint 的 git diff 不含任何 batch/debt 路径的 skill/hook/模板实现；核验 = diff 审读。
+- [ ] AC27: 双端对称性 —— 每处 CC 改动有 CX 对应落点，或**在 annex §四影响范围表**显式登记不对称原因（R6-F4：§12 无影响范围小节，登记归宿是 annex 那张表）；登记行须含**双端路径 + 一句语义映射**，不得只写"CX 无对应"（CC/CX 只对齐语义，不伪造对称）；核验 = 对照该表逐行检查。
+- [ ] AC28: 安装态与 Rlues 发行件双写一致（逐文件 `diff` 空），且 `harness-patches.md` 为本刀每处安装态改动新增带复核命令的台账行；§12.7 第 2 条的 LOCAL-PATCHES 快照漂移已刷新或已登记不刷新理由；2026-07-28 复核记录中标记失真的三条期望值（W3/W8/W9）已按"复核命令必须锚定到被修的那一处"修正。
+  - [ ] AC28a（R6-F1 补回失守谓词）: ship 前实跑 `git worktree list --porcelain` 并断言活动 worktree 计数 = 1，输出以 `source: command` 形态留档绑定本 AC。理由与出处见本节表头注「失守」段（该谓词全 gate 仅存在于 `validateMetaAcceptance`，cjs:864-866/py:741-744）——用一条人工证据补回，不动 gate。
 
 ## Round 1 · Critic Findings
 
@@ -393,3 +552,33 @@ block 路径与 ship 契约一条不减 —— 但**前提是熔断判定不放�
 **critic 对"有无更简修法"的回答**: 只修 block reason **不够** —— polish agent 即便被正确指引产出
 `cleanup-pass.md`, 下一个 manifest 阻断它仍造不出 (manifest 是 review 下游产物), 活锁会在第二个
 reason 上复发。熔断本身必要; 但四处改动可收敛为两处 (F4 已采纳)。
+
+
+## Round 6 · Critic Findings (§12 + AC19-AC28 追加范围, critic=Fable 5, 2026-07-28)
+
+> 范围: 仅评审 2026-07-28 追加的 §12 全节、§13 AC19-AC28 与 AC 重编号 (17/18)、checklist G1-G6/H1
+> 与 done_contract 三条、route-note `## 2026-07-28` 节。§1-§11 与 AC1-AC18 既有设计不重开。
+> §12.1 五条契约事实已逐条对安装态 cjs/py 源码亲验 **一致** (锚点: ACCEPTANCE_HEAD cjs:613/py:395 ·
+> acceptanceCriteria cjs:626-641 · validateCriticRounds cjs:602,605/py:1389-1396 · 元标号排除
+> cjs:813/py:667 与 validateMetaAcceptance cjs:852-867/py:730-744 · validateAcMapping 三形态
+> cjs:819-844 + manifest 触发 cjs:984-990/py:1579-1604)。字面串计数实测 = 5, 全在 R1-R5 段头,
+> 本次追加文字零污染; checklist 与 AC 段均无 11/12 残留; §12.7-2 快照漂移属实; G6→F7 依赖正确;
+> F 条零实施形态正确。
+
+VERDICT = **APPROVE_WITH_CHANGES**
+评分: 边界条件 4 · 错误处理 4 · 可证伪性 3 · 过度设计 4 · 历史教训对齐 5
+
+| # | Sev | 问题 | 处置 |
+|---|---|---|---|
+| F1 | P1 | **"重编号是加严"不完全成立, 有一条检查净丢失**。元校验的 evaluator VERDICT=PASS 半边由 `validateReview` 对全部 generator 路径无条件强制 (cjs:291/py:912-913), cleanup 半边由 ship 前置判 (cjs:957-967, cjs:1000/py:1553-1562) 覆盖, 均零损失; 但 **"ship 时活动 worktree 计数=1" 全 gate 仅存在于 `validateMetaAcceptance`** (cjs:864-866/py:744), 重编号后 labels 不含 11/12 → 该谓词永不触发, AC13/G6 均未覆盖 | ✅ 主 agent 复核确认成立 (`rg 'worktree list --porcelain'` 两端各仅 1 处, 均在该函数内)。§13 表头注已改口为"加严 + 一处失守"; AC28 增子项 AC28a 以 `source: command` 证据补回该谓词 |
+| F2 | P1 | **G1 要改的模板自带 1 次幻影轮次**。两端安装态 + 两端发行件 design 模板 `:72` 的 Round 1 scaffold 段头含该字面串 → 实例化即起算 1, Refactor/System 地板 2 实际只强制 1 轮真实审议 —— 正是 §12 要治的"考纲失真"同类, 且 §12.7-1 只防了注记块, 未防既有 scaffold | ✅ 主 agent 复核确认成立 (四份模板 `grep -c` 均 = 1, 命中 `:72`)。A1 顺刀改 scaffold 段头为转写占位; AC19 增核验"模板内该字面串出现次数 = 0"; 注记块须转写的约束从 §12.7-1 升格绑进 AC19 |
+| F3 | P2 | **AC20 假绿路径未钉死**: (a) fixture `_index.md` 的 path 必须 ∈ Feature/Refactor/System, 否则 `validateImplEntry` 直接 return (cjs:871-876); (b) payload 须带 cwd=fixture 根、写入路径不含 `.ai_state/` (cjs:1016-1020), 否则 quiet-exit 使绿例平凡通过; (c) 仅断言有/无 `decision:block` 不够 | ✅ AC20 已补四钉: path 取 Refactor · 红绿共用同一 fixture 仅换 design.md · 红例断言 reason 含"缺机器可识别的验收标准段" · payload cwd 与文件路径显式给定 |
+| F4 | P2 | **软验收两处**: AC19"人工比对五要素"不可机械证伪; AC27 让不对称原因登记进"§12 影响范围", 但 §12 无影响范围小节 (表在 annex §四, 而 annex 自声明不参与机械校验) | ✅ AC19 改为五锚点 token 各 `rg -c` ≥1; AC27 改指 annex §四并要求登记行含双端路径 + 一句语义映射 |
+| F5 | P2 | **台账时序陷阱**: `harness-patches.md` 是 git 跟踪文件, 不在 `validateReviewBinding` 漂移白名单 (cjs:471-491) 且永判非轻 (cjs:889/py:1188) —— review 绑定 commit 之后再补一笔台账即"unreviewed .ai_state drift"卡死 ship | ✅ G6 `expected_evidence` 补排序约束: 台账收口 → 进 reviewed commit → 冻结; review 期间新增安装态改动须重走绑定 |
+| F6 | P2 | AC22 的"派工前 AC 段自检命令"未定义形态; 手搓正则复刻品 = §12.7-3 双写漂移的新实例 | ✅ AC22 钉死: 自检 = 合成 PreToolUse payload 喂**安装态 gate 本体**、期待无 `decision:block` (与 AC20 fixture 同源), 禁正则复刻 |
+| F7 | P3 | 将被抄进 A1 注记块的两处措辞欠精确: "改写段头即清零"实为逐个少计; §13 注释引 `matchAll(/(AC\d+)/g)` 与实际判据 (cjs:810/py:401, 带前界 + 后禁数字) 不同 (方向为过度警示, 无危险) | ✅ §12.1 第 3 条与 §13 注释均已改用准确表述; 注记块抄实际正则 (并入 AC19) |
+| F8 | P3 | G2-G5 串行 `blocked_by` 链含假依赖 (G4 不真依赖 G3), 单写者策略下无害; done_contract"本刀零 hook 改动"仅靠上行注释限定范围, 与本 sprint 已落的 fe3296d 熔断器改动字面相抵 | ✅ done_contract 该行行内自带"(§12 G 系列)"限定; 假依赖留痕不改 (单写者串行下无害, 改动收益 < 扰动风险) |
+
+**critic 对"有无更简修法"的回答**: 整体无 —— "只动文档面、hook 一行不动"已是本问题的最小正确刀位
+(亲验确认放宽 hook 或改采集器的否决理由成立); 但 F1 有更简形态: 不加新 AC、不动 gate,
+AC28 加一个 checkbox + 一条 command 证据即补回失守的 worktree 计数; F2 顺 G1 之刀边际成本一行。

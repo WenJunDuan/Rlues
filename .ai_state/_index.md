@@ -14,7 +14,7 @@ skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/�
 
 # === 路由审议 (v9.9.0) ===
 route_confidence: 0.98             # 0-1, 入口路由审议置信度 (主 agent 审议 Step 3 写)
-route_history: ["2026-07-07 System: F1 orchestrator framework design (fullstack-delivery roadmap 首片, 档案由 quantum session 移交)", "2026-07-10 System: Athena 9.9.1 compatibility release from 9.9.0 baseline", "2026-07-10 System: CC 9.9.1 redesign from CC 9.9.0 baseline, awaiting Fable5 review", "2026-07-10 System: user approved impl-first flow; Fable5 post-implementation review remains mandatory", "2026-07-13 System: user-approved Athena 9.9.2 overall architecture upgrade; four primitives + spec-gate + two-tier memory are mandatory", "2026-07-14 System: repair Athena 9.9.3 review findings, full regression, formal review, merge and publish", "2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree"]  # re-route 记录
+route_history: ["2026-07-07 System: F1 orchestrator framework design (fullstack-delivery roadmap 首片, 档案由 quantum session 移交)", "2026-07-10 System: Athena 9.9.1 compatibility release from 9.9.0 baseline", "2026-07-10 System: CC 9.9.1 redesign from CC 9.9.0 baseline, awaiting Fable5 review", "2026-07-10 System: user approved impl-first flow; Fable5 post-implementation review remains mandatory", "2026-07-13 System: user-approved Athena 9.9.2 overall architecture upgrade; four primitives + spec-gate + two-tier memory are mandatory", "2026-07-14 System: repair Athena 9.9.3 review findings, full regression, formal review, merge and publish", "2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作追加范围, 不另立 sprint; path 维持 System (design 原建议 Feature 作废); 改动对象含 ~/.claude 与 ~/.codex 安装态, 依 stages.md 先例不用 worktree", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block (P9 二次撞上, 无豁免出口); worktree 对 repo 外的 ~/.claude|~/.codex 零隔离却照样阻断写入, 任务结构性死锁。用户批准主 agent 直做 G1-G5, 改安装态前已逐个备份 (12 文件, pre-g1g5-20260728T024943Z)"]  # re-route 记录
 plan_model: "fable"                    # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
@@ -60,7 +60,7 @@ counts:
   reviews_count: 17
   cleanup_count: 6
   compound:
-    learning: 4
+    learning: 5
     trick: 0
     decision: 3
     explore: 1
@@ -71,13 +71,13 @@ pointers:
   latest_review: "sprints/2026-07-14-athena-9-9-3-review-fixes/reviews/pass1.md"
   latest_cleanup: "sprints/2026-07-14-athena-9-9-3-review-fixes/cleanup-pass.md"
   latest_brainstorm: ""
-  latest_decisions: ["compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
-  latest_lessons: ["compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-25T01:57:55.602Z"
+  latest_decisions: ["compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
+  latest_lessons: ["compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
+  latest_architecture_update: "2026-07-25T09:57:40+08:00"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "review repairs R1-R4 complete (63/0/0); continue F1-F6 local runtime/eval before formal review"
+next_action: "G1-G6 全部完成 (2026-07-28): 20 文件双端四树对齐 (10 安装态 + 10 发行件, 逐文件 diff 空), 214 insertions. G1 注记块 20 行/五锚点齐 + 顺刀清除四份模板自带的幻影 critic 轮次 (R6-F2, 全体消费方级缺陷); G2 per-AC 绑定义务 + admissible 三形态; G3 派工 step0 (自检喂真 gate, 禁正则复刻); G4 已验证基线表 + 硬边界句; G5 检索清单 + 量化 AC 记法; G6 台账 W10 条 (含逐条锚定式复核命令) + AC28a worktree=1 + AC26 反向断言. AC20 红绿对照产物 ac20-red-green.txt (sha256 1a5c0627...) 绿例不拦/红例 reason 正确. 安装态备份 12 文件 pre-g1g5-20260728T024943Z. 下一步: H1 (AC16 fixtures) + F1-F6 本地 runtime/eval + runtime-verify + 2+1 review + polish + ship; ship 前须补 review-manifest/tdd-evidence/cleanup-pass/逐 AC 绑定记录, 且台账须先进 reviewed commit (R6-F5 时序). 待用户拍板: design §12.6 batch/debt 三案 (未拍板照 F-a)"
 last_subagent: "generator"
 last_subagent_at: "2026-07-25T05:29:15.189465Z"
 active_worktrees: []
@@ -106,6 +106,7 @@ fingerprint: ""
 
 [由主 agent 在 stage 切换时简短追加]
 
+- `2026-07-28`: **hotfix gate-contract 并入本 sprint 作追加范围**（用户拍板，不另立 sprint）。核出现场踩雷：本 sprint `design.md:316-317` 的 AC11/AC12 是**业务 AC 却占了 harness 保留元标号** —— `delivery-gate.cjs:813` 把 AC11/AC12 排除在 per-AC 证据绑定之外，即"本地测试树全覆盖"与"A/B eval N≥3 Pareto"两条 ship 时静默免检；`validateMetaAcceptance` 反而据标号额外要求 evaluator PASS + cleanup 完成 + 活动 worktree=1（碰巧与 System 真义务重合，未炸）。这正是 hotfix design §一 失败 #3 的现场复现。ship 契约缺口实测：`evidence.yaml` 2 条记录 / 绑定字段命中 **0**，`review-manifest.yaml`、`tdd-evidence.yaml`、`cleanup-pass.md`、`reviews/` 全缺；critic 字面轮次 5（System 地板 2，已过，但新增范围需再加一轮）；活动 worktree=1。新 design 的 AC 段已实测可被 spec-gate 解析（/tmp fixture 喂 PreToolUse，exit 0）。
 - `2026-07-25`: **Claude review 成立项已修复，仍处 impl**：P0 provider/background/spawn gate、validator、hook/docs/security drift 收口；local-only validator 63 PASS / 0 FAIL / 0 SKIP（含 fresh setup、exact Codex 0.145 config.load、F-series、worktree gate fixtures）。用户明确要求直接在 main checkout 修改；三种 subagent 角色均因无 shell/编辑工具零写入失败，主 thread 接管。完整 F1-F6/runtime-verify/正式 2+1 review 仍 pending，未 commit/push/release。证据见 `review-repair-evidence.md`。
 - `2026-07-25`: **用户最终确认 CC 角色矩阵**：main `model=best`；无全局 subagent override；architect/critic=Fable，evaluator 与其余四个实现/审查角色=Opus；effort 保持 3×xhigh + 4×high。
 - `2026-07-25`: **9.9.6 reviewable bottom draft 已收敛到当前 Rlues/main 工作目录**（uncommitted；临时 worktree/branch 已删除）。CC 117 / CX 115 文件，26 skills/端；Codex 0.145.0 实际加载配置成功；9.9.3 零 diff；本地 tests/evals 尚未创建，F1-F7 保持 pending。证据见当前 sprint `bottom-draft-evidence.md`。
