@@ -27,7 +27,7 @@
 3. `spawn_agent` 启动 critic (独立 context)
 4. critic 返回 `## Round N · Critic Findings`; 主 agent 追加到 design.md
 5. NEEDS_REVISION → 主 agent 再 xhigh 修订, 写 `## Round N+1`, 再 critic
-6. **最多 `_index.plan_critique_max_rounds` 轮** (默认 4, 可调 2-6); **最少轮数 (v9.9.0 U2)**: Refactor/System ≥2 轮, 其余 ≥1 轮 (`plan_critique_min_rounds` 可覆写, delivery-gate 在 ship 机械验 design.md 的 Critic Findings 数)
+6. **最多 `_index.plan_critique_max_rounds` 轮** (默认 4, 可调 2-6); **最少轮数 (2026-07-28 gate-descaling)**: 全路径默认 ≥1 轮 (`plan_critique_min_rounds` 可覆写调高; delivery-gate 在 ship 机械验 design.md 的 Critic Findings **标题行**数 — 正文提及不计数, P10 修复)。critic 只输出反例清单 (P0/P1 findings + VERDICT), 不写评分表不写散文
 7. PASS → 进 impl (单模块) 或 design (System 路径)
 
 **例外**: `_index.plan_critique_disabled = true` 关闭多轮 (用户自负责)
@@ -52,12 +52,12 @@ System 路径专用, plan 通过后进 design 出详细架构. 可 `spawn_agent`
      ```
    - **在飞写者存在时禁改 stage**: `active_worktrees` 非空, 或 subagent-events 有未配对 Start 时,
      不得修改 `_index` 的 `stage` / `current_sprint_slug`。
-1. 主 agent 写 `checklist.yaml` (tasks 列表, design_ref 引用), 并在顶部落 **`done_contract`** 段:
-   逐条把 design.md 的验收标准写成**可机械判定**的完成条件 (命令 + 期望输出 / 文件 + 断言)。
+1. **done_contract 写进 design.md 的 `## Done Contract` 段** (2026-07-28 gate-descaling: 不再单立 checklist.yaml, 消灭双写):
+   逐条把验收标准写成**可机械判定**的完成条件 (命令 + 期望输出 / 文件 + 断言)。
    铁律: generator 与 evaluator 判的是**同一份 done_contract**; evaluator 不得在 review 时另造判据,
-   generator 也不得自行放宽。判据要改 → 回 design 改 design.md 再同步 contract, 不在 impl 里私改。
-   (v9.9.6 · sprint contract: 事前协商 done, 防 evaluator 自定义标准与 generator 自评偏高)
-2. 绿区任务 (单文件 ≤30 行, Hotfix/Quick): 主 thread 直接做, 不强制 spawn_agent
+   generator 也不得自行放宽。判据要改 → 回 design 改, 不在 impl 里私改。
+   checklist.yaml 降为**可选** (超大 sprint 需要任务推进表时才建; 存在则 delivery-gate 照旧验全绿)
+2. 绿区任务 (≤3 文件且合计 ≤150 行, 或 Hotfix/Quick/Bugfix): 主 thread 直接做, 不强制 spawn_agent
 3. 黄区: `spawn_agent` 启动 generator (TDD: 测试先, 代码后); Feature+ 必须留下 generator 的 **Stop 完成记录**, 仅 Start 记录不算完成
 4. 红区 (Refactor/System): 主 thread 先 `git worktree add`, 再把 worktree 绝对路径与互斥写集写进 `spawn_agent.message`; agent 首个命令 `pwd`, 后续 shell 显式 `workdir`
 5. 并行多 generator (大改): 也强制 worktree
@@ -85,6 +85,8 @@ impl 写完代码 + 单测后, 不直接进 review, 先做运行时自测自改:
 1. 并行 `spawn_agent`: reviewer (代码 findings) + spec-compliance (MISSING/EXTRA/DEVIATED); 两者只返回结果
 2. 主 agent 串行合并 `reviews/passN.md`, 再 `spawn_agent` 跑 evaluator; evaluator 只返回 VERDICT, 主 agent 追加并更新 `_index.next_action`
 
+**passN.md 产物约定 (2026-07-28 gate-descaling)**: 只写 P0/P1 findings + Spec Compliance 表 + Evidence Cross-Check (R/S) + 绑定行 + VERDICT。禁复述实现、禁逐文件叙事; P2/INFO 一行带过。目标 ≤120 行 — review 的价值在判定, 不在散文。
+
 VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 - PASS (Refactor/System) → polish
 - PASS (其他) → ship
@@ -110,7 +112,10 @@ VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 - Feature/Refactor/System: pass1.md 必须含 `## Spec Compliance` 段
 - v9.9.0: Refactor/System 的 pass1.md 必须含 `## Evidence Cross-Check` 段 (U3)
 - v9.9.0 (U1): Feature+ 的 subagent-log.md 必须含 generator 记录 (逃生: skip_impl_subagent_check)
-- v9.9.0 (U2): design.md 的 Critic Findings ≥ min 轮 (Refactor/System=2, 其余=1; plan_critique_min_rounds 覆写)
+- design.md 的 Critic Findings **标题行** ≥ min 轮 (默认全路径 1; plan_critique_min_rounds 覆写); design.md >300 行 stderr 警告
+- review-manifest 必钉集: 全路径 design.md; R/S 另加 runtime-verify.md (checklist/evidence/cleanup/architecture 改为声明即验, 不强制钉)
+- checklist.yaml 存在才验; 记账文件 (token-usage/tool-trace/stop-failures/harness-patches/proposals) 不受 post-review drift 拦截
+- AC 证据记法 (2026-07-28 W23): 跑真实验证命令后 evidence-collector 已自动落记录, agent 在该记录**补一行 `covers: [ACn]`** 即 admissible; 十字段手写 artifact 记录仅当命令证据不适用 (source: artifact/review) 时用
 - v9.9.0: design.md mtime 晚于 pass1.md → block 重新 review (CC=兜底 / CX=主检测)
 - current_roadmap_slug 非空: 提示主 agent 继续下个 item
 - 长任务建议: ship 前核对 Goals 完成条件, 承载铁律[门禁] Sisyphus 语义 (见 references/orchestration.md)
@@ -155,6 +160,14 @@ Codex hooks 可覆盖 shell、`apply_patch` 与部分 MCP 调用, 但是否触�
 
 对等的是**门禁强度**, 不是逐字段照抄 CC.
 
+## 文书预算 (2026-07-28 gate-descaling — 反"程序员变文员")
+
+实测病灶: 9.9.6 主 sprint 写入操作里 `.ai_state` 记账 102 次 vs 代码 15 次 (8.4%)。规则:
+
+- **手写文档白名单**: sprint 目录里 agent 手写的 md 只允许 design.md / reviews/passN.md / (Bugfix) issue-report+fix-note / (R/S) runtime-verify.md + cleanup-pass.md。route-note **并入 `_index.route_history` 一行**, 不再单立文件; *-evidence.md / verification-inventory / session-log 等自造散文**禁止** — 证据走 hook 自动的 evidence.yaml/tool-trace, 不走手写复述
+- **体积预算**: design.md 目标 ≤200 行 (System) / ≤80 行 (Feature); 超 300 行 delivery-gate 在 ship 时 stderr 警告 (不 block, 防死锁)。critic 轮次追加不计入
+- **判据**: 一个 sprint 内 agent 手写 md 字节数不应超过代码 diff 字节数; 超了 = 文书跑赢了产出, 停下反省而不是继续写
+
 ## 新数据目录 (v9.6.4 起)
 
 ```
@@ -162,10 +175,10 @@ Codex hooks 可覆盖 shell、`apply_patch` 与部分 MCP 调用, 但是否触�
 ├── _index.md                          # 项目状态 + frontmatter
 ├── sprints/
 │   └── YYYY-MM-DD-{slug}/             # 一个 sprint 一目录
-│       ├── route-note.md              # v9.9.0 路由审议落盘 (候选/权衡/置信度/Re-route)
+│       ├── route-note.md              # (可选, 2026-07-28 起) 默认并入 _index.route_history 一行; 仅复杂 re-route 才单立
 │       ├── brainstorm.md              # (可选) brainstorm 产出
 │       ├── design.md                  # 含 ## Round N · Critic Findings 段
-│       ├── checklist.yaml             # impl 推进清单
+│       ├── checklist.yaml             # (可选, 2026-07-28 起) 超大 sprint 才建; 存在则验全绿
 │       ├── issue-report.md            # v9.8.0 Bugfix: 可复现报告 (athena-issue)
 │       ├── fix-note.md                # v9.8.0 Bugfix: 修复记录+验证 (delivery-gate 验)
 │       ├── runtime-verify.md           # v9.8.0 运行时自测自改 (delivery-gate 验)

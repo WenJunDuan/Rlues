@@ -1,14 +1,14 @@
 sprint_slug: 2026-07-25-athena-9-9-6-prompt-engineering
-updated_at: "2026-07-28T03:33:32.944Z"
+updated_at: "2026-07-28T03:40:56.424Z"
 status: "ok"
 totals:
-  cache_creation_input_tokens: 1664322
-  cache_read_input_tokens: 63690548
-  cached_input_tokens: 181065590
-  input_tokens: 121784116
-  output_tokens: 1185885
+  cache_creation_input_tokens: 1682606
+  cache_read_input_tokens: 67337918
+  cached_input_tokens: 184731244
+  input_tokens: 121784138
+  output_tokens: 1200613
   reasoning_output_tokens: 289155
-  total_tokens: 123678169
+  total_tokens: 123692919
 by_model:
   "<synthetic>":
     calls: 1
@@ -29,14 +29,14 @@ by_model:
     reasoning_output_tokens: 0
     total_tokens: 30007
   "claude-opus-5":
-    calls: 404
-    cache_creation_input_tokens: 1331263
-    cache_read_input_tokens: 61749707
-    cached_input_tokens: 63080970
-    input_tokens: 45821
-    output_tokens: 448683
+    calls: 416
+    cache_creation_input_tokens: 1349547
+    cache_read_input_tokens: 65397077
+    cached_input_tokens: 66746624
+    input_tokens: 45843
+    output_tokens: 463411
     reasoning_output_tokens: 0
-    total_tokens: 494504
+    total_tokens: 509254
   "unknown":
     calls: 1149
     cache_creation_input_tokens: 0
@@ -67,14 +67,14 @@ by_stage:
       reasoning_output_tokens: 0
       total_tokens: 30007
     "claude-opus-5":
-      calls: 404
-      cache_creation_input_tokens: 1331263
-      cache_read_input_tokens: 61749707
-      cached_input_tokens: 63080970
-      input_tokens: 45821
-      output_tokens: 448683
+      calls: 416
+      cache_creation_input_tokens: 1349547
+      cache_read_input_tokens: 65397077
+      cached_input_tokens: 66746624
+      input_tokens: 45843
+      output_tokens: 463411
       reasoning_output_tokens: 0
-      total_tokens: 494504
+      total_tokens: 509254
     "unknown":
       calls: 838
       cache_creation_input_tokens: 0
@@ -22281,5 +22281,173 @@ records:
     output_tokens: 1074
     reasoning_output_tokens: 0
     total_tokens: 1076
+  - fingerprint: "7f8e44f7737ce85a"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:33:32.860Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 1136
+    cache_read_input_tokens: 300112
+    cached_input_tokens: 301248
+    input_tokens: 2
+    output_tokens: 844
+    reasoning_output_tokens: 0
+    total_tokens: 846
+  - fingerprint: "20cfa655a51843d6"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:34:27.744Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 883
+    cache_read_input_tokens: 301248
+    cached_input_tokens: 302131
+    input_tokens: 2
+    output_tokens: 1774
+    reasoning_output_tokens: 0
+    total_tokens: 1776
+  - fingerprint: "585310ec0cdc3612"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:34:28.458Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 883
+    cache_read_input_tokens: 301248
+    cached_input_tokens: 302131
+    input_tokens: 2
+    output_tokens: 1774
+    reasoning_output_tokens: 0
+    total_tokens: 1776
+  - fingerprint: "af52a1f786caa577"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:35:48.942Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 2691
+    cache_read_input_tokens: 302131
+    cached_input_tokens: 304822
+    input_tokens: 2
+    output_tokens: 1430
+    reasoning_output_tokens: 0
+    total_tokens: 1432
+  - fingerprint: "f10d2407ddce9dfb"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:35:50.451Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 2691
+    cache_read_input_tokens: 302131
+    cached_input_tokens: 304822
+    input_tokens: 2
+    output_tokens: 1430
+    reasoning_output_tokens: 0
+    total_tokens: 1432
+  - fingerprint: "ec163006b7323813"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:36:08.901Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 2691
+    cache_read_input_tokens: 302131
+    cached_input_tokens: 304822
+    input_tokens: 2
+    output_tokens: 1430
+    reasoning_output_tokens: 0
+    total_tokens: 1432
+  - fingerprint: "95b4c1f22ae43b31"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:36:38.162Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 1787
+    cache_read_input_tokens: 304822
+    cached_input_tokens: 306609
+    input_tokens: 1
+    output_tokens: 298
+    reasoning_output_tokens: 0
+    total_tokens: 299
+  - fingerprint: "ed044f3b1b4e21ea"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:36:39.927Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 1787
+    cache_read_input_tokens: 304822
+    cached_input_tokens: 306609
+    input_tokens: 1
+    output_tokens: 298
+    reasoning_output_tokens: 0
+    total_tokens: 299
+  - fingerprint: "b35cfff6d72a60e5"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:37:36.700Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 323
+    cache_read_input_tokens: 306609
+    cached_input_tokens: 306932
+    input_tokens: 2
+    output_tokens: 436
+    reasoning_output_tokens: 0
+    total_tokens: 438
+  - fingerprint: "5fb34990569d92bb"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:39:15.693Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 660
+    cache_read_input_tokens: 306932
+    cached_input_tokens: 307592
+    input_tokens: 2
+    output_tokens: 774
+    reasoning_output_tokens: 0
+    total_tokens: 776
+  - fingerprint: "0fbff2b9c023fded"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:40:17.317Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 1376
+    cache_read_input_tokens: 307592
+    cached_input_tokens: 308968
+    input_tokens: 2
+    output_tokens: 2120
+    reasoning_output_tokens: 0
+    total_tokens: 2122
+  - fingerprint: "e662c690013884f6"
+    platform: "cc"
+    stage: "impl"
+    source_type: "transcript_path"
+    source_id: "/Users/mi_manchi/.claude/projects/-Users-mi-manchi-workspace-Rlues/755f0420-5a77-4cb1-a7e7-93c7bb67cfd4.jsonl"
+    timestamp: "2026-07-28T03:40:20.987Z"
+    model: "claude-opus-5"
+    cache_creation_input_tokens: 1376
+    cache_read_input_tokens: 307592
+    cached_input_tokens: 308968
+    input_tokens: 2
+    output_tokens: 2120
+    reasoning_output_tokens: 0
+    total_tokens: 2122
 notes:
   []

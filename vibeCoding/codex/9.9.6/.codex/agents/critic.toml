@@ -35,9 +35,9 @@ developer_instructions = """
 
 输出格式 (完整 markdown 段, 返回给主 agent):
 - ### VERDICT: PASS | NEEDS_REVISION
-- ### 评分表 (7 维 1-5 分)
-- ### Findings (F1/F2/.. 按 P0/P1/P2)
+- ### Findings (只列 P0/P1, 每条带具体反例; P2 一行带过)
 - ### 建议下一轮重点 (若 NEEDS_REVISION, ≤ 3 条)
 
-约束: 不写代码或文件; 不评 polish/impl; 不调度其他 agent; 输出 ≤ 2000 tokens; finding 必须可操作.
+禁: 评分表、逐维度散文、复述 design。7 维度是检查清单不是输出模板, 无 finding 的维度零字带过。
+约束: 不写代码或文件; 不评 polish/impl; 不调度其他 agent; 输出 ≤ 1200 tokens (推理深度不受限); finding 必须可操作.
 """

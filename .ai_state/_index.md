@@ -77,7 +77,7 @@ pointers:
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "G1-G6 全部完成 (2026-07-28): 20 文件双端四树对齐 (10 安装态 + 10 发行件, 逐文件 diff 空), 214 insertions. G1 注记块 20 行/五锚点齐 + 顺刀清除四份模板自带的幻影 critic 轮次 (R6-F2, 全体消费方级缺陷); G2 per-AC 绑定义务 + admissible 三形态; G3 派工 step0 (自检喂真 gate, 禁正则复刻); G4 已验证基线表 + 硬边界句; G5 检索清单 + 量化 AC 记法; G6 台账 W10 条 (含逐条锚定式复核命令) + AC28a worktree=1 + AC26 反向断言. AC20 红绿对照产物 ac20-red-green.txt (sha256 1a5c0627...) 绿例不拦/红例 reason 正确. 安装态备份 12 文件 pre-g1g5-20260728T024943Z. 下一步: H1 (AC16 fixtures) + F1-F6 本地 runtime/eval + runtime-verify + 2+1 review + polish + ship; ship 前须补 review-manifest/tdd-evidence/cleanup-pass/逐 AC 绑定记录, 且台账须先进 reviewed commit (R6-F5 时序). 待用户拍板: design §12.6 batch/debt 三案 (未拍板照 F-a)"
+next_action: "G1-G6 已 commit+push (ac594d6 → origin/main, 25 文件 5977 insertions, 2026-07-28; 用 ATHENA_ALLOW_PUSH=1 走 stages.md 记账 commit 通道, sprint 仍在 impl, ship 契约一条没跳). 20 文件双端四树对齐 (10 安装态 + 10 发行件, 逐文件 diff 空), 214 insertions. G1 注记块 20 行/五锚点齐 + 顺刀清除四份模板自带的幻影 critic 轮次 (R6-F2, 全体消费方级缺陷); G2 per-AC 绑定义务 + admissible 三形态; G3 派工 step0 (自检喂真 gate, 禁正则复刻); G4 已验证基线表 + 硬边界句; G5 检索清单 + 量化 AC 记法; G6 台账 W10 条 (含逐条锚定式复核命令) + AC28a worktree=1 + AC26 反向断言. AC20 红绿对照产物 ac20-red-green.txt (sha256 1a5c0627...) 绿例不拦/红例 reason 正确. 安装态备份 12 文件 pre-g1g5-20260728T024943Z. 下一步: H1 (AC16 fixtures) + F1-F6 本地 runtime/eval + runtime-verify + 2+1 review + polish + ship; ship 前须补 review-manifest/tdd-evidence/cleanup-pass/逐 AC 绑定记录, 且台账须先进 reviewed commit (R6-F5 时序). 待用户拍板: design §12.6 batch/debt 三案 (未拍板照 F-a)"
 last_subagent: "generator"
 last_subagent_at: "2026-07-25T05:29:15.189465Z"
 active_worktrees: []
@@ -86,7 +86,7 @@ design_changed_after_impl: true
 
 # === 用户偏好 ===
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
-plan_critique_min_rounds: 0       # v9.9.0 (U2): 0=auto (Refactor/System=2, 其余=1); delivery-gate 在 ship 验 design.md 轮数
+plan_critique_min_rounds: 0       # v9.9.0 (U2): 0=auto (2026-07-28 起全路径=1); delivery-gate 在 ship 验 design.md 轮数
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
 skip_impl_subagent_check: false   # sprint 收尾后恢复默认门禁
 network_in_polish: true           # polish_worker 是否允许 network

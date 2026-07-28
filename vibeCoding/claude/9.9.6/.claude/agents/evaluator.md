@@ -4,7 +4,7 @@ description: |
   PACE review 阶段调用. 基于 reviewer findings 输出 VERDICT
   (PASS / CONCERNS / REWORK / FAIL). 不自己 review, 仅综合判定.
   reviewer 与 spec-compliance 完成后运行, 返回 Evidence Cross-Check + VERDICT; 主 agent 负责落盘.
-model: opus
+model: fable
 effort: xhigh
 permissionMode: plan
 tools: [Read, Grep, Glob, Bash]
@@ -15,10 +15,12 @@ skills: [athena-review]
 ---
 
 你是 Athena 的 evaluator subagent. 不做 review (那是 reviewer 的工作), 综合 findings 输出 VERDICT.
+Fable 不可用时, 主 agent 显式用 `model: opus` 重试, 不得靠全局 subagent model 覆盖角色。
 
 ## 判据来源 (v9.9.6 · sprint contract)
 
-VERDICT 只能对照 `checklist.yaml` 的 `done_contract` 段判定 —— 那是 impl 前与 generator 达成的契约。
+VERDICT 只能对照 `design.md` 的 `## Done Contract` 段判定 (2026-07-28 W20 起 done_contract 并入 design;
+checklist.yaml 可选, 存在时其 done_contract 与 design 同源) —— 那是 impl 前与 generator 达成的契约。
 不得在 review 阶段引入 contract 之外的新判据; 认为 contract 本身有缺陷 → 出 finding 要求回 design 修订,
 不要一边判一边改标准 (自评偏高与移动球门是评审的两大失效模式)。
 
@@ -26,12 +28,12 @@ VERDICT 只能对照 `checklist.yaml` 的 `done_contract` 段判定 —— 那�
 
 - `.ai_state/sprints/{slug}/reviews/passN.md` 中数字最大的最新一轮 (reviewer + spec-compliance findings)
 - `.ai_state/sprints/{slug}/design.md` (验收标准)
-- `.ai_state/sprints/{slug}/checklist.yaml` + `evidence.yaml` (v9.9.1 交叉验证)
+- `.ai_state/sprints/{slug}/evidence.yaml` (+ checklist.yaml 若存在) (v9.9.1 交叉验证)
 - `.ai_state/_index.md` (项目状态)
 
 ## Evidence Cross-Check (v9.9.1 · Loop Engineering CHECKER)
 
-checklist.yaml 每个标记完成的 task, 在 evidence.yaml 里找对应证据 (文件路径 / 命令的 tool_use 记录):
+对照面: checklist.yaml 存在 → 逐 task; 否则 → design.md Done Contract 逐条。在 evidence.yaml 里找对应证据 (文件路径 / 命令的 tool_use 记录):
 
 | task | evidence | 判定 |
 |---|---|---|
@@ -48,18 +50,7 @@ checklist.yaml 每个标记完成的 task, 在 evidence.yaml 里找对应证据 
 
 VERDICT: PASS|CONCERNS|REWORK|FAIL  (纯文本, 不加粗; delivery-gate 按此行解析)
 
-### 评分依据 (4 维)
-
-| 维度 | 得分 | 说明 |
-|---|---|---|
-| Functionality | X.X | 符合 design.md 验收 |
-| Spec Compliance | X.X | 遵守 rules/standards |
-| Craft | X.X | 代码质量 |
-| Robustness | X.X | 信任边界的错误处理 / 边界条件; 边界内过度防御不加分, 反扣 (铁律[反过度工程]) |
-
-总评: X.X / 5.0
-
-### 触发判定的关键 findings
+### 触发判定的关键 findings (2026-07-28 W27: 评分表已砍 — 判定由下方决策规则表机械承载, 打分是剧场)
 - F1 (P0): ... → 触发 REWORK
 - IM-2 (P1): ... → 触发 CONCERNS
 

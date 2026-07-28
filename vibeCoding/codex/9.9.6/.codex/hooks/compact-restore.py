@@ -40,9 +40,31 @@ def main() -> int:
         if len(parts) < 3:
             return 0
 
+        # B3 (2026-07-28, 台账 W28): 白名单摘要替代全量 frontmatter — post-compact 恰是
+        # context 最紧张时刻。字段清单与 session-start.py INDEX_CORE 同步维护。
+        import re as _re
+        fm = {}
+        for line in parts[1].splitlines():
+            m = _re.match(r'\s*([\w\-_.]+)\s*:\s*"?([^"\n#]*)"?', line)
+            if m:
+                fm[m.group(1)] = m.group(2).strip()
+        core = ["version", "path", "stage", "current_sprint_slug", "current_roadmap_slug",
+                "next_action", "plan_model", "platforms_enabled"]
+        lines = [f"{k}: {fm[k]}" for k in core if fm.get(k)]
+        if not lines:
+            return 0
+        alerts = []
+        if fm.get("design_changed_after_impl") == "true":
+            alerts.append("🚨 design 改后未重新 review: ship 前必须重新 review, delivery-gate 会 block.")
+        na = fm.get("next_action", "")
+        if na.startswith("next_roadmap_item:"):
+            alerts.append(f"🎯 roadmap 推进: 进入 item {na.split(':', 1)[1]}.")
+        body = "\n".join(lines) + "\n\n其余字段按需读 .ai_state/_index.md (历史/统计/能力探测不自动注入)."
+        if alerts:
+            body += "\n\n## 🚨 重要提醒\n\n" + "\n\n".join(alerts)
         additional = (
             "## Athena 项目状态 (post-compact restore)\n\n"
-            + parts[1].strip()
+            + body
             + "\n\n详见 .ai_state/_index.md"
         )
         print(json.dumps({

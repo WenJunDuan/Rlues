@@ -624,6 +624,9 @@ def parse_evidence_records(path: Path) -> list[dict[str, Any]]:
                 "result": evidence_field(block, "result").lower(),
                 "source": evidence_field(block, "source").lower(),
                 "command_or_artifact": evidence_field(block, "command_or_artifact"),
+                # B1 (2026-07-28, 台账 W23): evidence-collector 自动字段, lite-admissible 用
+                "command": evidence_field(block, "command"),
+                "timestamp": evidence_field(block, "timestamp"),
                 "observed_at": evidence_field(block, "observed_at"),
                 "summary": evidence_field(block, "summary"),
                 "exit_code": evidence_field(block, "exit_code"),
@@ -671,6 +674,15 @@ def validate_ac_mapping(
             mapped = record["ac_id"] == label or label in record["covers"]
             if not mapped or record["result"] != "pass":
                 continue
+            # B1 lite-admissible (2026-07-28, 台账 W23): hook 自动落的验证记录 + agent 补
+            # 一行 ac_id/covers 即 admissible; 带 source 的严格记录仍走下方原路径。
+            if not record["source"] and record["command"] and record["timestamp"]:
+                try:
+                    parse_utc_timestamp(record["timestamp"], f"evidence {record['tool_use_id']} timestamp")
+                    admissible = True
+                    break
+                except GateError:
+                    continue
             required = ("source", "command_or_artifact", "observed_at", "summary")
             if any(not record[field] for field in required):
                 continue
@@ -942,9 +954,13 @@ def git_text(cwd: Path, args: list[str], label: str) -> str:
 
 # P8: manifest required-file sets are tiered by path; extra declared files are
 # hash-verified but nothing beyond the tier is mandated (declared-then-verified).
-MANIFEST_REQUIRED_CORE = ("design.md", "checklist.yaml", "evidence.yaml")
+# 2026-07-28 gate-descaling (台账 .ai_state/harness-patches.md): 必钉集从"文档存在性"
+# 收缩到"行为证据"。checklist.yaml 可选 (存在才验), evidence.yaml 是 hook 自动记账
+# (P1 教训: 钉住 hook 持续改写的文件 = 结构性哈希漂移), cleanup-pass/architecture 有
+# 独立存在性检查 — 全部移出必钉集。声明即验语义不变。
+MANIFEST_REQUIRED_CORE = ("design.md",)
 MANIFEST_REQUIRED_REFACTOR_SYSTEM = MANIFEST_REQUIRED_CORE + (
-    "runtime-verify.md", "cleanup-pass.md", "architecture/ARCHITECTURE.md",
+    "runtime-verify.md",
 )
 
 
@@ -1120,6 +1136,11 @@ def validate_review_binding(
         f"{sprint_rel}/tool-trace.jsonl",
         ".ai_state/architecture/ARCHITECTURE.md",
         ".ai_state/architecture/athena-9.9.6.md",
+        # P13 fix (2026-07-28, .ai_state/proposals.md P13): 过程台账不是被审对象。review
+        # 绑定后补 harness-patches/proposals 不得卡死 ship; light-ship 护栏不受影响
+        # (is_light_ship_file 分支未动)。
+        ".ai_state/harness-patches.md",
+        ".ai_state/proposals.md",
     }
     state_drift = sorted(
         file for file in changed
@@ -1386,14 +1407,25 @@ def validate_existing_policy(
     if path_type in GENERATOR_PATHS and not truthy(fm.get("plan_critique_disabled", "false")):
         design = sprint_dir / "design.md"
         design_content = require_file(design, "design.md")
-        rounds = len(re.findall(r"Critic Findings", design_content))
+        # P10 fix (2026-07-28, .ai_state/proposals.md P10): 全文字面计数会被讨论该契约的
+        # 正文污染。锚定到 2-3 级标题行, 正文提及不再计数。
+        rounds = len(re.findall(r"(?m)^#{2,3}\s.*Critic Findings", design_content))
         try:
             configured = int(fm.get("plan_critique_min_rounds", "0") or "0")
         except ValueError:
             raise GateError("plan_critique_min_rounds must be an integer")
-        minimum = configured if configured > 0 else (2 if path_type in REFACTOR_SYSTEM else 1)
+        # 2026-07-28 gate-descaling: 默认最少轮数全路径 1 (原 R/S=2); 要更多轮显式调
+        # plan_critique_min_rounds。
+        minimum = configured if configured > 0 else 1
         if rounds < minimum:
             raise GateError(f"design.md has {rounds} Critic Findings rounds; expected at least {minimum}")
+        # 文书预算警告 (不 block): design.md 超 300 行提示收敛。
+        design_lines = len(design_content.splitlines())
+        if design_lines > 300:
+            sys.stderr.write(
+                f"[delivery-gate] 文书预算警告: design.md {design_lines} 行 "
+                "(目标 System ≤200 / Feature ≤80); 散文该下沉或删减, 不 block\n"
+            )
 
     # Keep the value used so static review cannot accidentally remove the
     # evidence cross-check after validate_review has accepted it.
@@ -1572,7 +1604,10 @@ def main() -> int:
             if path_type in GENERATOR_PATHS:
                 if not truthy(fm.get("skip_impl_subagent_check", "false")):
                     validate_generator_chain(sprint_dir, sprint_slug)
-                validate_checklist(sprint_dir / "checklist.yaml")
+                # 2026-07-28 gate-descaling: checklist.yaml 可选 — done_contract 已并入
+                # design.md (spec-gate 验 AC); 存在则照旧必须全绿。
+                if (sprint_dir / "checklist.yaml").exists():
+                    validate_checklist(sprint_dir / "checklist.yaml")
                 evidence_records = validate_evidence(sprint_dir / "evidence.yaml")
                 review_path = select_latest_review(sprint_dir / "reviews")
                 review_content = validate_review(review_path, path_type)

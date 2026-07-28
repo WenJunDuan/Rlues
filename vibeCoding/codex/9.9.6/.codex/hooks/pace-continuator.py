@@ -15,12 +15,7 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import _index_io  # noqa: E402
-
 EXIT_SUCCESS = 0
-HIST_MARKER = "## 历史"
-HIST_KEEP = 10
 CTX_LIMIT = 9000
 
 
@@ -55,7 +50,6 @@ def main() -> int:
         idx = ai_state / "_index.md"
         if not idx.is_file():
             return EXIT_SUCCESS
-        _index_io.acquire(idx)   # v9.9.6: Stop 事件与 token-usage-collector 并发
         content = idx.read_text(encoding="utf-8")
         fm_match = re.match(r"^---\n(.*?)\n---", content, re.S)
         if not fm_match:
@@ -66,36 +60,10 @@ def main() -> int:
         next_action = fm_field(fm, "next_action")
         if not stage:
             return EXIT_SUCCESS
-        entry_key = f"stage={stage} sprint={sprint or '?'}"
 
         if not stop_hook_active:
-            hist_idx = content.find(HIST_MARKER)
-            last_key = ""
-            if hist_idx >= 0:
-                m = re.search(r"^- `[^`]+`: (stage=\S+ sprint=\S+)", content[hist_idx:], re.M)
-                if m:
-                    last_key = m.group(1)
-            if last_key != entry_key:
-                ts = dt.datetime.now().isoformat(sep=" ", timespec="seconds")
-                entry = f"- `{ts}`: {entry_key} turn-end\n"
-                if hist_idx >= 0:
-                    content = re.sub(r"(## 历史[^\n]*\n)", lambda mm: mm.group(1) + entry, content, count=1)
-                else:
-                    content += f"\n\n{HIST_MARKER}\n{entry}"
-                hi = content.find(HIST_MARKER)
-                if hi >= 0:
-                    head, tail = content[:hi], content[hi:].split("\n")
-                    kept, count = [], 0
-                    for line in tail:
-                        if line.startswith("- `"):
-                            if count < HIST_KEEP:
-                                kept.append(line)
-                                count += 1
-                        else:
-                            kept.append(line)
-                    content = head + "\n".join(kept)
-                _index_io.write_atomic(idx, content)
-
+            # A5 (2026-07-28, 台账 W29): 历史段写入已砍 — 三套历史并存, turn-end 条目
+            # 信息量≈0。历史归 route_history 与 git log; 本 hook 只留软提醒。
             hints = []
             if next_action:
                 hints.append(f'next_action="{next_action}" 未消费 — 下一 turn 按 athena-dev 的 next_action 表处理.')

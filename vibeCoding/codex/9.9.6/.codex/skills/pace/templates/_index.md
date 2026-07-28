@@ -86,7 +86,7 @@ design_changed_after_impl: false  # design.md 改后需 re-review
 
 # === 用户偏好 ===
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
-plan_critique_min_rounds: 0       # 0=auto (Refactor/System=2, 其余=1); delivery-gate 在 ship 验 design.md 轮数
+plan_critique_min_rounds: 0       # 0=auto (2026-07-28 起全路径=1); delivery-gate 在 ship 验 design.md Critic Findings 标题行数
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
 skip_impl_subagent_check: false   # true 跳过 "impl 必须经 generator Stop" 门禁 (纯绿区微改 sprint 才设)
 network_in_polish: true           # polish_worker 是否允许 network
@@ -145,4 +145,4 @@ fingerprint: ""
 - 主 agent commit + push
 - Refactor/System 还需检查 architecture/ 更新 (delivery-gate)
 
-## 历史 (由 pace-continuator hook 自动追加, 最多保留近 10 条)
+<!-- 2026-07-28 W29: ## 历史 段已废除 — 历史归 route_history 与 git log -->

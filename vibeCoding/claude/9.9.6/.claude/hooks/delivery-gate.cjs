@@ -344,9 +344,14 @@ function tryRepoRoot(cwd) {
 // (e.g. architecture/athena-9.9.6.md) belong to individual sprints, not the
 // generic schema. Files beyond the required tier are declared-then-verified:
 // whatever the manifest lists gets hash-checked, nothing extra is mandated.
-const MANIFEST_REQUIRED_CORE = ["design.md", "checklist.yaml", "evidence.yaml"];
+// 2026-07-28 gate-descaling (台账 .ai_state/harness-patches.md): 必钉集从"文档存在性"收
+// 缩到"行为证据"。checklist.yaml 降为可选 (存在才验), evidence.yaml 是 hook 自动记账
+// (P1 教训: 钉住 hook 持续改写的文件 = 结构性哈希漂移), cleanup-pass/architecture 在
+// validateShip 有独立存在性检查 — 全部移出必钉集。declared-then-verified 语义不变:
+// manifest 里声明了就哈希校验。
+const MANIFEST_REQUIRED_CORE = ["design.md"];
 const MANIFEST_REQUIRED_REFACTOR_SYSTEM = [
-  ...MANIFEST_REQUIRED_CORE, "runtime-verify.md", "cleanup-pass.md", "architecture/ARCHITECTURE.md",
+  ...MANIFEST_REQUIRED_CORE, "runtime-verify.md",
 ];
 
 function parseReviewManifest(filePath, pathType) {
@@ -482,6 +487,11 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
     `${sprintRel}/token-usage.jsonl`, `${sprintRel}/token-usage.yaml`,
     `${sprintRel}/stop-failures.jsonl`, `${sprintRel}/tool-trace.jsonl`,
     ".ai_state/architecture/ARCHITECTURE.md", ".ai_state/architecture/athena-9.9.6.md",
+    // P13 fix (2026-07-28, .ai_state/proposals.md P13): 过程台账不是被审对象。review 绑定
+    // 之后补一笔 harness-patches/proposals (正确行为: 修复轮的安装态改动要登记、block 时要
+    // 写提案) 不得变成卡死 ship 的 "unreviewed drift"。light-ship 护栏不受影响 —— diff 含
+    // harness-patches.md 依然强制走全契约 (isLightShipFile 分支未动)。
+    ".ai_state/harness-patches.md", ".ai_state/proposals.md",
   ]);
   const stateDrift = [...changed].filter(file => file.startsWith(".ai_state/")
     && !allowedExact.has(file)
@@ -599,11 +609,21 @@ function changedFiles(cwd, evidenceContent) {
 function validateCriticRounds(sprintDir, fm) {
   if (truthy(fm.plan_critique_disabled)) return;
   const design = requireFile(path.join(sprintDir, "design.md"), "design.md");
-  const rounds = (design.match(/Critic Findings/g) || []).length;
+  // P10 fix (2026-07-28, .ai_state/proposals.md P10): 全文字面计数会被讨论该契约的正文
+  // 污染 (写一句 "Critic Findings" 就虚增一轮)。锚定到 2-3 级标题行, 与 Round N 段头体例
+  // 一致; 正文提及不再计数。
+  const rounds = (design.match(/^#{2,3}\s.*Critic Findings/gm) || []).length;
   const configured = Number.parseInt(fm.plan_critique_min_rounds || "0", 10);
   if (!Number.isFinite(configured)) throw new GateError("plan_critique_min_rounds must be an integer");
-  const minimum = configured > 0 ? configured : (REFACTOR_SYSTEM.has(fm.path) ? 2 : 1);
+  // 2026-07-28 gate-descaling: 默认最少轮数全路径 1 (原 R/S=2)。多轮审议是 max_rounds 的
+  // 事, 下限门禁只保证"至少被独立批过一次"; 要更多轮用 plan_critique_min_rounds 显式调高。
+  const minimum = configured > 0 ? configured : 1;
   if (rounds < minimum) throw new GateError(`design.md has ${rounds} Critic Findings rounds; expected at least ${minimum}`);
+  // 文书预算警告 (不 block, 防 P 系列死锁复发): design.md 超 300 行提示收敛。
+  const designLines = design.split(/\r?\n/).length;
+  if (designLines > 300) {
+    process.stderr.write(`[delivery-gate] 文书预算警告: design.md ${designLines} 行 (目标 System ≤200 / Feature ≤80); 散文该下沉或删减, 不 block\n`);
+  }
 }
 
 // P0-3: JS \b never creates a boundary after CJK, so "## 验收标准" was rejected
@@ -788,6 +808,9 @@ function parseEvidenceRecords(filePath) {
       result: evidenceField(block, "result").toLowerCase(),
       source: evidenceField(block, "source").toLowerCase(),
       command_or_artifact: evidenceField(block, "command_or_artifact"),
+      // B1 (2026-07-28, 台账 W23): evidence-collector 自动记录的字段, lite-admissible 用
+      command: evidenceField(block, "command"),
+      timestamp: evidenceField(block, "timestamp"),
       observed_at: evidenceField(block, "observed_at"),
       summary: evidenceField(block, "summary"),
       exit_code: evidenceField(block, "exit_code"),
@@ -813,6 +836,14 @@ function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewConte
   const missing = [...labels].sort().filter(label => !["AC11", "AC12"].includes(label) && !records.some(record => {
     const mapped = record.ac_id === label || record.covers.includes(label);
     if (!mapped || record.result !== "pass") return false;
+    // B1 lite-admissible (2026-07-28, 台账 W23): hook 自动落的验证记录 (command/timestamp/
+    // result, evidence-collector 从真实 Bash 验证命令写入) + agent 补一行 ac_id/covers 映射
+    // 即 admissible。十字段手写 artifact 契约是文书税的机器根源, 且 sha256/artifact 同为
+    // agent 手造、无更强防伪性。带 source 的严格记录仍走下方原路径。
+    if (!record.source && record.command && record.timestamp) {
+      try { parseUtcTimestamp(record.timestamp, `evidence ${record.tool_use_id} timestamp`); return true; }
+      catch (_) { return false; }
+    }
     if (![record.source, record.command_or_artifact, record.observed_at, record.summary].every(Boolean)) return false;
     try { parseUtcTimestamp(record.observed_at, `evidence ${record.tool_use_id} observed_at`); }
     catch (_) { return false; }
@@ -976,7 +1007,11 @@ function validateShip(aiState, fm, cwd) {
   if (fm.path === "Bugfix") requireFile(path.join(sprintDir, "fix-note.md"), "fix-note.md");
   if (GENERATOR_PATHS.has(fm.path)) {
     if (!truthy(fm.skip_impl_subagent_check)) validateGeneratorChain(sprintDir, sprintSlug);
-    validateChecklist(path.join(sprintDir, "checklist.yaml"));
+    // 2026-07-28 gate-descaling: checklist.yaml 可选 — done_contract 已并入 design.md
+    // (spec-gate 验 AC), 双写清单只在超大 sprint 才立; 存在则照旧必须全绿。
+    if (fs.existsSync(path.join(sprintDir, "checklist.yaml"))) {
+      validateChecklist(path.join(sprintDir, "checklist.yaml"));
+    }
     const evidencePath = path.join(sprintDir, "evidence.yaml");
     const evidenceRecords = validateEvidence(evidencePath);
     const reviewPath = selectLatestReview(path.join(sprintDir, "reviews"));

@@ -197,8 +197,12 @@ def read_fm_field(content: str, field: str) -> str:
 def check_reroute(content: str, ai_state: Path) -> str:
     """v9.9.0: re-route 机械触发 (铁律[分诊] 地板检测, 只升不降).
 
-    stage ∈ {impl, runtime-verify} 且 next_action 为空时, 统计 evidence.yaml 中
+    stage ∈ {impl, runtime-verify} 且 next_action 为空时, 统计 tool-trace.jsonl 中
     非 .ai_state 的改动文件数; 超路径上限 → 写 next_action="re-route" + stderr 提示.
+
+    B2 fix (2026-07-28, 台账 W18): 旧实现数 evidence.yaml 的 file: 条目, 但 9.9.6
+    evidence-collector 从不写 file: → 计数恒 0, 触发器实质已死。改数 tool-trace.jsonl:
+    Edit/Write 行的 file 字段 + apply_patch 命令里的 Update/Add File 路径。
     """
     fm_path = read_fm_field(content, "path")
     fm_stage = read_fm_field(content, "stage")
@@ -208,26 +212,53 @@ def check_reroute(content: str, ai_state: Path) -> str:
         return content
     if not fm_sprint or fm_next_action:
         return content
-    ev_file = ai_state / "sprints" / fm_sprint / "evidence.yaml"
-    if not ev_file.exists():
+    tr_file = ai_state / "sprints" / fm_sprint / "tool-trace.jsonl"
+    if not tr_file.exists():
         return content
     seen = set()
-    for m in re.finditer(r'^\s*file:\s*["\']?([^"\n]+)["\']?', ev_file.read_text(encoding="utf-8"), re.MULTILINE):
-        fp = m.group(1).strip()
-        if ".ai_state" not in fp:  # state 文件不计入改动
-            seen.add(fp)
+    import json as _json
+    for line in tr_file.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = _json.loads(line)
+        except ValueError:
+            continue
+        candidates = []
+        f = row.get("file") if isinstance(row, dict) else None
+        if isinstance(f, str) and f:
+            candidates.append(f)
+        if isinstance(row, dict) and row.get("tool") == "apply_patch" and isinstance(row.get("command"), str):
+            candidates.extend(re.findall(r"(?:Update|Add) File: (\S+)", row["command"]))
+        for fp in candidates:
+            if ".ai_state/" not in fp.replace("\\", "/"):  # state 文件不计入改动
+                seen.add(fp)
     if len(seen) > PATH_FILE_CAPS[fm_path]:
         content = update_field(content, "next_action", "re-route")
         sys.stderr.write(
             f"[index-updater] re-route: path={fm_path} 改动 {len(seen)} 文件 > 上限 {PATH_FILE_CAPS[fm_path]} — "
-            "重走路由审议 (只升不降), route-note 追加 ## Re-route\n"
+            "重走路由审议 (只升不降), _index.route_history 记一条\n"
         )
     return content
 
 
 def main() -> int:
     try:
-        cwd = Path.cwd()
+        # A3 (2026-07-28, 台账 W22): 按写入面分流 — 写 .ai_state 才重扫 counts/pointers;
+        # 写实现文件才查 re-route。payload 缺失/无路径 → 旧全量行为 (fail-open)。
+        try:
+            payload = json.load(sys.stdin) if not sys.stdin.isatty() else {}
+        except Exception:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+        tool_input = payload.get("tool_input") if isinstance(payload.get("tool_input"), dict) else {}
+        written = str(tool_input.get("file_path") or tool_input.get("path") or "").replace("\\", "/")
+        is_state_write = ".ai_state/" in written
+        do_scan = (not written) or is_state_write
+        do_reroute = (not written) or (not is_state_write)
+
+        cwd = Path(payload.get("cwd")) if isinstance(payload.get("cwd"), str) and payload.get("cwd") else Path.cwd()
         ai_state = find_ai_state(cwd)
         if ai_state is None:
             return EXIT_SUCCESS
@@ -239,62 +270,66 @@ def main() -> int:
         _index_io.acquire(idx_path)   # v9.9.6: 同事件并发写 _index 会丢更新
 
         content = idx_path.read_text(encoding="utf-8")
+        content_before = content
+        if do_scan:
 
-        sprint_counts = scan_sprints(ai_state)
-        content = update_field(content, "features_count", sprint_counts["features"])
-        content = update_field(content, "issues_count", sprint_counts["issues"])
-        content = update_field(content, "refactors_count", sprint_counts["refactors"])
-        content = update_field(content, "systems_count", sprint_counts["systems"])
-        content = update_field(content, "reviews_count", sprint_counts["reviews"])
-        content = update_field(content, "cleanup_count", sprint_counts["cleanup"])
+            sprint_counts = scan_sprints(ai_state)
+            content = update_field(content, "features_count", sprint_counts["features"])
+            content = update_field(content, "issues_count", sprint_counts["issues"])
+            content = update_field(content, "refactors_count", sprint_counts["refactors"])
+            content = update_field(content, "systems_count", sprint_counts["systems"])
+            content = update_field(content, "reviews_count", sprint_counts["reviews"])
+            content = update_field(content, "cleanup_count", sprint_counts["cleanup"])
 
-        compound_dir = ai_state / "compound"
-        compound_files = [f for f in compound_dir.iterdir() if f.is_file()] if compound_dir.exists() else []
-        arch = ai_state / "architecture" / "ARCHITECTURE.md"
-        git_times = git_commit_times(
-            ai_state,
-            [*compound_files, *([arch] if arch.exists() else [])],
-            [*([compound_dir] if compound_dir.exists() else []), *([arch] if arch.exists() else [])],
-        )
-        cmp_counts, by_type = scan_compound(ai_state, git_times)
-        # compound nested counts (in counts.compound)
-        # v9.9.0 修: 限定 compound: 块内替换 (旧实现撞任意同名缩进键)
-        # Keep the trailing newline inside the nested block.  The previous
-        # optional-newline pattern could leave the next heading adjacent to the
-        # final item after replacement (`explore: 0# === Pointers ===`).
-        cmp_block = re.search(r"^(\s*)compound:\s*\n((?:\1\s+\S.*(?:\n|$))*)", content, re.MULTILINE)
-        if cmp_block:
-            block = cmp_block.group(2)
-            new_block = block
-            for k, v in cmp_counts.items():
-                new_block = re.sub(rf"^(\s+{k}:\s*)\d+\s*$", rf"\g<1>{v}", new_block, count=1, flags=re.MULTILINE)
-            if new_block and not new_block.endswith("\n"):
-                new_block += "\n"
-            content = content.replace(cmp_block.group(0), cmp_block.group(0).replace(block, new_block), 1)
-        content = re.sub(
-            r"^(\s+explore:\s*\d+)#\s*(=== Pointers ===)",
-            r"\1\n# \2",
-            content,
-            flags=re.MULTILINE,
-        )
+            compound_dir = ai_state / "compound"
+            compound_files = [f for f in compound_dir.iterdir() if f.is_file()] if compound_dir.exists() else []
+            arch = ai_state / "architecture" / "ARCHITECTURE.md"
+            git_times = git_commit_times(
+                ai_state,
+                [*compound_files, *([arch] if arch.exists() else [])],
+                [*([compound_dir] if compound_dir.exists() else []), *([arch] if arch.exists() else [])],
+            )
+            cmp_counts, by_type = scan_compound(ai_state, git_times)
+            # compound nested counts (in counts.compound)
+            # v9.9.0 修: 限定 compound: 块内替换 (旧实现撞任意同名缩进键)
+            # Keep the trailing newline inside the nested block.  The previous
+            # optional-newline pattern could leave the next heading adjacent to the
+            # final item after replacement (`explore: 0# === Pointers ===`).
+            cmp_block = re.search(r"^(\s*)compound:\s*\n((?:\1\s+\S.*(?:\n|$))*)", content, re.MULTILINE)
+            if cmp_block:
+                block = cmp_block.group(2)
+                new_block = block
+                for k, v in cmp_counts.items():
+                    new_block = re.sub(rf"^(\s+{k}:\s*)\d+\s*$", rf"\g<1>{v}", new_block, count=1, flags=re.MULTILINE)
+                if new_block and not new_block.endswith("\n"):
+                    new_block += "\n"
+                content = content.replace(cmp_block.group(0), cmp_block.group(0).replace(block, new_block), 1)
+            content = re.sub(
+                r"^(\s+explore:\s*\d+)#\s*(=== Pointers ===)",
+                r"\1\n# \2",
+                content,
+                flags=re.MULTILINE,
+            )
 
-        content = update_field(content, "latest_decisions", by_type["decision"])
-        content = update_field(content, "latest_lessons", by_type["learning"])
+            content = update_field(content, "latest_decisions", by_type["decision"])
+            content = update_field(content, "latest_lessons", by_type["learning"])
 
-        arch_mtime = scan_architecture(ai_state, git_times)
-        if arch_mtime:
-            content = update_field(content, "latest_architecture_update", arch_mtime)
+            arch_mtime = scan_architecture(ai_state, git_times)
+            if arch_mtime:
+                content = update_field(content, "latest_architecture_update", arch_mtime)
 
-        # v9.8.0: requirements/ count + latest pointer
-        req_count, req_latest = scan_requirements(ai_state)
-        content = update_field(content, "requirements_count", req_count)
-        if req_latest:
-            content = update_field(content, "latest_requirement", req_latest)
+            # v9.8.0: requirements/ count + latest pointer
+            req_count, req_latest = scan_requirements(ai_state)
+            content = update_field(content, "requirements_count", req_count)
+            if req_latest:
+                content = update_field(content, "latest_requirement", req_latest)
 
         # v9.9.0: re-route 机械触发 (铁律[分诊] 地板检测, 只升不降)
-        content = check_reroute(content, ai_state)
+        if do_reroute:
+            content = check_reroute(content, ai_state)
 
-        _index_io.write_atomic(idx_path, content)
+        if content != content_before:
+            _index_io.write_atomic(idx_path, content)   # A3: 无变化不写
         return EXIT_SUCCESS
     except Exception as e:
         sys.stderr.write(f"[index-updater] non-blocking: {e}\n")

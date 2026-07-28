@@ -15,7 +15,6 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const idxio = require('./_index-io.cjs');
 
 const HIST_MARKER = '## 历史';
 const HIST_KEEP = 10;
@@ -47,7 +46,6 @@ function main() {
     if (!aiState) { process.exit(0); }
     const idx = path.join(aiState, '_index.md');
     if (!fs.existsSync(idx)) { process.exit(0); }
-    idxio.acquire(idx);   // v9.9.6: Stop 事件与 token-usage-collector 并发
 
     let content = fs.readFileSync(idx, 'utf-8');
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -58,44 +56,10 @@ function main() {
     const nextAction = (fm.match(/next_action:\s*"?([^"\n]*)"?/) || [])[1] || '';
     if (!stage) { process.exit(0); }
 
-    const entryKey = `stage=${stage} sprint=${sprint || '?'}`;
 
-    // === 1. 历史条目 (去重: stop_hook_active 续命周期内不重复; 最近一条同 key 也不重复) ===
-    if (!stopHookActive) {
-      const histIdx = content.indexOf(HIST_MARKER);
-      let lastEntryKey = '';
-      if (histIdx >= 0) {
-        const histBlock = content.slice(histIdx);
-        const m = histBlock.match(/^- `[^`]+`: (stage=\S+ sprint=\S+)/m);
-        if (m) lastEntryKey = m[1];
-      }
-      if (lastEntryKey !== entryKey) {
-        const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        const entry = `- \`${ts}\`: ${entryKey} turn-end\n`;
-        if (histIdx >= 0) {
-          content = content.replace(/(## 历史[^\n]*\n)/, `$1${entry}`);
-        } else {
-          content += `\n\n## 历史\n${entry}`;
-        }
-        // 裁剪: 历史段仅保留近 HIST_KEEP 条
-        const hi = content.indexOf(HIST_MARKER);
-        if (hi >= 0) {
-          const head = content.slice(0, hi);
-          const histLines = content.slice(hi).split('\n');
-          const kept = [];
-          let count = 0;
-          for (const line of histLines) {
-            if (/^- `/.test(line)) {
-              if (count < HIST_KEEP) { kept.push(line); count++; }
-            } else {
-              kept.push(line);
-            }
-          }
-          content = head + kept.join('\n');
-        }
-        idxio.writeAtomic(idx, content);
-      }
-    }
+    // A5 (2026-07-28, 台账 W29): 历史段写入已砍 — _index 曾并存三套历史
+    // (当前状态 log / ## 历史 turn-end / route_history), turn-end 条目信息量≈0
+    // 且实测产生过空条目。历史归 route_history 与 git log; 本 hook 只留软提醒。
 
     // === 2. 软提醒 (additionalContext) ===
     // 官方: Stop hook 输出 additionalContext 不是 block, 但会让对话"继续一轮再自然停止"

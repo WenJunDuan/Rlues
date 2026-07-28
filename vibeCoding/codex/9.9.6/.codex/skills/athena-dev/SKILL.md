@@ -40,8 +40,9 @@ description: Athena 主入口。收到新任务需要 PACE 路由分诊时触发
 ### Step 4 · 护栏校验 (地板, 不可击穿)
 ≥3 模块 → 至少 roadmap; 跨模块 / 预估 ≥5 文件 → 至少 Refactor. 审议结果低于地板 → 取地板.
 
-### Step 5 · 落盘
-`sprints/{slug}/route-note.md` 记录候选、证据、关键权衡、决策、置信度与退出点; 更新 `_index.route_confidence`. 不写逐步思维过程.
+### Step 5 · 落盘 (2026-07-28 gate-descaling)
+默认: `_index.route_history` 记一行 (路径+一句话依据+置信度) + 更新 `_index.route_confidence`; **不再单立 route-note.md**。
+仅复杂场景 (置信度 0.5-0.8 带假设进 / 发生 re-route) 才落 `sprints/{slug}/route-note.md` 写明假设与廉价退出点。不写逐步思维过程.
 
 ## 例外
 

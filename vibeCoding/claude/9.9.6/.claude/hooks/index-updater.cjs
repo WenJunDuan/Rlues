@@ -7,9 +7,9 @@
  * v9.6.4 改动 (vs v9.6.2):
  *   - sprints/{date}-{slug}/ 替代 details/ → 扫 sprint 目录分类计数
  *   - compound/{date}-{doc_type}-{slug}.md 替代 lessons.md → 按 doc_type 计数
- *   - 维护 pointers.latest_decisions (近 5 个 decision-*.md, git 提交时间 desc)
- *   - 维护 pointers.latest_lessons (近 5 个 learning-*.md, git 提交时间 desc)
- *   - 维护 pointers.latest_architecture_update (architecture/ARCHITECTURE.md 最后提交时间)
+ *   - 维护 pointers.latest_decisions (近 5 个 decision-*.md, mtime desc)
+ *   - 维护 pointers.latest_lessons (近 5 个 learning-*.md)
+ *   - 维护 pointers.latest_architecture_update (architecture/ARCHITECTURE.md mtime)
  *
  * v9.9.0 新: re-route 机械触发 — sprint 改动文件数超路径上限 (Quick>3 / Feature>10)
  *   且 stage ∈ {impl, runtime-verify} 且 next_action 为空 → 写 next_action="re-route" (只升不降的地板检测)
@@ -20,7 +20,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
 const idxio = require('./_index-io.cjs');
 
 function findAiState(cwd) {
@@ -87,47 +86,7 @@ function scanSprints(aiState) {
   return counts;
 }
 
-function gitCommitTimes(aiState, files, scopes) {
-  // A checkout changes mtimes, so derive pointers from committed history instead.
-  // One batch log covers architecture plus every compound document.
-  if (files.length === 0 || scopes.length === 0) return null;
-  try {
-    const repoRoot = execFileSync('git', ['-C', aiState, 'rev-parse', '--show-toplevel'], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-    }).trim();
-    const relativeToAbsolute = new Map();
-    for (const file of files) {
-      const relative = path.relative(repoRoot, file).split(path.sep).join('/');
-      relativeToAbsolute.set(relative, path.resolve(file));
-    }
-    const scopePaths = [...new Set(scopes.map(scope =>
-      path.relative(repoRoot, scope).split(path.sep).join('/')),
-    )];
-    const output = execFileSync(
-      'git',
-      ['-C', repoRoot, 'log', '--format=%cI%x00', '--name-only', '-z', '--', ...scopePaths],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-    );
-    const times = new Map();
-    let currentTime = '';
-    const isoTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
-    for (const rawToken of output.split('\0')) {
-      const token = rawToken.replace(/^\n+/, '');
-      if (isoTimestamp.test(token)) {
-        currentTime = token;
-      } else {
-        const absolute = relativeToAbsolute.get(token);
-        if (absolute && currentTime && !times.has(absolute)) times.set(absolute, currentTime);
-      }
-    }
-    return times;
-  } catch (e) {
-    process.stderr.write(`[index-updater] git metadata unavailable; falling back to mtime: ${e.message}\n`);
-    return null;
-  }
-}
-
-function scanCompound(aiState, gitTimes) {
+function scanCompound(aiState) {
   const compoundDir = path.join(aiState, 'compound');
   const files = listFiles(compoundDir);
   const counts = { learning: 0, trick: 0, decision: 0, explore: 0 };
@@ -137,26 +96,20 @@ function scanCompound(aiState, gitTimes) {
     if (docType && counts.hasOwnProperty(docType)) {
       counts[docType]++;
       const fp = path.join(compoundDir, f);
-      const commitTime = gitTimes && gitTimes.get(path.resolve(fp));
-      byType[docType].push({
-        name: f,
-        sortTime: commitTime ? Date.parse(commitTime) : fs.statSync(fp).mtimeMs,
-      });
+      byType[docType].push({ name: f, mtime: fs.statSync(fp).mtimeMs });
     }
   }
-  // 排序最后提交时间 desc (git 不可用时回退 mtime), 取 latest 5
+  // 排序 mtime desc, 取 latest 5
   for (const t of Object.keys(byType)) {
-    byType[t].sort((a, b) => b.sortTime - a.sortTime);
+    byType[t].sort((a, b) => b.mtime - a.mtime);
     byType[t] = byType[t].slice(0, 5).map(item => `compound/${item.name}`);
   }
   return { counts, byType };
 }
 
-function scanArchitecture(aiState, gitTimes) {
+function scanArchitecture(aiState) {
   const archFile = path.join(aiState, 'architecture', 'ARCHITECTURE.md');
   if (!fs.existsSync(archFile)) return '';
-  const commitTime = gitTimes && gitTimes.get(path.resolve(archFile));
-  if (commitTime) return commitTime;
   return new Date(fs.statSync(archFile).mtimeMs).toISOString();
 }
 
@@ -211,7 +164,18 @@ function updateNestedField(content, parentField, childField, value) {
 
 function main() {
   try {
-    const aiState = findAiState(process.cwd());
+    // A3 (2026-07-28, 台账 W22): 按写入面分流 — 写 .ai_state 才重扫 counts/pointers
+    // (它们只随 .ai_state 变化); 写实现文件才查 re-route (文件数只随实现写增长)。
+    // 旧行为对每次 Edit/Write 全扫 sprints/+compound/, 是纯代码改动的固定税。
+    // payload 缺失/无路径 → 保持旧全量行为 (fail-open)。
+    let payload = {};
+    try { const d = fs.readFileSync(0, 'utf-8'); payload = d ? JSON.parse(d) : {}; } catch (_) {}
+    const writtenPath = String(payload?.tool_input?.file_path || payload?.tool_input?.path || '').replace(/\\/g, '/');
+    const isStateWrite = writtenPath.includes('.ai_state/');
+    const doScan = !writtenPath || isStateWrite;
+    const doReroute = !writtenPath || !isStateWrite;
+
+    const aiState = findAiState(payload.cwd || process.cwd());
     if (!aiState) { process.exit(0); }
 
     const idxPath = path.join(aiState, '_index.md');
@@ -219,7 +183,9 @@ function main() {
     idxio.acquire(idxPath);   // v9.9.6: 同事件并发写 _index 会丢更新
 
     let content = fs.readFileSync(idxPath, 'utf-8');
+    const contentBefore = content;
 
+    if (doScan) {
     // 1. 扫 sprints/
     const sprintCounts = scanSprints(aiState);
     content = updateField(content, 'features_count', sprintCounts.features);
@@ -229,16 +195,8 @@ function main() {
     content = updateField(content, 'reviews_count', sprintCounts.reviews);
     content = updateField(content, 'cleanup_count', sprintCounts.cleanup);
 
-    // 2. 扫 compound/。用一次 git log 取提交时间；非 git 目录时回退 mtime。
-    const compoundDir = path.join(aiState, 'compound');
-    const compoundFiles = listFiles(compoundDir).map(f => path.join(compoundDir, f));
-    const archFile = path.join(aiState, 'architecture', 'ARCHITECTURE.md');
-    const gitTimes = gitCommitTimes(
-      aiState,
-      [...compoundFiles, ...(fs.existsSync(archFile) ? [archFile] : [])],
-      [...(fs.existsSync(compoundDir) ? [compoundDir] : []), ...(fs.existsSync(archFile) ? [archFile] : [])],
-    );
-    const { counts: cmpCounts, byType } = scanCompound(aiState, gitTimes);
+    // 2. 扫 compound/
+    const { counts: cmpCounts, byType } = scanCompound(aiState);
     // compound nested counts (在 counts.compound 下)
     content = updateNestedField(content, 'compound', 'learning', cmpCounts.learning);
     content = updateNestedField(content, 'compound', 'trick', cmpCounts.trick);
@@ -250,7 +208,7 @@ function main() {
     content = updateField(content, 'latest_lessons', byType.learning);
 
     // 4. pointers.latest_architecture_update
-    const archMtime = scanArchitecture(aiState, gitTimes);
+    const archMtime = scanArchitecture(aiState);
     if (archMtime) {
       content = updateField(content, 'latest_architecture_update', archMtime);
     }
@@ -260,31 +218,46 @@ function main() {
     content = updateField(content, 'requirements_count', req.count);
     if (req.latest) content = updateField(content, 'latest_requirement', req.latest);
 
+    }
+
     // 6. v9.9.0: re-route 机械触发 (铁律[分诊] 地板检测, 只升不降)
+    // B2 fix (2026-07-28, 台账 W18): 旧实现数 evidence.yaml 的 file: 条目, 但 9.9.6
+    // evidence-collector 从不写 file: (只写进 tool-trace.jsonl 的 trace.file) → 计数恒 0,
+    // 触发器实质已死 (近期 sprint 实测零 file: 条目)。改数 tool-trace.jsonl:
+    // Edit/Write/MultiEdit 行的 file 字段 + apply_patch 命令里的 Update/Add File 路径。
     const PATH_FILE_CAPS = { Quick: 3, Bugfix: 3, Feature: 10 };
     const fmPath = (content.match(/^path:\s*"?([^"\n]*)"?/m) || [])[1] || '';
     const fmStage = (content.match(/^stage:\s*"?([^"\n]*)"?/m) || [])[1] || '';
     const fmSprint = (content.match(/^current_sprint_slug:\s*"?([^"\n]*)"?/m) || [])[1] || '';
     const fmNextAction = (content.match(/^next_action:\s*"?([^"\n]*)"?/m) || [])[1] || '';
-    if (PATH_FILE_CAPS[fmPath] && ['impl', 'runtime-verify'].includes(fmStage) && fmSprint && !fmNextAction) {
-      const evFile = path.join(aiState, 'sprints', fmSprint, 'evidence.yaml');
-      if (fs.existsSync(evFile)) {
+    if (doReroute && PATH_FILE_CAPS[fmPath] && ['impl', 'runtime-verify'].includes(fmStage) && fmSprint && !fmNextAction) {
+      const trFile = path.join(aiState, 'sprints', fmSprint, 'tool-trace.jsonl');
+      if (fs.existsSync(trFile)) {
         const seen = new Set();
-        for (const m of fs.readFileSync(evFile, 'utf-8').matchAll(/^\s*file:\s*["']?([^"\n]+)["']?/gm)) {
-          const fp = m[1].trim();
-          if (!fp.includes('.ai_state')) seen.add(fp);   // state 文件不计入改动
+        for (const line of fs.readFileSync(trFile, 'utf-8').split('\n')) {
+          if (!line.trim()) continue;
+          let row;
+          try { row = JSON.parse(line); } catch (_) { continue; }
+          const candidates = [];
+          if (row && typeof row.file === 'string' && row.file) candidates.push(row.file);
+          if (row && row.tool === 'apply_patch' && typeof row.command === 'string') {
+            for (const m of row.command.matchAll(/(?:Update|Add) File: (\S+)/g)) candidates.push(m[1]);
+          }
+          for (const fp of candidates) {
+            if (!fp.replace(/\\/g, '/').includes('.ai_state/')) seen.add(fp);   // state 文件不计入改动
+          }
         }
         if (seen.size > PATH_FILE_CAPS[fmPath]) {
           content = updateField(content, 'next_action', 're-route');
           process.stderr.write(
             `[index-updater] re-route: path=${fmPath} 改动 ${seen.size} 文件 > 上限 ${PATH_FILE_CAPS[fmPath]} — ` +
-            `重走路由审议 (只升不降), route-note 追加 ## Re-route\n`
+            `重走路由审议 (只升不降), _index.route_history 记一条\n`
           );
         }
       }
     }
 
-    idxio.writeAtomic(idxPath, content);
+    if (content !== contentBefore) idxio.writeAtomic(idxPath, content);   // A3: 无变化不写, 减 mtime churn
     process.exit(0);
   } catch (e) {
     process.stderr.write(`[index-updater] non-blocking: ${e.message}\n`);

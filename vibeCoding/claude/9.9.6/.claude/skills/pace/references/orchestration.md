@@ -7,7 +7,7 @@
 
 | 任务形态 | CC 机制 | 触发方式 |
 |---|---|---|
-| 绿区 (单文件 ≤30 行 / Hotfix / Quick) | 主 agent 直接做 | — |
+| 绿区 (定义以 stages.md impl 段为单一真相; 2026-07-28 起 ≤3 文件且合计 ≤150 行, 或 Hotfix/Quick/Bugfix) | 主 agent 直接做 | — |
 | 黄区 (单模块 Feature/Bugfix) | Agent subagent (`generator` 等) | Agent tool |
 | 红区 (Refactor/System / 并行 ≥2 写者) | Agent subagent + `isolation: worktree` | Agent tool |
 | 超大规模 (≥5 个独立可切片同构子任务) | Dynamic Workflows | prompt 含 `ultracode` |

@@ -136,6 +136,17 @@ def main() -> int:
         if agent != "unknown" and not agent_writes_files(agent):
             return EXIT_SUCCESS
 
+        # P9 fix (2026-07-28, .ai_state/proposals.md P9, 两次实测死锁): 改动对象在项目
+        # repo 之外时 (安装态 ~/.claude / ~/.codex harness), worktree 对 repo 外路径零隔离
+        # 效果, 却无条件阻断唯一合法执行路径。显式出口: _index.harness_target_outside_repo:
+        # true (可审计; ship 后应移除)。豁免时提示备份纪律, 不静默。
+        if index_field(ai_state / "_index.md", "harness_target_outside_repo").strip().lower() == "true":
+            sys.stderr.write(
+                "[subagent-worktree-audit] EXEMPT: _index.harness_target_outside_repo=true — "
+                "repo 外改动, worktree 无隔离效果, 跳过强制。纪律: 改前逐文件备份 + 单写者串行; ship 后移除该字段。\n"
+            )
+            return EXIT_SUCCESS
+
         path_type = index_field(ai_state / "_index.md", "path")
         task = pick(tool_input, TASK_KEYS) or pick(payload, TASK_KEYS)
         in_worktree = declared_is_isolated_worktree(task, cwd)

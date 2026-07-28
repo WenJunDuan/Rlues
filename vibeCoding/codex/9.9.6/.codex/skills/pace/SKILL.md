@@ -58,9 +58,10 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 
 | 区 | 条件 | 执行者 |
 |---|---|---|
-| 绿 | 单文件 ≤30 行无跨模块影响, 或 Hotfix/Quick | 主 thread 直接做 |
+| 绿 | ≤3 文件且合计 ≤150 行, 或 Hotfix/Quick/Bugfix | 主 thread 直接做 |
 | 黄 | 单模块 Feature/Bugfix | spawn_agent, worktree 可选 |
 | 红 | Refactor/System 或并行 ≥2 写者 | 主 thread `git worktree add`; `spawn_agent` 任务携带绝对路径; agent 用 `pwd`/`workdir` 验证 |
+| 例外 | 改动对象在 repo 外 (安装态 harness 等) | worktree 零隔离效果 → 免 worktree; 设 `_index.harness_target_outside_repo: true`, 改前逐文件备份, 单写者串行 (P9 根治) |
 
 每次 `spawn_agent` 必须先按 [`references/orchestration.md#spawn-binding-handshake`](references/orchestration.md#spawn-binding-handshake) 串行完成 raw `SubagentStart` → assignment schema v1 绑定; 绑定失败即停, 绑定完成后 agents 才可并发执行.
 

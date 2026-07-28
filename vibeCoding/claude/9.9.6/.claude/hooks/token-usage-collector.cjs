@@ -392,6 +392,13 @@ function main() {
     const stage = readField(idx, 'stage');
     if (!sprintSlug) process.exit(0);
 
+    // A2 (2026-07-28, 台账 W21): Stop 事件的全量 transcript 聚合只在 ship stage 跑 —
+    // 每 turn 重读整个 session transcript + 重写全部 records 是最大单笔 Stop 税
+    // (实测 758KB/sprint, 07-14 清过 5.6M 复发)。SubagentStop 保留 (子转写小,
+    // 是 per-agent 花销数据点)。
+    const evtName = String(payload.hook_event_name || '');
+    if (evtName === 'Stop' && stage !== 'ship') process.exit(0);
+
     const sprintDir = path.join(aiState, 'sprints', sprintSlug);
     fs.mkdirSync(sprintDir, { recursive: true });
     const out = path.join(sprintDir, 'token-usage.yaml');

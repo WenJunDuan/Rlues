@@ -19,6 +19,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -26,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 EXIT_SUCCESS = 0
+GATE_LEDGER_WINDOW = dt.timedelta(minutes=30)
 REFACTOR_SYSTEM = {"Refactor", "System"}
 GENERATOR_PATHS = {"Feature", "Refactor", "System"}
 VALID_STAGES = {
@@ -97,10 +99,145 @@ def parse_frontmatter(content: str) -> dict[str, str]:
 
 
 def block(reason: str) -> int:
-    message = f"[delivery-gate] {reason.strip()}"
+    message = (
+        f"[delivery-gate] {reason.strip()}\n"
+        "解锁动作: 修复上述档案或流程后重试 Stop；不得用旧 PASS 或未知证据绕过。"
+    )
     sys.stderr.write(message + "\n")
     print(json.dumps({"decision": "block", "reason": message}, ensure_ascii=False))
     return EXIT_SUCCESS
+
+
+def gate_session_id(payload: dict[str, Any]) -> str:
+    value = payload.get("session_id")
+    return value.strip() if isinstance(value, str) else ""
+
+
+def parse_gate_ledger(path: Path) -> list[dict[str, Any]]:
+    """Read only complete, relevant gate records; recorder rows remain compatible."""
+    try:
+        raw_rows = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return []
+    except OSError:
+        return []
+    rows: list[dict[str, Any]] = []
+    for raw in raw_rows:
+        try:
+            row = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(row, dict) and row.get("event") in {"GateBlock", "GateEscalated", "GatePass"}:
+            rows.append(row)
+    return rows
+
+
+def gate_row_is_recent(row: dict[str, Any], now: dt.datetime) -> bool:
+    value = row.get("ts")
+    if not isinstance(value, str):
+        return False
+    try:
+        age = now - parse_timestamp(value, "gate ledger")
+    except GateError:
+        return False
+    return dt.timedelta() <= age <= GATE_LEDGER_WINDOW
+
+
+def gate_row_matches_session(row: dict[str, Any], session_id: str) -> bool:
+    row_session = row.get("session_id")
+    if session_id:
+        return row_session == session_id
+    return True  # missing session_id falls back to reason-only matching
+
+
+def gate_chain_count(path: Path, session_id: str, reason_sha1: str) -> int:
+    now = dt.datetime.now(dt.UTC)
+    count = 0
+    for row in reversed(parse_gate_ledger(path)):
+        if not gate_row_matches_session(row, session_id):
+            continue
+        if not gate_row_is_recent(row, now):
+            break
+        if row.get("reason_sha1") != reason_sha1 or row.get("event") == "GatePass":
+            break
+        count += 1
+    return count
+
+
+def latest_gate_record(path: Path, session_id: str) -> dict[str, Any] | None:
+    now = dt.datetime.now(dt.UTC)
+    for row in reversed(parse_gate_ledger(path)):
+        if gate_row_matches_session(row, session_id) and gate_row_is_recent(row, now):
+            return row
+    return None
+
+
+def append_gate_record(
+    path: Path,
+    *,
+    event: str,
+    session_id: str,
+    reason_sha1: str,
+    stage: str,
+    path_type: str,
+    consecutive: int,
+) -> None:
+    record = {
+        "event": event,
+        "ts": dt.datetime.now(dt.UTC).isoformat().replace("+00:00", "Z"),
+        "session_id": session_id,
+        "reason_sha1": reason_sha1,
+        "stage": stage,
+        "path": path_type,
+        "consecutive": consecutive,
+    }
+    encoded = (json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+    try:
+        os.write(descriptor, encoded)
+    finally:
+        os.close(descriptor)
+
+
+def stop_failure(
+    payload: dict[str, Any], reason: str, sprint_dir: Path, stage: str, path_type: str
+) -> int:
+    """Circuit-break only Stop failures; PreToolUse always uses block()."""
+    if payload.get("hook_event_name") != "Stop":
+        return block(reason)
+    session_id = gate_session_id(payload)
+    reason_sha1 = hashlib.sha1(reason.encode("utf-8")).hexdigest()
+    ledger = sprint_dir / "stop-failures.jsonl"
+    consecutive = gate_chain_count(ledger, session_id, reason_sha1) + 1
+    if consecutive >= 3:
+        append_gate_record(
+            ledger, event="GateEscalated", session_id=session_id, reason_sha1=reason_sha1,
+            stage=stage, path_type=path_type, consecutive=consecutive,
+        )
+        sys.stderr.write(f"[delivery-gate] ESCALATED: {reason.strip()}\n")
+        return EXIT_SUCCESS
+    append_gate_record(
+        ledger, event="GateBlock", session_id=session_id, reason_sha1=reason_sha1,
+        stage=stage, path_type=path_type, consecutive=consecutive,
+    )
+    return block(reason)
+
+
+def append_gate_pass(payload: dict[str, Any], sprint_dir: Path, stage: str, path_type: str) -> None:
+    if payload.get("hook_event_name") != "Stop":
+        return
+    session_id = gate_session_id(payload)
+    latest = latest_gate_record(sprint_dir / "stop-failures.jsonl", session_id)
+    if latest is None or latest.get("event") not in {"GateBlock", "GateEscalated"}:
+        return
+    reason_sha1 = latest.get("reason_sha1")
+    if not isinstance(reason_sha1, str) or not reason_sha1:
+        return
+    append_gate_record(
+        sprint_dir / "stop-failures.jsonl", event="GatePass", session_id=session_id,
+        reason_sha1=reason_sha1, stage=stage, path_type=path_type, consecutive=0,
+    )
 
 
 def require_file(path: Path, label: str) -> str:
@@ -487,6 +624,9 @@ def parse_evidence_records(path: Path) -> list[dict[str, Any]]:
                 "result": evidence_field(block, "result").lower(),
                 "source": evidence_field(block, "source").lower(),
                 "command_or_artifact": evidence_field(block, "command_or_artifact"),
+                # B1 (2026-07-28, 台账 W23): evidence-collector 自动字段, lite-admissible 用
+                "command": evidence_field(block, "command"),
+                "timestamp": evidence_field(block, "timestamp"),
                 "observed_at": evidence_field(block, "observed_at"),
                 "summary": evidence_field(block, "summary"),
                 "exit_code": evidence_field(block, "exit_code"),
@@ -534,6 +674,15 @@ def validate_ac_mapping(
             mapped = record["ac_id"] == label or label in record["covers"]
             if not mapped or record["result"] != "pass":
                 continue
+            # B1 lite-admissible (2026-07-28, 台账 W23): hook 自动落的验证记录 + agent 补
+            # 一行 ac_id/covers 即 admissible; 带 source 的严格记录仍走下方原路径。
+            if not record["source"] and record["command"] and record["timestamp"]:
+                try:
+                    parse_utc_timestamp(record["timestamp"], f"evidence {record['tool_use_id']} timestamp")
+                    admissible = True
+                    break
+                except GateError:
+                    continue
             required = ("source", "command_or_artifact", "observed_at", "summary")
             if any(not record[field] for field in required):
                 continue
@@ -805,9 +954,13 @@ def git_text(cwd: Path, args: list[str], label: str) -> str:
 
 # P8: manifest required-file sets are tiered by path; extra declared files are
 # hash-verified but nothing beyond the tier is mandated (declared-then-verified).
-MANIFEST_REQUIRED_CORE = ("design.md", "checklist.yaml", "evidence.yaml")
+# 2026-07-28 gate-descaling (台账 .ai_state/harness-patches.md): 必钉集从"文档存在性"
+# 收缩到"行为证据"。checklist.yaml 可选 (存在才验), evidence.yaml 是 hook 自动记账
+# (P1 教训: 钉住 hook 持续改写的文件 = 结构性哈希漂移), cleanup-pass/architecture 有
+# 独立存在性检查 — 全部移出必钉集。声明即验语义不变。
+MANIFEST_REQUIRED_CORE = ("design.md",)
 MANIFEST_REQUIRED_REFACTOR_SYSTEM = MANIFEST_REQUIRED_CORE + (
-    "runtime-verify.md", "cleanup-pass.md", "architecture/ARCHITECTURE.md",
+    "runtime-verify.md",
 )
 
 
@@ -919,16 +1072,32 @@ def validate_review_binding(
         raise GateError("review-manifest implementation_commit does not match final review binding")
     if manifest_governance != index_governance_sha256(fm):
         raise GateError("review-manifest index governance does not match protected _index fields")
-    for name, expected_hash in manifest_files.items():
-        target = ai_state / name if name.startswith("architecture/") else sprint_dir / name
-        if not target.is_file():
-            raise GateError(f"review-manifest target missing: {name}")
-        if hashlib.sha256(target.read_bytes()).hexdigest() != expected_hash:
-            raise GateError(f"review-manifest hash mismatch: {name}")
+    # 治理哈希只对**版本化**文件有意义。被 gitignore 的档案 (典型: evidence.yaml ——
+    # evidence-collector 每次 PostToolUse 都追加, 消费侧项目因此有意把它排除出 git)
+    # 哈希必然漂移, 且不在 git 里就没有任何来源可还原成 manifest 记录的值; 重算 manifest
+    # 去迁就它又正是 block 消息自己禁止的绕过。净效果是**一个已 ship 的 sprint 在往后每个
+    # 新会话都卡死且无合法出路** (2026-07-27 实测)。故未跟踪文件跳过哈希校验并留声明。
     root_text = git_text(cwd, ["rev-parse", "--show-toplevel"], "repository root").strip()
     if not root_text:
         raise GateError("review freshness cannot determine Git repository root")
     root = Path(root_text)
+    tracked_ok, tracked = git_lines(root, ["ls-files"])
+    for name, expected_hash in manifest_files.items():
+        target = ai_state / name if name.startswith("architecture/") else sprint_dir / name
+        if not target.is_file():
+            raise GateError(f"review-manifest target missing: {name}")
+        if tracked_ok:
+            try:
+                rel = target.resolve().relative_to(root.resolve()).as_posix()
+            except ValueError:
+                rel = ""
+            if rel and rel not in tracked:
+                sys.stderr.write(
+                    f"[delivery-gate] manifest 跳过未跟踪文件的哈希校验: {name} (gitignored, 无版本化真相源)\n"
+                )
+                continue
+        if hashlib.sha256(target.read_bytes()).hexdigest() != expected_hash:
+            raise GateError(f"review-manifest hash mismatch: {name}")
     git_text(root, ["cat-file", "-e", f"{reviewed_commit}^{{commit}}"], "reviewed commit exists")
     git_text(root, ["merge-base", "--is-ancestor", reviewed_commit, "HEAD"], "reviewed commit ancestor")
     changed: set[str] = set()
@@ -955,10 +1124,23 @@ def validate_review_binding(
         f"{sprint_rel}/subagent-assignments.jsonl",
         f"{sprint_rel}/subagent-events.jsonl",
         f"{sprint_rel}/subagent-log.md",
+        # Hook-maintained process bookkeeping, not review subjects: the token-usage
+        # collector rewrites token-usage.yaml on every Stop (before this gate runs) and
+        # the stop-failure recorder appends stop-failures.jsonl on every block -- so a
+        # blocked ship could never become unblocked, the recorder's own write was the
+        # next drift. token-usage.jsonl kept for back-compat with pre-9.9.3 sprints.
+        # 9.9.3 已修 -> 9.9.6 升级回归 -> 2026-07-25 重修, 台账见 .ai_state/harness-patches.md
         f"{sprint_rel}/token-usage.jsonl",
+        f"{sprint_rel}/token-usage.yaml",
+        f"{sprint_rel}/stop-failures.jsonl",
         f"{sprint_rel}/tool-trace.jsonl",
         ".ai_state/architecture/ARCHITECTURE.md",
         ".ai_state/architecture/athena-9.9.6.md",
+        # P13 fix (2026-07-28, .ai_state/proposals.md P13): 过程台账不是被审对象。review
+        # 绑定后补 harness-patches/proposals 不得卡死 ship; light-ship 护栏不受影响
+        # (is_light_ship_file 分支未动)。
+        ".ai_state/harness-patches.md",
+        ".ai_state/proposals.md",
     }
     state_drift = sorted(
         file for file in changed
@@ -1020,6 +1202,11 @@ SHIP_LIGHT_MAX_LINES = 60
 def is_light_ship_file(file: str) -> bool:
     # Harness/hook/gate files and harness config are high-risk -- never light.
     if re.search(r"(^|/)hooks/", file):
+        return False
+    # Patches to the installed harness live outside every project repo (~/.claude,
+    # ~/.codex), so the hooks/ guard above cannot see them -- the ledger entry is their
+    # only in-repo trace. Touching it means this sprint changed the gate: full contract.
+    if re.search(r"(^|/)harness-patches\.md$", file):
         return False
     if re.search(r"(^|/)settings(\.local)?\.json$", file):
         return False
@@ -1084,17 +1271,29 @@ def ship_change_is_light(cwd: Path) -> bool:
 
 
 def git_root(cwd: Path) -> Path:
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            cwd=str(cwd),
-            capture_output=True,
-            text=True,
-            timeout=15,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return cwd
-    return Path(result.stdout.strip()) if result.returncode == 0 and result.stdout.strip() else cwd
+    """Resolve the main repository root for `cwd`, falling back to `cwd` itself.
+
+    P3 fix (2026-07-25, .ai_state/proposals.md P3; 台账见 .ai_state/harness-patches.md):
+    inside a linked worktree `--show-toplevel` returns the *worktree* path, so the gate
+    resolved `.ai_state` against a fresh checkout that legitimately lacks the archive and
+    blocked every ship. `--git-common-dir` points at the main repo's .git from anywhere in
+    the repo; `--path-format=absolute` (git >= 2.31) keeps it absolute in the main checkout
+    too, where the bare form prints a relative ".git". Submodules (`.git/modules/<name>`)
+    and bare repos (`repo.git`) yield no ".git" basename, so they fall back to
+    `--show-toplevel` instead of being permanently mis-rooted.
+
+    Non-throwing by contract (git_lines swallows OSError and non-zero exits): a write in a
+    directory that is not a Git repository must degrade to `cwd`, never crash the hook.
+    """
+    ok, lines = git_lines(cwd, ["rev-parse", "--path-format=absolute", "--git-common-dir"])
+    if ok and lines:
+        common_dir = Path(next(iter(lines)))
+        if common_dir.name == ".git":
+            return common_dir.parent
+    ok, lines = git_lines(cwd, ["rev-parse", "--show-toplevel"])
+    if ok and lines:
+        return Path(next(iter(lines)))
+    return cwd
 
 
 def changed_file_count(cwd: Path) -> int:
@@ -1208,14 +1407,25 @@ def validate_existing_policy(
     if path_type in GENERATOR_PATHS and not truthy(fm.get("plan_critique_disabled", "false")):
         design = sprint_dir / "design.md"
         design_content = require_file(design, "design.md")
-        rounds = len(re.findall(r"Critic Findings", design_content))
+        # P10 fix (2026-07-28, .ai_state/proposals.md P10): 全文字面计数会被讨论该契约的
+        # 正文污染。锚定到 2-3 级标题行, 正文提及不再计数。
+        rounds = len(re.findall(r"(?m)^#{2,3}\s.*Critic Findings", design_content))
         try:
             configured = int(fm.get("plan_critique_min_rounds", "0") or "0")
         except ValueError:
             raise GateError("plan_critique_min_rounds must be an integer")
-        minimum = configured if configured > 0 else (2 if path_type in REFACTOR_SYSTEM else 1)
+        # 2026-07-28 gate-descaling: 默认最少轮数全路径 1 (原 R/S=2); 要更多轮显式调
+        # plan_critique_min_rounds。
+        minimum = configured if configured > 0 else 1
         if rounds < minimum:
             raise GateError(f"design.md has {rounds} Critic Findings rounds; expected at least {minimum}")
+        # 文书预算警告 (不 block): design.md 超 300 行提示收敛。
+        design_lines = len(design_content.splitlines())
+        if design_lines > 300:
+            sys.stderr.write(
+                f"[delivery-gate] 文书预算警告: design.md {design_lines} 行 "
+                "(目标 System ≤200 / Feature ≤80); 散文该下沉或删减, 不 block\n"
+            )
 
     # Keep the value used so static review cannot accidentally remove the
     # evidence cross-check after validate_review has accepted it.
@@ -1256,9 +1466,17 @@ def main() -> int:
             payload = {}
 
         cwd = payload_cwd(payload)
+        # Fast quiet exit for non-Athena directories stays before any git call: this hook
+        # fires on every tool call, and a write to /tmp must not pay for a subprocess.
         ai_state = find_ai_state(cwd)
         if ai_state is None:
             return EXIT_SUCCESS
+        # P3: root and .ai_state must be resolved from the same checkout. Taking root from
+        # the main repo while reading .ai_state from a worktree cwd made `sprint_rel` come
+        # out as "../wt-x/..." and mis-framed every drift comparison, so the main-repo root
+        # is the single source for both. git_root degrades to cwd when git is unavailable.
+        root = git_root(cwd)
+        ai_state = find_ai_state(root) or ai_state
         index_path = ai_state / "_index.md"
         if not index_path.is_file():
             return block("Athena .ai_state exists but _index.md is missing")
@@ -1311,9 +1529,17 @@ def main() -> int:
                         allow_exception=True,
                     )
                 except GateError as exc:
-                    return block(str(exc))
+                    return stop_failure(
+                        payload, str(exc), ai_state / "sprints" / impl_sprint_slug, stage, fm.get("path", "")
+                    )
                 except Exception as exc:
-                    return block(f"unexpected impl spec-gate error (fail-closed): {exc}")
+                    return stop_failure(
+                        payload,
+                        f"unexpected impl spec-gate error (fail-closed): {exc}",
+                        ai_state / "sprints" / impl_sprint_slug,
+                        stage,
+                        fm.get("path", ""),
+                    )
             return EXIT_SUCCESS
         if stage != "ship":
             return EXIT_SUCCESS
@@ -1322,7 +1548,12 @@ def main() -> int:
         if not sprint_slug:
             return block("ship stage requires current_sprint_slug")
         sprint_dir = ai_state / "sprints" / sprint_slug
-        validate_worktree_violations(sprint_dir)
+        # 该校验在 try 之外, 其 GateError 原本冒到最外层 catch 变成 plain block ——
+        # Stop 路径上同样会活锁, 故显式接进熔断器 (design §10.1)。
+        try:
+            validate_worktree_violations(sprint_dir)
+        except GateError as exc:
+            return stop_failure(payload, str(exc), sprint_dir, stage, fm.get("path", ""))
 
         # P8 deadlock fix: during ship, .ai_state maintenance writes (state pointer
         # moves, archive backfills) must not re-run ship validation, otherwise a
@@ -1341,7 +1572,9 @@ def main() -> int:
             # consistency only, skipping the review-manifest / tdd-evidence / review-artifact
             # contract mechanical changes cannot honestly produce. Substantive, harness-
             # touching, or over-budget ships run the full contract below (fail-closed).
-            if ship_change_is_light(cwd):
+            # P3: every repo-scoped ship check below frames its diff against `root` (the
+            # same checkout `ai_state` came from), never the raw payload cwd.
+            if ship_change_is_light(root):
                 light_roadmap = fm.get("current_roadmap_slug", "")
                 if light_roadmap:
                     validate_roadmap_items(ai_state, light_roadmap, sprint_slug)
@@ -1349,6 +1582,16 @@ def main() -> int:
             # P8: the 9.9.6 review-manifest contract is opt-in per sprint (declared
             # by the manifest file's presence) except Refactor/System, where it is
             # mandatory. Pre-9.9.6 sprints keep the full 9.9.1 check set below.
+            if path_type in REFACTOR_SYSTEM:
+                try:
+                    cleanup = require_file(sprint_dir / "cleanup-pass.md", "cleanup-pass.md")
+                except GateError:
+                    cleanup = ""
+                if not re.search(r"\bPASS\b|completed|完成", cleanup, re.I):
+                    raise GateError(
+                        "Refactor/System polish stage 未跑; 解锁链: 跑 polish → 产出 "
+                        "cleanup-pass.md → 再补 review-manifest.yaml"
+                    )
             has_manifest = (sprint_dir / "review-manifest.yaml").exists()
             if path_type in REFACTOR_SYSTEM and not has_manifest:
                 raise GateError("Refactor/System ship requires review-manifest.yaml (9.9.6 review contract)")
@@ -1361,7 +1604,10 @@ def main() -> int:
             if path_type in GENERATOR_PATHS:
                 if not truthy(fm.get("skip_impl_subagent_check", "false")):
                     validate_generator_chain(sprint_dir, sprint_slug)
-                validate_checklist(sprint_dir / "checklist.yaml")
+                # 2026-07-28 gate-descaling: checklist.yaml 可选 — done_contract 已并入
+                # design.md (spec-gate 验 AC); 存在则照旧必须全绿。
+                if (sprint_dir / "checklist.yaml").exists():
+                    validate_checklist(sprint_dir / "checklist.yaml")
                 evidence_records = validate_evidence(sprint_dir / "evidence.yaml")
                 review_path = select_latest_review(sprint_dir / "reviews")
                 review_content = validate_review(review_path, path_type)
@@ -1371,7 +1617,7 @@ def main() -> int:
                     )
                     validate_tdd_evidence(sprint_dir / "tdd-evidence.yaml")
                     reviewed_commit = validate_review_binding(
-                        review_content, review_path, sprint_dir, ai_state, cwd, fm
+                        review_content, review_path, sprint_dir, ai_state, root, fm
                     )
                     validate_ac_mapping(
                         sprint_dir,
@@ -1385,16 +1631,19 @@ def main() -> int:
                 ai_state=ai_state,
                 sprint_dir=sprint_dir,
                 fm=fm,
-                cwd=cwd,
+                cwd=root,
                 review_content=review_content,
                 review_path=review_path,
             )
             if path_type in GENERATOR_PATHS and has_manifest:
-                validate_meta_acceptance(spec_criteria, review_content, sprint_dir, cwd)
+                validate_meta_acceptance(spec_criteria, review_content, sprint_dir, root)
         except GateError as exc:
-            return block(str(exc))
+            return stop_failure(payload, str(exc), sprint_dir, stage, path_type)
         except Exception as exc:
-            return block(f"unexpected ship validation error (fail-closed): {exc}")
+            return stop_failure(
+                payload, f"unexpected ship validation error (fail-closed): {exc}", sprint_dir, stage, path_type
+            )
+        append_gate_pass(payload, sprint_dir, stage, path_type)
         return EXIT_SUCCESS
     except Exception as exc:
         if ai_state is not None:

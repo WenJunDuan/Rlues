@@ -6,7 +6,7 @@
 
 | 任务形态 | CX 机制 | 边界 |
 |---|---|---|
-| 绿区 (单文件 ≤30 行 / Hotfix / Quick) | 主 thread 可直接实施 | 仍需验证与证据 |
+| 绿区 (定义以 stages.md impl 段为单一真相; 2026-07-28 起 ≤3 文件且合计 ≤150 行, 或 Hotfix/Quick/Bugfix) | 主 thread 可直接实施 | 仍需验证与证据 |
 | 黄区 (单模块 Feature/Bugfix) | `spawn_agent` | 单写者, worktree 可选 |
 | 红区 (Refactor/System / 并行 ≥2 写者) | 主 thread 创建 worktree 后 `spawn_agent` | 任务消息携带 worktree 绝对路径 |
 | 多个独立切片 | 多次 `spawn_agent` | 不超过当前线程上限, 文件写集不得重叠 |

@@ -417,6 +417,12 @@ def main() -> int:
         if not sprint_slug:
             return EXIT_SUCCESS
 
+        # A2 (2026-07-28, 台账 W21): Stop 全量聚合只在 ship 跑; SubagentStop 保留。
+        # 事件名不匹配时不跳过 (fail-open 到旧行为)。
+        evt = str(payload.get("hook_event_name") or payload.get("event") or "")
+        if evt == "Stop" and stage != "ship":
+            return EXIT_SUCCESS
+
         sprint_dir = ai_state / "sprints" / sprint_slug
         sprint_dir.mkdir(parents=True, exist_ok=True)
         out = sprint_dir / "token-usage.yaml"

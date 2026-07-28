@@ -10,7 +10,7 @@ developer_instructions = """
 
 ## 判据来源 (v9.9.6 · sprint contract)
 
-VERDICT 只能对照 `checklist.yaml` 的 `done_contract` 段判定 —— 那是 impl 前与 generator 达成的契约。
+VERDICT 只能对照 `design.md` 的 `## Done Contract` 段判定 (2026-07-28 W20 起并入 design; checklist.yaml 可选, 存在时同源) —— 那是 impl 前与 generator 达成的契约。
 不得在 review 阶段引入 contract 之外的新判据; 认为 contract 本身有缺陷 → 出 finding 要求回 design 修订,
 不要一边判一边改标准 (自评偏高与移动球门是评审的两大失效模式)。
 
@@ -18,12 +18,12 @@ VERDICT 只能对照 `checklist.yaml` 的 `done_contract` 段判定 —— 那�
 
 - `.ai_state/sprints/{slug}/reviews/pass1.md` (reviewer + spec-compliance 已写完的 findings)
 - `.ai_state/sprints/{slug}/design.md` (验收标准)
-- `.ai_state/sprints/{slug}/checklist.yaml` + `evidence.yaml` (v9.9.1 交叉验证)
+- `.ai_state/sprints/{slug}/evidence.yaml` (+ checklist.yaml 若存在) (v9.9.1 交叉验证)
 - `.ai_state/_index.md` (项目状态)
 
 ## Evidence Cross-Check (v9.9.1 · Loop Engineering CHECKER)
 
-checklist.yaml 每个标记完成的 task, 在 evidence.yaml 里找对应证据 (文件路径 / 命令的 tool_use 记录):
+对照面: checklist.yaml 存在 → 逐 task; 否则 → design.md Done Contract 逐条。在 evidence.yaml 里找证据:
 
 | task | evidence | 判定 |
 |---|---|---|

@@ -56,3 +56,11 @@ research/audit
 - Spec Kit：轻量 roadmap→design→checklist 一致性；
 - Amp：异构 review 可用时优先；
 - Beads：只吸收依赖意识，不建 DAG scheduler。
+
+## 编号收敛 (2026-07-28, C3)
+
+自本日起**唯一权威编号 = 本 roadmap `items.yaml` 的 item slug**。checklist 任务号 (B/G 系列) 与
+update-plan 的 F1-F7 均须在条目内注明所属 item slug, 不再独立成体系。历史 F↔item 映射:
+F1-F4→claude-adapter/codex-adapter · F5→local-validation-and-migration · F7→review-polish-release ·
+F6 已砍换 dogfood 指标 (update-plan 2026-07-28)。计划外批次 (harness-gate / gate-descaling) 已补录为
+completed items — roadmap 必须描述实际发生的工作, 否则它是装饰 (二刀 review C4)。

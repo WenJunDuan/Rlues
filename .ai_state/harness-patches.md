@@ -243,3 +243,53 @@ W3/W9 改为 `≥1` 或同样锚定到 `tryRepoRoot` / `git_root` 函数体内�
   会声明它的 sha256 → 任何新检出 (worktree / clone) 都必然 `review-manifest target missing:
   evidence.yaml`。批次 3 存档即如此 (manifest 声明了哈希, 文件从未进 git)。P3 修复让 gate 改用主仓
   解析, 症状被绕开, 但"契约声明了一个 git 不携带的文件"这条**结构性矛盾仍在**, 建议后续 sprint 处理。
+
+## 2026-07-28 · 小刀批次 (W18-W20, 二刀 review 后)
+
+> 来源: 二刀 review findings S1-S3/A4/B2 (`sprints/2026-07-28-gate-descaling/design.md` 同 slug 追加批次)。双端对称, 版本号不动。
+
+| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
+|---|---|---|
+| W18 | **B2 复活机械 re-route**: index-updater 从数 evidence.yaml `file:` (9.9.6 起恒 0, 触发器已死) 改数 tool-trace.jsonl 的 `file` 字段 + apply_patch 路径。双端冒烟: Quick+4 文件 → next_action=re-route ✅ | `rg -c 'tool-trace.jsonl' index-updater.cjs index-updater.py` (各 ≥1) |
+| W19 | **S3 route-note 落盘协议对齐**: athena-dev Step 5 默认 route_history 一行, 复杂场景 (0.5-0.8 带假设 / re-route) 才单立 route-note.md (双端) | `rg -c '不再单立 route-note' athena-dev/SKILL.md` (双端各 1) |
+| W20 | **S1/S2/A4 文档漂移收口**: orchestration.md 绿区行改引 stages.md 单源 (双端); templates/_index `plan_critique_min_rounds` 注释刷为"全路径=1" (双端); live `_index.md` 同注释 sed 同步 | `rg -c '单一真相' orchestration.md` (双端各 1) · `rg -c '全路径=1' templates/_index.md` (双端各 1) |
+
+- 遗留 (记录, 本批不修): A1 pre-bash-guard 瘦身 / A2 token-usage 采集降频 / A3 counts 砍除 / B1 evidence admissible 契约机器化 / C1 F2 基线刷新 / C2 F6 A/B 换 dogfood 指标 — 归下刀 build-spec。
+
+## 2026-07-28 · 下刀批次 (W21-W24, 效率税削减)
+
+> 设计与验证: `sprints/2026-07-28-gate-descaling/design.md` §9。双端对称, 版本号不动。
+
+| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
+|---|---|---|
+| W21 | token-usage Stop 聚合只在 ship 跑 (SubagentStop 保留) | `rg -c "evtName === 'Stop' && stage !== 'ship'" token-usage-collector.cjs` · `rg -c 'evt == "Stop" and stage != "ship"' token-usage-collector.py` |
+| W22 | index-updater 按写入面分流 + 无变化不写 | `rg -c 'doScan' index-updater.cjs` ≥2 · `rg -c 'do_scan' index-updater.py` ≥2 |
+| W23 | delivery-gate lite-admissible (hook 记录 + covers 一行即 admissible) | `rg -c 'lite-admissible' delivery-gate.cjs delivery-gate.py` (各端两副本均 ≥1) |
+| W24 | A1 撤回记录: pre-bash-guard 不动 (CX 无原生兜底, 唯一护栏; 见 design §9) | — (无代码改动, 防未来误砍) |
+
+- C1/C2: `roadmap/athena-9-9-6-prompt-engineering/9.9.6-update-plan.md` F2 基线刷新 + F6 砍换 dogfood 三指标。
+- 副本同步: 双端 gate 两副本随本批次再次对齐 (md5 复核: `diff <(md5sum < A) <(md5sum < B)`)。
+
+## 2026-07-28 · 路由刀批次 (W25-W27, fable5 + 模型路由)
+
+> 设计: `sprints/2026-07-28-gate-descaling/design.md` §10。用户批准覆盖 07-25 角色矩阵决策 (evaluator Opus→Fable)。
+
+| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
+|---|---|---|
+| W25 | CC effortLevel xhigh→high (对齐 CX high+plan_mode xhigh; ultrathink 显式升档) | `rg -c '"effortLevel": "high"' settings.json` |
+| W26 | evaluator model opus→fable + 显式重试注记 | `rg -c 'model: fable' agents/evaluator.md` |
+| W27 | critic 7 维度压缩为判据表 (138→101 行) · evaluator 砍评分剧场 · evaluator 双端判据源刷 design.md Done Contract | `rg -c 'W27' agents/critic.md agents/evaluator.md` · `rg -c 'Done Contract' agents/evaluator.md evaluator.toml` |
+
+- 验收 (下一真实 sprint): 主观 — plan/design 审议质量不降; 客观 — evaluator VERDICT 与 findings 的引用一致性、token-usage by_stage 的 main-loop 花销下降 (ship 时看 W21 聚合)。
+
+## 2026-07-28 · 收尾刀批次 (W28-W30)
+
+> 设计: `sprints/2026-07-28-gate-descaling/design.md` §11。
+
+| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
+|---|---|---|
+| W28 | B3: compact-restore 白名单化 — CC 抽共享模块 `_index-render.cjs` (session-start 同源复用, 死代码 readFrontmatterSummary 顺删), 注入 ~4KB→~0.5KB 且带 specialAlerts; CX 内联白名单 (与 session-start.py INDEX_CORE 同步注记) | `ls _index-render.cjs` · `rg -c '_index-render' session-start.cjs compact-restore.cjs` (各 1) · `rg -c 'INDEX_CORE 同步' compact-restore.py` |
+| W29 | A5: pace-continuator 双端砍 `## 历史` 写入 (三套历史并存, turn-end 信息量≈0, 实测有空条目), 软提醒保留; 双端模板 `## 历史` 段废除 | `rg -c 'W29' pace-continuator.cjs pace-continuator.py` (各 1) |
+| W30 | C3: roadmap 编号收敛 (唯一权威 = items.yaml slug, F↔item 映射入档) + 计划外批次补录 completed items ×2 (total 10→12) | `rg -c '编号收敛' roadmap.md` · `rg -c 'gate-descaling' items.yaml` |
+
+- 本批后 live `_index.md` 的 `## 历史` 段成为遗留数据 (hook 不再写), 可在下次 checkpoint 时手动清除。

@@ -1,7 +1,7 @@
 roadmap_slug: "athena-9-9-6-prompt-engineering"
 created: "2026-07-25"
 revision: "v3.1"
-total_items: 10
+total_items: 12
 items:
   - slug: "research-and-audit"
     title: "调研与 9.9.3 审计"
@@ -71,3 +71,17 @@ items:
     blocked_by: ["local-validation-and-migration"]
     estimated_complexity: L
     notes: "requires separate commit/push/release authorization"
+  - slug: "harness-gate-p1-p4"
+    title: "计划外: P1-P4/P9 门禁死锁修复 (补录)"
+    status: completed
+    sprint_slug: "2026-07-25-harness-gate-p1-p4"
+    blocked_by: []
+    estimated_complexity: M
+    notes: "2026-07-28 C3 补录; 台账 harness-patches W1-W9"
+  - slug: "gate-descaling"
+    title: "计划外: 门禁反文书化 + 效率税削减 + 模型路由 (补录)"
+    status: completed
+    sprint_slug: "2026-07-28-gate-descaling"
+    blocked_by: []
+    estimated_complexity: L
+    notes: "2026-07-28 C3 补录; 台账 W10-W30, design 见 sprints/2026-07-28-gate-descaling/"

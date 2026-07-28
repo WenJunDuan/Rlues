@@ -58,9 +58,10 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 
 | 区 | 条件 | 执行者 |
 |---|---|---|
-| 绿 | 单文件 ≤30 行无跨模块影响, 或 Hotfix/Quick | 主 agent 直接做 |
-| 黄 | 单模块 Feature/Bugfix | Agent subagent, worktree 可选 |
+| 绿 | ≤3 文件且合计 ≤150 行, 或 Hotfix/Quick/Bugfix | 主 agent 直接做 |
+| 黄 | 单模块 Feature | Agent subagent, worktree 可选 |
 | 红 | Refactor/System 或并行 ≥2 写者 | subagent + `isolation: worktree` 强制 |
+| 例外 | 改动对象在 repo 外 (安装态 harness 等) | worktree 零隔离效果 → 免 worktree; 设 `_index.harness_target_outside_repo: true`, 改前逐文件备份, 单写者串行 (P9 根治) |
 
 ## References (按需 Read, 不要预加载)
 
@@ -74,7 +75,7 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 
 ## 最小循环提醒
 
-- plan/design: 第一条 message 加 "ultrathink"; critic 多轮 (max = `_index.plan_critique_max_rounds`); System/Refactor 可设 `_index.plan_model: opus` 切 Opus 5 审议
+- plan/design: 第一条 message 加 "ultrathink"; critic 多轮 (max = `_index.plan_critique_max_rounds`, min 默认全路径 1 轮); System/Refactor 可设 `_index.plan_model: opus` 切 Opus 5 审议; critic 只输出反例清单, 不写散文
 - **spec-gate impl-entry (design §4.2)**: Feature+ 进 impl 前, 主 agent 先验 `design.md` 有机器可识别验收标准 (`## Acceptance Criteria` / `## 验收标准` + ≥1 可观测 checkbox/编号/列表项) 或 requirements 提供; 写不出 = intent 未定 → 回 plan/brainstorm。ship 由 delivery-gate 机器复核 (§4.4)。
 - impl: 按红黄绿区路由写入; validation Bash 的 PostToolUse/PostToolUseFailure 分别写 pass/fail evidence
 - runtime-verify (Refactor/System 强制 · Feature 可选): /athena-runtime-verify 用 `/goal` 实跑 + 自测自改, 产出 runtime-verify.md (delivery-gate 验); `vm_available=true` 时环境矩阵加远程 VM 实跑 (athena-vm)
