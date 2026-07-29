@@ -208,31 +208,25 @@ def check_reroute(content: str, ai_state: Path) -> str:
     fm_stage = read_fm_field(content, "stage")
     fm_sprint = read_fm_field(content, "current_sprint_slug")
     fm_next_action = read_fm_field(content, "next_action")
+    # hotfix2 AC6/W37: next_action 枚举告警
+    if not re.fullmatch(r"(|re-route|runtime-verify|review|polish|ship|rework_impl|next_roadmap_item:[A-Za-z0-9._-]+|roadmap_complete)", fm_next_action or ""):
+        sys.stderr.write(f"[index-updater] next_action 非枚举值 — 进度散文请写 route_history/design\n")
     if fm_path not in PATH_FILE_CAPS or fm_stage not in ("impl", "runtime-verify"):
         return content
     if not fm_sprint or fm_next_action:
         return content
-    tr_file = ai_state / "sprints" / fm_sprint / "tool-trace.jsonl"
-    if not tr_file.exists():
-        return content
+    # F1/W36 (2026-07-29): re-route 改用 git 现场变更集 (tool-trace 已停产, W35)。
+    import subprocess
     seen = set()
-    import json as _json
-    for line in tr_file.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
+    for args in (["diff","--name-only"],["diff","--name-only","--cached"],["ls-files","--others","--exclude-standard"]):
         try:
-            row = _json.loads(line)
-        except ValueError:
-            continue
-        candidates = []
-        f = row.get("file") if isinstance(row, dict) else None
-        if isinstance(f, str) and f:
-            candidates.append(f)
-        if isinstance(row, dict) and row.get("tool") == "apply_patch" and isinstance(row.get("command"), str):
-            candidates.extend(re.findall(r"(?:Update|Add) File: (\S+)", row["command"]))
-        for fp in candidates:
-            if ".ai_state/" not in fp.replace("\\", "/"):  # state 文件不计入改动
-                seen.add(fp)
+            out = subprocess.run(["git",*args], cwd=str(ai_state.parent), capture_output=True, text=True, timeout=10).stdout
+            for f in out.splitlines():
+                fp = f.strip()
+                if fp and ".ai_state/" not in fp.replace("\\","/"):
+                    seen.add(fp)
+        except Exception:
+            pass  # 非 git 环境: 不触发
     if len(seen) > PATH_FILE_CAPS[fm_path]:
         content = update_field(content, "next_action", "re-route")
         sys.stderr.write(

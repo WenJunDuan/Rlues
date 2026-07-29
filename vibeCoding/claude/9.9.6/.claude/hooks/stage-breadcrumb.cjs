@@ -92,16 +92,17 @@ function main() {
 
     const head = `[PACE] stage=${stage}` +
       (fm.path ? ` · path=${fm.path}` : '') +
-      (fm.current_sprint_slug ? ` · sprint=${fm.current_sprint_slug}` : '') +
-      (fm.next_action ? ` · next_action=${fm.next_action}` : '');
+      (fm.current_sprint_slug ? ` · sprint=${fm.current_sprint_slug}` : '');
+    // hotfix2 AC6 (2026-07-29, W37): next_action 不再注入 breadcrumb — 它挤掉 stage 义务;
+    // 机器信号走 SessionStart 告警与 gate, 进度散文本就该禁。
     const tail = '(全文/前后 stage: Read ~/.claude/skills/pace/references/stages.md · 关闭: _index.breadcrumb: "off")';
     let additionalContext = `${head}\n${section}\n${tail}`;
-    // v9.9.6: 每轮常驻预算 <=400 B; 超出按行裁剪, 完整义务留在 stages.md
-    if (Buffer.byteLength(additionalContext, 'utf8') > 400) {
+    // hotfix2 AC6: 每轮常驻预算 <=240 B; 超出按行裁剪, 完整义务留在 stages.md
+    if (Buffer.byteLength(additionalContext, 'utf8') > 240) {
       const kept = []; let used = 0;
       for (const line of additionalContext.split('\n')) {
         const n = Buffer.byteLength(line, 'utf8') + 1;
-        if (used + n > 360) break;
+        if (used + n > 220) break;
         kept.push(line); used += n;
       }
       additionalContext = kept.join('\n') + '\n… 完整义务见 stages.md';

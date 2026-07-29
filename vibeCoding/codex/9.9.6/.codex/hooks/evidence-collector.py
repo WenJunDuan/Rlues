@@ -42,6 +42,14 @@ EVIDENCE_PATTERNS = [
 ]
 
 
+
+def redact(value: str) -> str:
+    """F3 (2026-07-29, W35): 与 CC redact 同构 — API key / token / 赋值型凭据脱敏。"""
+    v = re.sub(r"\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,})\b", "[REDACTED]", value or "")
+    v = re.sub(r"((?:api[_-]?key|token|password|secret)\s*[=:]\s*)[^\s,;]+", r"\1[REDACTED]", v, flags=re.I)
+    return v[:500]
+
+
 def find_ai_state(cwd: Path) -> Path | None:
     current = cwd.resolve()
     for _ in range(8):
@@ -133,18 +141,7 @@ def main() -> int:
         sprint_dir = ai_state / "sprints" / sprint_slug
         sprint_dir.mkdir(parents=True, exist_ok=True)
 
-        trace = {
-            "schema_version": 1,
-            "timestamp": timestamp,
-            "tool": tool_name,
-            "tool_use_id": scalar(payload.get("tool_use_id"), 200),
-            "status": status,
-            "exit_code": exit_code,
-            "command": command[:200],
-        }
-        with (sprint_dir / "tool-trace.jsonl").open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(trace, ensure_ascii=False, separators=(",", ":")) + "\n")
-
+        # hotfix2 (2026-07-29, W35/AC3): tool-trace.jsonl 默认零遥测。
         kind = classify_evidence(command)
         if kind is None:
             return EXIT_SUCCESS
@@ -155,13 +152,15 @@ def main() -> int:
                 f"sprint_slug: {json.dumps(sprint_slug, ensure_ascii=False)}\ncollected_evidence:\n",
                 encoding="utf-8",
             )
-        result = status if exit_code is None else ("pass" if exit_code == 0 else f"fail (exit {exit_code})")
+        # F8 (2026-07-29, W35): result 只允许 pass/fail/unknown — "fail (exit N)" 会让
+        # 双端 validateEvidence 抛 unsupported result, 一条失败验证永久卡死 evidence 解析。
+        result = status
         entry = (
-            f"  - tool_use_id: {json.dumps(trace['tool_use_id'], ensure_ascii=False)}\n"
+            f"  - tool_use_id: {json.dumps(scalar(payload.get('tool_use_id'), 200), ensure_ascii=False)}\n"
             f"    tool: {json.dumps(tool_name, ensure_ascii=False)}\n"
             '    file: ""\n'
             f"    kind: {json.dumps(kind, ensure_ascii=False)}\n"
-            f"    command: {json.dumps(command[:120], ensure_ascii=False)}\n"
+            f"    command: {json.dumps(redact(command)[:120], ensure_ascii=False)}\n"
             f"    result: {json.dumps(result, ensure_ascii=False)}\n"
             f"    timestamp: {json.dumps(timestamp)}\n"
         )

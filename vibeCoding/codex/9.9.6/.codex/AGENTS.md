@@ -11,7 +11,7 @@ INTJ 风格工程 Agent。Codex 做事, Athena 把关。主 thread 对结果负�
 
 1. **门禁即律法** — 设计先行·TDD red→green·tasks 全绿 (Sisyphus)·Review 三件套·runtime-verify→review→polish·architecture/ 更新, 全由 spec-gate (impl-entry+ship) 与 delivery-gate fail-closed 强制, 违者 block; 义务细节看面包屑与 stages.md, 宪法不复述; Hotfix 唯一免审议
 2. **零写入·按区路由** — 绿区 (≤3 文件且合计≤150行, 或 Hotfix/Quick/Bugfix): 主 thread 直做; 黄区 (单模块 Feature): `spawn_agent`; 红区 (Refactor/System 或 ≥2 并行写者): 主 thread 先建 worktree, 再把绝对路径写进任务; agent 首先用 `pwd` 与每次命令的 `workdir` 验证边界; 改动对象在 repo 外 (安装态 harness 等) worktree 无隔离效果 → 免 worktree, 设 `_index.harness_target_outside_repo: true` + 逐文件备份。每次 spawn 先按 `~/.agents/skills/pace/references/orchestration.md#spawn-binding-handshake` 串行绑定真实 `agent_id` (包内源码: `.codex/skills/pace/references/orchestration.md`), 绑定后才放行并发
-3. **分诊先行** — 路由前检查状态与变更面, 比较候选路径, 结论记 `_index.route_history` 一行 (复杂 re-route 才单立 route-note); 不落盘私有思维链; 写不出验收标准=模糊→brainstorm; ≥3 模块→roadmap; re-route 只升不降, 降级仅限用户显式批准
+3. **分诊先行** — 路由前检查状态与变更面, 比较候选路径, 结论记 `_index.route_history` 一行 (复杂 re-route 才单立 route-note); 不落盘私有思维链; 写不出验收标准=模糊→brainstorm; ≥2 个可独立验收交付的切片→roadmap (模块数只定风险等级, 不单独强制拆); re-route 只升不降, 降级仅限用户显式批准
 4. **文档即真相·索引先行** — .ai_state/ 单一真相源, 唯一入口 `_index.md`; 决策前读索引, 禁 glob 全扫; 状态同步只在 ship 前做一次 (不逐 stage 同步 — 逐段同步实测产出的是文档不是状态)
 5. **证据与出处** — 完成度由 delivery-gate 现场核验, 不在对话里复述验证过程; API/配置/协议必引官方文档或源码 URL
 6. **复利颗粒化** — `compound/{date}-{type}-{slug}.md`, type ∈ learning/trick/decision/explore, ≤100 行一事一档

@@ -1,0 +1,9 @@
+{"schema_version":1,"event":"SubagentStart","agent_id":"019fadd7-7609-76f1-8710-52cc80d65b32","agent_type":"architect","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:26:48.794607Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019fadd8-2b23-7491-b300-9e524fdf6893","agent_type":"explorer","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:27:35.963317Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019fadd8-e5e1-79f1-b1d9-d034d167faf5","agent_type":"docs_researcher","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:28:22.415272Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019fadd8-e5e1-79f1-b1d9-d034d167faf5","agent_type":"docs_researcher","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:28:27.053089Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019fadd8-e5e1-79f1-b1d9-d034d167faf5","agent_type":"docs_researcher","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:30:20.883317Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019fadd7-7609-76f1-8710-52cc80d65b32","agent_type":"architect","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:34:49.472068Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019fadd8-2b23-7491-b300-9e524fdf6893","agent_type":"explorer","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:40:29.291472Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019fade9-6b6c-76f3-8062-2ee4f3ce9472","agent_type":"critic","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:46:24.797766Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"019fade9-6b6c-76f3-8062-2ee4f3ce9472","agent_type":"critic","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:53:46.249910Z"}

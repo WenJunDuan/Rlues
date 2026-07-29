@@ -38,7 +38,7 @@ description: Athena 主入口。收到新任务需要 PACE 路由分诊时触发
 - **<0.5**: 停. 问用户 1-2 个决定性问题 (能砍掉一半候选的那种), 或进 brainstorm
 
 ### Step 4 · 护栏校验 (地板, 不可击穿)
-≥3 模块 → 至少 roadmap; 跨模块 / 预估 ≥5 文件 → 至少 Refactor. 审议结果低于地板 → 取地板.
+≥2 个可独立验收交付的切片 → 至少 roadmap (模块数只定风险等级); 跨模块 / 预估 ≥5 文件 → 至少 Refactor. 审议结果低于地板 → 取地板.
 
 ### Step 5 · 落盘 (2026-07-28 gate-descaling)
 默认: `_index.route_history` 记一行 (路径+一句话依据+置信度) + 更新 `_index.route_confidence`; **不再单立 route-note.md**。

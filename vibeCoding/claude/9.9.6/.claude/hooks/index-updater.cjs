@@ -230,30 +230,31 @@ function main() {
     const fmStage = (content.match(/^stage:\s*"?([^"\n]*)"?/m) || [])[1] || '';
     const fmSprint = (content.match(/^current_sprint_slug:\s*"?([^"\n]*)"?/m) || [])[1] || '';
     const fmNextAction = (content.match(/^next_action:\s*"?([^"\n]*)"?/m) || [])[1] || '';
+
+    // hotfix2 AC6/W37: next_action 只允许机器枚举; 进度散文会永久关闭 re-route 且挤占注入。
+    const NA_ENUM = /^(|re-route|runtime-verify|review|polish|ship|rework_impl|next_roadmap_item:[A-Za-z0-9._-]+|roadmap_complete)$/;
+    if (!NA_ENUM.test(fmNextAction)) {
+      process.stderr.write(`[index-updater] next_action 非枚举值 ("${fmNextAction.slice(0,60)}...") — 进度散文请写 route_history/design, next_action 仅存机器信号\n`);
+    }
     if (doReroute && PATH_FILE_CAPS[fmPath] && ['impl', 'runtime-verify'].includes(fmStage) && fmSprint && !fmNextAction) {
-      const trFile = path.join(aiState, 'sprints', fmSprint, 'tool-trace.jsonl');
-      if (fs.existsSync(trFile)) {
-        const seen = new Set();
-        for (const line of fs.readFileSync(trFile, 'utf-8').split('\n')) {
-          if (!line.trim()) continue;
-          let row;
-          try { row = JSON.parse(line); } catch (_) { continue; }
-          const candidates = [];
-          if (row && typeof row.file === 'string' && row.file) candidates.push(row.file);
-          if (row && row.tool === 'apply_patch' && typeof row.command === 'string') {
-            for (const m of row.command.matchAll(/(?:Update|Add) File: (\S+)/g)) candidates.push(m[1]);
+      // F1/W36 (2026-07-29): tool-trace 已随 hotfix2 停止生成 (W35), re-route 文件数改用
+      // 与 ship 同源的 git 现场变更集 — 无第二真相, 无逐工具记账依赖。
+      const { execFileSync } = require('child_process');
+      const seen = new Set();
+      for (const args of [['diff','--name-only'],['diff','--name-only','--cached'],['ls-files','--others','--exclude-standard']]) {
+        try {
+          for (const f of execFileSync('git', args, { cwd: path.dirname(aiState), encoding: 'utf8', timeout: 10000 }).split('\n')) {
+            const fp = f.trim();
+            if (fp && !fp.replace(/\\/g,'/').includes('.ai_state/')) seen.add(fp);
           }
-          for (const fp of candidates) {
-            if (!fp.replace(/\\/g, '/').includes('.ai_state/')) seen.add(fp);   // state 文件不计入改动
-          }
-        }
+        } catch (_) { /* 非 git 环境: 计数 0, 不触发 (fail-open) */ }
+      }
         if (seen.size > PATH_FILE_CAPS[fmPath]) {
           content = updateField(content, 'next_action', 're-route');
           process.stderr.write(
             `[index-updater] re-route: path=${fmPath} 改动 ${seen.size} 文件 > 上限 ${PATH_FILE_CAPS[fmPath]} — ` +
             `重走路由审议 (只升不降), _index.route_history 记一条\n`
           );
-        }
       }
     }
 

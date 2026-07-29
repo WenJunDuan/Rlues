@@ -829,7 +829,9 @@ function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewConte
     for (const match of criterion.matchAll(/(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])/g)) labels.add(match[1].toUpperCase());
   }
   if (!labels.size) return;
-  const missing = [...labels].sort().filter(label => !["AC11", "AC12"].includes(label) && !records.some(record => {
+  // hotfix2 AC5 (2026-07-29, W38): 保留标号 AC11/12 静默豁免移除 (compound learning
+  // reserved-ac-labels-silent-exemption 教训) — 全部 AC 统一走 admissible 证据 (W23 lite 已够廉价)。
+  const missing = [...labels].sort().filter(label => !records.some(record => {
     const mapped = record.ac_id === label || record.covers.includes(label);
     if (!mapped || record.result !== "pass") return false;
     // B1 lite-admissible (2026-07-28, 台账 W23): hook 自动落的验证记录 (command/timestamp/
@@ -876,22 +878,7 @@ function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewConte
   }
 }
 
-function validateMetaAcceptance(criteria, reviewContent, sprintDir, cwd) {
-  const labels = new Set();
-  for (const criterion of criteria) {
-    for (const match of criterion.matchAll(/(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])/g)) labels.add(match[1].toUpperCase());
-  }
-  if (labels.has("AC11") && finalVerdict(reviewContent, "latest review") !== "PASS") {
-    throw new GateError("AC11 requires the latest bound evaluator verdict PASS");
-  }
-  if (!labels.has("AC12")) return;
-  const cleanup = requireFile(path.join(sprintDir, "cleanup-pass.md"), "cleanup-pass.md");
-  if (!/\bPASS\b|completed|完成/i.test(cleanup)) throw new GateError("AC12 requires completed polish/cleanup evidence");
-  const root = gitText(cwd, ["rev-parse", "--show-toplevel"], "repository root").trim();
-  const worktrees = gitText(root, ["worktree", "list", "--porcelain"], "worktree readiness");
-  const active = (worktrees.match(/^worktree\s+/gm) || []).length;
-  if (active !== 1) throw new GateError(`AC12 requires no extra active worktree; found ${active}`);
-}
+// hotfix2 AC5/W38: validateMetaAcceptance (AC11/12 元受理) 已删 — 统一 per-AC 证据。
 
 // design §4.2 主门禁: Feature/Refactor/System 处于 impl 时必须已有机器可识别验收
 // 标准; 缺标准的 Stop 立即 block. ship 段复核是纵深防御, 不是替代 (design §4.4).
@@ -989,7 +976,7 @@ function validateShip(aiState, fm, cwd) {
     // 复用 validateMetaAcceptance 的既有判据, 不新造机制 (R1-F5a)。
     if (!/\bPASS\b|completed|完成/i.test(cleanup)) {
       throw new GateError(
-        "Refactor/System polish stage 未跑; 解锁链: 跑 polish → 产出 cleanup-pass.md → 再补 review-manifest.yaml",
+        "Refactor/System polish stage 未跑; 解锁链: 跑 polish → 产出 cleanup-pass.md 即可 (review-manifest 全路径 opt-in, 仅已声明时才补)",
       );
     }
   }
@@ -1018,7 +1005,6 @@ function validateShip(aiState, fm, cwd) {
       validateTddEvidence(path.join(sprintDir, "tdd-evidence.yaml"));
       const reviewedCommit = validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cwd, fm);
       validateAcMapping(sprintDir, specCriteria, evidenceRecords, reviewPath, reviewContent, reviewedCommit);
-      validateMetaAcceptance(specCriteria, reviewContent, sprintDir, cwd);
     }
     validateCriticRounds(sprintDir, fm);
 

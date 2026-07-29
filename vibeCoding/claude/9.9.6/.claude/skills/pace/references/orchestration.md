@@ -113,3 +113,4 @@ codex-plugin-cc **v1.0.5 (2026-06-23)** 新增 `/codex:transfer`: 把当前 CC �
 - subagent-worktree-check hook (PreToolUse Agent) 机械强制, 违规 block
 - 默认不注册 WorktreeCreate/Remove hook；其存在会完全替代 Claude Code 原生 Git worktree
 - 生命周期用 SubagentStart/Stop + `git worktree list` 现场证明; dirty 未提交内容不会自动进入新 worktree
+- hotfix2 W40: assignments 握手只对 writer/generator; 只读角色 (architect/critic/reviewer/spec-compliance) 直接 spawn 不记账 — ship 只验 generator 链

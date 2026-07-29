@@ -12,7 +12,7 @@
 
 ## roadmap (借 CodeStable)
 
-**触发**: ≥3 模块需求 / 显式 "拆分" / brainstorm 收敛后大需求
+**触发**: ≥2 个可独立验收、可独立 ship 的切片 / 显式 "拆分" (hotfix2: 模块数只定风险等级, 不单独触发)
 **职责**: 拆 feature 序列, 产出 items.yaml + roadmap.md
 **调度**: delivery-gate 与主 agent 在 ship 后核对 roadmap, 不依赖某个 shell 输出自动推进
 **详**: `~/.agents/skills/roadmap/SKILL.md`
@@ -113,6 +113,7 @@ VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 - v9.9.0 (U1): Feature+ 的 subagent-log.md 必须含 generator 记录 (逃生: skip_impl_subagent_check)
 - design.md 的 Critic Findings **标题行** ≥ min 轮 (默认全路径 1; plan_critique_min_rounds 覆写); design.md >300 行 stderr 警告
 - review-manifest **全路径 opt-in** (2026-07-28 W31; 存在才验全链, 必钉集 design.md + R/S runtime-verify.md); Evidence Cross-Check 段不再 gate 验
+- hotfix2 (2026-07-29): AC11/12 保留标号豁免废除; token/tool-trace/snapshot/continuator 已退出默认 lifecycle (只在 ship 或显式采集); next_action 仅机器枚举
 - checklist.yaml 存在才验; 记账文件 (token-usage/tool-trace/stop-failures/harness-patches/proposals) 不受 post-review drift 拦截
 - 派工任务书**不落盘** (2026-07-28 W34): spawn 任务内容全部内联在 spawn/Agent message, CODEX-TASK.md 类自造任务文档禁止
 - AC 证据记法 (2026-07-28 W23): 跑真实验证命令后 evidence-collector 已自动落记录, agent 在该记录**补一行 `covers: [ACn]`** 即 admissible; 十字段手写 artifact 记录仅当命令证据不适用 (source: artifact/review) 时用

@@ -126,16 +126,15 @@ def main() -> int:
             head += f" · path={fm['path']}"
         if fm.get("current_sprint_slug"):
             head += f" · sprint={fm['current_sprint_slug']}"
-        if fm.get("next_action"):
-            head += f" · next_action={fm['next_action']}"
+        # hotfix2 AC6 (2026-07-29, W37): next_action 不注入 breadcrumb (挤掉 stage 义务)。
         tail = f'(全文/前后 stage: 读 {stages_display_path} · 关闭: _index.breadcrumb: "off")'
         additional_context = f"{head}\n{section}\n{tail}"
-        # v9.9.6: 每轮常驻预算 <=400 B; 超出按行裁剪, 完整义务留在 stages.md
-        if len(additional_context.encode("utf-8")) > 400:
+        # v9.9.6: 每轮常驻预算 <=240 B; 超出按行裁剪, 完整义务留在 stages.md
+        if len(additional_context.encode("utf-8")) > 240:
             kept, used = [], 0
             for line in additional_context.split("\n"):
                 n = len(line.encode("utf-8")) + 1
-                if used + n > 360:
+                if used + n > 220:
                     break
                 kept.append(line)
                 used += n

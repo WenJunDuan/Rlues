@@ -31,7 +31,7 @@ https://github.com/openai/codex/blob/rust-v0.144.1/codex-rs/core/src/tools/handl
 
 hook 只知道原生生命周期里的真实 `agent_id`; `task_name` / `role` 只存在于主 thread 的任务意图中. 两者必须在每次 spawn 后显式绑定, 禁止按顺序、名称或猜测补账.
 
-每次 spawn 使用以下串行握手; **只串行绑定窗口**, 已绑定 agent 可继续并发执行:
+**hotfix2 W40: 握手只对 writer/generator 角色执行** — ship 只消费 generator 链, 只读角色 (architect/critic/reviewer/spec-compliance/explorer) 直接 spawn, 不冻结不记 assignment。writer spawn 使用以下串行握手; **只串行绑定窗口**, 已绑定 agent 可继续并发执行:
 
 1. **冻结新 spawn**: 同一主 thread 同时只允许一个未绑定 spawn. 读取当前 sprint slug 与已有 `subagent-assignments.jsonl` 的 `agent_id` 集合.
 2. **记录 raw boundary**: 在调用 `spawn_agent` 前, 记录 `subagent-events.jsonl` 当前完整行数 `N` (文件不存在则 `N=0`). 后续只检查第 `N+1` 行起的增量, 不重绑旧事件.

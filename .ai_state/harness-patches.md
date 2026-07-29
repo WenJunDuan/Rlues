@@ -244,66 +244,20 @@ W3/W9 改为 `≥1` 或同样锚定到 `tryRepoRoot` / `git_root` 函数体内�
   evidence.yaml`。批次 3 存档即如此 (manifest 声明了哈希, 文件从未进 git)。P3 修复让 gate 改用主仓
   解析, 症状被绕开, 但"契约声明了一个 git 不携带的文件"这条**结构性矛盾仍在**, 建议后续 sprint 处理。
 
-## 2026-07-28 · 小刀批次 (W18-W20, 二刀 review 后)
 
-> 来源: 二刀 review findings S1-S3/A4/B2 (`sprints/2026-07-28-gate-descaling/design.md` 同 slug 追加批次)。双端对称, 版本号不动。
+## 2026-07-29 · hotfix2 实现批次 (W35-W40, Codex Sol 设计 × Fable 实现)
 
-| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
-|---|---|---|
-| W18 | **B2 复活机械 re-route**: index-updater 从数 evidence.yaml `file:` (9.9.6 起恒 0, 触发器已死) 改数 tool-trace.jsonl 的 `file` 字段 + apply_patch 路径。双端冒烟: Quick+4 文件 → next_action=re-route ✅ | `rg -c 'tool-trace.jsonl' index-updater.cjs index-updater.py` (各 ≥1) |
-| W19 | **S3 route-note 落盘协议对齐**: athena-dev Step 5 默认 route_history 一行, 复杂场景 (0.5-0.8 带假设 / re-route) 才单立 route-note.md (双端) | `rg -c '不再单立 route-note' athena-dev/SKILL.md` (双端各 1) |
-| W20 | **S1/S2/A4 文档漂移收口**: orchestration.md 绿区行改引 stages.md 单源 (双端); templates/_index `plan_critique_min_rounds` 注释刷为"全路径=1" (双端); live `_index.md` 同注释 sed 同步 | `rg -c '单一真相' orchestration.md` (双端各 1) · `rg -c '全路径=1' templates/_index.md` (双端各 1) |
-
-- 遗留 (记录, 本批不修): A1 pre-bash-guard 瘦身 / A2 token-usage 采集降频 / A3 counts 砍除 / B1 evidence admissible 契约机器化 / C1 F2 基线刷新 / C2 F6 A/B 换 dogfood 指标 — 归下刀 build-spec。
-
-## 2026-07-28 · 下刀批次 (W21-W24, 效率税削减)
-
-> 设计与验证: `sprints/2026-07-28-gate-descaling/design.md` §9。双端对称, 版本号不动。
+> 设计: `sprints/2026-07-29-athena-9-9-6-hotfix2/design.md` (含 Round 2 Fable critic F1-F8)。用户授权直接实现。
 
 | 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
 |---|---|---|
-| W21 | token-usage Stop 聚合只在 ship 跑 (SubagentStop 保留) | `rg -c "evtName === 'Stop' && stage !== 'ship'" token-usage-collector.cjs` · `rg -c 'evt == "Stop" and stage != "ship"' token-usage-collector.py` |
-| W22 | index-updater 按写入面分流 + 无变化不写 | `rg -c 'doScan' index-updater.cjs` ≥2 · `rg -c 'do_scan' index-updater.py` ≥2 |
-| W23 | delivery-gate lite-admissible (hook 记录 + covers 一行即 admissible) | `rg -c 'lite-admissible' delivery-gate.cjs delivery-gate.py` (各端两副本均 ≥1) |
-| W24 | A1 撤回记录: pre-bash-guard 不动 (CX 无原生兜底, 唯一护栏; 见 design §9) | — (无代码改动, 防未来误砍) |
+| W35 | 双端 evidence 脱敏 (redact command) + tool-trace 停产 + CX result 归一 (F8 解析死锁) + .gitignore 遥测退出。**supersede W21/W33**: token-usage 已从默认 lifecycle 整体退出 (settings/hooks.json 布线删除), 旧复核命令失效属预期 | `rg -c 'W35' evidence-collector.cjs evidence-collector.py` (各 ≥1) · `rg -c redact evidence-collector.py` ≥2 |
+| W36 | re-route 数据源 tool-trace → git 三探针 (diff/cached/untracked), **supersede W18** 数据源部分 | `rg -c 'W36' index-updater.cjs index-updater.py` (各 1) |
+| W37 | breadcrumb 去 next_action + 预算 240B (双端); next_action 枚举告警 (index-updater 双端) + 模板注释 | `rg -c 'W37' stage-breadcrumb.cjs user-prompt-submit.py` (各 1) |
+| W38 | AC11/12 保留标号豁免 + meta-acceptance 双端删除; 模板 annex 契约刷 opt-in (P0-3) | `rg -c 'W38' delivery-gate.cjs delivery-gate.py` (各 ≥2) |
+| W39 | CX SessionStart 移植未消解 GateEscalated 告警 (与 CC 对齐, 冒烟实证) | `rg -c 'W39' session-start.py` ≥1 |
+| W40 | binding 握手只绑 writer/generator (orchestration ×2); P0-1 CX 只读角色豁免 (READONLY_ROLES); config.toml 清 openai_base_url/context_window/auto_compact; roadmap 地板 ≥3模块 → ≥2 独立切片 (宪法/SKILL/athena-dev/stages 六处); Stop 只留 gate、PreCompact 删除 (双端布线) | `rg -c 'W40' orchestration.md` ×2 · `rg -c READONLY_ROLES subagent-worktree-audit.py` · `rg -c openai_base_url config.toml` (=0) |
 
-- C1/C2: `roadmap/athena-9-9-6-prompt-engineering/9.9.6-update-plan.md` F2 基线刷新 + F6 砍换 dogfood 三指标。
-- 副本同步: 双端 gate 两副本随本批次再次对齐 (md5 复核: `diff <(md5sum < A) <(md5sum < B)`)。
-
-## 2026-07-28 · 路由刀批次 (W25-W27, fable5 + 模型路由)
-
-> 设计: `sprints/2026-07-28-gate-descaling/design.md` §10。用户批准覆盖 07-25 角色矩阵决策 (evaluator Opus→Fable)。
-
-| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
-|---|---|---|
-| W25 | CC effortLevel xhigh→high (对齐 CX high+plan_mode xhigh; ultrathink 显式升档) | `rg -c '"effortLevel": "high"' settings.json` |
-| W26 | evaluator model opus→fable + 显式重试注记 | `rg -c 'model: fable' agents/evaluator.md` |
-| W27 | critic 7 维度压缩为判据表 (138→101 行) · evaluator 砍评分剧场 · evaluator 双端判据源刷 design.md Done Contract | `rg -c 'W27' agents/critic.md agents/evaluator.md` · `rg -c 'Done Contract' agents/evaluator.md evaluator.toml` |
-
-- 验收 (下一真实 sprint): 主观 — plan/design 审议质量不降; 客观 — evaluator VERDICT 与 findings 的引用一致性、token-usage by_stage 的 main-loop 花销下降 (ship 时看 W21 聚合)。
-
-## 2026-07-28 · 收尾刀批次 (W28-W30)
-
-> 设计: `sprints/2026-07-28-gate-descaling/design.md` §11。
-
-| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
-|---|---|---|
-| W28 | B3: compact-restore 白名单化 — CC 抽共享模块 `_index-render.cjs` (session-start 同源复用, 死代码 readFrontmatterSummary 顺删), 注入 ~4KB→~0.5KB 且带 specialAlerts; CX 内联白名单 (与 session-start.py INDEX_CORE 同步注记) | `ls _index-render.cjs` · `rg -c '_index-render' session-start.cjs compact-restore.cjs` (各 1) · `rg -c 'INDEX_CORE 同步' compact-restore.py` |
-| W29 | A5: pace-continuator 双端砍 `## 历史` 写入 (三套历史并存, turn-end 信息量≈0, 实测有空条目), 软提醒保留; 双端模板 `## 历史` 段废除 | `rg -c 'W29' pace-continuator.cjs pace-continuator.py` (各 1) |
-| W30 | C3: roadmap 编号收敛 (唯一权威 = items.yaml slug, F↔item 映射入档) + 计划外批次补录 completed items ×2 (total 10→12) | `rg -c '编号收敛' roadmap.md` · `rg -c 'gate-descaling' items.yaml` |
-
-- 本批后 live `_index.md` 的 `## 历史` 段成为遗留数据 (hook 不再写), 可在下次 checkpoint 时手动清除。
-
-## 2026-07-28 · 实测归因刀批次 (W31-W34, 下午 dogfood 数据驱动)
-
-> 依据: quantum-cowork `2026-07-28-sensory-retirement` 实测 — 代码写入 3/43=7%, ai_state 手写 36 次, route-note 5KB 仍写, 自造 CODEX-TASK.md 9.8KB, ship 同因 block×4 熔断, token-usage 533KB 非 ship 期写入。设计: `sprints/2026-07-28-gate-descaling/design.md` §12。
-
-| 条 | 内容 | 复核命令 (0 命中 = 已被覆盖) |
-|---|---|---|
-| W31 | **R/S 契约降为 opt-in**: review-manifest 不再强制 (存在才验全链); Evidence Cross-Check 段 gate 检查砍 (双端 3 处); R/S 行为底线 = runtime-verify + cleanup + PASS。ship 空转熔断根因消除 | `rg -c 'W31' delivery-gate.cjs delivery-gate.py` (cjs ≥2 / py ≥3) |
-| W32 | CX index-updater 事件面止血: 无写入路径事件 (UserPromptSubmit/Bash/MCP) 直接 no-op — 旧行为每条消息+每次 Bash 全量扫 (327 Bash/sprint 实测); apply_patch 路径解析补上 | `rg -c 'W32' index-updater.py` |
-| W33 | CX token-usage 判定改 payload 形状 (agent_transcript_path / stage=ship), 不依赖事件名 — 旧条件 fail-open 致 533KB 照写 | `rg -c 'W33' token-usage-collector.py` |
-| W34 | 指令面催写源砍除: 宪法铁律[文档即真相]「阶段转换前同步」→「ship 前一次」(5 个 architecture 文档更新的宪法级来源); 铁律[分诊] route-note → route_history 一行; CX 握手「任务文件」措辞 → 任务内联 (CODEX-TASK.md 诱因); stages 派工禁落盘条目 | `rg -c 'ship 前做一次' CLAUDE.md AGENTS.md` (各 1) · `rg -c '不落盘任务书' orchestration.md` (CX 1) |
-
-- 冒烟: R/S ship 无 manifest 双端放行 ✅; CX Bash/UserPromptSubmit 事件 _index 零写入 ✅; CX 非 ship 无 agent 转写跳过聚合 ✅。
-- 双端 gate 双副本随本批再次对齐。**安装态需再同步一次** (本批 12 文件)。
+- 官方合同实证: CX Stop 仅 additionalContext **不续轮** (需 decision:block) — continuator 删除安全; codex config 默认值文档截断, 保持待验证。
+- 新仪器: `vibeCoding/scripts/athena-metrics.py` (git 单源, AC2/AC9 口径)。
+- 安装态需同步本批 (~20 文件); 同步后在安装态复跑 W10-W40 复核命令 + validator。

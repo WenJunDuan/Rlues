@@ -31,6 +31,30 @@ INDEX_SKIP_FLAGS = ("skip_polish", "skip_architecture_check", "skip_runtime_veri
 INDEX_POINTERS = ("latest_decisions", "latest_lessons")
 
 
+
+def pending_escalation(ai_state, sprint_slug):
+    """hotfix2 (2026-07-29, W39): 与 CC 语义对齐 — 尾部 GateEscalated 且其后无 GatePass
+    = 升级未消解, SessionStart 必须告警 (熔断不是放行)。fail-open。"""
+    if not sprint_slug:
+        return None
+    try:
+        import json as _json
+        rows = []
+        for line in (ai_state / "sprints" / sprint_slug / "stop-failures.jsonl").read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = _json.loads(line)
+                if isinstance(row, dict) and row.get("event") in ("GateBlock", "GateEscalated", "GatePass"):
+                    rows.append(row)
+            except ValueError:
+                continue
+        last = rows[-1] if rows else None
+        return last if last and last.get("event") == "GateEscalated" else None
+    except Exception:
+        return None
+
+
 def render_index_whitelist(fm: dict) -> str:
     lines = [f"{k}: {str(fm.get(k) or '').strip()}" for k in INDEX_CORE if str(fm.get(k) or "").strip()]
     lines += [f"{k}: true" for k in INDEX_SKIP_FLAGS if str(fm.get(k) or "").strip() == "true"]
@@ -258,9 +282,19 @@ def main() -> int:
 
         context_parts = []
 
+
         if ai_state:
             idx_path = ai_state / "_index.md"
             fm = parse_frontmatter(idx_path)
+
+            # hotfix2 W39: 未消解 GateEscalated 必须在 SessionStart 告警 (与 CC 对齐)
+            esc = pending_escalation(ai_state, fm.get("current_sprint_slug", ""))
+            if esc:
+                context_parts.append(
+                    "## 🛑 门禁升级未消解\n\n上次 Stop 连续 %s 次同因阻断后熔断 (ESCALATED, %s)。"
+                    "阻断未解除, 只是停止空转; 查 stop-failures.jsonl 修根因, 不得当作已通过。"
+                    % (esc.get("consecutive", "?"), esc.get("ts", "?"))
+                )
             summary = render_index_whitelist(fm)
             if summary:
                 context_parts.append(f"## Athena 项目状态 (.ai_state/_index.md)\n\n{summary}")

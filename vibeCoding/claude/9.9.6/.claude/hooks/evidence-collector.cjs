@@ -103,35 +103,20 @@ function main() {
     const toolInput = payload.tool_input && typeof payload.tool_input === "object" ? payload.tool_input : {};
     const command = tool === "Bash" ? String(toolInput.command || "").slice(0, 500) : "";
     const timestamp = new Date().toISOString();
-    const trace = {
-      schema_version: 1,
-      timestamp,
-      event: eventName || "unknown",
-      tool,
-      tool_use_id: toolUseId,
-      status,
-      exit_code: null,
-    };
-    if (["Edit", "Write", "MultiEdit"].includes(tool)) {
-      trace.file = String(toolInput.file_path || toolInput.path || "");
-    }
-    if (tool === "Bash") trace.command = command;
-    if (eventName === "PostToolUseFailure") {
-      trace.error = redact(payload.error);
-      trace.is_interrupt = payload.is_interrupt === true;
-      trace.duration_ms = Number.isFinite(payload.duration_ms) ? payload.duration_ms : null;
-    }
-    const sprintDir = path.join(aiState, "sprints", sprintSlug);
-    fs.mkdirSync(sprintDir, { recursive: true });
-    fs.appendFileSync(path.join(sprintDir, "tool-trace.jsonl"), `${JSON.stringify(trace)}\n`, "utf8");
-
+    // hotfix2 (2026-07-29, 台账 W35/AC3): tool-trace.jsonl 默认零遥测 —
+    // 普通 Bash/Edit/MCP 不再逐行记账 (写放大主源, 无核心 gate 消费者);
+    // re-route 文件数已改由 index-updater 用 git 现场变更集计算 (W36)。
     // A successful file write is useful trace data, but it is not validation.
     if (tool === "Bash" && toolUseId && isValidationCommand(command)) {
+      const sprintDir = path.join(aiState, "sprints", sprintSlug);
+      fs.mkdirSync(sprintDir, { recursive: true });
+      // F3 (2026-07-29, W35): command 必须脱敏后落盘 — redact 原只盖 error 字段,
+      // 凭据/敏感参数经 command 原文进入版本化 evidence 是 P0 泄露面。
       appendEvidence(path.join(sprintDir, "evidence.yaml"), sprintSlug, {
         tool_use_id: toolUseId,
         tool,
         result: status,
-        command,
+        command: redact(command),
         timestamp,
       });
     }

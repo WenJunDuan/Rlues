@@ -665,10 +665,7 @@ def validate_ac_mapping(
         return
     missing: list[str] = []
     for label in sorted(labels):
-        # Meta-acceptance is mechanically derived by this gate. Requiring a
-        # future review/evidence row for AC11/AC12 would be circular.
-        if label in {"AC11", "AC12"}:
-            continue
+        # hotfix2 AC5/W38: AC11/12 保留标号豁免已删 — 统一 admissible 证据。
         admissible = False
         for record in records:
             mapped = record["ac_id"] == label or label in record["covers"]
@@ -739,22 +736,7 @@ def validate_ac_mapping(
         )
 
 
-def validate_meta_acceptance(
-    criteria: list[str], review_content: str, sprint_dir: Path, cwd: Path
-) -> None:
-    labels = {match.group(1).upper() for item in criteria for match in AC_LABEL.finditer(item)}
-    if "AC11" in labels and final_review_verdict(review_content) != "PASS":
-        raise GateError("AC11 requires the latest bound evaluator verdict PASS")
-    if "AC12" not in labels:
-        return
-    cleanup = require_file(sprint_dir / "cleanup-pass.md", "cleanup-pass.md")
-    if not re.search(r"\bPASS\b|completed|完成", cleanup, re.I):
-        raise GateError("AC12 requires completed polish/cleanup evidence")
-    worktrees = git_text(git_root(cwd), ["worktree", "list", "--porcelain"], "worktree readiness")
-    active = len(re.findall(r"(?m)^worktree\s+", worktrees))
-    if active != 1:
-        raise GateError(f"AC12 requires no extra active worktree; found {active}")
-
+# hotfix2 AC5/W38: validate_meta_acceptance 已删 — 统一 per-AC 证据。
 
 def validate_generator_chain(sprint_dir: Path, sprint_slug: str) -> None:
     assignments = read_jsonl(
@@ -1588,7 +1570,7 @@ def main() -> int:
                 if not re.search(r"\bPASS\b|completed|完成", cleanup, re.I):
                     raise GateError(
                         "Refactor/System polish stage 未跑; 解锁链: 跑 polish → 产出 "
-                        "cleanup-pass.md → 再补 review-manifest.yaml"
+                        "cleanup-pass.md 即可 (review-manifest 全路径 opt-in, 仅已声明时才补)"
                     )
             has_manifest = (sprint_dir / "review-manifest.yaml").exists()
             # K1 (2026-07-28, W31): R/S manifest 契约降为 opt-in (与 Feature 同构); 存在则全链照验。
@@ -1632,8 +1614,6 @@ def main() -> int:
                 review_content=review_content,
                 review_path=review_path,
             )
-            if path_type in GENERATOR_PATHS and has_manifest:
-                validate_meta_acceptance(spec_criteria, review_content, sprint_dir, root)
         except GateError as exc:
             return stop_failure(payload, str(exc), sprint_dir, stage, path_type)
         except Exception as exc:

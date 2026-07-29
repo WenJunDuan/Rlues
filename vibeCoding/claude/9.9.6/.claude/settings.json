@@ -2,7 +2,10 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "model": "best",
   "effortLevel": "high",
-  "fallbackModel": ["opus", "sonnet"],
+  "fallbackModel": [
+    "opus",
+    "sonnet"
+  ],
   "worktree": {
     "baseRef": "head"
   },
@@ -200,11 +203,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/token-usage-collector.cjs",
-            "timeout": 15
-          },
-          {
-            "type": "command",
             "command": "node ~/.claude/hooks/subagent-tracker.cjs",
             "timeout": 15
           }
@@ -242,18 +240,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/token-usage-collector.cjs",
-            "timeout": 15
-          },
-          {
-            "type": "command",
             "command": "node ~/.claude/hooks/delivery-gate.cjs",
             "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/pace-continuator.cjs",
-            "timeout": 30
           }
         ]
       }
@@ -266,18 +254,6 @@
             "type": "command",
             "command": "node ~/.claude/hooks/stop-failure-recorder.cjs",
             "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "manual|auto",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/compact-snapshot.cjs",
-            "timeout": 15
           }
         ]
       }

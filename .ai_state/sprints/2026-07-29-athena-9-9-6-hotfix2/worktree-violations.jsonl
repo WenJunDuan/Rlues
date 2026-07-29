@@ -1,0 +1,1 @@
+{"schema_version": 1, "ts": "2026-07-29T12:27:35+00:00", "event": "SubagentStart", "blocked_before_start": false, "resolved": false, "agent": "explorer", "reason": "铁律[零写入] 红区: path=System, 写文件的 agent \"explorer\" 的任务里没有 worktree 绝对路径。主 thread 应先建 worktree 再把路径写进任务。", "agent_id": "019fadd8-2b23-7491-b300-9e524fdf6893"}

@@ -77,7 +77,7 @@ pointers:
   latest_requirement: ""          # requirements/{slug}.md 最新 (v9.8.0)
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: ""                   # 主 agent / delivery-gate 写: runtime-verify | polish | ship | rework_impl | next_roadmap_item:{slug}
+next_action: ""                   # hotfix2: 仅机器枚举 re-route|runtime-verify|review|polish|ship|rework_impl|next_roadmap_item:{slug}|roadmap_complete; 正常进度留空, 禁散文
 last_subagent: ""                 # SubagentStop hook 仅记录生命周期
 last_subagent_at: ""
 active_worktrees: []              # WorktreeCreate/Remove hook 维护

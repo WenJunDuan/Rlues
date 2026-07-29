@@ -68,8 +68,18 @@ def pick(container: Any, keys: tuple[str, ...]) -> str:
     return ""
 
 
+READONLY_ROLES = {
+    # P0-1 (2026-07-29, W35): 打包的只读角色显式豁免 — 旧逻辑 unknown profile 默认
+    # writable, 只读 explorer 被记违规账并在 ship 被 gate 阻断 (hotfix2 实测)。
+    "architect", "critic", "reviewer", "spec-compliance", "spec_compliance",
+    "evaluator", "explorer", "pr_explorer", "docs_researcher",
+}
+
+
 def agent_writes_files(agent_name: str) -> bool:
-    """read-only sandbox 的 agent 不写文件; 找不到定义时保守当作会写。"""
+    """read-only 角色/沙箱不写文件; 真正未知的 profile 仍保守当作会写 (fail-closed)。"""
+    if agent_name in READONLY_ROLES:
+        return False
     toml = Path.home() / ".codex" / "agents" / f"{agent_name}.toml"
     if not toml.is_file():
         return True

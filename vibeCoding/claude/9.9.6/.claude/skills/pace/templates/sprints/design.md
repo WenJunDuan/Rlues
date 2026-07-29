@@ -40,15 +40,15 @@ last_updated: ""
 >    `validateAcMapping` 排除这两个标号, 而 `validateMetaAcceptance` 会据标号施加另一套无关义务。
 > 4. **条目正文内禁写其他 AC 编号**: 标号抽取扫的是条目正文, 判据为
 >    `(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])` (前有非字母数字边界、后不接数字)。在 AC17 正文写
->    "(原 AC11)" 会把保留标号重新注射进标号集。编号映射只写在本节表头注里。
+> hotfix2 W38: AC11/12 保留标号豁免已废除 — 全部 AC 统一走 admissible 证据 (含 source:review lite 路径)。
 > 5. **每条业务 ACn 需 admissible 证据绑定** (`evidence.yaml` 的 `ac_id` / `covers`, `validateAcMapping`),
 >    三形态: `source: command` (带 output_artifact + sha256 + exit 0 + implementation_commit) /
 >    `source: artifact` / `source: review` (最低成本, 指向逐 AC SATISFIED 且 VERDICT PASS 的最新 passN)。
 >    ⚠ **hook 自动采集的记录不含这两个字段, 不构成绑定**; `tdd-evidence.yaml` 走另一条校验, 也不算。
->    **分级**: 仅在 `review-manifest.yaml` 存在时执行 → Refactor/System 必踩, 其余路径不带 manifest
+>    **分级**: 仅在 `review-manifest.yaml` 存在时执行 → **全路径 opt-in** (hotfix2 W31/W38; R/S 不再必踩), 不带 manifest 即跳过全链
 >    时业务 AC 完全不绑定。义务细节见 `pace/references/stages.md` ship 段。
 >
-> 写清楚、可观测、附核验命令口径 (spec-compliance 会逐项对比 git diff)。— 同步自 delivery-gate @2026-07-28
+> 写清楚、可观测、附核验命令口径 (spec-compliance 会逐项对比 git diff)。— 同步自 delivery-gate @2026-07-29 (hotfix2)
 
 - [ ] AC1: ...
 - [ ] AC2: ...
