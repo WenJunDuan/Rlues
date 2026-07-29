@@ -197,12 +197,9 @@ def read_fm_field(content: str, field: str) -> str:
 def check_reroute(content: str, ai_state: Path) -> str:
     """v9.9.0: re-route 机械触发 (铁律[分诊] 地板检测, 只升不降).
 
-    stage ∈ {impl, runtime-verify} 且 next_action 为空时, 统计 tool-trace.jsonl 中
-    非 .ai_state 的改动文件数; 超路径上限 → 写 next_action="re-route" + stderr 提示.
-
-    B2 fix (2026-07-28, 台账 W18): 旧实现数 evidence.yaml 的 file: 条目, 但 9.9.6
-    evidence-collector 从不写 file: → 计数恒 0, 触发器实质已死。改数 tool-trace.jsonl:
-    Edit/Write 行的 file 字段 + apply_patch 命令里的 Update/Add File 路径。
+    stage ∈ {impl, runtime-verify} 且 next_action 为空时, 统计 git 现场变更集中的
+    非 .ai_state 改动文件数; 超路径上限 → 写 next_action="re-route" + stderr 提示。
+    W36: 与 ship 共享 git 单一真相, 不依赖普通工具 raw trace 或停产账本。
     """
     fm_path = read_fm_field(content, "path")
     fm_stage = read_fm_field(content, "stage")

@@ -41,7 +41,10 @@ function currentSprint(aiState) {
 function redact(value) {
   return String(value || "")
     .replace(/\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,})\b/g, "[REDACTED]")
-    .replace(/((?:api[_-]?key|token|password|secret)\s*[=:]\s*)[^\s,;]+/gi, "$1[REDACTED]")
+    .replace(/(authorization\s*:\s*bearer\s+)[^\s,;]+/gi, "$1[REDACTED]")
+    .replace(/((?:api[_-]?key|token|password|secret|private[_-]?key|client[_-]?secret|aws[_-](?:secret[_-]?access[_-]?key|access[_-]?key[_-]?id)|database[_-]?url)\s*[=:]\s*)[^\s,;]+/gi, "$1[REDACTED]")
+    .replace(/(--(?:password|token|api[-_]?key|secret)(?:=|\s+))[^\s,;]+/gi, "$1[REDACTED]")
+    .replace(/(\b(?:https?|postgres(?:ql)?|mysql):\/\/)[^\s/@:]+:[^\s/@]+@/gi, "$1[REDACTED]@")
     .slice(0, 500);
 }
 

@@ -49,7 +49,7 @@ System 路径专用, plan 通过后进 design 出详细架构. 可 spawn `archit
 4. 红区 (Refactor/System): generator **必须 `isolation: worktree`**
 5. 并行多 generator (大改): 也强制 worktree
 6. 超大规模 (≥5 独立同构子任务): 评估 ultracode, 见 `references/orchestration.md`
-7. PostToolUse hook 自动写 evidence.yaml + tool-trace.jsonl
+7. PostToolUse 对 validation command 写脱敏 evidence.yaml; 普通工具不写 raw tool-trace (W35)
 8. v9.9.0: index-updater 检测改动文件数超路径上限 (Quick>3/Feature>10) → next_action=re-route,
    主 agent 停当前 task 重走路由审议 (只升不降, 补新路径欠的 stage)
 
@@ -99,7 +99,7 @@ spawn `polish_worker` subagent:
 - Refactor/System (≥5 文件): 必须更新 architecture/ (铁律[门禁])
 - design_changed_after_impl=true: block 直到重新 review
 - Feature/Refactor/System: 选择数字最大的 passN.md, 最终 VERDICT 必须为 PASS 且含 `## Spec Compliance`
-- Feature+ 必须有共享 assignments/events JSONL 中完整 generator Start→assignment→Stop 链 (逃生: skip_impl_subagent_check)
+- Feature+ 必须有共享 assignments/events JSONL 中完整 generator Start→assignment→Stop 链; `subagent-log.md` 仅历史兼容视图 (逃生: skip_impl_subagent_check)
 - design.md 的 Critic Findings **标题行** ≥ min 轮 (默认全路径 1; plan_critique_min_rounds 覆写); design.md >300 行 stderr 警告
 - review-manifest **全路径 opt-in** (2026-07-28 W31; 存在才验全链, 必钉集 design.md + R/S runtime-verify.md); Evidence Cross-Check 段不再 gate 验
 - hotfix2 (2026-07-29): AC11/12 保留标号豁免废除; token/tool-trace/snapshot/continuator 已退出默认 lifecycle (只在 ship 或显式采集); next_action 仅机器枚举
@@ -121,7 +121,7 @@ spawn `polish_worker` subagent:
 
 实测病灶: 9.9.6 主 sprint 写入操作里 `.ai_state` 记账 102 次 vs 代码 15 次 (8.4%)。规则:
 
-- **手写文档白名单**: sprint 目录里 agent 手写的 md 只允许 design.md / reviews/passN.md / (Bugfix) issue-report+fix-note / (R/S) runtime-verify.md + cleanup-pass.md。route-note **并入 `_index.route_history` 一行**, 不再单立文件; *-evidence.md / verification-inventory / session-log 等自造散文**禁止** — 证据走 hook 自动的 evidence.yaml/tool-trace, 不走手写复述
+- **手写文档白名单**: sprint 目录里 agent 手写的 md 只允许 design.md / reviews/passN.md / (Bugfix) issue-report+fix-note / (R/S) runtime-verify.md + cleanup-pass.md + checkpoint 要求的 session-log.md。route-note **并入 `_index.route_history` 一行**, 不再单立文件; *-evidence.md / verification-inventory 等自造散文**禁止** — 证据走脱敏 evidence.yaml, raw tool-trace 仅 release-eval/显式采集
 - **体积预算**: design.md 目标 ≤200 行 (System) / ≤80 行 (Feature); 超 300 行 delivery-gate 在 ship 时 stderr 警告 (不 block, 防死锁)。critic 轮次追加不计入
 - **判据**: 一个 sprint 内 agent 手写 md 字节数不应超过代码 diff 字节数; 超了 = 文书跑赢了产出, 停下反省而不是继续写
 
@@ -141,11 +141,11 @@ spawn `polish_worker` subagent:
 │       ├── runtime-verify.md           # v9.8.0 运行时自测自改 (delivery-gate 验)
 │       ├── reviews/passN.md           # 数字最大一轮必须 PASS
 │       ├── cleanup-pass.md            # polish 产出
-│       ├── subagent-log.md            # Start/Stop 人类视图, 非机器门禁真相
+│       ├── subagent-log.md            # 历史兼容视图, 默认不生成
 │       ├── subagent-events.jsonl      # CC/CX 共享 raw lifecycle schema
 │       ├── subagent-assignments.jsonl # 主 agent Start→任务意图握手
 │       ├── evidence.yaml              # validation success/failure 证据
-│       └── tool-trace.jsonl           # 每个 tool call 一行
+│       └── tool-trace.jsonl           # 仅 release-eval/显式采集, 默认不生成
 ├── roadmap/
 │   └── {slug}/
 │       ├── roadmap.md

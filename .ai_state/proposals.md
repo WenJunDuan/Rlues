@@ -106,3 +106,8 @@
   stage。缺点: `_index.md` 已知有 lost-update 与 hook churn 问题; 写者崩溃后永无 Stop → stage 永锁,
   必须再设逃生口, 复杂度不成比例。
 - **本次处置**: 约定先落 (AC22), 并给出派工前单条自检命令降低违约概率。**待修** (hook 改动, 下刀)。
+## P13 · destructive cleanup command rejected by executor (2026-07-29)
+
+- **现象**: 用户明确授权删除两个仓库 `_to_delete_*` 目录，但执行器拒绝 literal `rm -rf`。
+- **处置**: 只针对已核验的绝对路径，将两个目录完整移入本轮事务备份 `deleted-to-delete/`；仓库原路径已消失，内容可恢复。
+- **后续**: 清理动作继续使用可回滚 quarantine，除非执行器提供受控删除通道；不扩大到 sessions/history/plugins/database。

@@ -131,6 +131,12 @@ hotfix2 应保留 PACE、项目真相、fail-closed safety/spec/ship gate、TDD�
 - [ ] AC9: 三类同任务 A/B 各 N≥3；质量 gate 不退化，正常模型回合数下降、p50 墙钟时间下降，自动版本化状态字节下降至少 80%，三项均须报告原始样本而非主观评价。
 - [ ] AC10: 一个实现 slice 不产生 stage-only/progress-only commit；代码与最终状态按逻辑交付合并，ship 前最多一次集中状态同步，真实 blocker/用户决策/handoff 例外须说明原因。
 
+## Scope lock — 本 sprint 与后续裁决边界
+
+- 本 sprint 交付控制面收缩、双端安装同步与 git 单源度量仪器；`athena-metrics.py` 的 `verdict_ac2` 是本轮度量代理输出，不替代 AC2 的只读/worktree 行为判据。
+- AC9 的三类 A/B、每类 N≥3、质量/回合/p50/状态字节原始样本是下一 sprint 的独立 gate；本 sprint 只记录基线，**不宣称 AC9 PASS**。
+- 10.0 是否继续架构收缩，以下一 sprint 的 AC9 原始数据决定；本轮不因“原本纠结和啰嗦”追加新的控制面机制。
+
 ## 9. 非目标与风险
 
 - 不删除 PACE 或 `.ai_state`，不新增 stage、第二状态树、runtime shared renderer 或 telemetry 配置开关。
@@ -163,7 +169,7 @@ hotfix2 应保留 PACE、项目真相、fail-closed safety/spec/ship gate、TDD�
 |---|---|---|
 | F1 | re-route 改 git 变更集但宿主未指定 | 宿主 = index-updater (原事件位), 数据源换 git diff/cached/untracked 三探针, 非 git 环境 fail-open 不触发 (W36) |
 | F2 | 删 trace 前度量仪器真空 | `vibeCoding/scripts/athena-metrics.py` 先落地 (git 单源: code_diff/手写md/state 行数 + AC2 判定), 后删 trace (W35) |
-| F3 | evidence.yaml 的 command 同样裸写 | 双端 redact(command) 落盘; 冒烟: sk-/ghp_ 凭据 0 泄露 (W35) |
+| F3 | evidence.yaml 的 command 同样裸写 | 双端 redact(command) 覆盖 provider key、Bearer、assignment、CLI flag 与 URL userinfo; 冒烟覆盖上述形状 0 泄露 (W35) |
 | F4 | 删 token collector 与 W21/W33 台账冲突 | 台账 W35 显式记 supersession, 防复核命令误报"被覆盖" |
 | F5 | AC9 与被砍的 F6-A/B 需区分 | 区分依据: 本版指标全为低方差客观量 (回合数/p50/状态字节) 且三任务类分层, 非 prompt 质量主观 Pareto — C2 反对理由不适用 |
 | F6 | 两条官方合同未验证 | 已 fetch: **CX Stop 仅 additionalContext 不续轮 (需显式 decision:block, 官方原文)** → continuator 双端删除安全; config 默认值文档截断, 保持待验证 (validator 兜底) |

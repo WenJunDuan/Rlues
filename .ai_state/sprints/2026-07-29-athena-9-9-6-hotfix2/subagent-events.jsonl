@@ -7,3 +7,7 @@
 {"schema_version":1,"event":"SubagentStop","agent_id":"019fadd8-2b23-7491-b300-9e524fdf6893","agent_type":"explorer","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:40:29.291472Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"019fade9-6b6c-76f3-8062-2ee4f3ce9472","agent_type":"critic","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:46:24.797766Z"}
 {"schema_version":1,"event":"SubagentStop","agent_id":"019fade9-6b6c-76f3-8062-2ee4f3ce9472","agent_type":"critic","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T12:53:46.249910Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019fae3d-7bb0-7a23-88cd-32b3551623ad","agent_type":"reviewer","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T14:18:14.399162Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019fae3d-9a6a-7e53-9812-60ea9f7ae55f","agent_type":"spec-compliance","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T14:18:21.321956Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019fae57-fee1-75a1-9a50-2462ac1fcf5b","agent_type":"evaluator","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T14:47:10.976099Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"019fae5c-fa60-74d3-a175-32526f2ceb6e","agent_type":"polish_worker","sprint_slug":"2026-07-29-athena-9-9-6-hotfix2","timestamp":"2026-07-29T14:52:37.453441Z"}

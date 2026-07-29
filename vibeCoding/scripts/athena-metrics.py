@@ -2,7 +2,8 @@
 """athena-metrics — hotfix2 AC9/F2 度量仪器 (git 单源, 离线).
 
 用法: python3 athena-metrics.py <repo_root> <sprint_slug> [base_ref]
-输出: 手写md字节 / 代码diff字节 / 状态字节 / commit 数 — 替代已停产的 tool-trace 占比口径。
+输出: 手写md行 / 代码diff行 / 状态行 / commit 数 — 替代已停产的 tool-trace 占比口径。
+`verdict_ac2` 是控制面规模的 git 度量代理; 设计 AC2 的 read-only/worktree 行为仍需 runtime fixture。
 """
 import subprocess, sys, re
 from pathlib import Path
@@ -37,7 +38,8 @@ def main():
     print(f"handwritten_sprint_md_lines={md}")
     print(f"state_lines_total={state}")
     print(f"commits={commits}")
-    print(f"verdict_ac2={'PASS' if md <= max(code,1) else 'FAIL'} (手写md<=代码diff)")
+    verdict = 'PASS' if md <= max(code,1) else 'FAIL'
+    print(f"verdict_ac2={verdict} (instrument-proxy: 手写md<=代码diff; design AC2 另由行为夹具验证)")
 
 if __name__ == "__main__":
     main()

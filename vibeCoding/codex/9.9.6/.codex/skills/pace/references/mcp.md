@@ -8,7 +8,7 @@
 | stage | MCP 典型用途 | 落盘要求 | 不要 |
 |---|---|---|---|
 | plan / design | 连 github/db/api/文档源取真相 (对标 context7 出处优先) | 事实落 design.md / requirements, 引 URL | 不用记忆里的 API 签名; 不让 MCP 决定路径 |
-| impl | 连外部系统读写测试夹具 / 真实依赖 | 证据落 evidence.yaml + tool-trace | 不绕过红黄绿区写入路由 |
+| impl | 连外部系统读写测试夹具 / 真实依赖 | 脱敏证据落 evidence.yaml; raw trace 仅显式 release-eval | 不绕过红黄绿区写入路由 |
 | runtime-verify | 连真实环境/服务实跑 | 实跑输出晒 transcript + runtime-verify.md | 不用 MCP 返回值冒充断言 |
 | review / ship | 连外部检查器 (可选第 4 审) | findings 并入 passN.md | 不豁免 delivery-gate |
 

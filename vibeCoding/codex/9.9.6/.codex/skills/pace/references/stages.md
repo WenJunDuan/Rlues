@@ -62,7 +62,7 @@ System 路径专用, plan 通过后进 design 出详细架构. 可 `spawn_agent`
 4. 红区 (Refactor/System): 主 thread 先 `git worktree add`, 再把 worktree 绝对路径与互斥写集写进 `spawn_agent.message`; agent 首个命令 `pwd`, 后续 shell 显式 `workdir`
 5. 并行多 generator (大改): 也强制 worktree
 6. 超大规模 (≥5 独立同构子任务): 评估 multi-agent v2 fan-out, 见 `references/orchestration.md`
-7. hooks 记录其实际收到的工具调用; 未观察到的写入由主 agent 用 `git diff --stat` / `git diff` 补证
+7. hooks 仅记录 validation 证据; 普通工具不生成 raw tool-trace (W35); 未观察到的写入由主 agent 用 `git diff --stat` / `git diff` 补证
 8. v9.9.0: index-updater 检测改动文件数超路径上限 (Quick>3/Feature>10) → next_action=re-route,
    主 agent 停当前 task 重走路由审议 (只升不降, 补新路径欠的 stage)
 
@@ -110,7 +110,7 @@ VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 - Refactor/System (≥5 文件): 必须更新 architecture/ (铁律[门禁]); 文件数优先用 git diff 现场计算, evidence.yaml 为辅
 - design_changed_after_impl=true: block 直到重新 review
 - Feature/Refactor/System: pass1.md 必须含 `## Spec Compliance` 段
-- v9.9.0 (U1): Feature+ 的 subagent-log.md 必须含 generator 记录 (逃生: skip_impl_subagent_check)
+- Feature+ 必须有共享 assignments/events JSONL 中完整 generator Start→assignment→Stop 链; `subagent-log.md` 仅历史兼容视图 (逃生: skip_impl_subagent_check)
 - design.md 的 Critic Findings **标题行** ≥ min 轮 (默认全路径 1; plan_critique_min_rounds 覆写); design.md >300 行 stderr 警告
 - review-manifest **全路径 opt-in** (2026-07-28 W31; 存在才验全链, 必钉集 design.md + R/S runtime-verify.md); Evidence Cross-Check 段不再 gate 验
 - hotfix2 (2026-07-29): AC11/12 保留标号豁免废除; token/tool-trace/snapshot/continuator 已退出默认 lifecycle (只在 ship 或显式采集); next_action 仅机器枚举
@@ -124,8 +124,8 @@ VERDICT 四象限: **PASS | CONCERNS | REWORK | FAIL**
 **per-AC 证据绑定义务 (2026-07-28 新增, review PASS 后、翻 ship 前做)**
 
 `validate_ac_mapping` 要求 design.md 里**每条业务 ACn** 在 `evidence.yaml` 有一条 admissible 的绑定记录。
-触发条件: 该校验**仅在 `review-manifest.yaml` 存在时执行**, 而 Refactor/System 的 manifest 是强制的
-→ **红区必踩**; 其余路径不带 manifest 时业务 AC 完全不绑定 (同一份 AC 强制力差一整级, 别误以为通用)。
+触发条件: 该校验**仅在 `review-manifest.yaml` 显式存在时执行**; 不存在时所有路径（含 Refactor/System）均不启动绑定链。
+→ **全路径 opt-in**; 不带 manifest 时业务 AC 完全不绑定，避免同一份 AC 在路径间隐式改变强制力。
 
 ⚠️ **hook 自动采集的 evidence 记录不含 `ac_id` / `covers` 两个字段, 一条都不构成绑定**;
 写者交的 `tdd-evidence.yaml` 走另一条校验, **不参与 AC 绑定**。
@@ -165,7 +165,7 @@ Codex hooks 可覆盖 shell、`apply_patch` 与部分 MCP 调用, 但是否触�
 
 实测病灶: 9.9.6 主 sprint 写入操作里 `.ai_state` 记账 102 次 vs 代码 15 次 (8.4%)。规则:
 
-- **手写文档白名单**: sprint 目录里 agent 手写的 md 只允许 design.md / reviews/passN.md / (Bugfix) issue-report+fix-note / (R/S) runtime-verify.md + cleanup-pass.md。route-note **并入 `_index.route_history` 一行**, 不再单立文件; *-evidence.md / verification-inventory / session-log 等自造散文**禁止** — 证据走 hook 自动的 evidence.yaml/tool-trace, 不走手写复述
+- **手写文档白名单**: sprint 目录里 agent 手写的 md 只允许 design.md / reviews/passN.md / (Bugfix) issue-report+fix-note / (R/S) runtime-verify.md + cleanup-pass.md + checkpoint 要求的 session-log.md。route-note **并入 `_index.route_history` 一行**, 不再单立文件; *-evidence.md / verification-inventory 等自造散文**禁止** — 证据走脱敏 evidence.yaml, raw tool-trace 仅 release-eval/显式采集
 - **体积预算**: design.md 目标 ≤200 行 (System) / ≤80 行 (Feature); 超 300 行 delivery-gate 在 ship 时 stderr 警告 (不 block, 防死锁)。critic 轮次追加不计入
 - **判据**: 一个 sprint 内 agent 手写 md 字节数不应超过代码 diff 字节数; 超了 = 文书跑赢了产出, 停下反省而不是继续写
 
@@ -185,10 +185,10 @@ Codex hooks 可覆盖 shell、`apply_patch` 与部分 MCP 调用, 但是否触�
 │       ├── runtime-verify.md           # v9.8.0 运行时自测自改 (delivery-gate 验)
 │       ├── reviews/pass1.md           # 含 ## Spec Compliance 段
 │       ├── cleanup-pass.md            # polish 产出
-│       ├── subagent-log.md            # hook 自动写
+│       ├── subagent-log.md            # 历史兼容视图, 默认不生成
 │       ├── worktrees.yaml             # 主 agent / hooks 记录 worktree 生命周期
 │       ├── evidence.yaml              # 可观察工具调用的过程证据
-│       └── tool-trace.jsonl           # 可观察工具调用轨迹
+│       └── tool-trace.jsonl           # 仅 release-eval/显式采集, 默认不生成
 ├── roadmap/
 │   └── {slug}/
 │       ├── roadmap.md

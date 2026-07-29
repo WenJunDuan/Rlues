@@ -41,5 +41,5 @@ next_route: ""                 # plan | roadmap | direct_design (System)
 ## 下一步路由
 
 - [ ] plan (单 feature 清晰)
-- [ ] roadmap (≥3 模块, 进 roadmap 拆 feature)
+- [ ] roadmap (≥2 个可独立验收、可独立 ship 的切片, 进 roadmap 拆 feature)
 - [ ] direct design (System 路径需求清晰)

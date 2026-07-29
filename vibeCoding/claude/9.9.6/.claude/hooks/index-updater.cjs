@@ -221,10 +221,8 @@ function main() {
     }
 
     // 6. v9.9.0: re-route 机械触发 (铁律[分诊] 地板检测, 只升不降)
-    // B2 fix (2026-07-28, 台账 W18): 旧实现数 evidence.yaml 的 file: 条目, 但 9.9.6
-    // evidence-collector 从不写 file: (只写进 tool-trace.jsonl 的 trace.file) → 计数恒 0,
-    // 触发器实质已死 (近期 sprint 实测零 file: 条目)。改数 tool-trace.jsonl:
-    // Edit/Write/MultiEdit 行的 file 字段 + apply_patch 命令里的 Update/Add File 路径。
+    // W36: re-route 与 ship 共享 git 现场变更集; 不依赖普通工具 raw trace 或
+    // evidence-collector 的历史 file: 字段, 避免第二账本与停产 tool-trace 漂移。
     const PATH_FILE_CAPS = { Quick: 3, Bugfix: 3, Feature: 10 };
     const fmPath = (content.match(/^path:\s*"?([^"\n]*)"?/m) || [])[1] || '';
     const fmStage = (content.match(/^stage:\s*"?([^"\n]*)"?/m) || [])[1] || '';

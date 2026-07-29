@@ -38,7 +38,7 @@ skills: [pace]
 | 2 | 错误处理 | 信任边界 (用户输入/外部 IO/跨进程/权限面) 有失败路径; 边界内不要求 (见 7) |
 | 3 | 测试覆盖 | 每条验收标准 ≥1 对应测试; 集成/E2E/性能按 design 要求 |
 | 4 | 历史决策冲突 (重点) | 对照 pointers.latest_decisions 的 compound/decision-*.md, 违已拍板决策 = P0 |
-| 5 | 复杂度 | 工作量低估? 跨 ≥3 模块且非 roadmap 子 item → 建议拆 |
+| 5 | 复杂度 | 工作量低估? 存在 ≥2 个可独立验收、可独立 ship 的切片且非 roadmap 子 item → 建议拆 |
 | 6 | 历史教训 | 对照 latest_lessons, 重蹈 learning-*.md 覆辙 = 警告 |
 | 7 | 过度设计 (铁律[反过度工程]) | 无第二消费者的抽象/未被要求的配置项/边界内 blanket try-catch; 判据: 删掉后验收标准仍满足 = 砍。与 1/2 双向平衡 |
 

@@ -29,26 +29,13 @@ last_updated: ""
 
 ## 验收标准 (acceptance criteria)
 
-> ⚙ **机器契约 (delivery-gate 同步)** — 下面五条是 gate 的机械判据, 不是风格建议。违反即 block。
-> 改本节骨架前先读完; **gate 判据变更时须同步更新本块**。
+> ⚙ **机器契约** — 这里仅定义可观测的验收条目; 解析与门禁实现不在模板重复。
 >
-> 1. **标题** 只认 `## Acceptance Criteria` / `## 验收标准` (2-3 级), 序号前缀只允许 ASCII `1.` `1)`;
->    CJK 序数 (`## 六、验收标准`) 不匹配 → 解析结果 0 条 → 全部实现写入被拦 (`ACCEPTANCE_HEAD`)。
-> 2. **只收列表项** (`-` / `*` / `1.` / `[ ]`); **markdown 表格行一条都不算**; 占位符与泛化陈述
->    (TODO/TBD/待定/"功能正常"…) 被剔除 (`acceptanceCriteria`, `isPlaceholderCriterion`)。
-> 3. **编号 11/12 是 harness 保留元标号**: 业务 AC **一律避开**, 从 AC13 起编。占用即*静默免检* ——
->    `validateAcMapping` 排除这两个标号, 而 `validateMetaAcceptance` 会据标号施加另一套无关义务。
-> 4. **条目正文内禁写其他 AC 编号**: 标号抽取扫的是条目正文, 判据为
->    `(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])` (前有非字母数字边界、后不接数字)。在 AC17 正文写
-> hotfix2 W38: AC11/12 保留标号豁免已废除 — 全部 AC 统一走 admissible 证据 (含 source:review lite 路径)。
-> 5. **每条业务 ACn 需 admissible 证据绑定** (`evidence.yaml` 的 `ac_id` / `covers`, `validateAcMapping`),
->    三形态: `source: command` (带 output_artifact + sha256 + exit 0 + implementation_commit) /
->    `source: artifact` / `source: review` (最低成本, 指向逐 AC SATISFIED 且 VERDICT PASS 的最新 passN)。
->    ⚠ **hook 自动采集的记录不含这两个字段, 不构成绑定**; `tdd-evidence.yaml` 走另一条校验, 也不算。
->    **分级**: 仅在 `review-manifest.yaml` 存在时执行 → **全路径 opt-in** (hotfix2 W31/W38; R/S 不再必踩), 不带 manifest 即跳过全链
->    时业务 AC 完全不绑定。义务细节见 `pace/references/stages.md` ship 段。
->
-> 写清楚、可观测、附核验命令口径 (spec-compliance 会逐项对比 git diff)。— 同步自 delivery-gate @2026-07-29 (hotfix2)
+> 1. 每条 AC 都是可观测结果，使用列表项表达，避免占位语句。
+> 2. 条目正文只描述本条目标，不引用其他 AC 编号或内部实现细节。
+> 3. `review-manifest.yaml` 仅在显式存在时启用逐 AC 证据绑定；不存在时不启动绑定链。
+> 4. 需要绑定时，在证据文件中给出命令、产物或最终 review 的可复核出处。
+> 5. 变更门禁规则时改实现与参考文档，不在每个 sprint 模板复制规则。
 
 - [ ] AC1: ...
 - [ ] AC2: ...

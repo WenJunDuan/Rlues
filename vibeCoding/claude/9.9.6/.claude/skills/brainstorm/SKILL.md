@@ -14,7 +14,7 @@ description: PACE 最早的可选 stage。想法模糊、写不出验收标准�
 | 用户带方案但说 "听听别的意见" / "pressure-test 一下" | 用户 | ✅ |
 | 用户显式 `--skip-brainstorm` / 输入开头 "直接做:" | 用户 | ❌ |
 | 显式 bug / 重构描述 | 自动 | ❌ (走 Bugfix/Refactor 路径) |
-| ≥ 3 模块的大需求且方向已清晰 | 自动 | ❌ (直接进 roadmap) |
+| ≥ 2 个可独立验收、可独立 ship 的切片且方向已清晰 | 自动 | ❌ (直接进 roadmap) |
 | 想法清晰 + 单模块 | 自动 | ❌ (直接 plan) |
 
 ## 核心循环 (grill-me)

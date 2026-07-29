@@ -85,7 +85,7 @@ current_sprint_slug: "2026-05-25-jwt-refresh"
 
 === 当前 sprint: 2026-05-25-jwt-refresh ===
 brainstorm.md  design.md  checklist.yaml  reviews/
-subagent-log.md  evidence.yaml  tool-trace.jsonl
+evidence.yaml  (subagent-log/tool-trace 仅历史或显式 release-eval)
 
 === 活动 worktree ===
 ["worktree-jwt-refresh-impl"]

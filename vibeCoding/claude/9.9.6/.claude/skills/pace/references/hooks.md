@@ -15,8 +15,11 @@
 | WorktreeCreate / WorktreeRemove | 默认不注册 | 使用 Claude Code 原生 Git worktree; 自定义 hook 仅非 Git VCS 专用 profile |
 | InstructionsLoaded / ConfigChange | config-change-audit.cjs | 只记来源/文件名, 不复制配置值 |
 | StopFailure | stop-failure-recorder.cjs | 模型/API 停止失败元数据, secret redaction |
-| Stop | delivery-gate.cjs + pace-continuator.cjs | 交付门禁 (确定性 command) + 历史/软提醒 |
-| PreCompact / PostCompact | compact-snapshot/restore.cjs | 跨 compact 状态恢复 |
+| Stop | delivery-gate.cjs | 交付门禁；不默认续跑 (W35/W40) |
+| PreCompact | 未注册 (compact-snapshot.cjs) | 默认不复制 _index 快照 (W35) |
+| PostCompact | compact-restore.cjs | compact 后恢复 live `_index.md` 摘要 |
+
+> W35/W40: `pace-continuator.cjs`、`token-usage-collector.cjs`、`compact-snapshot.cjs` 均为未注册的历史/兼容资产，不参与默认 lifecycle。
 
 > v9.7.0 协议要点 [官方 code.claude.com/docs/en/hooks]:
 > - JSON 输出仅在 exit 0 时解析; exit 2 时 JSON 被忽略 → 所有 Stop hook 统一 exit 0 + 纯 JSON stdout

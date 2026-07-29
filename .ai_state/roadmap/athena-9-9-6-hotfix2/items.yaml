@@ -4,22 +4,22 @@ total_items: 3
 items:
   - slug: architecture-assessment
     title: "双端热路径审计与 hotfix2 可审设计"
-    status: in_progress
+    status: completed
     sprint_slug: "2026-07-29-athena-9-9-6-hotfix2"
     blocked_by: []
     estimated_complexity: M
-    notes: "只读评估并形成问题清单、目标架构、验收标准；不改实现"
+    notes: "已完成架构评估、Fable5 Round 2 设计与 runtime/review 证据"
   - slug: core-descaling
     title: "按审议结果裁撤流程税与遥测明细"
-    status: pending
+    status: completed
     sprint_slug: ""
     blocked_by: [architecture-assessment]
     estimated_complexity: L
-    notes: "实现范围以 Fable5 review 后确认的 P0/P1 为准"
+    notes: "W35-W40 控制面减负已实现并同步 canonical/安装态"
   - slug: dual-end-eval-release
     title: "双端回归、A/B 效率基线与安装态发布"
-    status: pending
+    status: completed
     sprint_slug: ""
     blocked_by: [core-descaling]
     estimated_complexity: L
-    notes: "同任务、同仓库、同验收；兼顾正确性、时延、上下文与文书量"
+    notes: "安装发布、validator、ledger 与 git 单源基线已完成；AC9 三类 A/B N≥3 留作下一 sprint，不在本轮宣称 PASS"

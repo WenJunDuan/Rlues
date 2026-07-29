@@ -5,12 +5,12 @@
 | Hook 事件 | 文件 | 职责 |
 |---|---|---|
 | SessionStart (startup\|resume\|clear) | session-start.py | 注入 _index.md + stage-specific 操作提示 |
-| UserPromptSubmit | user-prompt-submit.py + index-updater.py | 预检 + counts 同步 (mtime 比对); v9.9.0 index-updater 加 re-route 机械触发 (文件数超路径上限 → next_action=re-route) |
+| UserPromptSubmit | user-prompt-submit.py | 面包屑与提示预检；不启动 index-updater 扫描 (W40) |
 | PreToolUse | pre-bash-guard.py + delivery-gate.py + subagent-worktree-audit.py | 灾难命令、spec/push 门禁，以及 `spawn_agent|Agent` 红区 worktree 前置阻断 |
-| PostToolUse | evidence-collector.py + index-updater.py + design-change-detector.py | 使用 `tool_response` 记录可观察过程证据; 无法确认状态时记 unknown, 不默认成功 |
-| SubagentStart / SubagentStop | subagent-tracker.py + SubagentStart 的 subagent-worktree-audit.py + SubagentStop 的 token-usage-collector.py | 记录生命周期与 token 用量；审计已启动的越界 agent；不从 Start 推断完成或从 Stop 猜 exit code |
-| Stop | token-usage-collector.py + delivery-gate.py + pace-continuator.py | token 记账; 交付门禁 (Feature+ 要求 generator 的 Stop 完成记录 + checklist/review 产物, Start 记录不能解锁); 历史与软提醒 |
-| PreCompact | compact-snapshot.py | compact 前快照 _index.md (v9.7.0 新, CX 0.129+) |
+| PostToolUse | evidence-collector.py + design-change-detector.py + index-updater.py (仅 Edit/Write) | validation 证据脱敏落盘；普通 Bash/MCP 不生成 raw telemetry (W35/W40) |
+| SubagentStart / SubagentStop | subagent-tracker.py + SubagentStart 的 subagent-worktree-audit.py | 仅保留生命周期与已启动 agent 的 worktree 审计；不做 token 记账 (W40) |
+| Stop | delivery-gate.py | 交付门禁；不续跑、不做 token 记账 (W35/W40) |
+| PreCompact | 未注册 (compact-snapshot.py) | 默认不复制 _index 快照 (W35) |
 | PostCompact | compact-restore.py | compact 后注回 _index.md 摘要 (v9.7.0 新) |
 
 > CC 端另有 Notification hook (notification-router.cjs, agent_completed → 软提醒消费 next_action), CX hooks GA 事件集无 Notification — 已知不对称.
@@ -28,6 +28,7 @@
 > - 多 hook 并发执行无顺序保证
 > - hook 是流程护栏, 不是完整安全边界; OS sandbox、权限与人工确认仍负责真正隔离
 > - `subagent-retry.py` 是未注册的升级兼容清理 shim，不参与当前 PostToolUse 链，也不自动 retry
+> - `pace-continuator.py`、`token-usage-collector.py`、`compact-snapshot.py` 均为未注册的历史/兼容资产，不参与默认 lifecycle (W35/W40)
 > - 已启动的 worktree 违规会阻塞 ship；修复越界改动后须在对应 JSONL 行写 `resolved:true` 与非空 `resolution` 证据
 >
 > 官方说明: https://learn.chatgpt.com/docs/hooks

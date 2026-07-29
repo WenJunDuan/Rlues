@@ -12,7 +12,7 @@
 
 ## roadmap (借 CodeStable)
 
-**触发**: ≥3 模块需求 / 显式 "拆分" / brainstorm 收敛后大需求
+**触发**: ≥2 个可独立验收、可独立 ship 的切片 / 显式 "拆分" (模块数只定风险等级)
 **职责**: 拆 feature 序列, 产出 items.yaml + roadmap.md
 **调度**: delivery-gate 与主 agent 在 ship 后核对并推进下一 item
 **详**: `~/.claude/skills/roadmap/SKILL.md`
@@ -49,7 +49,7 @@ System 路径专用, plan 通过后进 design 出详细架构. 可 spawn `archit
 4. 红区 (Refactor/System): generator **必须 `isolation: worktree`**
 5. 并行多 generator (大改): 也强制 worktree
 6. 超大规模 (≥5 独立同构子任务): 评估 ultracode, 见 `references/orchestration.md`
-7. PostToolUse hook 自动写 evidence.yaml + tool-trace.jsonl
+7. PostToolUse 对 validation command 写脱敏 evidence.yaml; 普通工具不写 raw tool-trace (W35)
 8. v9.9.0: index-updater 检测改动文件数超路径上限 (Quick>3/Feature>10) → next_action=re-route,
    主 agent 停当前 task 重走路由审议 (只升不降, 补新路径欠的 stage)
 
@@ -127,11 +127,11 @@ spawn `polish_worker` subagent:
 │       ├── runtime-verify.md           # v9.8.0 运行时自测自改 (delivery-gate 验)
 │       ├── reviews/passN.md           # 数字最大一轮必须 PASS
 │       ├── cleanup-pass.md            # polish 产出
-│       ├── subagent-log.md            # Start/Stop 人类视图, 非机器门禁真相
+│       ├── subagent-log.md            # 历史兼容视图, 默认不生成
 │       ├── subagent-events.jsonl      # CC/CX 共享 raw lifecycle schema
 │       ├── subagent-assignments.jsonl # 主 agent Start→任务意图握手
 │       ├── evidence.yaml              # validation success/failure 证据
-│       └── tool-trace.jsonl           # 每个 tool call 一行
+│       └── tool-trace.jsonl           # 仅 release-eval/显式采集, 默认不生成
 ├── roadmap/
 │   └── {slug}/
 │       ├── roadmap.md

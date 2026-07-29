@@ -36,7 +36,7 @@ pointers:
 
 路由判定 (同 v9.7.0):
 - 单 feature 清晰 → plan
-- ≥3 模块 → roadmap
+- ≥2 个可独立验收、可独立 ship 的切片 → roadmap
 - System 路径需求清晰 → direct design
 
 ## AI 角色

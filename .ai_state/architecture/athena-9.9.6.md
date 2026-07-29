@@ -2,8 +2,8 @@
 version: "9.9.6"
 type: "release"
 slug: "athena-9.9.6"
-status: "draft — 结构与预算已机器校验, runtime 未验证"
-updated: "2026-07-25"
+status: "current — hotfix2 W35-W40 runtime verified"
+updated: "2026-07-29"
 supersedes: "athena-9.9.3.md"
 ---
 
@@ -11,7 +11,15 @@ supersedes: "athena-9.9.3.md"
 
 主题：**Native Surface · Thin Prompt · Bounded Context**。
 
-9.9.3 的两个内核不变 —— PACE(4 核心 + 5 条件 stage、红黄绿区、2+1 review、fail-closed gates) 与 `.ai_state`(持久化项目真相 + 有界检索入口)。9.9.6 只刷新四个控制面：平台合同、常驻预算、护栏强度、语义契约。**26 个 skill 一个未删未并，PACE stage 一个未增未改名。**
+9.9.3 的两个内核不变 —— PACE(4 核心 + 5 条件 stage、红黄绿区、2+1 review、fail-closed gates) 与 `.ai_state`(持久化项目真相 + 有界检索入口)。9.9.6 hotfix2 保留这些边界，并把控制面收敛为：平台合同、常驻预算、护栏强度、语义契约。**26 个 skill 一个未删未并，PACE stage 一个未增未改名。**
+
+## hotfix2 控制面现状 (W35-W40, 2026-07-29)
+
+- 普通 prompt/Bash/Edit/MCP 不再写 raw `tool-trace`、token 明细或 compact snapshot；Stop 只保留 delivery-gate，validation command 才落脱敏 evidence。
+- re-route 以 git diff/cached/untracked 三探针为源；breadcrumb 独立于 `next_action` 且受 240B 预算约束，`next_action` 只接受机器枚举。
+- read-only architect/critic/reviewer/spec-compliance/explorer 走平台原生结果，不创建 writer lifecycle/violation；未隔离 writer 在 System 仍 fail-closed。
+- AC 统一走 admissible evidence，模板/gate 对 manifest 采用 opt-in 单一契约；Codex fresh config 不手填 provider URL、context window 或 auto-compact 元数据。
+- 新仪器 `vibeCoding/scripts/athena-metrics.py` 以 git 单源输出代码/手写状态量与 `verdict_ac2=PASS` 度量代理；真实 sprint 同时用 read-only/worktree 行为夹具验证设计 AC2，AC9 A/B 留给下一 sprint。
 
 ## 与 9.9.3 的架构差异
 
@@ -102,16 +110,17 @@ Codex 端运行在 `approval_policy = never` + `sandbox_mode = danger-full-acces
 ## 校验入口
 
 ```
-python3 vibeCoding/scripts/validate-athena-9.9.6.py     # 76 断言, 0 FAIL (local-only)
+python3 vibeCoding/scripts/validate-athena-9.9.6.py     # 66 PASS / 0 FAIL / 0 SKIP (local-only)
+python3 vibeCoding/scripts/athena-metrics.py . <sprint-slug> <base-ref>
 ```
 
 覆盖：包结构 · env 黑名单(每条挂官方出处) · provider/multi_agent_v2 合同 · 双端角色矩阵 · skill frontmatter/catalog/热路径预算 · 隐式调用锁 · hook 文件齐全与死 matcher · `_index` 无非原子写 · pre-bash-guard 14 例绕过回归 · sprint contract 与 `/goal` 双端命中 · 宪法无 legacy verification 劝导 · 四项注入预算实跑实测。
 
-**不覆盖**：真机安装、完整 PACE 流程实跑、A/B eval、migration/rollback。这些是独立的 runtime 门。
+**不覆盖**：A/B eval、migration/rollback。这些是独立的 runtime/发布门；hotfix2 本轮已覆盖双端安装态、边界、脱敏、配置解析与 SQLite 可读性。
 
 ## 未决与风险
 
-1. **无 runtime 验证** —— 未在真机 CC 2.1.219 / Codex 0.145.0 上装过、跑过完整 PACE 流程。这是最大风险面。
+1. **A/B eval 尚未执行** —— AC9 的 N≥3 质量/回合/p50 对照留给下一 sprint；本轮记录 `verdict_ac2=PASS` 度量代理，并用行为夹具完成设计 AC2 判定。
 2. **CX 红区 worktree 只有审计、没有门禁。** Codex 0.145 MultiAgent V2 的 `spawn_agent` handler 不派发 `PreToolUse`，故不注册该 matcher（死分支）。改用 `subagent-worktree-audit.py` 挂 `SubagentStart` 事后检测 + 落 `worktree-violations.jsonl`；CC 端仍为 `PreToolUse(Agent)` 真阻断。剩余缺口：违规记录未接入 ship 门禁。
 3. 模型实调仍受阻：CC CLI 未登录；Terra 在账户目录可见，但直连和本地代理均因 TLS handshake EOF 未完成请求。
 4. 无 A/B eval，无 migration/rollback fixture，无 N≥3 统计。

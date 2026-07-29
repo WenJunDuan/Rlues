@@ -5,10 +5,10 @@ Codex 0.144.1 exposes ``tool_response`` as arbitrary JSON.  Only a top-level
 object whose ``exit_code`` is a JSON integer is treated as authoritative;
 strings, booleans, nested values, and missing fields remain ``unknown``.
 
-The hook records Bash, apply_patch, and MCP calls in ``tool-trace.jsonl`` when
-Codex surfaces them.  Only recognized test/lint/build/typecheck shell commands
-become process evidence.  A hook is a best-effort guardrail, not a security or
-completeness boundary; ship-time file evidence is still derived from Git.
+The hook records only recognized validation commands as redacted evidence;
+ordinary Bash, apply_patch, and MCP calls do not create raw telemetry by
+default.  A hook is a best-effort guardrail, not a security or completeness
+boundary; ship-time file evidence is still derived from Git.
 
 Wire contract:
 https://github.com/openai/codex/blob/rust-v0.144.1/codex-rs/hooks/schema/generated/post-tool-use.command.input.schema.json
@@ -44,9 +44,18 @@ EVIDENCE_PATTERNS = [
 
 
 def redact(value: str) -> str:
-    """F3 (2026-07-29, W35): 与 CC redact 同构 — API key / token / 赋值型凭据脱敏。"""
+    """F3 (2026-07-29, W35): redact credentials before evidence is versioned."""
     v = re.sub(r"\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,})\b", "[REDACTED]", value or "")
-    v = re.sub(r"((?:api[_-]?key|token|password|secret)\s*[=:]\s*)[^\s,;]+", r"\1[REDACTED]", v, flags=re.I)
+    v = re.sub(r"(authorization\s*:\s*bearer\s+)[^\s,;]+", r"\1[REDACTED]", v, flags=re.I)
+    v = re.sub(
+        r"((?:api[_-]?key|token|password|secret|private[_-]?key|client[_-]?secret|"
+        r"aws[_-](?:secret[_-]?access[_-]?key|access[_-]?key[_-]?id)|database[_-]?url)\s*[=:]\s*)[^\s,;]+",
+        r"\1[REDACTED]",
+        v,
+        flags=re.I,
+    )
+    v = re.sub(r"(--(?:password|token|api[-_]?key|secret)(?:=|\s+))[^\s,;]+", r"\1[REDACTED]", v, flags=re.I)
+    v = re.sub(r"(\b(?:https?|postgres(?:ql)?|mysql)://)[^\s/@:]+:[^\s/@]+@", r"\1[REDACTED]@", v, flags=re.I)
     return v[:500]
 
 
