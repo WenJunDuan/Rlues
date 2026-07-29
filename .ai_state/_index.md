@@ -5,7 +5,7 @@ version: "9.9.3"
 
 # === PACE 路由状态 ===
 path: "System"                 # 9.9.6 hotfix2 双端 harness 架构减负
-stage: "ship"                  # review PASS + polish PASS，准备提交并推送 main
+stage: "ship"                  # review PASS + polish PASS，已提交并推送 main
 current_sprint_slug: "2026-07-29-athena-9-9-6-hotfix2"
 current_roadmap_slug: "athena-9-9-6-hotfix2"
 skip_polish: false                # 项目级 opt-out (默认 false)
@@ -77,7 +77,7 @@ pointers:
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "ship"
+next_action: "release_complete"
 last_subagent: "evaluator"
 last_subagent_at: "2026-07-29T14:46:00Z"
 active_worktrees: []
@@ -106,6 +106,7 @@ fingerprint: ""
 
 [由主 agent 在 stage 切换时简短追加]
 
+- 2026-07-29 ship：hotfix2 已完成提交并推送 `main`（`19dd8d5`）；delivery-gate exit 0，工作树干净，当前 sprint/roadmap 项均 completed。AC9 A/B N≥3 仍按范围锁定为下一 sprint，不影响本轮交付完成。
 - 2026-07-29 W35-W40 hotfix2：canonical 双端包已同步 ~/.claude 与 ~/.codex（30 个目标，逐文件事务备份）；历史/会话/SQLite 保留，缓存清理完成，_to_delete 内容可恢复隔离。validator 66/0/0、W35-W40 台账、真实 sprint `verdict_ac2=PASS`（git 度量代理）、review/evaluator PASS；AC9 A/B N≥3 明确 deferred 到下一 sprint。
 - 2026-07-28 W31-W34 安装态部署已完成：12 个源条目、10 个唯一目标，9 个过期目标更新；两端哈希、语法、历史与 SQLite 校验通过。会话、历史、配置、认证、插件、项目态和数据库保留；两个仓库 _to_delete_* 目录移入保留备份隔离区并从仓库移除。记录见 sprints/2026-07-28-installation-sync-w31-w34/deployment.md。
 - 2026-07-28 用户主动关闭 9.9.6 prompt-engineering / gate-descaling 方向：原本的改动反复且叙述冗长，后续不再考虑同类扩展。活动 sprint、roadmap 与续跑动作已清空；已完成实现、同步、验证和历史记录保留，未执行项标为 superseded，不伪称 release 已完成。决策档案见 compound/2026-07-28-decision-close-prompt-engineering-direction.md。
