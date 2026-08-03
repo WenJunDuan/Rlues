@@ -3,6 +3,20 @@
   "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "medium",
   "quietStartup": true,
-  "retry": { "enabled": true, "maxRetries": 3, "baseDelayMs": 2000 },
-  "compaction": { "enabled": true, "reserveTokens": 16384, "keepRecentTokens": 20000 }
+  "retry": {
+    "enabled": true,
+    "maxRetries": 8,
+    "baseDelayMs": 5000,
+    "provider": {
+      "maxRetryDelayMs": 120000
+    }
+  },
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 16384,
+    "keepRecentTokens": 20000
+  },
+  "theme": "one-dark",
+  "hideThinkingBlock": true,
+  "showCacheMissNotices": false
 }

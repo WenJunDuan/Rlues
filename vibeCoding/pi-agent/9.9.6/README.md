@@ -41,11 +41,23 @@ TUI 内检查: `/model` 应出现 deepseek 两个模型; `/settings` 确认 defa
 | `settings.json` | pi 全局设置, 默认 deepseek-v4-flash |
 | `models.json` | DeepSeek 自定义 provider (openai-completions) |
 | `auth.json.example` | API key 模板 → 复制为 `~/.pi/agent/auth.json` (chmod 600, 不进仓库) |
+| `mcp.json` | MCP 服务 (chrome-devtools/searchcode/tavily), 取自 my-pi 并做 macOS 适配; 需装 pi-mcp-adapter 生效 |
+| `open-tui.json` | 终端 UI (zh 界面 + cwd/context/tokens/cost 状态栏), 取自 my-pi; 需装 pi-open-tui 生效 |
 | `prompts/` | 7 个角色提示词模板, 迁移自 CC `agents/`, 用 `/architect` 等调用 |
 | `rules/` | 项目规范, 原样迁移, AGENTS.md 指令按需 Read |
 | `extensions/athena-gates.ts` | 门禁适配器: tool_call→pre-bash-guard/delivery-gate, agent_end→Stop 纠偏 |
 | `extensions/athena-lifecycle.ts` | 生命周期适配器: session_start 注入/compact 快照恢复/每轮面包屑 |
 | `extensions/cc-core/` | CC 端 hooks 原样复用 (7 个 .cjs, 仅 2 处路径 patch: rules/stages 优先 pi 路径) |
+| `extensions/tools.ts` | `/tools` 交互式工具开关 (取自 my-pi, AGPL-3.0, 未改逻辑) |
+| `extensions/questionnaire.ts` | AI 主动弹窗提问工具 (取自 my-pi); brainstorm/plan 阶段确认验收用 |
+
+## my-pi 整合对照 (2026-08-03 逐文件 diff)
+
+已取: models.json `compat` 兼容参数 (supportsDeveloperRole:false — DeepSeek 不支持 developer role, 缺了会报错) + maxTokens 64000 实战值 · settings.json retry 加强 (8 次/5s/120s cap) + theme/hideThinkingBlock/showCacheMissNotices · mcp.json (macOS 适配, 原为 Windows `cmd /c`) · open-tui.json 原样 · extensions/tools.ts + questionnaire.ts。
+
+不取及理由: `permission-gate.ts` (正则级拦截, `\brm\b` 全拦误报高, 弱于我们 AST 级 pre-bash-guard, 双门禁互相打架) · `qna.ts` (每轮回复后额外 LLM 抽取调用 = 常驻 token 税) · `structured-output.ts` (demo 性质, 无现实需求) · `compaction:false` (我们的 compact 快照恢复链依赖 compaction) · `httpProxy` 硬编码 (按需自加: settings.json `"httpProxy": "http://127.0.0.1:<port>"`) · 它的 AGENTS.md (Athena 宪法不混入) · `@juicesharp/rpiv-todo` 包 (与 PACE/Sisyphus 双真相源冲突)。
+
+待验证: maxTokens 官方标称 384K 输出, my-pi 实战用 64000 — 先用 64000, 实测 API 报错边界后再调。
 
 ## 待验证 (装好后逐项跑)
 
@@ -69,11 +81,13 @@ TUI 内检查: `/model` 应出现 deepseek 两个模型; `/settings` 确认 defa
 ### 第一批 — 补硬缺口 (裸跑 1-2 天确认 DeepSeek 基线后, 逐个装+冒烟, 不要一次全装)
 
 ```bash
-pi install pi-mcp-adapter        # MCP 连接 (四原语); context7/playwright 对等前提
+pi install pi-mcp-adapter        # MCP 连接 (四原语); 本目录 mcp.json 生效前提
+pi install pi-open-tui           # 终端 UI; 本目录 open-tui.json 生效前提 (my-pi 同款)
 pi install pi-subagents          # subagent 委派 (链式+并行); 补红区隔离降级
-pi install @orca-sec/pi-orca     # fail-closed bash/文件保护 ≈ pre-bash-guard + permissions.deny
 pi install pi-web-access         # web 搜索/抓取; DeepSeek 无原生搜索, 铁律[证据与出处]依赖
 ```
+
+注: `@orca-sec/pi-orca` 从第一批移除 — Phase-2 已落地自有 athena-gates (pre-bash-guard 级), 双门禁打架; 若 dogfood 发现自有门禁盲区再评估。my-pi 的另三个包 (@pi-lab/notify → 第二批 / @juicesharp/rpiv-todo → 不装 / @firstpick/pi-themes-bundle + pi-rounded-tools → 纯 UI 随意)。
 
 - subagent 三候选: `pi-subagents` (先试, gallery 热度最高) / `@tintinweb/pi-subagents` / `pi-swarm`, 只留一个
 - ⚠ orca 装前必读源码: 它拦 bash = 门禁主权外包, 规则错会挡正常工作流; 若达标, Phase-2 免写 pre-bash-guard.ts

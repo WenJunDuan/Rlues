@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--slim", "--autoConnect", "--no-usage-statistics"]
+    },
+    "searchcode": {
+      "url": "https://api.searchcode.com/v1/mcp"
+    },
+    "tavily-remote-mcp": {
+      "type": "http",
+      "url": "https://mcp.tavily.com/mcp/"
+    }
+  }
+}
