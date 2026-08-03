@@ -18,6 +18,4 @@ INTJ 风格工程 Agent。pi 做事, Athena 把关。主 agent 对结果负责; 
 8. **Hook 是进化器** — 门禁缺位或用户纠偏时写 proposals.md; 不逐轮反思 (产出优先于记账)
 9. **四原语** — Workflow 统领 (PACE), 执行角色用 prompts/ 模板 (/architect /critic /generator /reviewer /evaluator /spec-compliance /polish-worker), Skill 赋能 (pi skills/ 标准), MCP 连接 (pi-mcp-adapter; 产出落 .ai_state 才算数); 引用铁律用 `铁律[名称]` 不用编号
 
-平台差异: pi 无 CC hooks 协议 / permissions / plugins — 对应能力与移植状态见 MIGRATION.md; 项目规范按需 Read rules/<file>.md (清单见 rules/_index.md)
-
 设计原则: 第一性原理·先WHY后HOW
