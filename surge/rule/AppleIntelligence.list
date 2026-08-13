@@ -1,21 +1,43 @@
-# Apple Intelligence规则
+# ========================================
+# Apple Intelligence / Siri AI 分流规则
+# 来源：Apple Support (enterprise networks) + 社区验证
+# 建议放在 Apple 通用规则之前，策略建议走「美国节点」或支持 Apple Intelligence 的节点
+# ========================================
 
+# --- 1. Siri / 听写 / 搜索主入口（必须）
 DOMAIN,guzzoni.apple.com
-DOMAIN,mask-api.fe.apple-dns.net
+DOMAIN-SUFFIX,smoot.apple.com
+
+# --- 2. Apple Intelligence 中继链 / Private Cloud Compute（必须）
+DOMAIN-SUFFIX,apple-relay.apple.com
+DOMAIN-SUFFIX,apple-relay.fastly-edge.com
+DOMAIN-SUFFIX,apple-relay.cloudflare.com
+DOMAIN,cp4.cloudflare.com
+
+# --- 3. 额外中继 / Mask / 边缘节点（强烈推荐）
+DOMAIN-SUFFIX,apple-relay.akamaized.net
+DOMAIN-SUFFIX,apple-relay.mask.apple-dns.net
 DOMAIN,mask-api.icloud.com
+DOMAIN,mask-h2.icloud.com
+DOMAIN,mask.icloud.com
+DOMAIN,mask-api.fe.apple-dns.net
 DOMAIN,mask-t.apple-dns.net
 DOMAIN,mask.apple-dns.net
-DOMAIN-SUFFIX,aapps.mzstatic.com
-DOMAIN-SUFFIX,apple-relay.akamaized.net
-DOMAIN-SUFFIX,apple-relay.apple.com
-DOMAIN-SUFFIX,apple-relay.cloudflare.com
-DOMAIN-SUFFIX,apple-relay.fastly-edge.com
-DOMAIN-SUFFIX,apple-relay.mask.apple-dns.net
-DOMAIN-SUFFIX,apps.mzstatic.com
-DOMAIN-SUFFIX,cp4.cloudflare.com
+
+# --- 4. iCloud 网关 & AI 个性化同步（推荐）
 DOMAIN-SUFFIX,gateway.icloud.com
-DOMAIN-SUFFIX,gspe1-ssl.ls.apple.com
+
+# --- 5. 位置 / 资源配置相关（强相关，建议保留）
+DOMAIN,gspe1-ssl.ls.apple.com
 DOMAIN-SUFFIX,ls.apple.com
-DOMAIN-SUFFIX,mask-h2.icloud.com
-DOMAIN-SUFFIX,mask.icloud.com
-DOMAIN-SUFFIX,smoot.apple.com
+
+# --- 6. 静态资源 / App 相关（按需）
+DOMAIN-SUFFIX,aapps.mzstatic.com
+DOMAIN-SUFFIX,apps.mzstatic.com
+
+# --- 7. 配置下发 / 能力接口（可选，增强稳定性）
+DOMAIN-SUFFIX,amp-api.apps.apple.com
+DOMAIN-SUFFIX,configuration.apple.com
+DOMAIN-SUFFIX,mesu.apple.com
+DOMAIN-SUFFIX,gdmf.apple.com
+DOMAIN-SUFFIX,xp.apple.com
