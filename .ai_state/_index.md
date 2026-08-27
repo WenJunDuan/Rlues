@@ -57,8 +57,8 @@ counts:
   refactors_count: 1
   systems_count: 12
   requirements_count: 1
-  reviews_count: 22
-  cleanup_count: 7
+  reviews_count: 24
+  cleanup_count: 8
   compound:
     learning: 5
     trick: 0
@@ -69,11 +69,11 @@ counts:
 pointers:
   latest_design: "sprints/2026-08-27-athena-9-9-8/design.md"
   latest_review: "sprints/2026-08-27-athena-9-9-8/reviews/implementation-review.md"
-  latest_cleanup: "sprints/2026-07-29-athena-9-9-6-hotfix2/cleanup-pass.md"
+  latest_cleanup: "sprints/2026-08-27-athena-9-9-8/cleanup-pass.md"
   latest_brainstorm: ""
   latest_decisions: ["compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-29T14:20:24.017Z"
+  latest_architecture_update: "2026-08-27T11:13:37.112Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
@@ -88,7 +88,7 @@ design_changed_after_impl: false
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
 plan_critique_min_rounds: 0       # 9.9.8：作者会话 0 轮；独立审查走 review-packet
 plan_critique_disabled: true      # 本 sprint 用户要求：写设计的模型不审自己的设计
-skip_impl_subagent_check: false   # 当前 System sprint 尚未授权 impl；后续 writer 仍按门禁绑定
+skip_impl_subagent_check: true    # 用户授权主 agent 在 main checkout 直做 9.9.8；不伪造 generator 生命周期
 network_in_polish: true           # polish_worker 是否允许 network
 breadcrumb: "on"                 # v9.9.3: per-turn stage breadcrumb; off 可关闭
 

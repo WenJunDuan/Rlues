@@ -4,21 +4,21 @@ total_items: 3
 items:
   - slug: review-contract-and-flow
     title: "派生 packet、一次原生 review、final-diff gate、hook 分级"
-    status: pending
+    status: completed
     sprint_slug: "2026-08-27-athena-9-9-8"
     blocked_by: []
     estimated_complexity: L
     notes: "删除 critic 下限与默认 2+1/passN；结构化结果绑定 packet/diff hash；hook 只对红区 block；R/S polish 前移"
   - slug: harness-context-and-model-policy
     title: "去重复上下文、适配原生 harness、model/effort eval"
-    status: pending
+    status: completed
     sprint_slug: "2026-08-27-athena-9-9-8"
     blocked_by: [review-contract-and-flow]
     estimated_complexity: M
     notes: "read-only agent 不手工绑定；quote-aware/read-only hook fixtures；只改真实命中的 pace 预加载；migration 保留用户配置"
   - slug: state-retention-and-retrieval
     title: "有界 ai_state、冷归档、可重建检索 cache"
-    status: pending
+    status: completed
     sprint_slug: "2026-08-27-athena-9-9-8"
     blocked_by: [review-contract-and-flow]
     estimated_complexity: M
