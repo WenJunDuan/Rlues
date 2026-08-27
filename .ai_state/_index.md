@@ -4,17 +4,17 @@
 version: "9.9.3"
 
 # === PACE 路由状态 ===
-path: "System"                 # 9.9.6 hotfix2 双端 harness 架构减负
-stage: "ship"                  # review PASS + polish PASS，已提交并推送 main
-current_sprint_slug: "2026-07-29-athena-9-9-6-hotfix2"
-current_roadmap_slug: "athena-9-9-6-hotfix2"
+path: "System"                 # 9.9.8 review contract + hook austerity + future verifier slots
+stage: "design"                # Grok/Codex 已完善 design；等待独立 Claude 执行派生 packet（作者不自审）
+current_sprint_slug: "2026-08-27-athena-9-9-8"
+current_roadmap_slug: "athena-9-9-8"
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.0) ===
-route_confidence: 0.97             # 双端 hooks/skills/gates/state 跨模块，System+roadmap 地板明确
-route_history: ["2026-07-10 System: Athena 9.9.1 compatibility release from 9.9.0 baseline", "2026-07-10 System: CC 9.9.1 redesign from CC 9.9.0 baseline, awaiting Fable5 review", "2026-07-10 System: user-approved impl-first flow; Fable5 post-implementation review remains mandatory", "2026-07-13 System: user-approved Athena 9.9.2 overall architecture upgrade; four primitives + spec-gate + two-tier memory are mandatory", "2026-07-14 System: repair Athena 9.9.3 review findings, full regression, formal review, merge and publish", "2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作追加范围, 不另立 sprint; path 维持 System (design 原建议 Feature 作废); 改动对象含 ~/.claude 与 ~/.codex 安装态, 依 stages.md 先例不用 worktree", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block (P9 二次撞上, 无豁免出口); worktree 对 repo 外的 ~/.claude|~/.codex 零隔离却照样阻断写入, 任务结构性死锁。用户批准主 agent 直做 G1-G5, 改安装态前已逐个备份 (12 文件, pre-g1g5-20260728T024943Z)", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canonical release 优先于过时 _hf2_sync 快照"]  # re-route 记录
+route_confidence: 0.94             # 用户显式开 9.9.8 System；三切片 roadmap；独立 Claude 复盘但设计作者不自审
+route_history: ["2026-07-10 System: CC 9.9.1 redesign from CC 9.9.0 baseline, awaiting Fable5 review", "2026-07-10 System: user-approved impl-first flow; Fable5 post-implementation review remains mandatory", "2026-07-13 System: user-approved Athena 9.9.2 overall architecture upgrade; four primitives + spec-gate + two-tier memory are mandatory", "2026-07-14 System: repair Athena 9.9.3 review findings, full regression, formal review, merge and publish", "2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作追加范围, 不另立 sprint; path 维持 System (design 原建议 Feature 作废); 改动对象含 ~/.claude 与 ~/.codex 安装态, 依 stages.md 先例不用 worktree", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block (P9 二次撞上, 无豁免出口); worktree 对 repo 外的 ~/.claude|~/.codex 零隔离却照样阻断写入, 任务结构性死锁。用户批准主 agent 直做 G1-G5, 改安装态前已逐个备份 (12 文件, pre-g1g5-20260728T024943Z)", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canonical release 优先于过时 _hf2_sync 快照", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 opt-in 接口；独立 Claude 按 packet 复盘"]  # re-route 记录 (≤10)
 plan_model: "fable"                    # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
@@ -55,10 +55,10 @@ counts:
   features_count: 5
   issues_count: 0
   refactors_count: 1
-  systems_count: 10
+  systems_count: 12
   requirements_count: 1
-  reviews_count: 17
-  cleanup_count: 6
+  reviews_count: 18
+  cleanup_count: 7
   compound:
     learning: 5
     trick: 0
@@ -67,28 +67,28 @@ counts:
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: "sprints/2026-07-29-athena-9-9-6-hotfix2/design.md"
+  latest_design: "sprints/2026-08-27-athena-9-9-8/design.md"
   latest_review: "sprints/2026-07-29-athena-9-9-6-hotfix2/reviews/pass1.md"
   latest_cleanup: "sprints/2026-07-29-athena-9-9-6-hotfix2/cleanup-pass.md"
   latest_brainstorm: ""
-  latest_decisions: ["compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
+  latest_decisions: ["compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-07-29T14:46:00+08:00"
+  latest_architecture_update: "2026-07-29T14:20:24.017Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
-next_action: "release_complete"
-last_subagent: "evaluator"
-last_subagent_at: "2026-07-29T14:46:00Z"
+next_action: "Independent Claude executes review-packet.md and writes reviews/design-review.md; implementation remains unauthorized"
+last_subagent: "athena_998_architecture_challenge"
+last_subagent_at: "2026-08-27T02:57:33.966970Z"
 active_worktrees: []
-last_critic_round: 4              # v3.1 design Round 4 PASS
+last_critic_round: 0              # 9.9.8：设计作者不自审
 design_changed_after_impl: false
 
 # === 用户偏好 ===
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
-plan_critique_min_rounds: 0       # v9.9.0 (U2): 0=auto (2026-07-28 起全路径=1); delivery-gate 在 ship 验 design.md 轮数
-plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
-skip_impl_subagent_check: true    # 用户授权 main 直做；Fable 实现已存在于 77b64bb，未生成本 sprint 的 generator 握手记录
+plan_critique_min_rounds: 0       # 9.9.8：作者会话 0 轮；独立审查走 review-packet
+plan_critique_disabled: true      # 本 sprint 用户要求：写设计的模型不审自己的设计
+skip_impl_subagent_check: false   # 当前 System sprint 尚未授权 impl；后续 writer 仍按门禁绑定
 network_in_polish: true           # polish_worker 是否允许 network
 breadcrumb: "on"                 # v9.9.3: per-turn stage breadcrumb; off 可关闭
 
@@ -106,6 +106,7 @@ fingerprint: ""
 
 [由主 agent 在 stage 切换时简短追加]
 
+- 2026-08-27 design：Grok/Codex 已完善 `Thin PACE Control Plane`：一次原生 review、hook 红黄绿（现场复现无害 `rg` parser 误判）、final-diff hash、有界 `_index`。双端 `athena-vm` 已具 setup/doctor，当前未配置；LaaV 仅作 logprob best-of-N/进度实验，不替代 VM/test/review/ship。packet 52 行并绑定最新 design hash；下一步仍是独立 Claude 复盘，通过前不授权实现。
 - 2026-07-29 ship：hotfix2 已完成提交并推送 `main`（`19dd8d5`）；delivery-gate exit 0，工作树干净，当前 sprint/roadmap 项均 completed。AC9 A/B N≥3 仍按范围锁定为下一 sprint，不影响本轮交付完成。
 - 2026-07-29 W35-W40 hotfix2：canonical 双端包已同步 ~/.claude 与 ~/.codex（30 个目标，逐文件事务备份）；历史/会话/SQLite 保留，缓存清理完成，_to_delete 内容可恢复隔离。validator 66/0/0、W35-W40 台账、真实 sprint `verdict_ac2=PASS`（git 度量代理）、review/evaluator PASS；AC9 A/B N≥3 明确 deferred 到下一 sprint。
 - 2026-07-28 W31-W34 安装态部署已完成：12 个源条目、10 个唯一目标，9 个过期目标更新；两端哈希、语法、历史与 SQLite 校验通过。会话、历史、配置、认证、插件、项目态和数据库保留；两个仓库 _to_delete_* 目录移入保留备份隔离区并从仓库移除。记录见 sprints/2026-07-28-installation-sync-w31-w34/deployment.md。
@@ -115,9 +116,6 @@ fingerprint: ""
 - `2026-07-25`: **Claude review 成立项已修复，仍处 impl**：P0 provider/background/spawn gate、validator、hook/docs/security drift 收口；local-only validator 63 PASS / 0 FAIL / 0 SKIP（含 fresh setup、exact Codex 0.145 config.load、F-series、worktree gate fixtures）。用户明确要求直接在 main checkout 修改；三种 subagent 角色均因无 shell/编辑工具零写入失败，主 thread 接管。完整 F1-F6/runtime-verify/正式 2+1 review 仍 pending，未 commit/push/release。证据见 `review-repair-evidence.md`。
 - `2026-07-25`: **用户最终确认 CC 角色矩阵**：main `model=best`；无全局 subagent override；architect/critic=Fable，evaluator 与其余四个实现/审查角色=Opus；effort 保持 3×xhigh + 4×high。
 - `2026-07-25`: **9.9.6 reviewable bottom draft 已收敛到当前 Rlues/main 工作目录**（uncommitted；临时 worktree/branch 已删除）。CC 117 / CX 115 文件，26 skills/端；Codex 0.145.0 实际加载配置成功；9.9.3 零 diff；本地 tests/evals 尚未创建，F1-F7 保持 pending。证据见当前 sprint `bottom-draft-evidence.md`。
-- `2026-07-25`: **用户授权开始构建 9.9.6 底稿**。roadmap→plan；以 9.9.3 为不可变模板，v3.1 删除 shared/contracts/renderer/runtime-capabilities，锁定双端自包含、local-only tests、App/WSL/API 用户与 AI-state injection+retention 边界；不授权 commit/push/release。
-- `2026-07-25`: **9.9.6 调研与 roadmap 草案完成，等待用户确认**。已形成官方/外部 source map、9.9.3 现状审计、6-item roadmap、研究版 design 与更新计划；确认前不进入实现。关键现状 P0：CC 全局 subagent model 覆盖角色配置、Opus pin 停在 4.8、API timeout 仅 30s；CX 空 custom provider 与 1M/900k 手工元数据回归。
-- `2026-07-14`: **9.9.3 发布收口** (`b88f615`)。review-fixes 修 6 项 finding (CX breadcrumb canonical 路径 / evaluator over-eng 语义 / M5 双端产物 / validator 基线 / 行数预算 / 发布卫生)；CX 67/67、CC 107/107、validator 223/223；pass1=PASS，2+1 闭环 (Claude 构建 → Codex 审修 → Claude 复核)。
 
 ## 工具调度建议
 
