@@ -1,0 +1,84 @@
+---
+name: pace
+description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效或需要路由全景时 Read，不必每 sprint 必读。
+---
+
+# PACE — Router & State Machine (v9.9.8)
+
+## 6 路径
+
+主 agent 收到用户输入后, 按改动量 + 紧急度判定路径:
+
+| 路径 | 触发 | stage 流程 | 强制 review? | 强制 polish? | 强制 worktree? |
+|---|---|---|---|---|---|
+| **Hotfix** | 生产事故, 几分钟修 | impl → ship | 风险触发 | ❌ | ❌ |
+| **Bugfix** | 已知 bug, 单文件 | report → (analyze) → impl → review → ship | ✅ 一次 | ❌ | ❌ (fix-note 必写) |
+| **Quick** | 小改动, ≤3 文件 | plan → impl → [review?] → ship | 用户或风险 | ❌ | ❌ |
+| **Feature** | 新功能, 单模块 | plan → impl → [runtime-verify?] → review → ship | ✅ 一次 | ❌ | ❌ (可选) |
+| **Refactor** | 改架构, ≥5 文件 | plan → impl → runtime-verify → polish → review → ship | ✅ 一次多维 | ✅ | ✅ 强制 |
+| **System** | 跨模块, 系统级 | plan → design → impl → runtime-verify → polish → review → ship | ✅ 一次多维 | ✅ | ✅ 强制 |
+
+## 9 Stage 状态机 (4 核心 + 5 条件)
+
+```
+                          (大需求或描述模糊时)
+                                ↓
+[brainstorm] ──→ [roadmap] ──→ plan ──→ [design] ──→ impl ──→ [runtime-verify] ──→ [polish] ──→ review ──→ ship
+                                ↑           (System)              (R/S)            (R/S, 改代码的清理)
+                                作者不自审；R/S 才独立挑战 packet
+```
+
+## 路由审议 (v9.9.1 · 可审计决策摘要)
+
+路由是 triage, 不是查表. **完整 5 步协议 (候选 → 四维权衡 → 置信度阈值 → route-note 格式) 见 `athena-dev` — 本文件不复述, 避免双写漂移.** 结论落 `sprints/{slug}/route-note.md` + `_index.route_confidence`.
+
+**模糊判定 (语义, 非字数)**: 能否从输入直接写出可验收标准? 写不出 = 模糊 → brainstorm.
+(废除旧版 `len(input.split()) < 8`: split 按空格切词, 对中文输入恒为 1, 判定失效)
+
+**护栏是地板, 不是天花板** (铁律[分诊]):
+
+| 硬护栏 (不可击穿的下限) | 最低路径 |
+|---|---|
+| ≥2 个可独立验收交付的切片 | roadmap (hotfix2: 模块数只定风险等级, 不可拆的跨模块不变量单 sprint 做) |
+| 跨模块改动 / 预估 ≥5 文件 | Refactor |
+| 用户显式声明生产事故 | Hotfix (唯一免审议, 直接进) |
+
+审议只允许在地板之上加码 (Quick 判成 Feature 可以), 不允许低于地板 (System 级判成 Quick 禁止).
+
+## 中途 re-route (只升不降)
+
+路径不在入口一锤定音. sprint 执行中证据与路径不符 → 重走审议, **只允许升级** (Quick→Feature→Refactor→System):
+
+- **机械触发** (index-updater hook): sprint 改动文件数超路径上限 (Quick>3 / Feature>10) → 写 `next_action=re-route`
+- **语义触发** (agent 自查): checklist 膨胀 >50% / 发现跨模块耦合 / design 关键假设被推翻
+- **动作**: 重走审议 → route-note 追加 `## Re-route` 段 + `_index.route_history` 记一条 → **补上新路径欠的 stage** (如升 Refactor 需补 runtime-verify + polish + worktree)
+- **降级禁止**: 降级 = 给 agent 逃避门禁开合法通道. 确需降级只能用户显式批准
+
+## 写入路由 (铁律[零写入] 红黄绿区)
+
+| 区 | 条件 | 执行者 |
+|---|---|---|
+| 绿 | ≤3 文件且合计 ≤150 行, 或 Hotfix/Quick/Bugfix | 主 agent 直接做 |
+| 黄 | 单模块 Feature | Agent subagent, worktree 可选 |
+| 红 | Refactor/System 或并行 ≥2 写者 | subagent + `isolation: worktree` 强制 |
+| 例外 | 改动对象在 repo 外 (安装态 harness 等) | worktree 零隔离效果 → 免 worktree; 设 `_index.harness_target_outside_repo: true`, 改前逐文件备份, 单写者串行 (P9 根治) |
+
+## References (按需 Read, 不要预加载)
+
+| 场景 | Read |
+|---|---|
+| 进入某 stage 前看详细工作流 / 数据目录 | `references/stages.md` |
+| 选编排机制 (subagent / ultracode / /goal / Agent Team) | `references/orchestration.md` |
+| 查 hook 联动 / compound 联动 / 项目级例外 | `references/hooks.md` |
+| 某 stage 该用哪个插件 / 插件与流程冲突 | `references/plugins.md` (v9.9.0 U6) |
+| MCP 连接外部 / MCP 与流程边界 | `references/mcp.md` (v9.9.6) |
+
+## 最小循环提醒
+
+- plan/design: 作者写 `design.md` + 派生 `review-packet.md`；不 spawn critic。R/S 或用户显式要求才由**非作者会话**按 packet 挑战。
+- **spec-gate impl-entry**: Feature+ 进 impl 前先验 design 验收标准 + packet hash/AC 双射（≤80 行）。写不出 AC = 回 plan。
+- impl: 按红黄绿区路由写入; generator 不预加载 pace skill
+- runtime-verify (R/S 强制): `/goal` 实跑；`vm_available=true` 时加 VM
+- polish (R/S): 会改代码的清理 **在 review 之前**
+- review: **一次**原生多维请求（异步）；`next_action=await-review-result` 时 Stop 放行；结果 `implementation-review.md`
+- ship: gate 认 frontmatter + hash，不数 Critic/passN 标题

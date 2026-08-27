@@ -10,6 +10,10 @@ vibeCoding/scripts/validate-athena-9.9.6.*
 vibeCoding/scripts/test-*-9.9.6-runtime.*
 vibeCoding/scripts/evals/athena-9.9.6/
 
+# Athena 9.9.8: canonical validator is committed; local eval leftovers are not
+vibeCoding/scripts/test-*-9.9.8-runtime.*
+vibeCoding/scripts/evals/athena-9.9.8/
+
 # Athena hook 并发安全 IO 的锁与原子写临时文件 (v9.9.6)
 .ai_state/_index.md.lock
 .ai_state/_index.md.tmp.*
@@ -18,3 +22,7 @@ vibeCoding/scripts/evals/athena-9.9.6/
 .ai_state/**/tool-trace.jsonl
 .ai_state/**/token-usage.yaml
 .ai_state/.snapshots/
+
+# Athena 9.9.8 runtime telemetry / baselines
+.ai_state/.runtime/
+vibeCoding/scripts/.vv*.py

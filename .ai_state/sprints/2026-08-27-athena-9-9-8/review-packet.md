@@ -1,52 +1,60 @@
 ---
 schema_version: 1
 sprint_slug: "2026-08-27-athena-9-9-8"
-mode: "independent-design-challenge"
-generated_from: "design.md"
-source_design_sha256: "4d40949729d9e6c4ce366ddf2e3acd82808b91278e2c421e2b5ad706fe88fb53"
+mode: "implementation"
+generated_from: "design.md (rev2)"
+source_design_sha256: "1a2b9f303355386e1f2d40b100968aadf9c87e9ec5b8357f2f632d424b9a69a5"
 created: "2026-08-27"
 author_does_not_review: true
-output: "reviews/design-review.md"
+implementer: "grok (planned)"
+reviewer_constraint: "must not be implementer session"
+output: "reviews/implementation-review.md"
+design_challenge_completed: "reviews/design-review.md (CONCERNS, findings folded into rev2)"
 ---
 
-# Review Packet — Athena 9.9.8
+# Review Packet — Athena 9.9.8 (implementation)
 
-这是从 `design.md` 派生的独立挑战材料，不是第二份设计。请基于下表判断；只有需要核对证据时，才打开“定位”列指定章节，不要从头复述 design。
+从 design.md rev2 派生。reviewer 读本 packet + 最终 diff + evidence summary；只有矛盾时按"定位"列 anchor 定点打开 design。设计挑战已完成，勿重开。
 
 ## Contract
 
 | ID | 必须成立 | 定位 |
 |---|---|---|
-| AC1 | 作者不自审；Feature 无固定 design review，R/S 或用户显式要求才独立挑战 | 目标流程、验收标准 |
-| AC2 | packet ≤80 行，design hash 与 AC 集合可机械验证 | Review contract |
-| AC3 | 实现后一次 Athena review 请求、一份结果；无默认 2+1/passN | 一次多维 review |
-| AC4 | 允许官方 review 内部多 agent；代码变化只触发目标复核 | 目标流程 |
-| AC5 | 会改代码的 polish 在最终 review 前，review 绑定 exact diff | 目标流程、实现切片 1 |
-| AC6 | 结果为结构化 frontmatter；gate 不数 Markdown 标题 | 一次多维 review |
-| AC7 | 路径按风险收费；hook 仅红区 block，黄区 warning、绿区 async/fail-open | Hook 严格度 |
-| AC8 | CC/CX 同事件最多一个同步 blocker；只读角色不手工绑定；quote/regex fixture 通过 | Hook 严格度、PACE 与 harness 边界 |
-| AC9 | `_index` 有界、archive 默认排除、catalog 可重建、telemetry 出 Git | `ai_state` 三层 |
-| AC10 | canonical/安装态/target 分开；迁移保留用户 effort，降档先 eval | 模型与 effort |
-| AC11 | 双端验证且控制面 tokens 降 ≥40%，质量/安全不降 | 验收标准 |
-| AC12 | 无第二状态树/人工 catalog；packet ≤80 行且不复制设计散文 | 发布边界 |
+| AC1 | 作者不自审；Feature 无固定 design review；R/S 独立挑战从派生 packet 开始 | 按风险收费 |
+| AC2 | packet ≤80 行；design hash 与 AC 集合机械可验，陈旧/漏/重 → fail closed | Review contract |
+| AC3 | 一次 review 请求一份 result；**异步里程碑**：发起轮正常结束，Stop 对 await-review-result 放行 | Review 异步时序 |
+| AC4 | harness 内部可多 agent；diff 变化只触发目标复核；**同因 ×2 新 P0 → 交还用户** | 目标流程 |
+| AC5 | 会改代码的 polish 在 review 前；review 后代码再变 → ship block | 目标流程 |
+| AC6 | result 结构化 frontmatter，含 `review_run_id` + `native_output_ref`；转录不得增删定级 | 结果落盘规则 |
+| AC7 | 路径仪式与表一致；hook 红 block / 黄 warning / 绿 async，安全真边界不降级 | Hook 严格度 |
+| AC8 | 同事件最多一个同步 blocker；read-only 无手工绑定；rg fixture 通过；"tasks 全绿"改指 checklist.yaml | Hook 严格度、职责边界 |
+| AC9 | `_index` ≤12KiB、列表 ≤10 项、**单条 ≤160B 溢出搬运不丢弃**；archive 默认排除；telemetry 出 Git | ai_state 三层 |
+| AC10 | canonical/安装态/target 分开；migration 保留用户 model/effort；降档先 eval | 模型与 effort |
+| AC11 | 对照**冻结 baseline**（度量口径归类）：成功率/安全不降，控制面 tokens ↓≥40%，占比 ≤1/3 | 度量口径 |
+| AC12 | 无第二状态树/人工 catalog/26 skill 合并；packet ≤80 行不复制散文 | 发布边界 |
+| AC13 | impl-entry 完成 V1–V3 版本重验并更新 `_index` 版本字段；CX 0.146+ 特性 V2 通过前非唯一路径 | 版本 pin |
 
-## 必须攻击的假设
+## Review 维度（一次多维，不排轮次）
 
-1. “一次 review 请求”是否只是把三次读取藏进一个自定义 mega-agent，而没有真正利用 CC/CX 原生 review？
-2. packet 由作者派生时，gate 是否真的能抓到漏 AC、旧 hash 与手工篡改？
-3. polish 前移是否与现有 ship/architecture 义务冲突，或产生 review 后仍改代码的后门？
-4. 取消 Feature 固定 design review 是否仍满足设计先行，而没有把独立性误当成所有路径的门禁？
-5. `_index` 12 KiB、archive 与 runtime catalog 是否可实现且没有形成第二真相源或断链？
-6. token 目标能否被现有 telemetry 可靠测量；“控制面 token”是否有清晰口径？
-7. canonical 文件面是否完整覆盖 root prompt、skills、agents、hooks、templates、SessionStart、continuator 与 validator？
-8. 官方事实与 Athena 本地选择是否分清，尤其是 Anthropic 的 layered review 与本地的一次调用？
-9. 「未来槽」是否把 `athena-vm` 从 runtime-verify 矩阵删掉，或把 LLM-as-a-Verifier 写成 ship/VERDICT 门禁、默认代理？
-10. hook 红/黄/绿是否真能阻止安全降级，同时消除无害 `rg` 解析误判、只读 agent 账本和 PostToolUse 记账造成的阻断/续跑？
+Spec coverage · Correctness · Security · Test risk · Over-engineering · Evidence（本 sprint 为 System，必核）。
+机械项（测试执行、文件越界、evidence 存在、hash 一致）由 gate 判，reviewer 不复跑账本。
+
+## 实现期重点核查面
+
+1. 异步 review 时序：发起→结束→完成通知→落盘 与"通知丢失"两个 fixture 是否真实在场并通过（AC3）。
+2. gate 的 hash 逻辑：packet_sha256 / reviewed_diff_sha256 现场重算，而非信任 frontmatter 自报（AC2/AC5/AC6）。
+3. hook 重分级没有把安全红区降级：删的只是标题计数/critic 协议，rm/push/测试失败等 block 仍在（AC7）。
+4. 切片 3 顺序：baseline 冻结先于 telemetry 迁移/retention，且 baseline 目录豁免 retention（AC11）。
+5. migration 不覆盖用户安装态 model/effort/output-style（AC10）。
+6. 旧协议残留：live emitter 无 critic/evaluator/spec-compliance 调度、无 2+1/passN 话术（AC1/AC3/AC8）。
+7. 双端语义对齐但不伪造对称：CX 侧逐文件核对，不抄 CC 文件名/字段（AC8/AC13）。
+8. `_index` 更新 hook 的搬运逻辑：溢出进 sprint 文档，审计链无丢失（AC9）。
 
 ## 输出约束
 
-- 写入 `reviews/design-review.md`；reviewer 必须不是设计作者会话。
-- Findings 按 P0/P1/P2/INFO 排序，每条给出 AC、design 章节和可执行修正；最多 8 条。
-- 单独列 `MISSING / EXTRA / DEVIATED`，但不要复述全部 contract。
+- 写入 `reviews/implementation-review.md`；reviewer 必须不是实现者会话。
+- frontmatter 按 design「一次多维 review」schema（含 verdict、finding_counts、review_run_id、native_output_ref）。
+- Findings 按 P0/P1/P2/INFO 排序，每条给 AC、文件/行、可执行修正；最多 10 条。
+- 单独列 `MISSING / EXTRA / DEVIATED`；不复述 contract。
 - 最后一行必须是 `VERDICT: PASS|CONCERNS|REWORK|FAIL`。
-- 只完成这一轮，不自行开启第二轮；若需返工，用 findings 明确交还作者。
+- 只此一轮；若需返工，findings 交还实现者，复核按 AC4 终止规则执行。

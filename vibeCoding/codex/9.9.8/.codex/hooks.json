@@ -1,0 +1,143 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/session-start.py",
+            "timeout": 10,
+            "statusMessage": "Loading Athena context"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/user-prompt-submit.py",
+            "timeout": 5,
+            "statusMessage": "Athena pre-check"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",
+            "timeout": 15,
+            "statusMessage": "Checking implementation spec-gate"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/pre-bash-guard.py",
+            "timeout": 10,
+            "statusMessage": "Checking Bash command"
+          }
+        ]
+      },
+      {
+        "matcher": "spawn_agent|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-worktree-audit.py",
+            "timeout": 5,
+            "statusMessage": "Checking subagent worktree"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|apply_patch|MCP|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/evidence-collector.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/design-change-detector.py",
+            "timeout": 5,
+            "statusMessage": "Athena design-change watch"
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/index-updater.py",
+            "timeout": 8
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-tracker.py",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-worktree-audit.py",
+            "timeout": 5,
+            "statusMessage": "Athena worktree audit"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-tracker.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",
+            "timeout": 60,
+            "statusMessage": "Athena delivery-gate"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 ~/.codex/hooks/compact-restore.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
