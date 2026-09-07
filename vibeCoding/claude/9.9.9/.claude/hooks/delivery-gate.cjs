@@ -46,10 +46,14 @@ function parseFrontmatter(content) {
   if (end < 0) throw new GateError("_index.md frontmatter is not closed");
   const result = {};
   for (const raw of lines.slice(1, end)) {
+    if (/^\s/.test(raw) && raw.trim()) continue;
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
     const match = line.match(/^([A-Za-z0-9_.-]+)\s*:\s*(.*)$/);
     if (!match) continue;
+    if (Object.prototype.hasOwnProperty.call(result, match[1])) {
+      throw new GateError(`duplicate index frontmatter field: ${match[1]}`);
+    }
     let value = match[2].trim();
     const quoted = value.match(/^"([^"]*)"|^'([^']*)'/);
     if (quoted) value = quoted[1] !== undefined ? quoted[1] : quoted[2];
@@ -707,6 +711,37 @@ function changedFiles(cwd, evidenceContent) {
   return files.size;
 }
 
+function changedFileSet(cwd, evidenceContent) {
+  const files = new Set();
+  const probes = [
+    ["diff", "--name-only", "main...HEAD"],
+    ["diff", "--name-only", "master...HEAD"],
+    ["diff", "--name-only"],
+    ["diff", "--name-only", "--cached"],
+    ["ls-files", "--others", "--exclude-standard"],
+  ];
+  for (const args of probes) {
+    for (const file of gitLines(cwd, args).lines) files.add(file.replace(/\\/g, "/"));
+  }
+  for (const match of String(evidenceContent || "").matchAll(/^\s+file\s*:\s*([^#\n]+)/gm)) files.add(scalar(match[1]));
+  return files;
+}
+
+function validateDesignContract(sprintDir, fm) {
+  if (truthy(fm.design_changed_after_impl)) {
+    throw new GateError("design_changed_after_impl is true; ship requires a new independent review");
+  }
+  const design = path.join(sprintDir, "design.md");
+  const review = path.join(sprintDir, "reviews/implementation-review.md");
+  if (fs.existsSync(design) && fs.existsSync(review) && fs.statSync(design).mtimeMs > fs.statSync(review).mtimeMs) {
+    throw new GateError("design.md is newer than implementation-review.md; ship requires a new independent review");
+  }
+}
+
+function architectureWasUpdated(files) {
+  return [...files].some((file) => /(^|\/)architecture\/ARCHITECTURE\.md$/.test(String(file).replace(/\\/g, "/")));
+}
+
 function validateCriticRounds(sprintDir, fm) {
   // 9.9.8: critic 标题计数不再是 ship 条件。仅保留超长 design 黄区警告。
   const designPath = path.join(sprintDir, "design.md");
@@ -1007,6 +1042,7 @@ function isLightShipFile(file) {
   if (/(^|\/)settings(\.local)?\.json$/.test(file)) return false;
   if (/(^|\/)config\.toml$/.test(file)) return false;
   if (/(^|\/)hooks\.json$/.test(file)) return false;
+  if (/(^|\/)design\.md$/.test(file) || /(^|\/)review-packet\.md$/.test(file)) return false;
   // Source logic (non-test code) needs review even when small — never light.
   const isTest = /(^|\/)(tests?|__tests__|specs?)\//.test(file) || /\.(test|spec)\.[A-Za-z]+$/.test(file);
   const isCode = /\.(py|ts|tsx|js|jsx|mjs|cjs|go|rs|java|rb|php|c|cc|cpp|h|hpp|swift|kt|scala|sh|bash|zsh|sql)$/.test(file);
@@ -1078,6 +1114,7 @@ function validateShip(aiState, fm, cwd) {
   // review-manifest / tdd-evidence / review-artifact contract mechanical changes cannot
   // honestly produce. Substantive, harness-touching, or over-budget ships run the full
   // contract below (fail-closed: an unclassifiable diff is treated as full).
+  validateDesignContract(sprintDir, fm);
   if (shipChangeIsLight(cwd)) {
     const lightRoadmap = fm.current_roadmap_slug || "";
     if (lightRoadmap) validateRoadmap(aiState, lightRoadmap, sprintSlug);
@@ -1140,8 +1177,12 @@ function validateShip(aiState, fm, cwd) {
       requireFile(path.join(sprintDir, "cleanup-pass.md"), "cleanup-pass.md");
       if (!truthy(fm.skip_architecture_check)) {
         const evidence = requireFile(evidencePath, "evidence.yaml");
-        if (changedFiles(cwd, evidence) >= 5) {
+        const count = changedFiles(cwd, evidence);
+        if (count >= 5) {
           requireFile(path.join(aiState, "architecture", "ARCHITECTURE.md"), "architecture/ARCHITECTURE.md");
+          if (!architectureWasUpdated(changedFileSet(cwd, evidence))) {
+            throw new GateError("architecture/ARCHITECTURE.md exists but was not updated in this ≥5-file change set");
+          }
         }
       }
     }
@@ -1353,5 +1394,5 @@ function main() {
 if (require.main === module) {
   main();
 } else {
-  module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateEvidence, GateError, shipChangeIsLight, isLightShipFile };
+  module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateEvidence, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract };
 }

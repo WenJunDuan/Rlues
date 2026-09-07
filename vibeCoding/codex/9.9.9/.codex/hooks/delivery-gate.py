@@ -1303,6 +1303,8 @@ def is_light_ship_file(file: str) -> bool:
         return False
     if re.search(r"(^|/)hooks\.json$", file):
         return False
+    if re.search(r"(^|/)design\.md$", file) or re.search(r"(^|/)review-packet\.md$", file):
+        return False
     # Source logic (non-test code) needs review even when small -- never light.
     is_test = bool(
         re.search(r"(^|/)(tests?|__tests__|specs?)/", file)
@@ -1431,6 +1433,35 @@ def changed_file_count(cwd: Path) -> int:
     return len(files)
 
 
+def changed_file_set(cwd: Path) -> set[str]:
+    root = git_root(cwd)
+    files: set[str] = set()
+    probes = (
+        ["diff", "--name-only", "main...HEAD"],
+        ["diff", "--name-only", "master...HEAD"],
+        ["diff", "--name-only"],
+        ["diff", "--name-only", "--cached"],
+        ["ls-files", "--others", "--exclude-standard"],
+    )
+    for args in probes:
+        _, lines = git_lines(root, args)
+        files |= {line.replace("\\", "/") for line in lines}
+    return files
+
+
+def architecture_was_updated(files: set[str]) -> bool:
+    return any(re.search(r"(^|/)architecture/ARCHITECTURE\.md$", file) for file in files)
+
+
+def validate_design_contract(sprint_dir: Path, fm: dict[str, str]) -> None:
+    if truthy(fm.get("design_changed_after_impl", "false")):
+        raise GateError("design_changed_after_impl is true; ship requires a new independent review")
+    design = sprint_dir / "design.md"
+    review = sprint_dir / "reviews" / "implementation-review.md"
+    if design.is_file() and review.is_file() and design.stat().st_mtime > review.stat().st_mtime:
+        raise GateError("design.md is newer than implementation-review.md; ship requires a new independent review")
+
+
 def truthy(value: str) -> bool:
     return value.strip().lower() == "true"
 
@@ -1506,6 +1537,8 @@ def validate_existing_policy(
     if path_type == "Bugfix":
         require_file(sprint_dir / "fix-note.md", "fix-note.md")
 
+    validate_design_contract(sprint_dir, fm)
+
     if path_type in REFACTOR_SYSTEM:
         if not truthy(fm.get("skip_runtime_verify", "false")):
             runtime = require_file(sprint_dir / "runtime-verify.md", "runtime-verify.md")
@@ -1516,6 +1549,8 @@ def validate_existing_policy(
         if not truthy(fm.get("skip_architecture_check", "false")) and changed_file_count(cwd) >= 5:
             architecture = ai_state / "architecture" / "ARCHITECTURE.md"
             require_file(architecture, "architecture/ARCHITECTURE.md")
+            if not architecture_was_updated(changed_file_set(cwd)):
+                raise GateError("architecture/ARCHITECTURE.md exists but was not updated in this ≥5-file change set")
 
     if path_type in GENERATOR_PATHS:
         design = sprint_dir / "design.md"
@@ -1679,6 +1714,7 @@ def main() -> int:
             # touching, or over-budget ships run the full contract below (fail-closed).
             # P3: every repo-scoped ship check below frames its diff against `root` (the
             # same checkout `ai_state` came from), never the raw payload cwd.
+            validate_design_contract(sprint_dir, fm)
             if ship_change_is_light(root):
                 light_roadmap = fm.get("current_roadmap_slug", "")
                 if light_roadmap:

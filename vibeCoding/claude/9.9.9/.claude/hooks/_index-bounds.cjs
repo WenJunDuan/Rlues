@@ -137,8 +137,8 @@ function enforceBulletSection(content, heading, spillPrefix, spiller) {
   }
   const overflowCount = Math.max(0, items.length - LIST_MAX);
   const keepCount = overflowCount ? LIST_MAX - 1 : LIST_MAX;
-  const keep = items.slice(0, keepCount);
-  const extra = items.slice(keepCount);
+  const keep = items.slice(-keepCount);
+  const extra = items.slice(0, Math.max(0, items.length - keepCount));
   let archiveId = "";
   if (extra.length) {
     archiveId = spiller.spill(spillPrefix, extra.map((item, i) => `### archived-${i}\n${item}`).join("\n\n"));

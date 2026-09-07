@@ -17,7 +17,7 @@
 ## Review 与 hooks
 
 优先本端原生 review；不可用时一个本端只读 reviewer/独立会话。只有入口真实异步才设置 await-review-result；通知、等待和回读按实际平台支持恢复。独立结果按持久请求与当前输入绑定后接受。
-红区门禁不能改成非阻断异步 hook。hook 配置、payload、handler/matcher、退出码与可见结果均以当前版本实测为准；静态文档不是支持证明。
+红区门禁不能改成非阻断异步 hook。hook 配置、payload、handler/matcher、退出码与可见结果均以当前版本实测为准；静态文档不是支持证明。AC14（SessionStart/UserPromptSubmit/PostCompact/SubagentStart/Stop `decision:block`/`statusMessage`、`apply_patch` 的 `file_path`/`patch`、`CODEX_THREAD_ID` 注入）包内无现场出处，装机前保持未验证。
 
 ## 待发布证据
 

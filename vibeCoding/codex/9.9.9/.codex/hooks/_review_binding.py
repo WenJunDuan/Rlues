@@ -251,7 +251,12 @@ def accept(cwd: Path, run: str, receipt: Path) -> dict:
     write_atomic(doc,header+'## Native review output\n\n'+output)
     row = append(sprint,{'event':'accepted' if verdict == 'PASS' else 'received','verdict':verdict,'review_run_id':run,'reviewer_target':target,'native_output_ref':ref,'native_output_sha256':sha,
                         'output_ref':doc.relative_to(sprint).as_posix(),'output_sha256':digest(doc.read_bytes())})
-    update(root/'.ai_state/_index.md',lambda text: re.sub(r'^next_action:.*$','next_action: "'+('' if verdict == 'PASS' else 'rework_impl')+'"',text,flags=re.M))
+    def _after_accept(text: str) -> str:
+        text = re.sub(r'^next_action:.*$','next_action: "'+('' if verdict == 'PASS' else 'rework_impl')+'"',text,flags=re.M)
+        if verdict == 'PASS':
+            text = re.sub(r'^design_changed_after_impl:.*$','design_changed_after_impl: false',text,count=1,flags=re.M)
+        return text
+    update(root/'.ai_state/_index.md', _after_accept)
     return row
 
 def validate_current(root: Path, sprint: Path, review: Path) -> None:

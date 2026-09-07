@@ -442,5 +442,86 @@ class InstallRework(unittest.TestCase):
         self.assertNotRegex(text, r'(?m)^isolation:\s*worktree')
 
 
+class PromptAndParity(unittest.TestCase):
+    def test_index_frontmatter_skips_indent_and_rejects_duplicates(self):
+        gate = py_module('delivery-gate')
+        text = '---\npath: "Feature"\nplatform_features:\n  path: "System"\n---\n'
+        fm = gate.parse_frontmatter(text)
+        self.assertEqual(fm['path'], 'Feature')
+        with self.assertRaises(gate.GateError):
+            gate.parse_frontmatter('---\npath: "Feature"\npath: "System"\n---\n')
+        code = (
+            'const m=require(process.argv[1]);'
+            'try { m.parseFrontmatter(require("fs").readFileSync(0,"utf8")); process.exit(0); }'
+            'catch (e) { process.stderr.write(e.message); process.exit(2); }'
+        )
+        run = subprocess.run(
+            ['node', '-e', code, str(CC / 'delivery-gate.cjs')],
+            input='---\npath: "Feature"\npath: "System"\n---\n',
+            text=True, capture_output=True,
+        )
+        self.assertEqual(run.returncode, 2)
+        self.assertIn('duplicate', run.stderr)
+
+    def test_design_changed_blocks_ship(self):
+        gate = py_module('delivery-gate')
+        with tempfile.TemporaryDirectory() as raw:
+            sprint = Path(raw)
+            (sprint / 'design.md').write_text('old')
+            reviews = sprint / 'reviews'
+            reviews.mkdir()
+            (reviews / 'implementation-review.md').write_text('PASS')
+            os.utime(sprint / 'design.md', (time.time() + 10, time.time() + 10))
+            with self.assertRaises(gate.GateError):
+                gate.validate_design_contract(sprint, {'design_changed_after_impl': 'false'})
+            os.utime(reviews / 'implementation-review.md', (time.time() + 20, time.time() + 20))
+            gate.validate_design_contract(sprint, {'design_changed_after_impl': 'false'})
+            with self.assertRaises(gate.GateError):
+                gate.validate_design_contract(sprint, {'design_changed_after_impl': 'true'})
+
+    def test_required_os_does_not_fake_pass(self):
+        with tempfile.TemporaryDirectory() as raw:
+            base = Path(raw)
+            repo = base / 'repo'
+            repo.mkdir()
+            env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+            for command in (
+                ['git', 'init', '-q'],
+                ['git', 'config', 'user.email', 'test@example.invalid'],
+                ['git', 'config', 'user.name', 'Fixture'],
+            ):
+                subprocess.run(command, cwd=repo, check=True, env=env)
+            (repo / 'app.py').write_text('print("ok")\n')
+            subprocess.run(['git', 'add', '.'], cwd=repo, check=True, env=env)
+            subprocess.run(['git', 'commit', '-qm', 'base'], cwd=repo, check=True, env=env)
+            bundle = base / 'in.tgz'
+            subprocess.run(
+                [sys.executable, str(RUNTIME), 'snapshot', '--repo', str(repo), '--output', str(bundle)],
+                check=True, env=env, capture_output=True, text=True,
+            )
+            scenario = base / 'scenario.json'
+            scenario.write_text(json.dumps({
+                'name': 'os', 'command': ['python3', 'app.py'], 'required_os': 'DoesNotExistOS',
+            }))
+            (base / 'design.md').write_text('AC1: os must match\n')
+            output = base / 'result.json'
+            run = subprocess.run(
+                [sys.executable, str(RUNTIME), 'run', '--bundle', str(bundle),
+                 '--contract', str(base / 'design.md'), '--scenario', str(scenario), '--output', str(output)],
+                env=env, capture_output=True, text=True,
+            )
+            self.assertNotEqual(run.returncode, 0)
+            result = json.loads(output.read_text())
+            self.assertEqual(result['status'], 'environment_unsatisfied')
+            self.assertNotEqual(result['status'], 'passed')
+
+    def test_cc_rules_declare_native_paths(self):
+        rules = CC.parent / 'rules'
+        for name in ('coding-standards.md', 'doc-style.md', 'security-checklist.md'):
+            text = (rules / name).read_text()
+            self.assertIn('paths:', text.split('---', 2)[1])
+
+
 if __name__ == '__main__':
     unittest.main()
+

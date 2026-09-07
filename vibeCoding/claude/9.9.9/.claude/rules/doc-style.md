@@ -1,4 +1,6 @@
 ---
+paths:
+  - ".ai_state/sprints/**"
 effort: medium
 attach_to_stages: [review, polish]
 attach_to_subagents: [reviewer, polish_worker]

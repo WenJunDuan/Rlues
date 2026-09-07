@@ -170,7 +170,7 @@ def enforce_bullet_section(content: str, heading: str, spill_prefix: str, spille
             suffix.append(line)
     overflow_count = max(0, len(items) - LIST_MAX)
     keep_count = LIST_MAX - 1 if overflow_count else LIST_MAX
-    keep, extra = items[:keep_count], items[keep_count:]
+    keep, extra = items[-keep_count:], items[:-keep_count] if overflow_count else []
     archive_id = ""
     if extra:
         archive_id = spiller.spill(

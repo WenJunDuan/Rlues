@@ -1,4 +1,6 @@
 ---
+paths:
+  - ".ai_state/sprints/**"
 version: "9.9.9"
 purpose: "铁律溯源表 — 每条铁律追溯到一次具体失败 (ratchet principle)"
 note: "冷路径, 不自动注入。要判断某条铁律能不能动时 Read 本文件。"

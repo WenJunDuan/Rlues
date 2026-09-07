@@ -37,9 +37,11 @@ function redact(value) {
     .slice(0, 500);
 }
 
-function classifyEvent(eventName) {
-  if (eventName === "PostToolUse") return "pass";
-  if (eventName === "PostToolUseFailure") return "fail";
+function resultStatus(payload) {
+  const response = payload.tool_response && typeof payload.tool_response === "object" ? payload.tool_response : {};
+  const code = response.exit_code;
+  if (Number.isInteger(code)) return code === 0 ? "pass" : "fail";
+  if (payload.hook_event_name === "PostToolUseFailure") return "fail";
   return "unknown";
 }
 
@@ -78,8 +80,7 @@ function main() {
     const sprintSlug = currentSprint(aiState);
     if (!sprintSlug) return;
 
-    const eventName = String(payload.hook_event_name || "");
-    const status = classifyEvent(eventName);
+    const status = resultStatus(payload);
     const tool = String(payload.tool_name || "");
     const toolUseId = String(payload.tool_use_id || "");
     const toolInput = payload.tool_input && typeof payload.tool_input === "object" ? payload.tool_input : {};

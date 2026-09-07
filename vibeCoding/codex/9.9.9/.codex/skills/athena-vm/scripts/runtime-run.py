@@ -293,7 +293,7 @@ def command_step(name, argv, cwd, seconds, env, process_groups):
 def validate_scenario(scenario):
     if not isinstance(scenario, dict):
         raise ValueError('scenario must be a JSON object')
-    if set(scenario) - {'name', 'prepare', 'ready', 'command', 'teardown'}:
+    if set(scenario) - {'name', 'prepare', 'ready', 'command', 'teardown', 'required_os'}:
         raise ValueError('unknown scenario fields; commands use argv, with no inline secrets')
     if not isinstance(scenario.get('name'), str) or not scenario['name']:
         raise ValueError('scenario name is required')
@@ -340,6 +340,13 @@ def execute(request, bundle, workdir=None):
         inspect_bundle(bundle, source)
         result['environment'] = environment()
         result['environment_sha256'] = digest(canonical(result['environment']))
+        required_os = request['scenario'].get('required_os')
+        if required_os and str(result['environment']['system']).lower() != str(required_os).lower():
+            result['status'] = 'environment_unsatisfied'
+            result['scenario']['status'] = 'not_ready'
+            result['failure'] = {'kind': 'environment_unsatisfied',
+                                 'reason': 'required OS ' + str(required_os) + ' != ' + str(result['environment']['system'])}
+            return result
         result['base_commit'] = manifest['base_commit']
         env = dict(os.environ, ATHENA_RUN_ID=request['run_id'], ATHENA_RUN_ROOT=str(root))
         deadline = time.monotonic() + request['timeout']
@@ -374,10 +381,15 @@ def execute(request, bundle, workdir=None):
         result['scenario']['status'] = 'failed'
     finally:
         # Preserve prepare services for later steps, then stop only this run's process groups.
+        # A reaped session leader pid is still the pgid of leftover members; dropping it
+        # would leak those children. ProcessLookupError covers a fully empty group.
         for group in process_groups:
             try:
+                os.killpg(group, 0)
                 os.killpg(group, signal.SIGKILL)
             except ProcessLookupError:
+                pass
+            except PermissionError:
                 pass
         if root is not None:
             try:
@@ -450,10 +462,16 @@ def ssh_call(command, env, source, action, payload, timeout):
     except (OSError, subprocess.TimeoutExpired):
         return None
     if process.returncode:
+        err = process.stderr.decode('utf-8', 'replace')
+        if 'Traceback (most recent call last)' in err:
+            return {'_athena_runner_crash': True, 'stderr': err[-2000:]}
         return None
     try:
         return json.loads(process.stdout)
     except (ValueError, UnicodeError):
+        err = process.stderr.decode('utf-8', 'replace')
+        if 'Traceback (most recent call last)' in err or not process.stdout:
+            return {'_athena_runner_crash': True, 'stderr': err[-2000:]}
         return None
 
 
@@ -507,7 +525,12 @@ def run(args):
                 request['workdir'] = target.get('workdir', '/tmp')
                 request['bundle'] = base64.b64encode(bundle).decode()
                 received = ssh_call(command, env, Path(__file__).read_text(), '_receive', request, request['timeout'] + 30)
-                if not isinstance(received, dict) or received.get('run_id') != request['run_id']:
+                if isinstance(received, dict) and received.get('_athena_runner_crash'):
+                    result['transport']['status'] = 'passed'
+                    result['status'] = 'runner_failed'
+                    result['scenario']['status'] = 'not_run'
+                    result['failure'] = {'kind': 'runner_failed', 'reason': received.get('stderr', 'remote runner crashed')}
+                elif not isinstance(received, dict) or received.get('run_id') != request['run_id']:
                     result['transport']['status'] = 'failed'
                     result['status'] = 'transport_failed'
                     result['cleanup'] = {'status': 'unknown', 'run_id': request['run_id'],

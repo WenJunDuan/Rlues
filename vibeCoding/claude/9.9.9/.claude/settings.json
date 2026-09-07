@@ -150,8 +150,7 @@
           {
             "type": "command",
             "command": "node ~/.claude/hooks/design-change-detector.cjs",
-            "timeout": 5,
-            "if": "Edit(**/design.md)"
+            "timeout": 5
           }
         ]
       },

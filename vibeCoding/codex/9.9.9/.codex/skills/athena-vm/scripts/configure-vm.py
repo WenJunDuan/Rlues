@@ -73,6 +73,19 @@ def connection(args):
     return target
 
 
+def validate_target(target):
+    for key in ('name', 'host', 'user', 'workdir'):
+        if not isinstance(target.get(key), str) or not target[key]:
+            raise ValueError('VM target missing required field: ' + key)
+    auth = target.get('auth')
+    if not isinstance(auth, dict) or auth.get('method') not in {'key', 'password_env'}:
+        raise ValueError('VM auth.method must be key or password_env')
+    if 'password' in target or 'password' in auth:
+        raise ValueError('inline password is forbidden')
+    if auth.get('method') == 'password_env' and not auth.get('password_env'):
+        raise ValueError('password_env auth requires password_env')
+
+
 def proposed_config(data, args, endpoint):
     matches = [i for i, target in enumerate(data['vms']) if target.get('name') == args.name]
     if len(matches) > 1:
@@ -107,6 +120,7 @@ def proposed_config(data, args, endpoint):
         result['vms'][matches[0]] = target
     else:
         result['vms'].append(target)
+    validate_target(target)
     return result
 
 

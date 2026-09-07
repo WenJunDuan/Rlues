@@ -176,7 +176,11 @@ function accept(cwd,run,receipt) {
   io.writeAtomic(doc,header+'## Native review output\n\n'+output);
   const row = append(sprint,{event:verdict==='PASS' ? 'accepted':'received',verdict,review_run_id:run,reviewer_target:target,native_output_ref:ref,native_output_sha256:sha,
     output_ref:path.relative(sprint,doc).split(path.sep).join('/'),output_sha256:input.digest(fs.readFileSync(doc))});
-  io.update(path.join(root,'.ai_state/_index.md'),text=>text.replace(/^next_action:.*$/m,'next_action: "'+(verdict==='PASS' ? '':'rework_impl')+'"'));
+  io.update(path.join(root,'.ai_state/_index.md'),text=>{
+    text=text.replace(/^next_action:.*$/m,'next_action: "'+(verdict==='PASS' ? '':'rework_impl')+'"');
+    if (verdict==='PASS') text=text.replace(/^design_changed_after_impl:.*$/m,'design_changed_after_impl: false');
+    return text;
+  });
   return row;
 }
 function validateCurrent(root,sprint,review) {
