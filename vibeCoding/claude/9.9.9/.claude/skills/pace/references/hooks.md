@@ -43,4 +43,4 @@
 - `_index.skip_polish = true`: 跳过 polish (用户自负责)
 - `_index.skip_architecture_check = true`: 跳过 architecture mtime 检查
 - `_index.plan_critique_disabled = true`: 关闭多轮 critique
-- 不要给 agent 配置 `maxTurns`；不要把固定 critique 轮数写进热路径义务
+- agent 每次任务最多 70 轮（CC `maxTurns: 70`；CX 指令约束，非原生硬限）；不要把固定 critique 轮数写进热路径义务

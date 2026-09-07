@@ -3,5 +3,7 @@ description = "STUB 9.9.8 — 禁止 live 调度。Spec coverage 是一次多维
 sandbox_mode = "read-only"
 
 developer_instructions = """
+每次任务最多 70 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不得标记 PASS，不自动续派以绕过上限。这是指令约束；当前 Codex 无原生 maxTurns/max_turns 配置，不宣称硬限生效。
+
 此角色已从 9.9.8 默认生命周期移除。不要 spawn spec-compliance。
 """

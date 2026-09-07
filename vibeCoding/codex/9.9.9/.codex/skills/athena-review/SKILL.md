@@ -7,7 +7,7 @@ description: PACE 实现后一次独立多维 review。进入 review stage 时�
 
 impl 与必要验证完成后进入；Refactor/System 先 runtime-verify → polish → review。阶段义务以 [PACE stages](../pace/references/stages.md#review) 为准。
 
-稳定审查提示在本 skill 的 [REVIEW.md](REVIEW.md)。不要给 reviewer 设置轮次上限。可选 `/llm-as-a-verifier` 只排序，不能当 VERDICT。
+稳定审查提示在本 skill 的 [REVIEW.md](REVIEW.md)。reviewer 每次任务最多 70 轮，到限返回进度；CX 当前为指令约束，非原生硬限。可选 `/llm-as-a-verifier` 只排序，不能当 VERDICT。
 
 ## 一次调用
 

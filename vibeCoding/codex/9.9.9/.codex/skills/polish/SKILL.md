@@ -24,7 +24,7 @@ path ∈ {Refactor, System} 且 runtime-verify 已完成（或 skip_runtime_veri
 ## 例外
 
 - 路径 ∈ {Hotfix, Bugfix, Quick, Feature}: 不强制 polish
-- 主 agent 分派已绑定 writer，在既有实现 worktree 串行清理；**不要给 polish-worker 设置轮次上限**
+- 主 agent 分派已绑定 writer，在既有实现 worktree 串行清理；**polish-worker 每次任务最多 70 轮；到限返回进度，不把截断当完成**
 
 ## 详细 playbook
 

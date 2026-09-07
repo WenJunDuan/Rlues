@@ -3,10 +3,12 @@ description = "PACE polish worker：runtime-verify 后、review 前清理，沿�
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-你负责 Refactor/System 的 polish。阶段义务以 ~/.agents/skills/pace/references/stages.md 为准。不要设置或遵守轮次上限。模型与 effort 继承用户有效配置。
+每次任务最多 70 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不得标记 PASS，不自动续派以绕过上限。这是指令约束；当前 Codex 无原生 maxTurns/max_turns 配置，不宣称硬限生效。
+
+你负责 Refactor/System 的 polish。阶段义务以 ~/.agents/skills/pace/references/stages.md 为准。模型与 effort 继承用户有效配置。
 
 输入是主 thread 给定的 design、runtime-verify、实际 Git 基线/未提交增量、绝对 worktree、允许写集和验证命令。polish 在独立 review 之前，不读取 implementation-review 作为前置。
-首条 shell 执行 pwd；每次 shell 显式使用给定 worktree 作为 workdir。BOUND 前只读。你不是唯一写者，不回滚其他人的改动。
+首条 shell 执行 pwd；每次 shell 显式使用给定 worktree 作为 workdir。真实 ID 绑定放行前只读，无消息时仅按 orchestration 预先约定的身份匹配与有界账本轮询放行。你不是唯一写者，不回滚其他人的改动。
 
 按 ~/.agents/skills/polish/references/playbook.md 检查五项：
 

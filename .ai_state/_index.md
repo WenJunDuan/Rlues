@@ -14,8 +14,8 @@ skip_architecture_check: false    # System/Refactor ship 前是否跳过 archite
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.6) ===
-route_confidence: 0.99  # 0-1, 主 agent 路由决策摘要中的置信度 (末条 route_history 的置信度)
-route_history: ["2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-07 System impl: user authorized local CC/CX 9.9.9 migration; external harness, retained sessions, safe-cache cleanup; conf=0.99"]  # re-route ≤10, item ≤160B
+route_confidence: 1.0  # 用户显式指定局部门禁文档 Hotfix；上层 System 保留
+route_history: ["2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-07 Hotfix: user authorized 9.9.9 gate quickref + installed sync; parent System unchanged; conf=1.0"]  # re-route ≤10, item ≤160B
 plan_model: "fable"               # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
@@ -87,7 +87,7 @@ last_subagent_at: "2026-09-06T10:29:17.861980+00:00"
 active_worktrees: []  # 已于 2026-09-07 移除过期 athena-9.9.9-design worktree；保留其分支作回退锚点
 harness_target_outside_repo: true  # 本轮仅写 ~/.claude ~/.codex ~/.agents；worktree 对其无隔离作用，采用单写者事务备份
 last_critic_round: 0              # 9.9.8: 设计作者不自审, critic 为 stub
-design_changed_after_impl: false  # design.md 改后需 re-review
+design_changed_after_impl: true
 
 # === 用户偏好 ===
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
@@ -111,12 +111,14 @@ fingerprint: ""
 
 ## 当前状态
 
+- 2026-09-07 Hotfix: gate quickref + agent 70-turn policy installed; parent System pending. See session-log.
 - 2026-09-07 audit: 首装资产通过；核心缺陷仍在，见latest_review；不安装。
 - 2026-09-07 impl: 已合入审查绑定/init 并发/Gradle 分类/LaaV 评分修复；validator 58 PASS；未安装。
 - 2026-09-07 impl: 9.9.9 候选包已核对补全（无 maxTurns、REVIEW 进 skill、LaaV opt-in、VM json 入包）；未安装；待 Claude 审核。
 - 2026-09-06 design: 用户授权生成CC/CX 9.9.9候选包；设计已复核，进入实现。
 - 2026-09-06 VM: SSH可达RHEL10.2；仅证明传输，项目服务待验证。
 - Previous status and shifted route →index-overflow.md#previous-current-state
+
 
 ## 工具调度建议
 

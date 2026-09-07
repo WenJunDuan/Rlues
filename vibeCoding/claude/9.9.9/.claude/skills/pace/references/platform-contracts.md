@@ -8,6 +8,8 @@ CC-only 完成适用的全部 PACE 阶段。CX、Grok、Antigravity、VM 和付�
 
 ## 原生边界
 
+全部 Athena agent 定义统一 `maxTurns: 70`（包括仍禁止 live 调度的 stub）。按 [原生字段](https://code.claude.com/docs/en/subagents#supported-frontmatter-fields) 限制 agentic turns；到限返回实际进度，不算 PASS，不自动续派绕限。这不配置主会话或平台内置 reviewer 的隐藏子任务，也不保证终止单次挂起的工具。
+
 - CC 使用 Agent tool 和 `.claude/agents/*.md` frontmatter。原生 `isolation: worktree` 只在需要隔离时使用；默认不注册 WorktreeCreate/Remove override。
 - 只读 reviewer 是本端完整 fallback；使用 plan 权限和只读工具，返回结果，由主 agent 持久化。writer 绑定与恢复见 [execution-contracts.md](execution-contracts.md)。
 - 实际异步入口才写 `await-review-result`；前台返回直接接收。当前入口不支持后台时不假设有通知。

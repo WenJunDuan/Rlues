@@ -10,6 +10,8 @@
 
 ## 原生协作与权限
 
+所有 Athena agent 每次任务最多70轮，到限返回实际进度与未完成项，不自动续派绕限。2026-09-07 核对本机 Codex 0.153.4、当前 spawn_agent schema 与下方官方配置参考，未发现原生 maxTurns/max_turns；本版写入 developer_instructions，属于指令约束，不是运行时强制限制，不用并发线程数或秒数冒充轮次。
+
 只用当前界面实际提供的 spawn_agent/send_message/followup_task/wait_agent 与其 schema；不假定每个版本拥有相同参数。
 红区主 thread 创建绝对 worktree，派工携带路径，writer `pwd`/显式 workdir；不是 CC `isolation: worktree` frontmatter。握手和恢复见 [orchestration](orchestration.md)、[execution-contracts](execution-contracts.md)。
 保留包内既有 multi_agent_v2 配置，不凭滚动文档机械迁移开关；发行前在目标 CLI/App 对实际配置加载与承重工具入口实测。可调用能力不等于外部副作用授权，原生权限仍生效。

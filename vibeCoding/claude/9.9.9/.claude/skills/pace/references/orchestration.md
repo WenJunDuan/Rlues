@@ -22,7 +22,7 @@ writer 每次派发串行绑定：
 4. 用现有命令绑定（参数均来自实际返回/任务）：
    `node ~/.claude/hooks/subagent-tracker.cjs assign --cwd <absolute-worktree> --agent-id <actual-id> --task-name <task-name> --role generator`
    回读 subagent-assignments.jsonl，核对真实 agent_id 与 Start 冻结的 sprint_slug。
-5. 按 execution-contracts 保存恢复事实，再经当前原生消息或恢复入口通知已绑定。入口若只能前台执行，先让准备调用返回，再恢复同一真实 ID；无安全恢复入口不能跳过绑定先写。
+5. 按 execution-contracts 保存恢复事实，再经当前原生消息或恢复入口通知已绑定。无消息工具时，仅在 writer 可后台执行、双方共享账本且 writer 能核对自身真实 ID 时，按派发前约定有界只读轮询 assignment，唯一匹配自身 ID+sprint+task_name+role 后才放行；超时/歧义不写。入口若只能前台执行，先让准备调用返回，再恢复同一真实 ID；无安全入口不能跳过绑定先写。精确 schema 与条件见 [门禁合同速查](gate-contracts.md#writer--start--assignment--stop)。
 6. 已绑定 writer 才能并行；后续派发重复此握手。完成必须匹配独立 SubagentStop 与实际产物，只有 Start/assignment 不算完成。
 
 只读 architect/reviewer 使用原生身份与审查记录，禁止伪造 generator 事件。writer 不是唯一写者，不回滚他人；冲突交指定整合者处理。

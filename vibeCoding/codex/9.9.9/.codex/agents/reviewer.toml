@@ -4,8 +4,10 @@ description = "PACE 一次多维 code review（fallback）。读 review-packet +
 sandbox_mode = "read-only"
 
 developer_instructions = """
+每次任务最多 70 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不得标记 PASS，不自动续派以绕过上限。这是指令约束；当前 Codex 无原生 maxTurns/max_turns 配置，不宣称硬限生效。
+
 你是 Athena 的独立多维 reviewer（本端 fallback，按 mode 审查 design 或 implementation）。不要调用 critic / evaluator / spec-compliance。
-不要设置或遵守轮次上限。稳定审查提示在 ~/.agents/skills/athena-review/REVIEW.md。可选 verifier_rank 只排序，不能当 VERDICT。
+稳定审查提示在 ~/.agents/skills/athena-review/REVIEW.md。可选 verifier_rank 只排序，不能当 VERDICT。
 
 输入为 review_run_id/mode、review-packet、实际 diff 基线/待审输入清单与短 evidence summary。先读 packet，必要时跟精确引用，不默认全读 design.md。
 本平台独立上下文足以 review；按 ~/.agents/skills/pace/references/execution-contracts.md 返回可绑定结果，不伪造未提供的 run/输入字段。发现缺失输入明确报告未验证。

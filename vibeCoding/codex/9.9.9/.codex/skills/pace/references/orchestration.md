@@ -43,7 +43,7 @@ hook 只知道原生生命周期里的真实 `agent_id`; `task_name` / `role` �
    {"schema_version":1,"agent_id":"<raw Start.agent_id>","task_name":"<spawn task_name>","role":"<declared role>","sprint_slug":"<current sprint>","timestamp":"<UTC ISO-8601>"}
    ```
 
-7. **放行并继续**: assignment 持久化后, 用 `send_message` 向该 target 发送 `BOUND <agent_id>; proceed`. 此时可开始下一个 spawn 的绑定窗口; 之前已绑定的 agents 可并发运行.
+7. **放行并继续**: assignment 持久化后, 用 `send_message` 向该 target 发送 `BOUND <agent_id>; proceed`。无消息工具时，仅在 writer 可后台执行、双方共享账本且 writer 能核对自身真实 ID 时，按派发前约定有界只读轮询 assignment，唯一匹配自身 ID+sprint+task_name+role 后才放行；超时/歧义不写。前台入口先准备返回再原生恢复同一真实 ID，无安全入口则保持未绑定。此时才开始下一个绑定窗口；精确条件见 [门禁合同速查](gate-contracts.md#writer--start--assignment--stop)。
 
 raw event schema v1 与 assignment schema v1 是两份独立契约: 前者字段为 `schema_version,event,agent_id,agent_type,sprint_slug,timestamp`; 后者字段为 `schema_version,agent_id,task_name,role,sprint_slug,timestamp`. Gate 只通过 `agent_id + sprint_slug` 连接, 不把 `agent_type` 当 `role`.
 

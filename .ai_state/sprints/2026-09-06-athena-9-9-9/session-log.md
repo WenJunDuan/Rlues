@@ -6,6 +6,18 @@ implementation_status: in-progress
 ---
 # 本轮状态与恢复入口
 
+## 2026-09-07 门禁速查与70轮 Hotfix（已安装；提交与推送以Git记录为准）
+
+用户显式指定 Hotfix 并授权更新9.9.9与系统目录。范围：CC/CX PACE 速查、发现入口、无消息工具的现有账本握手；不改 gate 执行逻辑，不覆盖当前15个未提交 CC hook 修改。主 thread 单写者；安装态逐文件备份。验收：速查文件/字段对照当前源码，引用有效，两端技能校验与安装文件内容一致。当前 System/impl 与 rework_impl 保留为上层未完成工作；本 Hotfix 不代表整个发行 ship。
+路由：显式 Hotfix（免审议），置信度1.0；对比继续 System 全流程会把文档修补混同发行验收，故此次采用用户指定局部 Hotfix。被新 route_history 条目替换的原末条：2026-09-07 System impl: user authorized local CC/CX 9.9.9 migration; external harness, retained sessions, safe-cache cleanup; conf=0.99。
+
+- 追加授权：所有 agent 最大70轮；Hotfix 更新系统并推送。CC全部7角色 maxTurns=70，CX全部9角色 developer_instructions 声明最多70轮；官方配置与当前工具未提供CX同等硬限，未添加无效TOML键。到限保留进度，不自动续派绕限。参考：[CC](https://code.claude.com/docs/en/subagents#supported-frontmatter-fields)、[CX](https://learn.chatgpt.com/docs/config-file/config-reference)。
+- 结果：CC/CX各新增70行 gate-contracts.md，入口从 PACE/stages 路由；九字段TDD、manifest条件、packet hash/AC集合、真实writer账本轮询与review四步顺序均对照9.9.9执行源码。保留 athena-review/SKILL.md（发现/派发）与 REVIEW.md（审查提示），职责不同，未删除。
+- 验证：既有70轮配置检查先RED（缺maxTurns），修改后CC/CX副本均GREEN；9.9.9 validator 60 PASS / 0 FAIL；技能frontmatter、git diff --check通过。此结果只覆盖Hotfix与候选代码，不宣称父System全量验收完成。
+- 安装：回读74个目标，62个有变化，零内容不符；~/.claude、~/.agents/skills及仍可发现的~/.codex/skills旧副本已同步。CC实际model/effort保留；其余受管角色正文更新到9.9.9合同。未改hooks、sessions或root config。
+- 回退：66个既有文件逐文件备份在 /Users/mi_manchi/.athena/backups/athena-9.9.9-gate-turns-WLDntf；同目录manifest.json记录74个目标及8个新增文件。本地备份不推送。
+- 推送范围：仅本Hotfix新增/修改的agent、skill、发行说明、校验与状态证据；启动前已有15个CC hook脏修改不纳入。父System/impl仍需rework；维护性Hotfix推送按用户明确授权使用已有ATHENA_ALLOW_PUSH入口，不伪切父sprint为ship。
+
 用户要求9.9.9迭代文档，三个目标均覆盖；以PACE/.ai_state为核心，单平台完整、多平台增强。当前只完成研究和文档工作，不代表发行实现或已安装升级。
 基线：aa0ae23864a217002ab10610c93a3d9c22f01ecb。设计工作树：/Users/mi_manchi/workspace/Rlues-worktrees/athena-9.9.9-design，分支 codex/athena-9.9.9-design。主工作区已有的配置事件和上轮 brainstorm 改动需保留。
 

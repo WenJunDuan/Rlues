@@ -21,7 +21,7 @@ Athena 只发起 **一次** review 请求：
 | CX | 原生 `/review`；不可用则单个只读 reviewer agent 读同一 `REVIEW.md` |
 | 皆无 | 单个 reviewer，schema 相同 |
 
-官方 harness 内部可并行多个 reviewer，不计入 Athena 轮次。**不要给 reviewer/agent 设置 maxTurns / 轮次上限。**
+官方 harness 内部可并行多个 reviewer，不计入 Athena 轮次。**Athena CC agent 统一 maxTurns: 70；原生内置 reviewer 是否受该字段控制须按入口能力区分，到限返回未完成进度。**
 
 发起后本轮 **正常结束**，设 `_index.next_action = await-review-result`。Stop / continuator 对该信号 **放行且不注入续跑**。完成通知轮：校验并写入 `reviews/implementation-review.md`。
 

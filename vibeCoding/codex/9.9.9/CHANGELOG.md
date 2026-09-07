@@ -10,7 +10,7 @@ Status: **candidate, not shipped**. Baseline: 9.9.8. 以下为当前候选变更
 - 根配置/状态模板当前身份 9.9.9，新模板默认 ["cx"]，保留旧 both/状态读取兼容及用户覆盖。
 - 业务链移除旧审查三角色；表设计与 DDL 分开，报告用同一需求/产物/证据映射；用量缺失不阻塞交付，无默认本地遥测。
 - 保留候选状态与待验证边界，不把静态文档检查包装成真实运行、全栈或效率证明。
-- Agent 不设轮次上限；审查提示在 `skills/athena-review/REVIEW.md`。
+- Agent 每次任务最多70轮（CX为指令约束，非原生硬限）；审查提示在 `skills/athena-review/REVIEW.md`。
 - 包内自带 `athena-vm` schema/example；`/llm-as-a-verifier` 为 opt-in 排序，默认关，不是 ship 门禁。
 - 安装器保留 sessions/history；已装机器成功事务后删除更早的安装器备份。
 

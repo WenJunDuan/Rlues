@@ -135,10 +135,12 @@ class SetupTests(unittest.TestCase):
             self.assertFalse(any(SETUP.is_junk(path) for path in paths))
             self.assertFalse(any(SETUP.is_preserved_session(path) for path in paths))
 
-    def test_agents_have_no_turn_cap(self) -> None:
+    def test_agents_have_70_turn_cap(self) -> None:
         agents = ROOT / "vibeCoding/claude/9.9.9/.claude/agents"
         for path in agents.glob("*.md"):
-            self.assertNotIn("maxTurns:", path.read_text(encoding="utf-8"), path.name)
+            frontmatter = path.read_text(encoding="utf-8").split("---", 2)[1]
+            caps = [line for line in frontmatter.splitlines() if line.startswith("maxTurns:")]
+            self.assertEqual(caps, ["maxTurns: 70"], path.name)
 
 
 class LaavTests(unittest.TestCase):

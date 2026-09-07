@@ -89,12 +89,14 @@ def package_contracts():
         if side == "CC":
             check("CC REVIEW.md not at .claude root", not (package / "REVIEW.md").exists())
             agent_dir = package / "agents"
-            turn_caps = []
+            invalid_turn_caps = []
             for agent in sorted(agent_dir.glob("*.md")):
                 text = agent.read_text()
-                if re.search(r"(?m)^maxTurns:", text):
-                    turn_caps.append(agent.name)
-            check("CC agents have no maxTurns", not turn_caps, repr(turn_caps))
+                frontmatter = text.split("---", 2)[1]
+                caps = re.findall(r"(?m)^maxTurns: *(.*?)$", frontmatter)
+                if caps != ["70"]:
+                    invalid_turn_caps.append(agent.name)
+            check("CC agents have maxTurns=70", not invalid_turn_caps, repr(invalid_turn_caps))
         else:
             check("CX fullstack-contract", (package / "skills/pace/references/fullstack-contract.md").is_file())
             check("CX state-contract", (package / "skills/pace/references/state-contract.md").is_file())

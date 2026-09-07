@@ -68,6 +68,7 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 | 场景 | Read |
 |---|---|
 | 进入某 stage 前看详细工作流 / 数据目录 | `references/stages.md` |
+| impl-entry / writer 握手 / review / ship 的文件、字段与命令顺序 | [门禁合同速查](references/gate-contracts.md)，正常执行先查；block 或版本不符才回源码 |
 | 选编排机制 (subagent / ultracode / /goal / Agent Team) | `references/orchestration.md` |
 | 查 hook 联动 / compound 联动 / 项目级例外 | `references/hooks.md` |
 | 某 stage 该用哪个插件 / 插件与流程冲突 | `references/plugins.md` (v9.9.0 U6) |

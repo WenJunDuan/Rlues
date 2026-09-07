@@ -10,7 +10,7 @@
 
 ### Step 1: 执行 polish
 
-主 agent 使用 CC 当前可用的 writable subagent 机制分派有界清理任务. 任务必须写明当前 sprint、worktree、允许写集、5 个检查项与验证命令。polish 在独立 review 之前，不读取 implementation-review 作为前置。不给 worker 设置轮次上限。
+主 agent 使用 CC 当前可用的 writable subagent 机制分派有界清理任务. 任务必须写明当前 sprint、worktree、允许写集、5 个检查项与验证命令。polish 在独立 review 之前，不读取 implementation-review 作为前置。worker 每次任务最多 70 轮，到限返回已完成与剩余工作。
 
 worker 修改代码并返回清理摘要; `.ai_state` 产物由主 agent 根据实际 diff 与返回结果复核后落盘.
 

@@ -16,6 +16,8 @@ ship 后核对当前 item，再推进可执行项。见 [roadmap](../../roadmap/
 
 ## plan
 
+impl-entry、writer 派发、review 与 ship 的精确文件/字段先查 [门禁合同速查](gate-contracts.md)；正常执行无需预读 hook 源码，block、版本不符或未覆盖分支再定位源码。
+
 1. 作者写 design.md：目标、决策、允许写集与可观察 Done Contract（验收标准）。
 2. Feature+ 机械派生 review-packet.md：实际 design hash、完整 AC ID 双射、≤80 行。作者不自审或给设计打 VERDICT。
 3. Feature 默认无固定设计审查；Refactor/System 或用户要求时，由非作者独立上下文按 packet 审查，允许本平台 reviewer。

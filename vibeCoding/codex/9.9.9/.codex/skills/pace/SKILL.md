@@ -68,6 +68,7 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 | 场景 | Read |
 |---|---|
 | 进入某 stage 前看详细工作流 / 数据目录 | `references/stages.md` |
+| impl-entry / writer 握手 / review / ship 的文件、字段与命令顺序 | [门禁合同速查](references/gate-contracts.md)，正常执行先查；block 或版本不符才回源码 |
 | 选编排机制 (subagent / ultracode / /goal / Agent Team) | `references/orchestration.md` |
 | 查 hook 联动 / compound 联动 / 项目级例外 | `references/hooks.md` |
 | 某 stage 该用哪个插件 / 插件与流程冲突 | `references/plugins.md` (v9.9.0 U6) |
@@ -86,4 +87,4 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 恢复与证据：[state-contract.md](references/state-contract.md)；派发/接收/整合：[execution-contracts.md](references/execution-contracts.md)；全栈准入：[fullstack-contract.md](references/fullstack-contract.md)；CX 原生与配置：[platform-contracts.md](references/platform-contracts.md)。
 
 
-CX writer 每次派发串行完成 [真实 ID 握手](references/orchestration.md#spawn-binding-handshake)。不要给 agent 设置轮次上限。
+CX writer 每次派发串行完成 [真实 ID 握手](references/orchestration.md#spawn-binding-handshake)。agent 每次任务最多 70 轮，到限返回进度；CX 当前为指令约束，非原生硬限。
