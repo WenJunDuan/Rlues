@@ -1651,6 +1651,10 @@ def main() -> int:
                 except GateError as exc:
                     return block(str(exc))
         if stage == "impl":
+            # State repairs and read-only triage must remain possible when the
+            # previous sprint lacks a contract. Source writes and Stop still gate.
+            if payload.get("hook_event_name") == "PreToolUse" and not is_implementation_write(payload):
+                return EXIT_SUCCESS
             # design §4.2 主门禁: Feature/Refactor/System 在 impl 阶段必须已有
             # 机器可识别验收标准; ship 段复核是纵深防御 (design §4.4).
             if fm.get("path", "") in GENERATOR_PATHS:

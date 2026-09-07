@@ -443,7 +443,37 @@ class InstallRework(unittest.TestCase):
 
 
 class PromptAndParity(unittest.TestCase):
-    def test_cc_impl_allows_state_repair_but_blocks_source_and_stop(self):
+    def test_independent_quick_and_hotfix_do_not_complete_old_system(self):
+        for runner, script in (('node', CC / 'delivery-gate.cjs'),
+                               (sys.executable, CX / 'delivery-gate.py')):
+            with self.subTest(script=str(script)), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                subprocess.run(['git', 'init', '-q', str(root)], check=True)
+                state = root / '.ai_state'
+                state.mkdir()
+                index = state / '_index.md'
+                parent = '---\npath: "System"\nstage: "impl"\ncurrent_sprint_slug: "parent"\n---\n'
+                def stopped():
+                    run = subprocess.run(
+                        [runner, str(script)],
+                        input=json.dumps({'cwd': str(root), 'hook_event_name': 'Stop'}),
+                        env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'),
+                        text=True, capture_output=True,
+                    )
+                    return (json.loads(run.stdout) if run.stdout.strip() else {}).get('decision') == 'block'
+                index.write_text(parent)
+                self.assertTrue(stopped(), 'old System still lacks its own contract')
+                for route in ('Quick', 'Hotfix'):
+                    index.write_text(
+                        '---\npath: "' + route + '"\nstage: "ship"\n'
+                        'current_sprint_slug: "independent-' + route.lower() + '"\n'
+                        'current_roadmap_slug: ""\ndesign_changed_after_impl: false\n---\n'
+                    )
+                    self.assertFalse(stopped(), route)
+                index.write_text(parent)
+                self.assertTrue(stopped(), 'new task must not satisfy old System acceptance')
+
+    def test_impl_allows_state_repair_but_blocks_source_and_stop(self):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             subprocess.run(['git', 'init', '-q', str(root)], check=True)
@@ -452,20 +482,23 @@ class PromptAndParity(unittest.TestCase):
             (state / '_index.md').write_text(
                 '---\npath: "Feature"\nstage: "impl"\ncurrent_sprint_slug: "repair"\n---\n'
             )
-            for event, file, blocked in (
-                ('PreToolUse', state / 'sprints/repair/design.md', False),
-                ('PreToolUse', root / 'app.py', True),
-                ('Stop', root / 'app.py', True),
-            ):
-                with self.subTest(event=event, file=str(file)):
-                    run = subprocess.run(
-                        ['node', str(CC / 'delivery-gate.cjs')],
-                        input=json.dumps({'cwd': str(root), 'hook_event_name': event,
-                                          'tool_name': 'Write', 'tool_input': {'file_path': str(file)}}),
-                        text=True, capture_output=True,
-                    )
-                    output = json.loads(run.stdout) if run.stdout.strip() else {}
-                    self.assertEqual(output.get('decision') == 'block', blocked, run.stderr)
+            for runner, script in (('node', CC / 'delivery-gate.cjs'),
+                                   (sys.executable, CX / 'delivery-gate.py')):
+                for event, file, blocked in (
+                    ('PreToolUse', state / 'sprints/repair/design.md', False),
+                    ('PreToolUse', root / 'app.py', True),
+                    ('Stop', root / 'app.py', True),
+                ):
+                    with self.subTest(script=str(script), event=event, file=str(file)):
+                        run = subprocess.run(
+                            [runner, str(script)],
+                            input=json.dumps({'cwd': str(root), 'hook_event_name': event,
+                                              'tool_name': 'Write', 'tool_input': {'file_path': str(file)}}),
+                            env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'),
+                            text=True, capture_output=True,
+                        )
+                        output = json.loads(run.stdout) if run.stdout.strip() else {}
+                        self.assertEqual(output.get('decision') == 'block', blocked, run.stderr)
 
     def test_index_frontmatter_skips_indent_and_rejects_duplicates(self):
         gate = py_module('delivery-gate')

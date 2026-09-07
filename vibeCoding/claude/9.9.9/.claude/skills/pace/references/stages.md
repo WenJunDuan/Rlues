@@ -2,6 +2,10 @@
 
 本页是本发行包阶段义务的唯一正文。其他 agent/skill/模板引用本页；恢复、review 绑定、证据与整合细则见 [execution-contracts.md](execution-contracts.md)。PACE 控制工作，.ai_state 保存合同与事实；CC-only 可完成适用全流程。
 
+## 新输入先分诊
+
+一句话/一段话均按 [athena-dev](../../athena-dev/SKILL.md) 的任务意图与实际影响自动分诊；无需用户报级别。旧path/stage/next_action仅用于原任务恢复；独立检查先只读执行，独立修改先按任务切换合同更新实际索引。明确Hotfix直接impl，不走设计准备；不能只在历史里称Hotfix却仍用旧System执行字段。
+
 ## brainstorm
 
 触发：无法从现有输入写出可观察验收标准，或用户明确要求探索。
@@ -15,6 +19,8 @@
 ship 后核对当前 item，再推进可执行项。见 [roadmap](../../roadmap/SKILL.md)。
 
 ## plan
+
+只读Quick在本阶段记录诊断目标并执行检查，完成后直接ship；只用最短session-log，不创建design/packet/checklist或进入实现审查。下列设计步骤用于有实现的适用路径。
 
 impl-entry、writer 派发、review 与 ship 的精确文件/字段先查 [门禁合同速查](gate-contracts.md)；正常执行无需预读 hook 源码，block、版本不符或未覆盖分支再定位源码。
 

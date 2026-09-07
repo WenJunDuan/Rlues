@@ -7,13 +7,13 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 
 ## 6 路径
 
-主 agent 收到用户输入后, 按改动量 + 紧急度判定路径:
+新的一句话/一段话任务先按 [athena-dev](../athena-dev/SKILL.md) 自动区分只读诊断、修改及旧任务延续，再按实际影响判定路径；旧 stage/next_action 不替新任务定级。明确后立即执行下一项授权工作。
 
 | 路径 | 触发 | stage 流程 | 强制 review? | 强制 polish? | 强制 worktree? |
 |---|---|---|---|---|---|
-| **Hotfix** | 生产事故, 几分钟修 | impl → ship | 风险触发 | ❌ | ❌ |
-| **Bugfix** | 已知 bug, 单文件 | report → (analyze) → impl → review → ship | ✅ 一次 | ❌ | ❌ (fix-note 必写) |
-| **Quick** | 小改动, ≤3 文件 | plan → impl → [review?] → ship | 用户或风险 | ❌ | ❌ |
+| **Hotfix** | 用户明确指定，或紧急故障的有界恢复 | impl → ship | 风险触发 | ❌ | ❌ |
+| **Bugfix** | 已知缺陷的局部修复 | report → (analyze) → impl → review → ship | ✅ 一次 | ❌ | ❌ (fix-note 必写) |
+| **Quick** | 只读诊断，或≤3文件小改动 | 只读：plan → ship；修改：plan → impl → [review?] → ship | 用户或风险；只读不套实现审查 | ❌ | ❌ |
 | **Feature** | 新功能, 单模块 | plan → impl → [runtime-verify?] → review → ship | ✅ 一次 | ❌ | ❌ (可选) |
 | **Refactor** | 改架构, ≥5 文件 | plan → impl → runtime-verify → polish → review → ship | ✅ 一次多维 | ✅ | ✅ 强制 |
 | **System** | 跨模块, 系统级 | plan → design → impl → runtime-verify → polish → review → ship | ✅ 一次多维 | ✅ | ✅ 强制 |
@@ -30,9 +30,9 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 
 ## 路由审议 (v9.9.1 · 可审计决策摘要)
 
-路由是 triage, 不是查表. **完整 5 步协议 (候选 → 四维权衡 → 置信度阈值 → route-note 格式) 见 `athena-dev` — 本文件不复述, 避免双写漂移.** 结论落 `sprints/{slug}/route-note.md` + `_index.route_confidence`.
+路由按任务语义和现场证据判定；判据与新旧任务切换只见 [athena-dev](../athena-dev/SKILL.md)，本页不另定义分诊协议。 普通结论只记 `_index.route_history` 一行 + `route_confidence`；真实 re-route 或重要假设才另立 route-note。
 
-**模糊判定 (语义, 非字数)**: 能否从输入直接写出可验收标准? 写不出 = 模糊 → brainstorm.
+**模糊判定（语义，非字数）**：先结合现有上下文和必要只读检查判断能否写出可观察目标；仍缺决定性信息才澄清/brainstorm。诊断目标明确而根因未知，不算需求模糊。
 (废除旧版 `len(input.split()) < 8`: split 按空格切词, 对中文输入恒为 1, 判定失效)
 
 **护栏是地板, 不是天花板** (铁律[分诊]):
@@ -41,11 +41,13 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 |---|---|
 | ≥2 个可独立验收交付的切片 | roadmap (hotfix2: 模块数只定风险等级, 不可拆的跨模块不变量单 sprint 做) |
 | 跨模块改动 / 预估 ≥5 文件 | Refactor |
-| 用户显式声明生产事故 | Hotfix (唯一免审议, 直接进) |
+| 用户明确指定本次 Hotfix，或紧急故障的有界恢复 | Hotfix 优先于一般文件数路由，直接 impl |
 
 审议只允许在地板之上加码 (Quick 判成 Feature 可以), 不允许低于地板 (System 级判成 Quick 禁止).
 
 ## 中途 re-route (只升不降)
+
+只升不降针对同一任务；独立插入任务按 [任务切换合同](../athena-dev/references/playbook.md) 保存旧状态并路由，不继承旧System级别。用户已指定本次Hotfix时不重复询问本次范围降级。
 
 路径不在入口一锤定音. sprint 执行中证据与路径不符 → 重走审议, **只允许升级** (Quick→Feature→Refactor→System):
 
@@ -76,7 +78,7 @@ description: PACE 路由与 4 核心 + 5 条件 stage 全景。面包屑失效�
 
 ## 最小循环提醒
 
-- plan/design: 作者写 `design.md` + 派生 `review-packet.md`；不 spawn critic。R/S 或用户显式要求才由**非作者会话**按 packet 挑战。
+- plan/design: Feature+作者写 `design.md` + 派生 `review-packet.md`；只读Quick仅最短session-log，修改Quick用简短计划，Hotfix可省设计。不spawn critic；R/S或用户要求才由非作者会话挑战packet。
 - **spec-gate impl-entry**: Feature+ 进 impl 前先验 design 验收标准 + packet hash/AC 双射（≤80 行）。写不出 AC = 回 plan。
 - impl: 按红黄绿区路由写入; generator 不预加载 pace skill
 - runtime-verify (R/S 强制): 按 design/runtime-env 实跑；VM 仅在合同要求时必需

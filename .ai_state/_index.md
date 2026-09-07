@@ -4,18 +4,18 @@
 version: "9.9.8"
 
 # === PACE 路由状态 ===
-path: "System"  # Hotfix | Bugfix | Quick | Feature | Refactor | System
-stage: "impl"
+path: "Hotfix"
+stage: "ship"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-06-athena-9-9-9"  # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
-current_roadmap_slug: "athena-9-9-9"  # 仅 roadmap stage 期间填
+current_sprint_slug: "2026-09-07-pace-task-triage-hotfix"
+current_roadmap_slug: ""
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.6) ===
-route_confidence: 1.0  # 用户显式指定局部门禁文档 Hotfix；上层 System 保留
-route_history: ["2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-07 Hotfix: user authorized 9.9.9 gate quickref + installed sync; parent System unchanged; conf=1.0"]  # re-route ≤10, item ≤160B
+route_confidence: 1.0  # 用户授权自然语言分诊 Hotfix；父 System 恢复事实留在原日志
+route_history: ["2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-07 Hotfix: natural-language triage + state-repair gate; parent saved in session-log; conf=1.0"]  # re-route ≤10, item ≤160B
 plan_model: "fable"               # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
@@ -69,9 +69,9 @@ counts:
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: "sprints/2026-09-06-athena-9-9-9/design.md"
-  latest_review: "sprints/2026-09-06-athena-9-9-9/reviews/2026-09-07-completeness-audit.md"
-  latest_cleanup: "sprints/2026-08-27-athena-9-9-8/cleanup-pass.md"
+  latest_design: ""
+  latest_review: ""
+  latest_cleanup: ""
   latest_brainstorm: "sprints/2026-09-06-athena-next-version/brainstorm.md"
   latest_decisions: ["compound/2026-08-27-decision-retire-local-telemetry-collection.md", "compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
@@ -81,13 +81,13 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "rework_impl"
+next_action: ""
 last_subagent: "athena999_design_review_followup"
 last_subagent_at: "2026-09-06T10:29:17.861980+00:00"
 active_worktrees: []  # 已于 2026-09-07 移除过期 athena-9.9.9-design worktree；保留其分支作回退锚点
-harness_target_outside_repo: true  # 本轮仅写 ~/.claude ~/.codex ~/.agents；worktree 对其无隔离作用，采用单写者事务备份
+harness_target_outside_repo: true  # 安装目标在 ~/.claude ~/.codex ~/.agents；单写者逐文件备份，仓库源码同步
 last_critic_round: 0              # 9.9.8: 设计作者不自审, critic 为 stub
-design_changed_after_impl: true
+design_changed_after_impl: false
 
 # === 用户偏好 ===
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
@@ -111,6 +111,7 @@ fingerprint: ""
 
 ## 当前状态
 
+- 2026-09-07 Hotfix: task triage installed; validator 60/0; parent System recovery preserved in session-log.
 - 2026-09-07 Hotfix: gate quickref + agent 70-turn policy installed; parent System pending. See session-log.
 - 2026-09-07 audit: 首装资产通过；核心缺陷仍在，见latest_review；不安装。
 - 2026-09-07 impl: 已合入审查绑定/init 并发/Gradle 分类/LaaV 评分修复；validator 58 PASS；未安装。

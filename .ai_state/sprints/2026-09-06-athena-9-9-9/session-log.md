@@ -6,6 +6,26 @@ implementation_status: in-progress
 ---
 # 本轮状态与恢复入口
 
+## 2026-09-07 独立路由Hotfix插入恢复点
+
+本次修复自然语言任务分诊，独立sprint为2026-09-07-pace-task-triage-hotfix；基线cea3bed，原工作区干净。无活动writer/待接收review绑定；只读分诊行为评估不修改业务。下列为原任务恢复字段，父System仍未完成，不把独立Hotfix的结果当父任务PASS。
+
+```yaml
+path: "System"  # Hotfix | Bugfix | Quick | Feature | Refactor | System
+stage: "impl"
+current_sprint_slug: "2026-09-06-athena-9-9-9"  # 当前 sprint 目录名, 如 "2026-05-25-jwt-refresh"
+current_roadmap_slug: "athena-9-9-9"  # 仅 roadmap stage 期间填
+skip_polish: false                # 项目级 opt-out (默认 false)
+skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
+skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
+  latest_design: "sprints/2026-09-06-athena-9-9-9/design.md"
+  latest_review: "sprints/2026-09-06-athena-9-9-9/reviews/2026-09-07-completeness-audit.md"
+  latest_cleanup: "sprints/2026-08-27-athena-9-9-8/cleanup-pass.md"
+next_action: "rework_impl"
+design_changed_after_impl: true
+skip_impl_subagent_check: false   # true 跳过 "impl 必须经 generator Stop" 门禁 (纯绿区微改 sprint 才设)
+```
+
 ## 2026-09-07 门禁速查与70轮 Hotfix（已安装；提交与推送以Git记录为准）
 
 用户显式指定 Hotfix 并授权更新9.9.9与系统目录。范围：CC/CX PACE 速查、发现入口、无消息工具的现有账本握手；不改 gate 执行逻辑，不覆盖当前15个未提交 CC hook 修改。主 thread 单写者；安装态逐文件备份。验收：速查文件/字段对照当前源码，引用有效，两端技能校验与安装文件内容一致。当前 System/impl 与 rework_impl 保留为上层未完成工作；本 Hotfix 不代表整个发行 ship。

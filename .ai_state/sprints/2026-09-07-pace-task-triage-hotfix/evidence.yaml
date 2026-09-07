@@ -1,0 +1,10 @@
+sprint_slug: "2026-09-07-pace-task-triage-hotfix"
+collected_evidence:
+  - tool_use_id: "exec-ee937c25-f905-467a-835b-280ccb171e98"
+    tool: "Bash"
+    file: ""
+    kind: "lint"
+    command: "git diff --check"
+    result: "unknown"
+    timestamp: "2026-09-07T13:13:04.300334Z"
+    binding_status: "unverifiable"
