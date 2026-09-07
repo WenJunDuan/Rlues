@@ -4,6 +4,10 @@
 
 2026-07-10 System: user-approved impl-first flow; Fable5 post-implementation review remains mandatory
 
+## rh-4
+
+2026-07-14 System: repair Athena 9.9.3 review findings, full regression, formal review, merge and publish
+
 旧索引中以下缩写锚点来自9.9.8；保留跳转，避免当前sprint切换后误解原文位置。
 
 ## rh-0
