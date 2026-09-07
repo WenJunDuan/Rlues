@@ -18,6 +18,13 @@ implementation_status: in-progress
 - 回退：66个既有文件逐文件备份在 /Users/mi_manchi/.athena/backups/athena-9.9.9-gate-turns-WLDntf；同目录manifest.json记录74个目标及8个新增文件。本地备份不推送。
 - 推送范围：仅本Hotfix新增/修改的agent、skill、发行说明、校验与状态证据；启动前已有15个CC hook脏修改不纳入。父System/impl仍需rework；维护性Hotfix推送按用户明确授权使用已有ATHENA_ALLOW_PUSH入口，不伪切父sprint为ship。
 
+### 追加：全部推送与安装态门禁补齐
+
+用户再次明确“全部都推送”，取代上一段的排除范围：原有15个CC hook仓库边界修复一并提交。逐文件核对发现CC/CX delivery-gate仍为旧安装版本；其余hooks均一致。两端门禁已从9.9.9补齐，并保留CC安装态的impl状态修复放行逻辑、CX安装态的review使用repo root逻辑；两个旧文件已备份到同一回退目录的对应hooks路径。
+CC状态修复回归先RED后GREEN：缺合同的impl允许修复.ai_state，源码写与Stop仍block；不放松实现门禁。源包与安装态门禁回读后再推送。SKILL.md与REVIEW.md继续保留。
+
+最终安装回读：CC 21个、CX 17个hook全部与9.9.9源包一致；Hotfix相关技能/角色已核验。含新增状态修复回归的validator再次60 PASS / 0 FAIL。全部待提交变更按用户追加授权交付，父System的整体运行验收仍独立跟踪。
+
 用户要求9.9.9迭代文档，三个目标均覆盖；以PACE/.ai_state为核心，单平台完整、多平台增强。当前只完成研究和文档工作，不代表发行实现或已安装升级。
 基线：aa0ae23864a217002ab10610c93a3d9c22f01ecb。设计工作树：/Users/mi_manchi/workspace/Rlues-worktrees/athena-9.9.9-design，分支 codex/athena-9.9.9-design。主工作区已有的配置事件和上轮 brainstorm 改动需保留。
 

@@ -13,6 +13,8 @@ function findAiState(cwd) {
   for (let i = 0, c = cwd; i < 5; i++) {
     const cand = path.join(c, '.ai_state');
     if (fs.existsSync(cand) && fs.statSync(cand).isDirectory()) return cand;
+    // 2026-09-07 fix: stop at git repo boundary — do not inherit a parent project's .ai_state
+    if (fs.existsSync(path.join(c, '.git'))) return null;
     const p = path.dirname(c);
     if (p === c) return null;
     c = p;

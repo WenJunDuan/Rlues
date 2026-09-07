@@ -1750,7 +1750,7 @@ def main() -> int:
                     validate_checklist(sprint_dir / "checklist.yaml")
                 evidence_records = validate_evidence(sprint_dir / "evidence.yaml")
                 review_path = select_latest_review(sprint_dir / "reviews")
-                review_content = validate_review(review_path, cwd, sprint_dir)
+                review_content = validate_review(review_path, root, sprint_dir)
                 if has_manifest:
                     spec_criteria = validate_spec_gate(
                         sprint_dir, ai_state, fm, sprint_slug, allow_exception=False

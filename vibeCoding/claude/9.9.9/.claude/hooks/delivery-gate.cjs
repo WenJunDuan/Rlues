@@ -30,6 +30,8 @@ function findAiState(cwd) {
   for (let depth = 0; depth < 8; depth += 1) {
     const candidate = path.join(current, ".ai_state");
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+    // 2026-09-07 fix: stop at git repo boundary — do not inherit a parent project's .ai_state
+    if (fs.existsSync(path.join(current, ".git"))) return null;
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
@@ -1382,9 +1384,10 @@ function main() {
     // a failing check can never be resolved (fixing state requires a write, and
     // every write re-runs the failing check). Implementation writes and the Stop
     // final gate still validate in full.
-    const shipMustValidate = payload.hook_event_name !== "PreToolUse" || isImplementationWrite(payload);
-    if (fm.stage === "ship" && shipMustValidate) validateShip(aiState, fm, root || cwd);
-    else if (fm.stage === "impl") validateImplEntry(aiState, fm);
+    // Keep state repairs possible in impl too; source writes and Stop still validate.
+    const mustValidate = payload.hook_event_name !== "PreToolUse" || isImplementationWrite(payload);
+    if (fm.stage === "ship" && mustValidate) validateShip(aiState, fm, root || cwd);
+    else if (fm.stage === "impl" && mustValidate) validateImplEntry(aiState, fm);
     appendGatePass(payload, breakerCtx);
   } catch (error) {
     stopFailure(payload, error instanceof GateError ? error.message : `internal fail-closed error: ${error.message}`, breakerCtx);

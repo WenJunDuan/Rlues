@@ -443,6 +443,30 @@ class InstallRework(unittest.TestCase):
 
 
 class PromptAndParity(unittest.TestCase):
+    def test_cc_impl_allows_state_repair_but_blocks_source_and_stop(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            subprocess.run(['git', 'init', '-q', str(root)], check=True)
+            state = root / '.ai_state'
+            state.mkdir()
+            (state / '_index.md').write_text(
+                '---\npath: "Feature"\nstage: "impl"\ncurrent_sprint_slug: "repair"\n---\n'
+            )
+            for event, file, blocked in (
+                ('PreToolUse', state / 'sprints/repair/design.md', False),
+                ('PreToolUse', root / 'app.py', True),
+                ('Stop', root / 'app.py', True),
+            ):
+                with self.subTest(event=event, file=str(file)):
+                    run = subprocess.run(
+                        ['node', str(CC / 'delivery-gate.cjs')],
+                        input=json.dumps({'cwd': str(root), 'hook_event_name': event,
+                                          'tool_name': 'Write', 'tool_input': {'file_path': str(file)}}),
+                        text=True, capture_output=True,
+                    )
+                    output = json.loads(run.stdout) if run.stdout.strip() else {}
+                    self.assertEqual(output.get('decision') == 'block', blocked, run.stderr)
+
     def test_index_frontmatter_skips_indent_and_rejects_duplicates(self):
         gate = py_module('delivery-gate')
         text = '---\npath: "Feature"\nplatform_features:\n  path: "System"\n---\n'
@@ -524,4 +548,3 @@ class PromptAndParity(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
