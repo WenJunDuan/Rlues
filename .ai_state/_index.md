@@ -15,7 +15,7 @@ skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/�
 
 # === 路由审议 (v9.9.6) ===
 route_confidence: 1.0  # 用户授权自然语言分诊 Hotfix；父 System 恢复事实留在原日志
-route_history: ["2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-07 Hotfix: natural-language triage + state-repair gate; parent saved in session-log; conf=1.0"]  # re-route ≤10, item ≤160B
+route_history: ["2026-07-25 System+roadmap: research-led Athena 9.9.6 prompt architecture refresh for Claude Code and Codex", "2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-08 Hotfix follow-up: sync CC worktree cleanup ruling to repo/CX; bounded docs; conf=1.0"]  # re-route ≤10, item ≤160B
 plan_model: "fable"               # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
@@ -111,6 +111,7 @@ fingerprint: ""
 
 ## 当前状态
 
+- 2026-09-08 Hotfix: CC worktree cleanup ruling synced to repo/CX; two CC backups removed; no push requested.
 - 2026-09-07 Hotfix: task triage installed; validator 60/0; parent System recovery preserved in session-log.
 - 2026-09-07 Hotfix: gate quickref + agent 70-turn policy installed; parent System pending. See session-log.
 - 2026-09-07 audit: 首装资产通过；核心缺陷仍在，见latest_review；不安装。

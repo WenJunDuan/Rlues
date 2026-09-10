@@ -32,7 +32,7 @@ writer 每次派发串行绑定：
 主 agent 先确保工作树含实际待改内容；Git worktree 默认不会携带 dirty 文件，明确提交或受控传递增量并校验。原生 `isolation: worktree` 是 CC 能力，不把 Codex 工具名抄入。
 默认不注册 WorktreeCreate/Remove hook；其 override 语义需独立验证。生命周期用原生 Start/Stop 和 `git worktree list` 核对。
 polish 可在既有实现 worktree 由串行唯一 writer 完成，不额外嵌套隔离；共享 `.ai_state` 始终主 agent 写。repo 外安装态无 worktree 隔离效果时设已约定例外、逐文件备份、单写者串行。
-review/ship 之前不自动 push、merge、建 PR 或丢弃 worktree；这些动作按用户有效授权与 delivery gate 执行。清理前验证产物已整合或保留。
+review/ship 之前不自动 push 或建 PR；这些动作按用户有效授权与 delivery gate 执行。worktree 例外（2026-09-07 用户裁定）：writer 产物经主 agent 核对（分支为 main 祖先 + 复验通过）后立即清理该 worktree 与临时分支，不保留待审壳；返工时重建。清理前仍须验证产物已整合。
 
 ## 可选跨端交接
 

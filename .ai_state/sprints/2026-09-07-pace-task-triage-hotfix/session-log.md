@@ -1,5 +1,13 @@
 # 自然语言任务路由 Hotfix（9.9.9）
 
+## 2026-09-08 规则同步追加
+
+- 用户要求将Claude现场裁定同步回9.9.9仓库和CX安装态：ff合并到main并复验通过后立即删除worktree与临时分支，返工重建；push/PR仍遵循授权与门禁。
+- 作为已授权Hotfix规则纠偏延续；候选Quick仅机械同步，采用当前Hotfix有界文档修订，conf=1.0。无代码/权限配置变更，无实际worktree或分支删除，不新增自动清理hook。
+- CC两个源码文件与安装态逐字同步；CX保留原生派工差异，只同步清理语义，并更新 `.agents` 与 `.codex` 两份安装文件。
+- 已核对并删除CC两个 `*.md.bak-20260907-wt`，其内容与仓库修改前版本完全相同，可从Git恢复。CX四份安装前备份位于 `/Users/mi_manchi/.athena/backups/athena-9.9.9-worktree-muBM1M`。
+- 验证：两端pace的quick_validate通过，6/6源码/安装文件对照一致，两个指定CC备份已不存在，git diff --check通过。本次为纯文档规则修订，不制造行为测试；本轮未要求commit/push，保留工作区改动。
+
 目标：一句话/一段话任务自动识别检查/诊断/实现与实际风险；显式Hotfix立即执行，独立Quick诊断不消费旧System门禁。用户给出的OpenList服务器请求是分诊样例，本轮没有连接服务器。
 允许范围：CC/CX athena-dev与PACE入口、根提示、CX状态修复门禁及相关回归；系统目录同步后提交推送。父任务恢复入口：../2026-09-06-athena-9-9-9/session-log.md 的“独立路由Hotfix插入恢复点”；父System验收保持未完成。
 分诊：沿本次已授权9.9.9 Hotfix继续；候选Quick仅文档路径不能覆盖CX门禁实测缺陷，采用Hotfix有界修复，conf=1.0。所有产出仅反映结论、证据，不记录原始推理。

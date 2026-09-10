@@ -56,6 +56,9 @@ raw event schema v1 与 assignment schema v1 是两份独立契约: 前者字段
 3. agent 第一个命令执行 `pwd`; 后续每个 shell 调用显式设置该 worktree 为 `workdir`.
 4. 主 thread 用 `git -C <worktree> status --short` 与 diff 复核边界.
 5. 多写者只分派互斥写集; 共享状态文件由主 thread 串行更新.
+6. worktree 产物经主 thread ff 合并进 main 并复验通过后，立即 `git worktree remove` 并删临时分支（2026-09-07 用户裁定），不保留待审壳；返工时重建新 worktree。清理前核对分支为 main 祖先且产物已整合。
+
+review/ship 之前不自动 push 或建 PR；这些动作仍按用户有效授权与 delivery gate 执行。
 
 这是可审计的协作约束, 不是 Codex 提供的机械 cwd 隔离. hook 不得声称能通过解析不存在的 `--cwd` 参数强制它.
 

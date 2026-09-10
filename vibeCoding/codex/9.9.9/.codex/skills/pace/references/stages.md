@@ -60,7 +60,7 @@ Refactor/System 强制，Feature 按合同需要。impl 和单测后运行真实
 Refactor/System 在 runtime-verify 后、implementation review 前执行。polish_worker 沿用当前实现 worktree与明确写集；按 writer 握手绑定，不引用 CC isolation 参数。
 检查临时代码、注释、冗余、低效、过度设计；只清理实际问题。改变行为后运行受影响验证，产生新风险则返回 impl/runtime-verify。
 主 agent 复核产物，落 cleanup-pass.md，按实际变化更新 architecture/与有价值的 compound。
-清理完成 → review；skip_polish 不豁免 review。分支合并、推送及 worktree 清理在 ship 按已有授权处理，不在 polish 提前销毁待审工作树。
+清理完成 → review；skip_polish 不豁免 review。推送与建 PR 仍在 ship 按已有授权处理；worktree 产物一经 ff 合并进 main 并复验通过，主 agent 立即 `git worktree remove` 并删临时分支（2026-09-07 用户裁定），返工时重建新 worktree，不留壳。
 具体操作见 [polish](../../polish/SKILL.md)。
 
 ## review
