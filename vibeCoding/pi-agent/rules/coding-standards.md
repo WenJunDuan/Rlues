@@ -1,4 +1,6 @@
 ---
+paths:
+  - ".ai_state/sprints/**"
 effort: medium
 attach_to_stages: [impl, review, polish]
 attach_to_subagents: [generator, reviewer, polish_worker]
@@ -8,7 +10,7 @@ attach_to_subagents: [generator, reviewer, polish_worker]
 # Coding Standards · 代码规范
 
 > 适用于所有由 Athena 路径生成 / 审查的代码.
-> 违反 P0 → evaluator VERDICT=REWORK; ≥ 3 个 P1 → CONCERNS.
+> 一次独立 reviewer 根据实际风险给出 VERDICT；门禁与阶段以 pace/references/stages.md 为准，不由退役角色裁决。
 
 ## P0 (硬性, 违反 = REWORK)
 

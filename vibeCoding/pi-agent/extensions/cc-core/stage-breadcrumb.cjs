@@ -23,6 +23,8 @@ function findAiState(cwd) {
   for (let i = 0; i < 5; i++) {
     const candidate = path.join(current, '.ai_state');
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+    // 2026-09-07 fix: stop at git repo boundary — do not inherit a parent project's .ai_state
+    if (fs.existsSync(path.join(current, '.git'))) return null;
     const parent = path.dirname(current);
     if (parent === current) return null;
     current = parent;
@@ -60,7 +62,7 @@ function parseFrontmatter(filePath) {
 }
 
 function extractStageSection(stage) {
-  // pi port (2026-08-03): prefer ~/.pi/agent/skills/pace, fallback to CC location.
+  // pi: prefer ~/.pi/agent/skills/pace
   const piStages = path.join(os.homedir(), '.pi', 'agent', 'skills', 'pace', 'references', 'stages.md');
   const ccStages = path.join(os.homedir(), '.claude', 'skills', 'pace', 'references', 'stages.md');
   const stagesPath = fs.existsSync(piStages) ? piStages : ccStages;
@@ -98,7 +100,7 @@ function main() {
       (fm.current_sprint_slug ? ` · sprint=${fm.current_sprint_slug}` : '');
     // hotfix2 AC6 (2026-07-29, W37): next_action 不再注入 breadcrumb — 它挤掉 stage 义务;
     // 机器信号走 SessionStart 告警与 gate, 进度散文本就该禁。
-    const tail = '(全文/前后 stage: Read ~/.claude/skills/pace/references/stages.md · 关闭: _index.breadcrumb: "off")';
+    const tail = '(全文/前后 stage: Read ~/.pi/agent/skills/pace/references/stages.md · 关闭: _index.breadcrumb: "off")';
     let additionalContext = `${head}\n${section}\n${tail}`;
     // hotfix2 AC6: 每轮常驻预算 <=240 B; 超出按行裁剪, 完整义务留在 stages.md
     if (Buffer.byteLength(additionalContext, 'utf8') > 240) {

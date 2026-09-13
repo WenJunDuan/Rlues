@@ -61,7 +61,10 @@ function findSubstitutions(command) {
     const char = command[i];
     if (escaped) { escaped = false; continue; }
     if (char === "\\" && quote !== "'") { escaped = true; continue; }
-    if (quote === "'") continue;
+    if (quote === "'") {
+      if (char === "'") quote = "";
+      continue;
+    }
     if (quote === '"' && char === '"') { quote = ""; continue; }
     if (!quote && (char === "'" || char === '"')) { quote = char; continue; }
     if (char === "$" && command[i + 1] === "(") {
@@ -293,7 +296,7 @@ function analyze(command, depth = 0) {
       const cIndex = values.findIndex(value => value === "-c");
       if (cIndex >= 0 && values[cIndex + 1]) {
         const nested = analyze(values[cIndex + 1], depth + 1);
-        if (nested.danger) return nested;
+        if (nested.danger || nested.push) return nested;
       }
     }
     if (name === "git" && gitSubcommand(item.args) === "push") {
@@ -332,7 +335,7 @@ function main() {
       const input = fs.readFileSync(0, "utf8");
       if (input.trim()) payload = JSON.parse(input);
     } catch (_) {}
-    const command = String(payload?.tool_input?.command || "");
+    const command = String(payload?.tool_input?.command || payload?.tool_input?.cmd || "");
     if (!command) return;
     const verdict = analyze(command);
     if (verdict.danger) {
@@ -350,10 +353,18 @@ function main() {
         process.exitCode = 2;
       }
     }
+    if (!process.exitCode) {
+      try { require('./_input-binding.cjs').captureBefore(payload); }
+      catch (error) { process.stderr.write('[evidence-input] unavailable: ' + error.message + '\n'); }
+    }
   } catch (error) {
     process.stderr.write(`[pre-bash-guard] BLOCKED: parser failure: ${error.message}\n`);
     process.exitCode = 2;
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+} else {
+  module.exports = { findSubstitutions, analyze };
+}

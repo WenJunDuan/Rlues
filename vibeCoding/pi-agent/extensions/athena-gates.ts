@@ -1,7 +1,7 @@
 /**
- * Athena v9.9.6 · pi 端门禁适配器 (Phase-2)
+ * Athena · pi 端门禁适配器
  *
- * 设计: 不重写 CC 端已验证的门禁逻辑 — cc-core/*.cjs 原样复用 (与 claude/9.9.6 同源),
+ * 设计: 不重写 CC 端已验证的门禁逻辑 — cc-core/*.cjs 复用 (与 claude/9.9.9 同源),
  * 本文件只做协议转换:
  *   pi tool_call (bash)        → pre-bash-guard.cjs  PreToolUse payload → exit 2 = block
  *   pi tool_call (edit/write)  → delivery-gate.cjs   PreToolUse payload → {decision:"block"} = block

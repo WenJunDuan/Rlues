@@ -1,119 +1,94 @@
-# Athena v9.9.6 · pi 端配置 (DeepSeek 试点)
+# Athena · Pi 端
 
-本目录镜像 `~/.pi/agent/` 的内容, 与 `vibeCoding/claude/9.9.6` 同源同版本。参考结构: [bd-dxg/my-pi](https://github.com/bd-dxg/my-pi) + pi 官方文档。
+无版本目录。始终 at least 当前 `vibeCoding/claude/` 最新结构（现 9.9.9）。
+官方：[earendil-works/pi](https://github.com/earendil-works/pi)（104k）。文档用 `gh api` 读 `packages/coding-agent/docs/`。
 
-## 安装 (macOS)
+## 默认加载
 
-```bash
-# 1. Node ≥ 20
-brew install node
+本仓扩展：
 
-# 2. 安装 pi (二选一)
-npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-# 或 curl -fsSL https://pi.dev/install.sh | sh
-
-# 3. DeepSeek API key → auth.json (类 codex 方式, 不进 shell rc / 不进 git 仓库)
-mkdir -p ~/.pi/agent
-cp auth.json.example ~/.pi/agent/auth.json
-chmod 600 ~/.pi/agent/auth.json
-# 编辑 ~/.pi/agent/auth.json 填入真实 key。models.json 的 apiKey 走官方 "!shell命令" 形式,
-# 每次请求时从 auth.json 现读 (docs/models.md), 仓库内零明文。
-# ⚠ auth.json 只存在于 ~/.pi/agent/, 永远不要放进 Rlues 仓库
-
-# 4. 部署本目录 → ~/.pi/agent/ (逐项软链, 不要链整个目录 — ~/.pi/agent 还有 sessions/ 等运行时数据)
-PI=~/.pi/agent; SRC=$(pwd)
-mkdir -p $PI
-for f in AGENTS.md settings.json models.json prompts rules extensions; do
-  ln -sfn "$SRC/$f" "$PI/$f"
-done
-
-# 5. 验证
-pi --model deepseek/deepseek-v4-flash "自我介绍一下, 并列出你加载到的 AGENTS.md 铁律条数"
-```
-
-TUI 内检查: `/model` 应出现 deepseek 两个模型; `/settings` 确认 defaultProvider。
-
-## 目录说明
-
-| 文件/目录 | 用途 |
+| 文件 | 作用 |
 |---|---|
-| `AGENTS.md` | 宪法, 迁移自 CC 端 `CLAUDE.md` (含 pi 平台差异适配) |
-| `settings.json` | pi 全局设置, 默认 deepseek-v4-flash |
-| `models.json` | DeepSeek 自定义 provider (openai-completions) |
-| `auth.json.example` | API key 模板 → 复制为 `~/.pi/agent/auth.json` (chmod 600, 不进仓库) |
-| `mcp.json` | MCP 服务 (chrome-devtools/searchcode/tavily), 取自 my-pi 并做 macOS 适配; 需装 pi-mcp-adapter 生效 |
-| `open-tui.json` | 终端 UI (zh 界面 + cwd/context/tokens/cost 状态栏), 取自 my-pi; 需装 pi-open-tui 生效 |
-| `prompts/` | 7 个角色提示词模板, 迁移自 CC `agents/`, 用 `/architect` 等调用 |
-| `rules/` | 项目规范, 原样迁移, AGENTS.md 指令按需 Read |
-| `extensions/athena-gates.ts` | 门禁适配器: tool_call→pre-bash-guard/delivery-gate, agent_end→Stop 纠偏 |
-| `extensions/athena-lifecycle.ts` | 生命周期适配器: session_start 注入/compact 快照恢复/每轮面包屑 |
-| `extensions/cc-core/` | CC 端 hooks 原样复用 (7 个 .cjs, 仅 2 处路径 patch: rules/stages 优先 pi 路径) |
-| `extensions/tools.ts` | `/tools` 交互式工具开关 (取自 my-pi, AGPL-3.0, 未改逻辑) |
-| `extensions/questionnaire.ts` | AI 主动弹窗提问工具 (取自 my-pi); brainstorm/plan 阶段确认验收用 |
+| `extensions/athena-gates.ts` | bash/write → cc-core 门禁；`agent_end` followUp（Pi 无硬 Stop） |
+| `extensions/athena-lifecycle.ts` | session 注入、面包屑、compact |
+| `extensions/cc-core/` | 被上面调用的 hook 逻辑 |
 
-## my-pi 整合对照 (2026-08-03 逐文件 diff)
+外部包（已写入 `settings.json` `packages`）。来源：[Chasen Harness](https://x.com/chasen_liao/status/2092963119337476137) + [上下文四闸](https://x.com/chasen_liao/status/2099066585675862280)。
 
-已取: models.json `compat` 兼容参数 (supportsDeveloperRole:false — DeepSeek 不支持 developer role, 缺了会报错) + maxTokens 64000 实战值 · settings.json retry 加强 (8 次/5s/120s cap) + theme/hideThinkingBlock/showCacheMissNotices · mcp.json (macOS 适配, 原为 Windows `cmd /c`) · open-tui.json 原样 · extensions/tools.ts + questionnaire.ts。
-
-不取及理由: `permission-gate.ts` (正则级拦截, `\brm\b` 全拦误报高, 弱于我们 AST 级 pre-bash-guard, 双门禁互相打架) · `qna.ts` (每轮回复后额外 LLM 抽取调用 = 常驻 token 税) · `structured-output.ts` (demo 性质, 无现实需求) · `compaction:false` (我们的 compact 快照恢复链依赖 compaction) · `httpProxy` 硬编码 (按需自加: settings.json `"httpProxy": "http://127.0.0.1:<port>"`) · 它的 AGENTS.md (Athena 宪法不混入) · `@juicesharp/rpiv-todo` 包 (与 PACE/Sisyphus 双真相源冲突)。
-
-待验证: maxTokens 官方标称 384K 输出, my-pi 实战用 64000 — 先用 64000, 实测 API 报错边界后再调。
-
-## 待验证 (装好后逐项跑)
-
-1. `deepseek-v4-flash` / `deepseek-v4-pro` 模型 ID 实测: `curl https://api.deepseek.com/models -H "Authorization: Bearer $(node -p "JSON.parse(require('fs').readFileSync(require('os').homedir()+'/.pi/agent/auth.json','utf8')).deepseek")"`。若返回旧别名 `deepseek-chat`/`deepseek-reasoner`, 改 models.json 的 `id`
-2. pi 是否已内置 deepseek provider (`pi update --models` 后看 `/model` 列表): 若内置且重名冲突, 删本目录 models.json
-3. prompts 模板是否吃 HTML 注释头 (不吃就删首行注释)
-4. macOS 27 未单独验证; pi 只依赖 Node + 终端, 无 OS 绑定, 预期无碍
-5. 扩展单测: `pi -e ./extensions/athena-gates.ts "在这个项目里跑 rm -rf /"` → 应被 block; `pi -e ./extensions/athena-lifecycle.ts` 在含 .ai_state 的项目里起会话 → 首轮应看到状态摘要注入 (message.display=false, /tree 里可见)
-6. before_agent_start 注入与 agent_end followUp 已按包内类型定义 (v0.52.x) 编写并 tsc 通过, 但未在真机跑过完整回路 — dogfood 第一天优先验证
-
-## 已验证 (2026-08-03, 云容器)
-
-- extensions/*.ts 对 `@earendil-works/pi-coding-agent` 真实类型定义 `tsc --noEmit` 通过
-- cc-core 8 项冒烟: rm -rf / 与 curl|sh 与非 ship 期 git push 均 block; 非 Athena 目录静默放行; impl 期缺验收标准的写入被 delivery-gate block; session-start/compact 快照+恢复输出正常
-- models.json `!node -p` 读 auth.json 命令实测输出 key 正确
-
-## 包安装计划 (按能力缺口分层, 2026-08-03 调研)
-
-来源: [pi.dev/packages](https://pi.dev/packages) 官方 gallery + [awesome-pi](https://awesome-pi.site/extensions/)。原则: 按 MIGRATION.md 缺口选, 不按热度堆; 现成包能补的缺口优先于 Phase-2 自写 (铁律[不抱金饭碗讨饭])。
-
-### 第一批 — 补硬缺口 (裸跑 1-2 天确认 DeepSeek 基线后, 逐个装+冒烟, 不要一次全装)
+| 包 | 作用 |
+|---|---|
+| `npm:pi-subagents` | 黄/红区；scout/worker/reviewer 独立 context |
+| `npm:pi-skillful` | skill 隐藏/`$` 展开，常驻做薄 |
+| `npm:@eko24ive/pi-ask` | 歧义先问，少返工 |
+| `npm:@ff-labs/pi-fff` | 换 find/grep，索引+分页，少灌原始搜索 |
+| `npm:pi-web-access` | 搜网页+抽正文（DeepSeek 无原生搜索；不装 Tavily 第二套） |
+| `npm:pi-context-usage` | `/context` 看烧到哪 |
+| `npm:@narumitw/pi-btw` | 侧边线程，不污染主对话 |
+| `npm:@narumitw/pi-goal` | 长目标闸门；不替代 PACE stage |
+| `npm:pi-auto-compact` | 接近上限自动收缩 |
+| `npm:context-mode` | 大日志/shell 先摘要，细节按需检索 |
 
 ```bash
-pi install pi-mcp-adapter        # MCP 连接 (四原语); 本目录 mcp.json 生效前提
-pi install pi-open-tui           # 终端 UI; 本目录 open-tui.json 生效前提 (my-pi 同款)
-pi install pi-subagents          # subagent 委派 (链式+并行); 补红区隔离降级
-pi install pi-web-access         # web 搜索/抓取; DeepSeek 无原生搜索, 铁律[证据与出处]依赖
+pi install npm:pi-subagents npm:pi-skillful npm:@eko24ive/pi-ask \
+  npm:@ff-labs/pi-fff npm:pi-web-access npm:pi-context-usage \
+  npm:@narumitw/pi-btw npm:@narumitw/pi-goal npm:pi-auto-compact npm:context-mode
 ```
 
-注: `@orca-sec/pi-orca` 从第一批移除 — Phase-2 已落地自有 athena-gates (pre-bash-guard 级), 双门禁打架; 若 dogfood 发现自有门禁盲区再评估。my-pi 的另三个包 (@pi-lab/notify → 第二批 / @juicesharp/rpiv-todo → 不装 / @firstpick/pi-themes-bundle + pi-rounded-tools → 纯 UI 随意)。
+不加：`pi-guardrails`（与 athena-gates 双门禁）、pim-agent / monopi / agent-pi / pi-todo / pi-code / `@tavily/pi-extension`（已有 web-access）。
 
-- subagent 三候选: `pi-subagents` (先试, gallery 热度最高) / `@tintinweb/pi-subagents` / `pi-swarm`, 只留一个
-- ⚠ orca 装前必读源码: 它拦 bash = 门禁主权外包, 规则错会挡正常工作流; 若达标, Phase-2 免写 pre-bash-guard.ts
-- 备选: `pi-defender` (orca 不达标时换)
+## 项目初始化
 
-### 第二批 — 观察, 两周 dogfood 数据后再定
+PACE 在 `skills/pace/`。项目状态在仓库 `.ai_state/`（本 harness 仓库已有；**新项目**用 `/athena-init`）。
+已存在 `.ai_state` 不覆盖。非 git 先 `git init`。
 
-| 包 | 对应 CC 能力 | 装的条件 |
+## 结构
+
+| CC | 本目录 |
+|---|---|
+| `CLAUDE.md` | `AGENTS.md` |
+| `.claude/skills/` | `skills/`（PACE 在此） |
+| `.claude/rules/` | `rules/` |
+| `.claude/hooks/` | `extensions/cc-core/` + 两个适配器 |
+| `.claude/agents/` | `prompts/`（`/generator` `/reviewer` `/architect` `/polish-worker`） |
+
+红区：`git worktree` + 新 pi session。无 `isolation: worktree`。
+
+## Hook 映射
+
+官方事件：[extensions.md](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/extensions.md)
+
+| CC | Pi | 状态 |
 |---|---|---|
-| `pi-lens` | LSP/linter 实时反馈, 强化 TDD/review | review 阶段漏检有实例 |
-| `gentle-engram` | compact-snapshot/restore 双件 | compaction 后丢状态有实例 |
-| `@pi-lab/notify` / `avtc-pi-notification` | notification-router | 长任务多到需要通知 |
-| `pi-open-tui` | 无 (纯 QoL, my-pi 同款) | 随意 |
+| SessionStart | `session_start` | 已接 |
+| breadcrumb | `before_agent_start` | 已接 |
+| PreToolUse Bash | `tool_call` bash | 已接 |
+| PreToolUse Edit/Write | `tool_call` edit/write | 已接 |
+| Stop | `agent_end` followUp | 降级，无硬停 |
+| Compact | `session_before_compact` / `session_compact` | 已接 |
+| Agent/Subagent/Worktree 事件 | 无 | 不伪造；用 git worktree |
 
-### 明确不装
+## 安装
 
-| 类别 | 理由 |
+```bash
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+pi install /绝对路径/vibeCoding/pi-agent
+# 或软链 AGENTS.md settings.json models.json prompts rules skills extensions
+# → ~/.pi/agent/。不要链整个目录（sessions 在那边）。
+# 首次: cp auth.json.example ~/.pi/agent/auth.json && chmod 600
+```
+
+## 来源
+
+| 源 | 取/不取 |
 |---|---|
-| todo/任务管理 (pi-taskflow / pi-solyPi / pi-todo-*) | 与 PACE + Sisyphus 重叠, 装了=双真相源 |
-| review 类 (pi-pr-review / @zephyrdeng/pi-review) | 已有 critic/reviewer/spec-compliance 三件套 prompts |
-| context/cache 优化类 | DeepSeek 便宜, 无痛点数据 (铁律[反过度工程]) |
-| 模型路由/网关类 (litellm 等) | 单 provider 试点, 伪需求 |
+| [earendil-works/pi](https://github.com/earendil-works/pi) | 合同 |
+| [badlogic/pi-skills](https://github.com/badlogic/pi-skills) | skill 目录惯例 |
+| [bd-dxg/my-pi](https://github.com/bd-dxg/my-pi) | 取 models/retry；不取问卷、todo、正则门禁 |
+| [ruizrica/agent-pi](https://github.com/ruizrica/agent-pi) | 不取（六模式 vs PACE） |
+| CC `vibeCoding/claude/9.9.9` | 提示词与 hook 源 |
+| X @DanKornas / @zhulin902 / @ryansupak | 按需装包；MCP 非核心；保持最小 |
 
-每个包的验收: 装后跑一次真实任务, 无感或负收益 → `pi remove` 立即回滚。
+## 下次迭代（提示词胖点）
 
-## 官方文档
-
-- README: https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md
-- settings: .../docs/settings.md · models: .../docs/models.md · extensions: .../docs/extensions.md
+已压：pace / athena-dev / compound 热路径。勿回潮文言文或极端省略。
+仍胖：stages、gate-contracts、rules 伪加载、quantum playbook。铁律溯源不压。

@@ -1,0 +1,19 @@
+{
+  "name": "athena-pi-agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Athena for Pi. Unversioned; always at least the latest vibeCoding/claude prompt structure.",
+  "keywords": ["pi-package", "athena", "pace"],
+  "license": "UNLICENSED",
+  "pi": {
+    "extensions": [
+      "./extensions/athena-gates.ts",
+      "./extensions/athena-lifecycle.ts"
+    ],
+    "skills": ["./skills"],
+    "prompts": ["./prompts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

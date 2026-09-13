@@ -4,18 +4,18 @@
 version: "9.9.8"
 
 # === PACE 路由状态 ===
-path: "Hotfix"
-stage: "ship"
+path: "Feature"
+stage: "impl"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-13-telegram-style-hotfix"
+current_sprint_slug: "2026-09-13-pi-agent-9-10"
 current_roadmap_slug: ""
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.6) ===
-route_confidence: 1.0  # 用户显式 Hotfix：9.9.9 电宝体，非新版本
-route_history: ["2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-08 Hotfix follow-up: sync CC worktree cleanup ruling to repo/CX; bounded docs; conf=1.0", "2026-09-13 Hotfix: 9.9.9 电宝体热路径+产出声明; 非新版本; conf=1.0"]  # re-route ≤10, item ≤160B
+route_confidence: 0.92  # Feature：CC 9.9.9 全结构迁 Pi，版本暂定 9.10
+route_history: ["2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-08 Hotfix follow-up: sync CC worktree cleanup ruling to repo/CX; bounded docs; conf=1.0", "2026-09-13 Feature: CC 9.9.9 全结构迁 Pi 9.10; skills/PACE/hooks; conf=0.92"]  # re-route ≤10, item ≤160B
 plan_model: "fable"               # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
@@ -54,7 +54,7 @@ tools_available:
 # 9.9.8 AC9: archive 默认不被扫描 → 本节只反映热层, 不是项目累计值。
 # 归档前累计值留档于 sprints/2026-08-27-athena-9-9-8/index-overflow.md#st-11
 counts:
-  features_count: 0
+  features_count: 1
   issues_count: 0
   refactors_count: 0
   systems_count: 2
@@ -69,7 +69,7 @@ counts:
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: ""
+  latest_design: "sprints/2026-09-13-pi-agent-9-10/design.md"
   latest_review: ""
   latest_cleanup: ""
   latest_brainstorm: "sprints/2026-09-06-athena-next-version/brainstorm.md"
@@ -81,7 +81,7 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: ""
+next_action: "re-route"
 last_subagent: ""
 last_subagent_at: ""
 active_worktrees: []
@@ -93,7 +93,7 @@ design_changed_after_impl: false
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
 plan_critique_min_rounds: 0       # 9.9.8: 作者会话 0 轮; 独立挑战走派生 review-packet
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
-skip_impl_subagent_check: false   # true 跳过 "impl 必须经 generator Stop" 门禁 (纯绿区微改 sprint 才设)
+skip_impl_subagent_check: true   # 本 Feature 为配置/提示词打包，主 thread 直写
 network_in_polish: true           # polish_worker 是否允许 network
 
 # === Fingerprint (index-updater 用于 mtime 比对) ===
@@ -111,7 +111,6 @@ fingerprint: ""
 
 ## 当前状态
 
-- 2026-09-13 Hotfix: 9.9.9 电宝体/电报体，原包更新，非新版本。
 - 2026-09-08 Hotfix: CC worktree cleanup ruling synced to repo/CX; two CC backups removed; no push requested.
 - 2026-09-07 Hotfix: task triage installed; validator 60/0; parent System recovery preserved in session-log.
 - 2026-09-07 Hotfix: gate quickref + agent 70-turn policy installed; parent System pending. See session-log.
@@ -121,6 +120,7 @@ fingerprint: ""
 - 2026-09-06 design: 用户授权生成CC/CX 9.9.9候选包；设计已复核，进入实现。
 - 2026-09-06 VM: SSH可达RHEL10.2；仅证明传输，项目服务待验证。
 - Previous status and shifted route →index-overflow.md#previous-current-state
+- older 当前状态 →index-overflow.md#st-0
 
 
 ## 工具调度建议

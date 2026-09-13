@@ -1,5 +1,5 @@
 /**
- * Athena v9.9.6 · pi 端生命周期适配器 (Phase-2)
+ * Athena · pi 端生命周期适配器
  *
  * 复用 cc-core/ 原 hooks, 协议转换:
  *   pi session_start           → session-start.cjs    → 状态摘要暂存, 下一轮注入

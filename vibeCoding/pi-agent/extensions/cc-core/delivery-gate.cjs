@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Athena v9.9.6 Claude Code delivery gate.
+ * Athena v9.9.8 Claude Code delivery gate.
  *
  * Shared artifacts use the same schema and fail-closed semantics as CX 9.9.6.
  * Platform-specific hook payloads are normalized here; no private reasoning or
@@ -12,6 +12,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { execFileSync } = require("child_process");
+const inputBinding = require('./_input-binding.cjs');
 
 const VALID_PATHS = new Set(["Hotfix", "Bugfix", "Quick", "Feature", "Refactor", "System"]);
 const VALID_STAGES = new Set([
@@ -29,6 +30,8 @@ function findAiState(cwd) {
   for (let depth = 0; depth < 8; depth += 1) {
     const candidate = path.join(current, ".ai_state");
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+    // 2026-09-07 fix: stop at git repo boundary — do not inherit a parent project's .ai_state
+    if (fs.existsSync(path.join(current, ".git"))) return null;
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
@@ -45,10 +48,14 @@ function parseFrontmatter(content) {
   if (end < 0) throw new GateError("_index.md frontmatter is not closed");
   const result = {};
   for (const raw of lines.slice(1, end)) {
+    if (/^\s/.test(raw) && raw.trim()) continue;
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
     const match = line.match(/^([A-Za-z0-9_.-]+)\s*:\s*(.*)$/);
     if (!match) continue;
+    if (Object.prototype.hasOwnProperty.call(result, match[1])) {
+      throw new GateError(`duplicate index frontmatter field: ${match[1]}`);
+    }
     let value = match[2].trim();
     const quoted = value.match(/^"([^"]*)"|^'([^']*)'/);
     if (quoted) value = quoted[1] !== undefined ? quoted[1] : quoted[2];
@@ -232,6 +239,15 @@ function validateChecklist(filePath) {
 
 function validateEvidence(filePath) {
   const content = requireFile(filePath, "evidence.yaml");
+  if (inputBinding.required(path.dirname(filePath))) {
+    try {
+      const sprint = path.dirname(filePath), root=path.resolve(sprint,'../../..'), live=inputBinding.snapshot(root,sprint);
+      const records=parseEvidenceRecords(filePath).filter(r=>inputBinding.currentRecord(r,root,sprint,live));
+      if (records.some(r=>r.result==='fail')) throw new Error('current failing evidence');
+      if (!records.some(r=>r.result==='pass')) throw new Error('no current verifiable PASS bound to code/contract/environment/output');
+      return records;
+    } catch (e) { throw new GateError('evidence inputs: '+e.message); }
+  }
   if (!/^collected_evidence\s*:\s*(?:#.*)?$/m.test(content)) {
     throw new GateError("evidence.yaml lacks collected_evidence list");
   }
@@ -254,20 +270,93 @@ function validateEvidence(filePath) {
   return parseEvidenceRecords(filePath);
 }
 
-function selectLatestReview(reviewsDir) {
-  let names;
-  try { names = fs.readdirSync(reviewsDir); }
-  catch (_) { throw new GateError(`missing reviews directory: ${reviewsDir}`); }
-  const numbered = [];
-  for (const name of names) {
-    if (!name.startsWith("pass") || !name.endsWith(".md")) continue;
-    const match = name.match(/^pass([1-9]\d*)\.md$/);
-    if (!match) throw new GateError(`malformed numbered review filename: ${name}`);
-    numbered.push([Number(match[1]), path.join(reviewsDir, name)]);
+function fileSha256(filePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+function extractAcIds(text) {
+  return [...new Set([...String(text).matchAll(/\bAC[0-9]+\b/g)].map((m) => m[0]))].sort();
+}
+
+function parseDocFrontmatter(content) {
+  if (!content.startsWith("---")) return {};
+  const lines = content.split(/\r?\n/);
+  const end = lines.indexOf("---", 1);
+  if (end < 0) return {};
+  const result = {};
+  for (const raw of lines.slice(1, end)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const match = line.match(/^([A-Za-z0-9_.-]+)\s*:\s*(.*)$/);
+    if (!match) continue;
+    result[match[1]] = match[2].trim().replace(/^["']|["']$/g, "");
   }
-  if (!numbered.length) throw new GateError("reviews directory has no numbered passN.md review");
-  numbered.sort((a, b) => a[0] - b[0]);
-  return numbered.at(-1)[1];
+  return result;
+}
+
+function listSourceFiles(cwd) {
+  const raw = execFileSync("git", ["ls-files", "-z", "-c", "-o", "--exclude-standard"], {
+    cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+  });
+  return raw.split("\0").filter(Boolean).filter((rel) => {
+    const norm = rel.replace(/\\/g, "/");
+    return !norm.startsWith(".ai_state/") && norm !== ".ai_state";
+  }).sort();
+}
+
+function sourceDiffSha256(cwd) {
+  try {
+    const files = listSourceFiles(cwd);
+    const h = crypto.createHash("sha256");
+    for (const rel of files) {
+      const abs = path.join(cwd, rel);
+      let st;
+      try { st = fs.statSync(abs); } catch (_) { continue; }
+      if (!st.isFile()) continue;
+      h.update(rel.replace(/\\/g, "/"));
+      h.update("\0");
+      h.update(fs.readFileSync(abs));
+      h.update("\n");
+    }
+    return h.digest("hex");
+  } catch (_) {
+    return "";
+  }
+}
+
+function validateReviewPacket(sprintDir) {
+  const packetPath = path.join(sprintDir, "review-packet.md");
+  const designPath = path.join(sprintDir, "design.md");
+  if (!fs.existsSync(packetPath)) throw new GateError("missing review-packet.md");
+  const packet = fs.readFileSync(packetPath, "utf8");
+  const lineCount = packet.split(/\r?\n/).length;
+  if (lineCount > 80) throw new GateError(`review-packet.md has ${lineCount} lines; max 80`);
+  const fm = parseDocFrontmatter(packet);
+  if (!fs.existsSync(designPath) || !fm.source_design_sha256) {
+    throw new GateError("review-packet requires design.md and source_design_sha256");
+  }
+  if (fs.existsSync(designPath) && fm.source_design_sha256) {
+    const actual = fileSha256(designPath);
+    if (fm.source_design_sha256 !== actual) {
+      throw new GateError("review-packet source_design_sha256 does not match design.md");
+    }
+  }
+  if (fs.existsSync(designPath)) {
+    const designIds = extractAcIds(acceptanceCriteria(fs.readFileSync(designPath, "utf8")).join("\n"));
+    if (!designIds.length) throw new GateError("design Done Contract has no AC identifiers");
+    const packetIds = extractAcIds(packet);
+    const missing = designIds.filter((id) => !packetIds.includes(id));
+    const extra = packetIds.filter((id) => !designIds.includes(id));
+    if (missing.length || extra.length) {
+      throw new GateError(`review-packet AC set mismatch missing=${missing.join(",")} extra=${extra.join(",")}`);
+    }
+  }
+}
+
+function selectLatestReview(reviewsDir) {
+  const impl = path.join(reviewsDir, "implementation-review.md");
+  if (fs.existsSync(impl)) return impl;
+  throw new GateError("missing reviews/implementation-review.md");
 }
 
 function finalVerdict(content, reviewName) {
@@ -285,13 +374,35 @@ function finalVerdict(content, reviewName) {
   return verdicts.at(-1);
 }
 
-function validateReview(reviewPath, pathType) {
-  const content = requireFile(reviewPath, `latest review ${path.basename(reviewPath)}`);
-  const verdict = finalVerdict(content, path.basename(reviewPath));
-  if (verdict !== "PASS") throw new GateError(`latest review ${path.basename(reviewPath)} VERDICT is ${verdict}; expected PASS`);
-  if (!content.includes("## Spec Compliance")) throw new GateError(`latest review ${path.basename(reviewPath)} lacks ## Spec Compliance`);
-  // K1 (2026-07-28, 台账 W31): Evidence Cross-Check 段不再由 gate 强制 — evaluator prompt
-  // 仍产出该段 (行为不变), 但缺段不 block; 段落存在性检查是文档剧场, 判定由 VERDICT 承载。
+function validateReview(reviewPath, cwd, sprintDir) {
+  const content = requireFile(reviewPath, "implementation-review.md");
+  const log=path.join(sprintDir,'session-log.md');
+  if (inputBinding.required(sprintDir) || (fs.existsSync(log) && fs.readFileSync(log,'utf8').includes('<!-- athena-review:'))) {
+    try { require('./_review-binding.cjs').validateCurrent(inputBinding.git(cwd,'rev-parse','--show-toplevel').toString().trim(),sprintDir,reviewPath); }
+    catch (e) { throw new GateError('native review binding: '+e.message); }
+  }
+  const fm = parseDocFrontmatter(content);
+  const verdict = String(fm.verdict || finalVerdict(content, "implementation-review.md")).toUpperCase();
+  if (verdict !== "PASS") throw new GateError(`implementation-review verdict is ${verdict}; expected PASS`);
+  if (!fm.review_run_id) throw new GateError("implementation-review missing review_run_id");
+  const nref = fm.native_output_ref || "";
+  if (!nref) throw new GateError("implementation-review missing native_output_ref");
+  if (nref !== "direct") {
+    const refPath = path.isAbsolute(nref) ? nref : path.join(sprintDir, nref);
+    if (!fs.existsSync(refPath)) throw new GateError(`native_output_ref not found: ${nref}`);
+  }
+  const packetPath = path.join(sprintDir, "review-packet.md");
+  if (fs.existsSync(packetPath) && fm.packet_sha256) {
+    if (fm.packet_sha256 !== fileSha256(packetPath)) {
+      throw new GateError("packet_sha256 does not match current review-packet.md");
+    }
+  }
+  if (fm.reviewed_diff_sha256 && cwd) {
+    const live = sourceDiffSha256(cwd);
+    if (!live || fm.reviewed_diff_sha256 !== live) {
+      throw new GateError("reviewed_diff_sha256 does not match current source diff; re-review required");
+    }
+  }
   return content;
 }
 
@@ -389,7 +500,7 @@ function parseReviewManifest(filePath, pathType) {
 }
 
 const INDEX_GOVERNANCE_FIELDS = [
-  "path", "current_sprint_slug", "skip_polish", "skip_runtime_verify",
+  "version", "path", "current_sprint_slug", "skip_polish", "skip_runtime_verify",
   "skip_architecture_check", "skip_impl_subagent_check",
   "plan_critique_disabled", "plan_critique_min_rounds",
 ];
@@ -602,23 +713,44 @@ function changedFiles(cwd, evidenceContent) {
   return files.size;
 }
 
+function changedFileSet(cwd, evidenceContent) {
+  const files = new Set();
+  const probes = [
+    ["diff", "--name-only", "main...HEAD"],
+    ["diff", "--name-only", "master...HEAD"],
+    ["diff", "--name-only"],
+    ["diff", "--name-only", "--cached"],
+    ["ls-files", "--others", "--exclude-standard"],
+  ];
+  for (const args of probes) {
+    for (const file of gitLines(cwd, args).lines) files.add(file.replace(/\\/g, "/"));
+  }
+  for (const match of String(evidenceContent || "").matchAll(/^\s+file\s*:\s*([^#\n]+)/gm)) files.add(scalar(match[1]));
+  return files;
+}
+
+function validateDesignContract(sprintDir, fm) {
+  if (truthy(fm.design_changed_after_impl)) {
+    throw new GateError("design_changed_after_impl is true; ship requires a new independent review");
+  }
+  const design = path.join(sprintDir, "design.md");
+  const review = path.join(sprintDir, "reviews/implementation-review.md");
+  if (fs.existsSync(design) && fs.existsSync(review) && fs.statSync(design).mtimeMs > fs.statSync(review).mtimeMs) {
+    throw new GateError("design.md is newer than implementation-review.md; ship requires a new independent review");
+  }
+}
+
+function architectureWasUpdated(files) {
+  return [...files].some((file) => /(^|\/)architecture\/ARCHITECTURE\.md$/.test(String(file).replace(/\\/g, "/")));
+}
+
 function validateCriticRounds(sprintDir, fm) {
-  if (truthy(fm.plan_critique_disabled)) return;
-  const design = requireFile(path.join(sprintDir, "design.md"), "design.md");
-  // P10 fix (2026-07-28, .ai_state/proposals.md P10): 全文字面计数会被讨论该契约的正文
-  // 污染 (写一句 "Critic Findings" 就虚增一轮)。锚定到 2-3 级标题行, 与 Round N 段头体例
-  // 一致; 正文提及不再计数。
-  const rounds = (design.match(/^#{2,3}\s.*Critic Findings/gm) || []).length;
-  const configured = Number.parseInt(fm.plan_critique_min_rounds || "0", 10);
-  if (!Number.isFinite(configured)) throw new GateError("plan_critique_min_rounds must be an integer");
-  // 2026-07-28 gate-descaling: 默认最少轮数全路径 1 (原 R/S=2)。多轮审议是 max_rounds 的
-  // 事, 下限门禁只保证"至少被独立批过一次"; 要更多轮用 plan_critique_min_rounds 显式调高。
-  const minimum = configured > 0 ? configured : 1;
-  if (rounds < minimum) throw new GateError(`design.md has ${rounds} Critic Findings rounds; expected at least ${minimum}`);
-  // 文书预算警告 (不 block, 防 P 系列死锁复发): design.md 超 300 行提示收敛。
-  const designLines = design.split(/\r?\n/).length;
+  // 9.9.8: critic 标题计数不再是 ship 条件。仅保留超长 design 黄区警告。
+  const designPath = path.join(sprintDir, "design.md");
+  if (!fs.existsSync(designPath)) return;
+  const designLines = fs.readFileSync(designPath, "utf8").split(/\r?\n/).length;
   if (designLines > 300) {
-    process.stderr.write(`[delivery-gate] 文书预算警告: design.md ${designLines} 行 (目标 System ≤200 / Feature ≤80); 散文该下沉或删减, 不 block\n`);
+    process.stderr.write(`[delivery-gate] warning: design.md ${designLines} lines (target System ≤200 / Feature ≤80)\n`);
   }
 }
 
@@ -626,7 +758,7 @@ function validateCriticRounds(sprintDir, fm) {
 // while the packaged design template emits exactly that heading. Use an explicit
 // boundary lookahead instead; numbered section prefixes ("## 9. Acceptance
 // criteria") are also recognized.
-const ACCEPTANCE_HEAD = /^#{2,3}\s*\**\s*(?:\d+[.)]\s*)?(?:acceptance criteria|验收标准)(?=$|[\s*:：()（）[\]【】·—-])/i;
+const ACCEPTANCE_HEAD = /^#{1,6}\s*\**\s*(?:\d+[.)]\s*)?(?:done contract|acceptance criteria|验收标准)(?=$|[\s*:：()（）[\]【】·—-])/i;
 const PLACEHOLDER_PREFIXES = ["todo", "tbd", "fixme", "wip", "placeholder", "待定", "待补", "占位", "暂定"];
 const PLACEHOLDER_PHRASES = ["works correctly", "works as expected", "功能正常", "正常工作", "n/a"];
 
@@ -648,6 +780,11 @@ function acceptanceCriteria(text) {
     if (ACCEPTANCE_HEAD.test(raw.trim())) { inSec = true; continue; }
     if (!inSec) continue;
     if (nextHead.test(raw)) { inSec = false; continue; }
+    if (raw.trim().startsWith("|")) {
+      const cells = raw.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim().replace(/^[*`]+|[*`]+$/g, ""));
+      if (/^AC\d+$/i.test(cells[0]) && cells.length > 1 && !isPlaceholderCriterion(cells.slice(1).join(" "))) found.push(cells.join(" | "));
+      continue;
+    }
     if (item.test(raw)) {
       const t = raw.replace(/^\s*(?:[-*]|\d+[.)])\s+/, "").replace(/^\[[ xX]\]\s+/, "").trim();
       if (t && !isPlaceholderCriterion(t)) found.push(t);
@@ -813,6 +950,7 @@ function parseEvidenceRecords(filePath) {
       output_artifact: evidenceField(block, "output_artifact"),
       artifact_sha256: evidenceField(block, "artifact_sha256"),
       implementation_commit: evidenceField(block, "implementation_commit"),
+      ...Object.fromEntries(['binding_status',...inputBinding.FIELDS].map(key=>[key,evidenceField(block,key)])),
     };
   });
 }
@@ -886,7 +1024,9 @@ function validateImplEntry(aiState, fm) {
   if (!GENERATOR_PATHS.has(fm.path)) return;
   const sprintSlug = fm.current_sprint_slug;
   if (!SAFE_SLUG.test(sprintSlug || "")) throw new GateError(`invalid current_sprint_slug ${sprintSlug || ""}`);
-  validateSpecGate(path.join(aiState, "sprints", sprintSlug), aiState, fm, sprintSlug, { allowException: true });
+  const sprintDir = path.join(aiState, "sprints", sprintSlug);
+  validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException: true });
+  if (fs.existsSync(path.join(sprintDir, "design.md"))) validateReviewPacket(sprintDir);
 }
 
 // 9.9.6 P2: a ship whose net diff vs the tracked upstream stays within this many changed
@@ -902,6 +1042,9 @@ function isLightShipFile(file) {
   // in-repo trace. Touching it means this sprint changed the gate: run the full contract.
   if (/(^|\/)harness-patches\.md$/.test(file)) return false;
   if (/(^|\/)settings(\.local)?\.json$/.test(file)) return false;
+  if (/(^|\/)config\.toml$/.test(file)) return false;
+  if (/(^|\/)hooks\.json$/.test(file)) return false;
+  if (/(^|\/)design\.md$/.test(file) || /(^|\/)review-packet\.md$/.test(file)) return false;
   // Source logic (non-test code) needs review even when small — never light.
   const isTest = /(^|\/)(tests?|__tests__|specs?)\//.test(file) || /\.(test|spec)\.[A-Za-z]+$/.test(file);
   const isCode = /\.(py|ts|tsx|js|jsx|mjs|cjs|go|rs|java|rb|php|c|cc|cpp|h|hpp|swift|kt|scala|sh|bash|zsh|sql)$/.test(file);
@@ -925,21 +1068,38 @@ function shipChangeIsLight(cwd) {
     }
   }
   if (!base) return false;
-  const stat = gitLines(cwd, ["diff", "--numstat", `${base}..HEAD`]);
-  if (!stat.ok) return false;
   let totalLines = 0;
   const files = [];
-  for (const row of stat.lines) {
-    const cols = row.split("\t");
-    if (cols.length < 3) continue;
-    const file = cols[2];
+  const addNumstat = (stat) => {
+    if (!stat.ok) return false;
+    for (const row of stat.lines) {
+      const cols = row.split("\t");
+      if (cols.length < 3) continue;
+      const file = cols[2];
+      files.push(file);
+      // .ai_state/ is auto-maintained state (token-usage churn, logs, pointers) and does not
+      // count toward the line budget — only toward file eligibility below.
+      if (/(^|\/)\.ai_state\//.test(file)) continue;
+      const added = cols[0] === "-" ? 0 : Number(cols[0]) || 0;
+      const deleted = cols[1] === "-" ? 0 : Number(cols[1]) || 0;
+      totalLines += added + deleted;
+    }
+    return true;
+  };
+  // Light-ship surface is committed-ahead ∪ worktree ∪ untracked. HEAD-only
+  // numstat would classify a docs commit as light while source sits dirty.
+  if (!addNumstat(gitLines(cwd, ["diff", "--numstat", `${base}..HEAD`]))) return false;
+  if (!addNumstat(gitLines(cwd, ["diff", "--numstat", "HEAD"]))) return false;
+  const untracked = gitLines(cwd, ["ls-files", "-o", "--exclude-standard"]);
+  if (!untracked.ok) return false;
+  for (const file of untracked.lines) {
     files.push(file);
-    // .ai_state/ is auto-maintained state (token-usage churn, logs, pointers) and does not
-    // count toward the line budget — only toward file eligibility below.
     if (/(^|\/)\.ai_state\//.test(file)) continue;
-    const added = cols[0] === "-" ? 0 : Number(cols[0]) || 0;
-    const deleted = cols[1] === "-" ? 0 : Number(cols[1]) || 0;
-    totalLines += added + deleted;
+    try {
+      totalLines += fs.readFileSync(path.join(cwd, file), "utf8").split(/\r?\n/).length;
+    } catch (_) {
+      totalLines += 1;
+    }
   }
   if (files.length === 0) return false;
   if (totalLines > SHIP_LIGHT_MAX_LINES) return false;
@@ -956,6 +1116,7 @@ function validateShip(aiState, fm, cwd) {
   // review-manifest / tdd-evidence / review-artifact contract mechanical changes cannot
   // honestly produce. Substantive, harness-touching, or over-budget ships run the full
   // contract below (fail-closed: an unclassifiable diff is treated as full).
+  validateDesignContract(sprintDir, fm);
   if (shipChangeIsLight(cwd)) {
     const lightRoadmap = fm.current_roadmap_slug || "";
     if (lightRoadmap) validateRoadmap(aiState, lightRoadmap, sprintSlug);
@@ -999,7 +1160,7 @@ function validateShip(aiState, fm, cwd) {
     const evidencePath = path.join(sprintDir, "evidence.yaml");
     const evidenceRecords = validateEvidence(evidencePath);
     const reviewPath = selectLatestReview(path.join(sprintDir, "reviews"));
-    const reviewContent = validateReview(reviewPath, fm.path);
+    const reviewContent = validateReview(reviewPath, cwd, sprintDir);
     if (hasManifest) {
       const specCriteria = validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException: false });
       validateTddEvidence(path.join(sprintDir, "tdd-evidence.yaml"));
@@ -1018,8 +1179,12 @@ function validateShip(aiState, fm, cwd) {
       requireFile(path.join(sprintDir, "cleanup-pass.md"), "cleanup-pass.md");
       if (!truthy(fm.skip_architecture_check)) {
         const evidence = requireFile(evidencePath, "evidence.yaml");
-        if (changedFiles(cwd, evidence) >= 5) {
+        const count = changedFiles(cwd, evidence);
+        if (count >= 5) {
           requireFile(path.join(aiState, "architecture", "ARCHITECTURE.md"), "architecture/ARCHITECTURE.md");
+          if (!architectureWasUpdated(changedFileSet(cwd, evidence))) {
+            throw new GateError("architecture/ARCHITECTURE.md exists but was not updated in this ≥5-file change set");
+          }
         }
       }
     }
@@ -1219,13 +1384,17 @@ function main() {
     // a failing check can never be resolved (fixing state requires a write, and
     // every write re-runs the failing check). Implementation writes and the Stop
     // final gate still validate in full.
-    const shipMustValidate = payload.hook_event_name !== "PreToolUse" || isImplementationWrite(payload);
-    if (fm.stage === "ship" && shipMustValidate) validateShip(aiState, fm, root || cwd);
-    else if (fm.stage === "impl") validateImplEntry(aiState, fm);
+    // Keep state repairs possible in impl too; source writes and Stop still validate.
+    const mustValidate = payload.hook_event_name !== "PreToolUse" || isImplementationWrite(payload);
+    if (fm.stage === "ship" && mustValidate) validateShip(aiState, fm, root || cwd);
+    else if (fm.stage === "impl" && mustValidate) validateImplEntry(aiState, fm);
     appendGatePass(payload, breakerCtx);
   } catch (error) {
     stopFailure(payload, error instanceof GateError ? error.message : `internal fail-closed error: ${error.message}`, breakerCtx);
   }
 }
 
-main();
+module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateEvidence, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract };
+if (require.main === module) {
+  main();
+}

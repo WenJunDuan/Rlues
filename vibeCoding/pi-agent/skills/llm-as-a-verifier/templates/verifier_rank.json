@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "skipped",
+  "reason": "disabled",
+  "packet_sha256": "",
+  "scored_at": "",
+  "backend": {
+    "base_url_host": "",
+    "model": "",
+    "logprobs": false
+  },
+  "ranked": [
+    {
+      "id": "candidate-a",
+      "path": "a.diff",
+      "expected_score": null,
+      "raw_score_token": null,
+      "unscored_reason": "not_run"
+    }
+  ]
+}

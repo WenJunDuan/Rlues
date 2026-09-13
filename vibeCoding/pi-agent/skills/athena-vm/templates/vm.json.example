@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "vms": [
+    {
+      "name": "dev",
+      "host": "192.0.2.10",
+      "port": 22,
+      "user": "athena",
+      "auth": {
+        "method": "key",
+        "key_path": "~/.ssh/athena_vm"
+      },
+      "os": "ubuntu-24.04",
+      "workdir": "/home/athena/work",
+      "purpose": ["runtime-verify", "e2e"],
+      "limits": {
+        "max_session_minutes": 30
+      }
+    }
+  ]
+}

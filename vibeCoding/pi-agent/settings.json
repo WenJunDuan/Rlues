@@ -3,6 +3,7 @@
   "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "medium",
   "quietStartup": true,
+  "enableSkillCommands": true,
   "retry": {
     "enabled": true,
     "maxRetries": 8,
@@ -18,5 +19,21 @@
   },
   "theme": "one-dark",
   "hideThinkingBlock": true,
-  "showCacheMissNotices": false
+  "showCacheMissNotices": false,
+  "extensions": [
+    "./extensions/athena-gates.ts",
+    "./extensions/athena-lifecycle.ts"
+  ],
+  "packages": [
+    "npm:pi-subagents",
+    "npm:pi-skillful",
+    "npm:@eko24ive/pi-ask",
+    "npm:@ff-labs/pi-fff",
+    "npm:pi-web-access",
+    "npm:pi-context-usage",
+    "npm:@narumitw/pi-btw",
+    "npm:@narumitw/pi-goal",
+    "npm:pi-auto-compact",
+    "npm:context-mode"
+  ]
 }

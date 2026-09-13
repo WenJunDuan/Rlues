@@ -54,3 +54,8 @@
 
 产出声明权威: CC `rules/doc-style.md` · CX `standards/doc-style.md`。
 validator: `package_checks_pass=59 fail=1`。唯一 FAIL=`CC agents have maxTurns=70`（此前已从 frontmatter 去掉, 70 轮写在正文; 非本文风改动引入）。未安装、未推送。
+
+## 独立 Feature 插入恢复点（2026-09-13 9.10 pi-agent）
+
+- 本 Hotfix 已 ship。插入：`2026-09-13-pi-agent-9-10`（CC 9.9.9 全结构迁 Pi，版本暂定 9.10）。
+- 恢复本任务：path=Hotfix, stage=ship, slug=`2026-09-13-telegram-style-hotfix`。

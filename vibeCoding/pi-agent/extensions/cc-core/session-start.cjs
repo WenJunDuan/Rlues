@@ -5,7 +5,7 @@
  * 触发: session 启动 / resume
  * 职责:
  * 1. 注入 .ai_state/_index.md frontmatter 摘要
- * 2. 注入 ~/.claude/rules/_index.md 摘要
+ * 2. 注入 ~/.pi/agent/rules/_index.md 摘要
  * 3. (v9.9.6) stage 操作提示移交 stage-breadcrumb.cjs 每轮注入 (单一真相: pace/references/stages.md)
  * 4. 若 design_changed_after_impl=true → 强提示需 re-review
  * 5. 若 next_action="next_roadmap_item:..." → 提示自动推进
@@ -29,6 +29,8 @@ function findAiState(cwd) {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
       return candidate;
     }
+    // 2026-09-07 fix: stop at git repo boundary — do not inherit a parent project's .ai_state
+    if (fs.existsSync(path.join(current, '.git'))) return null;
     const parent = path.dirname(current);
     if (parent === current) return null;
     current = parent;
@@ -38,7 +40,7 @@ function findAiState(cwd) {
 
 function readRulesSummary() {
   const home = os.homedir();
-  // pi port (2026-08-03): prefer ~/.pi/agent/rules, fallback to CC location.
+  // pi: prefer ~/.pi/agent/rules, fallback CC
   const piRules = path.join(home, '.pi', 'agent', 'rules', '_index.md');
   const ccRules = path.join(home, '.claude', 'rules', '_index.md');
   const userRules = fs.existsSync(piRules) ? piRules : ccRules;
@@ -47,7 +49,7 @@ function readRulesSummary() {
     // v9.9.6: 按字节截断 — 中文 1 字 3 字节
     if (Buffer.byteLength(content, 'utf8') > 600) {
       content = Buffer.from(content, 'utf8').slice(0, 600).toString('utf8').replace(/\uFFFD+$/, '')
-        + '\n... (see ~/.claude/rules/ for full)';
+        + '\n... (see ~/.pi/agent/rules/ for full)';
     }
     return content;
   }
@@ -150,7 +152,7 @@ function main() {
 
     const rulesSummary = readRulesSummary();
     if (rulesSummary) {
-      contextParts.push(`## 项目规范摘要 (~/.claude/rules/_index.md)\n\n${rulesSummary}\n\n详细规则按 stage 触发自动加载.`);
+      contextParts.push(`## 项目规范摘要 (~/.pi/agent/rules/_index.md)\n\n${rulesSummary}\n\n详细规则按 stage 触发自动加载.`);
     }
 
     if (contextParts.length > 0) {

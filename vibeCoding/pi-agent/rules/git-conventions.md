@@ -1,4 +1,6 @@
 ---
+paths:
+  - ".ai_state/sprints/**"
 effort: low
 attach_to_stages: [ship]
 attach_to_subagents: []
