@@ -9,9 +9,11 @@ researcher: ""                 # 主 agent | docs_researcher subagent | 用户
 
 # Explore: {slug}
 
+> 电宝体。问题一句。≤100 行。
+
 ## 问题 (question)
 
-[要解决什么问题, 用一句话写清楚]
+[要解决什么]
 
 ## 方法 (method)
 

@@ -1,8 +1,7 @@
 # Athena REVIEW.md (stable, review-only)
 
-This file is the Athena review prompt. It lives in the `athena-review` skill because Claude Code skills are directories with `SKILL.md` plus supporting files ([Agent Skills](https://code.claude.com/docs/en/skills)).
-
-Do not load sprint narrative. Use the sprint `review-packet.md` plus the diff.
+Do not load sprint narrative. Use `review-packet.md` + diff.
+电宝体: findings 骨架句; P2/INFO ≤5。frontmatter 字段名不改。
 
 Dimensions (one pass): Spec coverage, Correctness, Security, Test risk, Over-engineering. Refactor/System also Evidence.
 

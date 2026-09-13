@@ -8,7 +8,7 @@ next_route: ""                 # plan | roadmap | direct_design (System)
 
 # Brainstorm — {sprint_slug}
 
-> distilled log (v9.9.6): 存结论与理由, 不存问答过程。空段直接删除, 不留 TBD。
+> 电宝体 distilled log: 存结论与理由, 不存问答。空段删, 不留 TBD。
 
 ## 用户最初描述
 

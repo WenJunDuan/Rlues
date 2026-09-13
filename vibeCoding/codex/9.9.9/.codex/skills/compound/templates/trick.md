@@ -9,9 +9,11 @@ domain: ""                     # 领域: caching | concurrency | api-design | ..
 
 # Trick: {slug}
 
+> 电宝体。场景一句。≤100 行。
+
 ## 场景 (when to use)
 
-[何种情况下这个 pattern 适用]
+[何时用]
 
 ## 模式 (pattern)
 

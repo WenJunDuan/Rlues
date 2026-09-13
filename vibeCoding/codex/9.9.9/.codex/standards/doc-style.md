@@ -118,10 +118,35 @@ polish_worker 加载本规则后, 重点扫描:
 - 第三方代码 / vendor 不要求注释
 - 自动生成的代码 (codegen / protobuf 等) 跳过本规则
 
-## Agent 输出纪律 (v9.9.1)
+## 电宝体 / 电报体（输出纪律）
 
-- 结果优先; 结构只服务于理解, 不强制表格或极端压缩
-- 引用文件给路径和必要行号, 避免重复粘贴整段原文
-- 使用自然完整句; 对复杂权衡给足可核验证据, 不暴露私有思维链
-- delivery-gate block reason 必须包含阻塞事实、失败证据与可执行解锁动作
+电宝体=电报体。结论先行。名词+动词+数字。表格>列表>散文。
+删: 铺垫、客套、复述输入、总结已写内容、版本史。
+留: 验收、证据路径、风险、下一动作。
+禁: 文言文; 极端省略导致主语不明; 「务必短」写三遍。
+引用给路径+必要行号, 不贴原文。不落盘原始 CoT; 候选/证据/置信度必须落盘。
+
+例外:
+- thinking 不限
+- delivery-gate block reason = 阻塞事实 + 失败证据 + 可执行解锁动作
+- README / 对外 API 用完整句
+- 门禁标题与字段名不改
+
+依据: 9.9.0 o200k 电报体省 21-30%; 文言文净省≈0 且歧义, 否决; 9.9.1 删极端电报体 (GPT-5.6 过裁)。
+
+### 产出声明
+
+| 产物 | 写法 | 勿改 |
+|---|---|---|
+| 对话回复 | 结论先行; 复杂权衡给证据 | — |
+| `design.md` | 背景≤5行; 决策用表; AC 一句一条 | `## 验收标准` / `## Done Contract` |
+| `review-packet.md` | hash + AC 全集 | ≤80 行; `source_design_sha256` |
+| `implementation-review.md` | 只写 findings; P2≤5 | frontmatter `verdict` / `review_run_id` / `native_output_ref` |
+| `brainstorm.md` | 结论/理由/约束; 空段删 | — |
+| `runtime-verify.md` | 场景+命令+结果 | `## 测试场景` |
+| `cleanup-pass.md` | 五项各一行结论 | VERDICT 含 PASS/completed/完成 |
+| `session-log.md` | path/stage/写集/失败/下一步 | — |
+| `compound/*.md` | 教训一句话; ≤100 行 | frontmatter `doc_type` |
+| `route-note.md` | 候选/证据/置信度 | — |
+| `fix-note.md` | 根因+修复+验证 | Bugfix 必写 |
 </important>

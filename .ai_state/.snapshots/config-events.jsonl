@@ -141,3 +141,5 @@
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-08-27T13:12:57.094Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"iron-law-provenance.md","timestamp":"2026-08-27T13:12:57.094Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"CLAUDE.md","timestamp":"2026-08-27T13:12:57.094Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"CLAUDE.md","timestamp":"2026-09-12T04:45:43.749Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-09-12T04:45:43.750Z"}

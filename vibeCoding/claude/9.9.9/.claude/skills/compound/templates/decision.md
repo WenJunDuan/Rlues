@@ -9,9 +9,11 @@ deciders: []                   # 决策参与者 (人 + AI)
 
 # Decision: {slug}
 
+> 电宝体。决定一句话。≤100 行。
+
 ## 背景 (context)
 
-[为什么需要做这个决定, 业务约束 / 技术约束]
+[为什么要决定。业务/技术约束各一句]
 
 ## 选项 (options considered)
 

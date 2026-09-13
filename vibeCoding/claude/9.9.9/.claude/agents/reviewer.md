@@ -1,6 +1,5 @@
 ---
 name: reviewer
-maxTurns: 70
 description: |
   PACE 一次多维 code review（fallback，当原生 /code-review 不可用）。
   读 review-packet + diff + evidence summary；返回 implementation-review.md 所需结果，由主 agent 落盘。
@@ -49,7 +48,7 @@ dimensions: [spec, correctness, security, tests, overengineering]
 ---
 ```
 
-Markdown 只写 findings。最后一行 `VERDICT: PASS|CONCERNS|REWORK|FAIL`。P2/INFO ≤ 5。
+Markdown 只写 findings, 电宝体。最后一行 `VERDICT: PASS|CONCERNS|REWORK|FAIL`。P2/INFO ≤ 5。
 
 同因新 P0 第二次目标复核仍出现 → 停止，交还用户。
 

@@ -29,3 +29,9 @@
 - 备份及清单：`/Users/mi_manchi/.athena/backups/athena-9.9.9-triage-njDGcQ/manifest.json`。legacy playbook原有平台适配差异均在被新任务切换合同替换的段落，备份保留原文。
 - 当前Hotfix进入ship，父System保持未完成；提交和远端结果以本目录git历史为准，不自动恢复执行旧任务。
 - 安装态CC/CX delivery-gate以本仓库真实Hotfix/ship索引执行Stop：两端exit 0，无block输出；未设置绕过门禁环境变量。`git diff --check`通过。
+
+## 独立 Hotfix 插入恢复点（2026-09-13）
+
+- 本 sprint 已 ship。插入任务：`2026-09-13-telegram-style-hotfix`（9.9.9 电宝体，非新版本）。
+- 恢复本任务时：path=Hotfix, stage=ship, slug=`2026-09-07-pace-task-triage-hotfix`；父 System 仍见 `../2026-09-06-athena-9-9-9/session-log.md`。
+- 本轮用户未要求续跑本任务或父 System。

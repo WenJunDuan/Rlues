@@ -1,6 +1,5 @@
 ---
 name: critic
-maxTurns: 70
 description: |
   STUB 9.9.8 — 禁止 live 调度。设计作者不自审；R/S 独立挑战由非作者会话执行 review-packet。
 disable-model-invocation: true

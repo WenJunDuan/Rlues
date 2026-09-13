@@ -9,9 +9,11 @@ status: executed               # executed | inspected | deferred
 
 # Learning: {slug}
 
+> 电宝体。教训一句话。≤100 行。
+
 ## 现象 (what happened)
 
-[一段话描述发生了什么, 客观陈述]
+[客观陈述, 骨架句]
 
 ## 根因 (why)
 
