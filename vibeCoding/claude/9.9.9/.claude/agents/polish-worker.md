@@ -5,6 +5,7 @@ model: inherit
 permissionMode: default
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 background: false
+maxTurns: 70
 skills: [polish, architect-doc, compound]
 ---
 

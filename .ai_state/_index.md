@@ -1,21 +1,31 @@
 ---
 # Athena PACE 项目状态 (.ai_state/_index.md)
 # v9.9.8 schema. 项目执行 athena-init 时由模板初始化, 之后由主 agent + hooks 维护.
-version: "9.9.8"
+version: "9.9.9"
 
 # === PACE 路由状态 ===
-path: "Feature"
-stage: "impl"
+path: "Hotfix"
+stage: "ship"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-13-pi-agent-9-10"
+current_sprint_slug: "2026-09-14-athena-9-9-9-local-hotfix"
 current_roadmap_slug: ""
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.6) ===
-route_confidence: 0.92  # Feature：CC 9.9.9 全结构迁 Pi，版本暂定 9.10
-route_history: ["2026-07-25 System impl: user authorized Claude review repairs directly in main checkout without worktree", "2026-07-28 System impl 范围扩张 (非 re-route): 用户拍板把 2026-07-27-hotfix-gate-contract 的 A-E 五条并入本 sprint 作 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 (用户显式批准): spawn generator 执行 G1-G5 被 subagent-worktree-check.cjs 无条件 block →index-overflow.md#rh-1", "2026-07-29 System impl: 用户授权 hotfix2 W35-W40 安装态同步、真实 sprint 采数、validator 收口与 main 推送；canoni →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane；一次原生 review、hook 红黄绿、有界 ai_state；VM/LaaV 仅保留 o →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; efficiency, parallel and fullstack; proposal only; conf=0.96", "2026-09-06 System/design: 9.9.9; PACE+state; single-platform base; 3 goals; design reviewed; impl pending; conf=0.98", "2026-09-07 System audit: Grok aeb1da6; standalone assets pass, contract/code gaps reproduced; no install; conf=0.99", "2026-09-08 Hotfix follow-up: sync CC worktree cleanup ruling to repo/CX; bounded docs; conf=1.0", "2026-09-13 Feature: CC 9.9.9 全结构迁 Pi 9.10; skills/PACE/hooks; conf=0.92"]  # re-route ≤10, item ≤160B
+route_confidence: 0.99  # Hotfix：9.9.9 版本标识已装；预演发现 13 项受管补丁未同步，双端迁移可逆
+route_history:
+  - "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX managed patches; preserve chats and user overrides; conf=0.99"
+  - "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0"
+  - "2026-07-28 System impl 红区降级 →index-overflow.md#rh-1"
+  - "2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2"
+  - "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane →index-overflow.md#rh-3"
+  - "2026-09-06 System/brainstorm: CC/CX next release; proposal only; conf=0.96"
+  - "2026-09-06 System/design: 9.9.9; PACE+state; design reviewed; conf=0.98"
+  - "2026-09-07 System audit: candidate assets pass; core gaps reproduced; no install; conf=0.99"
+  - "2026-09-08 Hotfix: sync CC worktree cleanup ruling; bounded docs; conf=1.0"
+  - "2026-09-13 Feature: CC 9.9.9 migration to Pi 9.10; conf=0.92"
 plan_model: "fable"               # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
 
 # === 平台与版本 ===
@@ -69,13 +79,13 @@ counts:
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: "sprints/2026-09-13-pi-agent-9-10/design.md"
+  latest_design: ""
   latest_review: ""
   latest_cleanup: ""
   latest_brainstorm: "sprints/2026-09-06-athena-next-version/brainstorm.md"
-  latest_decisions: ["compound/2026-08-27-decision-retire-local-telemetry-collection.md", "compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
+  latest_decisions: ["compound/2026-08-27-decision-retire-local-telemetry-collection.md", "compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-08-27T11:13:37.112Z"
+  latest_architecture_update: "2026-08-27T19:26:23+08:00"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
@@ -85,7 +95,7 @@ next_action: "re-route"
 last_subagent: ""
 last_subagent_at: ""
 active_worktrees: []
-harness_target_outside_repo: false  # 本 Hotfix 只改仓库 vibeCoding/9.9.9 源码，不装安装态
+harness_target_outside_repo: true  # 本 Hotfix 修改本机 CC/CX 安装态；安装器逐文件备份
 last_critic_round: 0              # 9.9.8: 设计作者不自审, critic 为 stub
 design_changed_after_impl: false
 
@@ -111,8 +121,6 @@ fingerprint: ""
 
 ## 当前状态
 
-- 2026-09-08 Hotfix: CC worktree cleanup ruling synced to repo/CX; two CC backups removed; no push requested.
-- 2026-09-07 Hotfix: task triage installed; validator 60/0; parent System recovery preserved in session-log.
 - 2026-09-07 Hotfix: gate quickref + agent 70-turn policy installed; parent System pending. See session-log.
 - 2026-09-07 audit: 首装资产通过；核心缺陷仍在，见latest_review；不安装。
 - 2026-09-07 impl: 已合入审查绑定/init 并发/Gradle 分类/LaaV 评分修复；validator 58 PASS；未安装。
@@ -121,6 +129,8 @@ fingerprint: ""
 - 2026-09-06 VM: SSH可达RHEL10.2；仅证明传输，项目服务待验证。
 - Previous status and shifted route →index-overflow.md#previous-current-state
 - older 当前状态 →index-overflow.md#st-0
+- older 当前状态 →index-overflow.md#st-0
+- older 当前状态 →index-overflow.md#st-1
 
 
 ## 工具调度建议

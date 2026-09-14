@@ -8,6 +8,7 @@ permissionMode: plan
 tools: [Read, Grep, Glob, Bash]
 disallowedTools: [Write, Edit, Agent]
 background: false
+maxTurns: 70
 skills: [athena-review]
 ---
 

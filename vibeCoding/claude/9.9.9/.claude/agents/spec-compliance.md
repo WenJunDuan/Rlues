@@ -3,6 +3,7 @@ name: spec-compliance
 description: |
   STUB 9.9.8 — 禁止 live 调度。Spec coverage 是一次多维 review 的第一维。
 disable-model-invocation: true
+maxTurns: 70
 ---
 
 每次任务最多 70 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不得标记 PASS，不自动续派以绕过上限。

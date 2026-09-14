@@ -16,3 +16,8 @@
 - 用户纠偏：去掉版本目录。内容并回 `vibeCoding/pi-agent/`；始终 at least 当前 CC。默认只加载 athena-gates / athena-lifecycle。无第三方 npm 插件。
 - 最小集清理：删未接线 hook、STUB prompts、agents/、setup/migrate/init/antigravity、my-pi 残留、mcp/open-tui 空配置。来源/映射/啰嗦笔记并入唯一 `README.md`。
 - 用户要求留项目初始化：已恢复 `skills/athena-init`（只建 `.ai_state`，默认不探测 CC/CX）。PACE 与本仓 `.ai_state` 一直都在。
+
+## 2026-09-14 task switch
+
+- 已切换到 `2026-09-14-athena-9-9-9-local-hotfix`，不属于本 Feature 的验收。
+- 恢复入口：Feature / impl / `next_action: re-route`；原设计与未提交工作保持不动。

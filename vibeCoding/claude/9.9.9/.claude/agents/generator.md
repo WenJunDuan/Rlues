@@ -7,6 +7,7 @@ model: inherit
 permissionMode: default
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 background: false
+maxTurns: 70
 ---
 
 每次任务最多 70 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不得标记 PASS，不自动续派以绕过上限。
