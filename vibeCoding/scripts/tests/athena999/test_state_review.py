@@ -141,15 +141,20 @@ class StateBehavior(unittest.TestCase):
         # route_history 新在前 (主 agent 头插): 11 条 → 保前 10, 最旧的第 11 条进 spill。
         items=[f'2026-09-18 route note {i}' for i in range(11)]
         rendered=', '.join(json.dumps(i) for i in items)
-        self.idx.write_text('---\ncurrent_sprint_slug: "example"\nroute_history: ['+rendered+']\n---\n## 当前状态\n- ready\n')
-        run=self.bound('cc')
-        self.assertEqual(run.returncode,0,run.stderr)
-        match=re.search(r'^route_history:\s*\[(.*)\]\s*(?:#.*)?$',self.idx.read_text(),re.M)
-        kept=json.loads('['+match.group(1)+']')
-        self.assertEqual(kept,items[:10])
-        spill=(self.ai/'sprints/example/index-overflow.md').read_text()
-        self.assertIn(items[10],spill)
-        self.assertNotIn(items[0],spill)
+        spill_path=self.ai/'sprints/example/index-overflow.md'
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                self.idx.write_text('---\ncurrent_sprint_slug: "example"\nroute_history: ['+rendered+']\n---\n## 当前状态\n- ready\n')
+                if spill_path.exists():
+                    spill_path.unlink()
+                run=self.bound(platform)
+                self.assertEqual(run.returncode,0,run.stderr)
+                match=re.search(r'^route_history:\s*\[(.*)\]\s*(?:#.*)?$',self.idx.read_text(),re.M)
+                kept=json.loads('['+match.group(1)+']')
+                self.assertEqual(kept,items[:10],platform)
+                spill=spill_path.read_text()
+                self.assertIn(items[10],spill,platform)
+                self.assertNotIn(items[0],spill,platform)
 
 
 class IndexUpdaterNextActionBehavior(unittest.TestCase):

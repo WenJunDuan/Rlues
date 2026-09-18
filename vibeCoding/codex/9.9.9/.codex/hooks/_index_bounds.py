@@ -126,8 +126,9 @@ def enforce_route_history(content: str, spiller: Spiller) -> str:
     if not match:
         return content
     values = [unquote(item) for item in split_quoted_list(match.group(1))]
-    extra = values[:-LIST_MAX] if len(values) > LIST_MAX else []
-    values = values[-LIST_MAX:]
+    # route_history 新在前 (主 agent 头插): 保头淘汰尾, spill 的是被淘汰的旧条 (与 CC _index-bounds.cjs 对齐)。
+    extra = values[LIST_MAX:] if len(values) > LIST_MAX else []
+    values = values[:LIST_MAX]
     for full in extra:
         spiller.spill("rh", full)
     next_values = []
