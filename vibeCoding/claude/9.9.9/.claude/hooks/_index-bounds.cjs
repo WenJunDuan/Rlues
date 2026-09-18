@@ -109,8 +109,9 @@ function enforceRouteHistory(content, spiller) {
   const match = content.match(/^route_history:\s*\[(.*)\]\s*(?:#.*)?$/m);
   if (!match) return content;
   let values = splitQuotedList(match[1]).map(unquote);
-  const extra = values.length > LIST_MAX ? values.slice(0, values.length - LIST_MAX) : [];
-  values = values.slice(-LIST_MAX);
+  // route_history 新在前 (主 agent 头插): 保头淘汰尾, spill 的是被淘汰的旧条。
+  const extra = values.length > LIST_MAX ? values.slice(LIST_MAX) : [];
+  values = values.slice(0, LIST_MAX);
   for (const full of extra) spiller.spill("rh", full);
   const next = values.map((full) => {
     if (byteLen(full) <= ITEM_MAX_BYTES) return full;

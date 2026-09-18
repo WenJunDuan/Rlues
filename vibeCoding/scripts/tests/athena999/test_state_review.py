@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -135,6 +136,65 @@ class StateBehavior(unittest.TestCase):
         run=subprocess.run(['node','-e',code,str(CC/'_index-bounds.cjs'),str(self.idx),str(self.ai)],capture_output=True,text=True)
         self.assertNotEqual(run.returncode,0)
         self.assertEqual(spill.read_text(),'original overflow survives')
+
+    def test_route_history_keeps_newest_head_and_spills_oldest_tail(self):
+        # route_history 新在前 (主 agent 头插): 11 条 → 保前 10, 最旧的第 11 条进 spill。
+        items=[f'2026-09-18 route note {i}' for i in range(11)]
+        rendered=', '.join(json.dumps(i) for i in items)
+        self.idx.write_text('---\ncurrent_sprint_slug: "example"\nroute_history: ['+rendered+']\n---\n## 当前状态\n- ready\n')
+        run=self.bound('cc')
+        self.assertEqual(run.returncode,0,run.stderr)
+        match=re.search(r'^route_history:\s*\[(.*)\]\s*(?:#.*)?$',self.idx.read_text(),re.M)
+        kept=json.loads('['+match.group(1)+']')
+        self.assertEqual(kept,items[:10])
+        spill=(self.ai/'sprints/example/index-overflow.md').read_text()
+        self.assertIn(items[10],spill)
+        self.assertNotIn(items[0],spill)
+
+
+class IndexUpdaterNextActionBehavior(unittest.TestCase):
+    """next_action 允许散文; 机器枚举仍识别; re-route 地板不覆盖散文。"""
+
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root=Path(self.tmp.name)
+        subprocess.run(['git','init','-q',str(self.root)],check=True)
+        (self.root/'.ai_state/sprints/test').mkdir(parents=True)
+        self.idx=self.root/'.ai_state/_index.md'
+        for i in range(5):   # Quick 上限 3, 5 个未跟踪实现文件 → 触发地板
+            (self.root/f'f{i}.py').write_text('x = 1\n')
+
+    def write_index(self,next_action):
+        self.idx.write_text('---\nversion: "9.9.9"\ncurrent_sprint_slug: "test"\npath: "Quick"\n'
+                            f'stage: "impl"\nnext_action: "{next_action}"\n---\n## 当前状态\n- ready\n')
+
+    def updater(self):
+        payload={'cwd':str(self.root),'tool_name':'Edit','hook_event_name':'PostToolUse',
+                 'tool_input':{'file_path':str(self.root/'f0.py')}}
+        run=subprocess.run(['node',str(CC/'index-updater.cjs')],input=json.dumps(payload),text=True,capture_output=True)
+        self.assertEqual(run.returncode,0,run.stderr)
+        return run
+
+    def test_prose_next_action_is_not_warned_and_never_overwritten(self):
+        prose='继续修 hook 缺陷 2, 再跑回归'
+        self.write_index(prose)
+        run=self.updater()
+        self.assertNotIn('非枚举',run.stderr)
+        self.assertIn('re-route',run.stderr)
+        self.assertIn('散文',run.stderr)
+        self.assertIn(f'next_action: "{prose}"',self.idx.read_text())
+
+    def test_empty_next_action_still_gets_the_re_route_floor(self):
+        self.write_index('')
+        self.updater()
+        self.assertIn('next_action: "re-route"',self.idx.read_text())
+
+    def test_machine_signal_keeps_the_floor_closed(self):
+        self.write_index('review')
+        run=self.updater()
+        self.assertNotIn('re-route',run.stderr)
+        self.assertIn('next_action: "review"',self.idx.read_text())
 
 
 class GateBehavior(unittest.TestCase):

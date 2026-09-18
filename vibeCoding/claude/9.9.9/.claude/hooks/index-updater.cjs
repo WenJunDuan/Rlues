@@ -232,12 +232,11 @@ function main() {
     const fmSprint = (content.match(/^current_sprint_slug:\s*"?([^"\n]*)"?/m) || [])[1] || '';
     const fmNextAction = (content.match(/^next_action:\s*"?([^"\n]*)"?/m) || [])[1] || '';
 
-    // hotfix2 AC6/W37: next_action 只允许机器枚举; 进度散文会永久关闭 re-route 且挤占注入。
+    // next_action 允许散文 (本仓惯例); NA_ENUM 仅用于识别机器信号 (review/ship 等)。
+    // 有明确机器信号时 re-route 地板不跑; 散文不算信号, 地板照跑但绝不覆盖散文。
     const NA_ENUM = /^(|re-route|runtime-verify|review|polish|ship|rework_impl|await-review-result|next_roadmap_item:[A-Za-z0-9._-]+|roadmap_complete)$/;
-    if (!NA_ENUM.test(fmNextAction)) {
-      process.stderr.write(`[index-updater] next_action 非枚举值 ("${fmNextAction.slice(0,60)}...") — 进度散文请写 route_history/design, next_action 仅存机器信号\n`);
-    }
-    if (doReroute && PATH_FILE_CAPS[fmPath] && ['impl', 'runtime-verify'].includes(fmStage) && fmSprint && !fmNextAction) {
+    const naMachine = NA_ENUM.test(fmNextAction);
+    if (doReroute && PATH_FILE_CAPS[fmPath] && ['impl', 'runtime-verify'].includes(fmStage) && fmSprint && (!fmNextAction || !naMachine)) {
       // F1/W36 (2026-07-29): tool-trace 已随 hotfix2 停止生成 (W35), re-route 文件数改用
       // 与 ship 同源的 git 现场变更集 — 无第二真相, 无逐工具记账依赖。
       const { execFileSync } = require('child_process');
@@ -251,10 +250,11 @@ function main() {
         } catch (_) { /* 非 git 环境: 计数 0, 不触发 (fail-open) */ }
       }
         if (seen.size > PATH_FILE_CAPS[fmPath]) {
-          content = updateField(content, 'next_action', 're-route');
+          if (!fmNextAction) content = updateField(content, 'next_action', 're-route');
           process.stderr.write(
             `[index-updater] re-route: path=${fmPath} 改动 ${seen.size} 文件 > 上限 ${PATH_FILE_CAPS[fmPath]} — ` +
-            `重走路由审议 (只升不降), _index.route_history 记一条\n`
+            `重走路由审议 (只升不降), _index.route_history 记一条` +
+            (fmNextAction ? `; next_action 为散文, 未改写; 请主 agent 重走路由并在 route_history 记一条\n` : `\n`)
           );
       }
     }
