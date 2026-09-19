@@ -247,6 +247,11 @@ def accept(cwd: Path, run: str, receipt: Path) -> dict:
           'input_manifest_sha256':prepared['input_manifest_sha256'],'native_output_ref':ref,'verdict':verdict}
     header = '---\n' + ''.join(k+': '+json.dumps(v)+'\n' for k,v in fm.items()) + '---\n\n'
     if prepared['mode'] == 'implementation' and (sprint/'review-manifest.yaml').is_file():
+        output = re.sub(
+            r'(?m)^[ \t]*Reviewed (?:design sha256|implementation commit|state manifest sha256):.*(?:\r?\n|$)',
+            '',
+            output,
+        )
         header += 'Reviewed design sha256: '+digest((sprint/'design.md').read_bytes())+'\nReviewed implementation commit: '+prepared['base_commit']+'\nReviewed state manifest sha256: '+digest((sprint/'review-manifest.yaml').read_bytes())+'\n\n'
     write_atomic(doc,header+'## Native review output\n\n'+output)
     row = append(sprint,{'event':'accepted' if verdict == 'PASS' else 'received','verdict':verdict,'review_run_id':run,'reviewer_target':target,'native_output_ref':ref,'native_output_sha256':sha,

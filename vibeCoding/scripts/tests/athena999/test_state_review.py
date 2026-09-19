@@ -309,6 +309,22 @@ class InputBindingBehavior(unittest.TestCase):
         self.assertNotEqual(run.returncode,0)
         self.assertIn('native review metadata',run.stderr)
 
+    def test_accept_deduplicates_reviewed_binding_lines(self):
+        labels=('Reviewed design sha256:','Reviewed implementation commit:','Reviewed state manifest sha256:')
+        for platform in ('cx','cc'):
+            (self.sprint/'review-manifest.yaml').write_text('schema_version: 1\n')
+            target='/root/deduplicate-'+platform
+            prepared=self.prepare_review(platform,target)
+            output='VERDICT: PASS\n\n'+''.join(label+' stale-value\n' for label in labels)
+            receipt=self.sprint/'result.json'
+            receipt.write_text(json.dumps({'task_name':target,'status':'completed','output':output}))
+            run=self.review_command(platform,'accept','--run',prepared['review_run_id'],'--receipt',str(receipt))
+            self.assertEqual(run.returncode,0,run.stderr)
+            formal=(self.sprint/'reviews/implementation-review.md').read_text()
+            for label in labels:
+                self.assertEqual(formal.count(label),1,platform+': '+label)
+            self.assertNotIn('stale-value',formal,platform)
+
     def test_native_metadata_distinguishes_indented_root_from_nested_fields(self):
         for platform in ('cx','cc'):
             target='/root/indented-'+platform

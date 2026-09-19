@@ -162,7 +162,7 @@ function accept(cwd,run,receipt) {
   if (events(sprint).some(r=>r.review_run_id===run && ['accepted','received'].includes(r.event))) throw new Error('review result already accepted');
   const bound = events(sprint).filter(r=>r.event==='bound' && r.review_run_id===run);
   if (bound.length!==1) throw new Error('review requires exactly one persisted native dispatch binding');
-  const [target,status,output] = nativeReceipt(receipt,bound[0].reviewer_target);
+  let [target,status,output] = nativeReceipt(receipt,bound[0].reviewer_target);
   if (target!==bound[0].reviewer_target || !['completed','complete','succeeded'].includes(status) || !output.trim()) throw new Error('wrong target, unknown/incomplete native result, or missing output');
   assertLive(root,sprint,prepared);
   validateNativeMetadata(output,prepared,root);
@@ -172,7 +172,10 @@ function accept(cwd,run,receipt) {
     input_manifest_sha256:prepared.input_manifest_sha256,native_output_ref:ref,verdict};
   let header = '---\n'+Object.entries(fm).map(([k,v])=>k+': '+JSON.stringify(v)+'\n').join('')+'---\n\n';
   const manifest = path.join(sprint,'review-manifest.yaml');
-  if (prepared.mode==='implementation' && fs.existsSync(manifest)) header+='Reviewed design sha256: '+input.digest(fs.readFileSync(path.join(sprint,'design.md')))+'\nReviewed implementation commit: '+prepared.base_commit+'\nReviewed state manifest sha256: '+input.digest(fs.readFileSync(manifest))+'\n\n';
+  if (prepared.mode==='implementation' && fs.existsSync(manifest)) {
+    output=output.replace(/^[ \t]*Reviewed (?:design sha256|implementation commit|state manifest sha256):.*(?:\r?\n|$)/gm,'');
+    header+='Reviewed design sha256: '+input.digest(fs.readFileSync(path.join(sprint,'design.md')))+'\nReviewed implementation commit: '+prepared.base_commit+'\nReviewed state manifest sha256: '+input.digest(fs.readFileSync(manifest))+'\n\n';
+  }
   io.writeAtomic(doc,header+'## Native review output\n\n'+output);
   const row = append(sprint,{event:verdict==='PASS' ? 'accepted':'received',verdict,review_run_id:run,reviewer_target:target,native_output_ref:ref,native_output_sha256:sha,
     output_ref:path.relative(sprint,doc).split(path.sep).join('/'),output_sha256:input.digest(fs.readFileSync(doc))});
