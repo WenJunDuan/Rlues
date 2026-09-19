@@ -44,6 +44,11 @@ function resultStatus(payload) {
   const code = response.exit_code;
   if (Number.isInteger(code)) return code === 0 ? "pass" : "fail";
   if (payload.hook_event_name === "PostToolUseFailure") return "fail";
+  // 2026-09-14 harness-patches.md H1: Claude Code Bash tool_response carries no exit_code
+  // ({stdout, stderr, interrupted, ...}); a non-zero exit surfaces as a tool failure via
+  // PostToolUseFailure above, so a non-interrupted PostToolUse for Bash is exit 0.
+  if (payload.hook_event_name === "PostToolUse" && String(payload.tool_name || "").toLowerCase() === "bash"
+      && response.interrupted === false && typeof response.stdout === "string") return "pass";
   return "unknown";
 }
 
