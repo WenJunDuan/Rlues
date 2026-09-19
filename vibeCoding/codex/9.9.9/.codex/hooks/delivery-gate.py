@@ -1229,6 +1229,9 @@ def validate_review_binding(
         f"{sprint_rel}/review-manifest.yaml",
         f"{sprint_rel}/ship-receipt.md",
         f"{sprint_rel}/session-log.md",
+        f"{sprint_rel}/tdd-evidence.yaml",
+        f"{sprint_rel}/evidence.yaml",
+        ".ai_state/vm-pending.md",
         f"{sprint_rel}/subagent-assignments.jsonl",
         f"{sprint_rel}/subagent-events.jsonl",
         f"{sprint_rel}/subagent-log.md",
@@ -1256,7 +1259,10 @@ def validate_review_binding(
         and file not in allowed_exact
         and not file.startswith(f"{sprint_rel}/reviews/")
         and not file.startswith(f"{sprint_rel}/evidence/")
+        and not file.startswith(f"{sprint_rel}/runs/")
         and not file.startswith(f"{sprint_rel}/user-authorizations/")
+        and not file.startswith(".ai_state/docs/")
+        and not file.startswith(".ai_state/compound/")
     )
     if state_drift:
         raise GateError("unreviewed .ai_state drift outside post-review allowlist: " + ", ".join(state_drift[:8]))

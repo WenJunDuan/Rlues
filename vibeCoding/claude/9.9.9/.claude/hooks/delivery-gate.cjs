@@ -584,6 +584,7 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
     ".ai_state/_index.md",
     ...Object.keys(manifest.files).filter(name => !name.startsWith("architecture/")).map(name => `${sprintRel}/${name}`),
     `${sprintRel}/review-manifest.yaml`, `${sprintRel}/ship-receipt.md`, `${sprintRel}/session-log.md`,
+    `${sprintRel}/tdd-evidence.yaml`, `${sprintRel}/evidence.yaml`, ".ai_state/vm-pending.md",
     `${sprintRel}/subagent-assignments.jsonl`, `${sprintRel}/subagent-events.jsonl`, `${sprintRel}/subagent-log.md`,
     // Hook-maintained process bookkeeping, not review subjects: token-usage-collector.cjs
     // writes token-usage.yaml on every Stop (before this gate runs) and stop-failure-
@@ -604,7 +605,10 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
     && !allowedExact.has(file)
     && !file.startsWith(`${sprintRel}/reviews/`)
     && !file.startsWith(`${sprintRel}/evidence/`)
-    && !file.startsWith(`${sprintRel}/user-authorizations/`)).sort();
+    && !file.startsWith(`${sprintRel}/runs/`)
+    && !file.startsWith(`${sprintRel}/user-authorizations/`)
+    && !file.startsWith(".ai_state/docs/")
+    && !file.startsWith(".ai_state/compound/")).sort();
   if (stateDrift.length) throw new GateError(`unreviewed .ai_state drift outside post-review allowlist: ${stateDrift.slice(0, 8).join(", ")}`);
   return reviewedCommit;
 }
@@ -1412,7 +1416,7 @@ function main() {
   }
 }
 
-module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateEvidence, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract };
+module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateReviewBinding, validateEvidence, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract };
 if (require.main === module) {
   main();
 }

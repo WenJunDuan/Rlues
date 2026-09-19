@@ -256,6 +256,43 @@ class GateBehavior(unittest.TestCase):
                 self.assertIn('covers: [AC1, AC2]',message)
                 self.assertIn('covers:\n  - AC1\n  - AC2',message)
 
+    def test_post_review_drift_allows_ship_bookkeeping_only(self):
+        gate=py_module('delivery-gate')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve()
+            subprocess.run(['git','init','-q',str(root)],check=True)
+            sprint=root/'.ai_state/sprints/test'
+            sprint.mkdir(parents=True)
+            design=sprint/'design.md'
+            design.write_text('## Done Contract\n- AC1: ships\n')
+            subprocess.run(['git','-C',str(root),'add','.'],check=True)
+            subprocess.run(['git','-C',str(root),'-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','reviewed'],check=True)
+            commit=subprocess.run(['git','-C',str(root),'rev-parse','HEAD'],check=True,text=True,capture_output=True).stdout.strip()
+            fm={key:'' for key in gate.INDEX_GOVERNANCE_FIELDS}
+            fm.update(version='9.9.9',path='Feature',current_sprint_slug='test')
+            manifest=sprint/'review-manifest.yaml'
+            manifest.write_text('schema_version: 1\nimplementation_commit: '+commit+'\nindex_governance_sha256: '+gate.index_governance_sha256(fm)+'\nfiles:\n  design.md: "'+hashlib.sha256(design.read_bytes()).hexdigest()+'"\n')
+            review=('Reviewed design sha256: '+hashlib.sha256(design.read_bytes()).hexdigest()+'\n'
+                    'Reviewed implementation commit: '+commit+'\n'
+                    'Reviewed state manifest sha256: '+hashlib.sha256(manifest.read_bytes()).hexdigest()+'\n')
+            allowed=(sprint/'tdd-evidence.yaml',sprint/'evidence.yaml',root/'.ai_state/vm-pending.md',
+                     sprint/'runs/result.log',root/'.ai_state/docs/note.md',root/'.ai_state/compound/learning.md')
+            for path in allowed:
+                path.parent.mkdir(parents=True,exist_ok=True)
+                path.write_text('bookkeeping\n')
+            gate.validate_review_binding(review,sprint/'reviews/implementation-review.md',sprint,root/'.ai_state',root,fm)
+            code='const m=require(process.argv[1]);m.validateReviewBinding(process.argv[2],"review",process.argv[3],process.argv[4],process.argv[5],JSON.parse(process.argv[6]));'
+            args=['node','-e',code,str(CC/'delivery-gate.cjs'),review,str(sprint),str(root/'.ai_state'),str(root),json.dumps(fm)]
+            run=subprocess.run(args,text=True,capture_output=True)
+            self.assertEqual(run.returncode,0,run.stderr)
+            unexpected=root/'.ai_state/unreviewed.md'
+            unexpected.write_text('must block\n')
+            with self.assertRaisesRegex(gate.GateError,'unreviewed .ai_state drift'):
+                gate.validate_review_binding(review,sprint/'reviews/implementation-review.md',sprint,root/'.ai_state',root,fm)
+            run=subprocess.run(args,text=True,capture_output=True)
+            self.assertNotEqual(run.returncode,0)
+            self.assertIn('unreviewed .ai_state drift',run.stderr)
+
 
 class InputBindingBehavior(unittest.TestCase):
     def setUp(self):
