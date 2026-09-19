@@ -1128,10 +1128,25 @@ function shipChangeIsLight(cwd) {
   return files.every(isLightShipFile);
 }
 
+function validateVmPendingPromises(aiState, sprintDir, sprintSlug) {
+  const promise = /(记|登|转|→)\s*`?vm-pending/;
+  const names = ["design.md", "runtime-verify.md", "cleanup-pass.md", "fix-note.md", "session-log.md"];
+  for (const name of names) {
+    const file = path.join(sprintDir, name);
+    if (!fs.existsSync(file) || !promise.test(fs.readFileSync(file, "utf8"))) continue;
+    const ledger = path.join(aiState, "vm-pending.md");
+    const closed = fs.existsSync(ledger) && fs.readFileSync(ledger, "utf8").split(/\r?\n/).some(line => line.includes(sprintSlug));
+    if (!closed) {
+      throw new GateError(`promise to log vm-pending found in ${name} but no row mentions ${sprintSlug}; unlock: add a .ai_state/vm-pending.md row mentioning ${sprintSlug}`);
+    }
+  }
+}
+
 function validateShip(aiState, fm, cwd) {
   const sprintSlug = fm.current_sprint_slug;
   if (!SAFE_SLUG.test(sprintSlug || "")) throw new GateError(`invalid current_sprint_slug ${sprintSlug || ""}`);
   const sprintDir = path.join(aiState, "sprints", sprintSlug);
+  validateVmPendingPromises(aiState, sprintDir, sprintSlug);
   // 9.9.6 P2 fix (see .ai_state/proposals.md): a light ship — small net diff vs upstream,
   // touching only docs/config/deps/state/tests (no source logic, no harness/hooks) — has no
   // TDD red/green story and takes the light gate: roadmap consistency only, skipping the
@@ -1416,7 +1431,7 @@ function main() {
   }
 }
 
-module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateReviewBinding, validateEvidence, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract };
+module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateReviewBinding, validateEvidence, validateVmPendingPromises, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract };
 if (require.main === module) {
   main();
 }

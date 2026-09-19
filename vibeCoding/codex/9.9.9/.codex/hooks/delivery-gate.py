@@ -1410,6 +1410,24 @@ def ship_change_is_light(cwd: Path) -> bool:
     return all(is_light_ship_file(f) for f in files)
 
 
+def validate_vm_pending_promises(ai_state: Path, sprint_dir: Path, sprint_slug: str) -> None:
+    promise = re.compile(r"(记|登|转|→)\s*`?vm-pending")
+    names = ("design.md", "runtime-verify.md", "cleanup-pass.md", "fix-note.md", "session-log.md")
+    for name in names:
+        path = sprint_dir / name
+        if not path.is_file() or not promise.search(path.read_text(encoding="utf-8", errors="replace")):
+            continue
+        ledger = ai_state / "vm-pending.md"
+        closed = ledger.is_file() and any(
+            sprint_slug in line for line in ledger.read_text(encoding="utf-8", errors="replace").splitlines()
+        )
+        if not closed:
+            raise GateError(
+                f"promise to log vm-pending found in {name} but no row mentions {sprint_slug}; "
+                f"unlock: add a .ai_state/vm-pending.md row mentioning {sprint_slug}"
+            )
+
+
 def git_root(cwd: Path) -> Path:
     """Resolve the main repository root for `cwd`, falling back to `cwd` itself.
 
@@ -1735,6 +1753,7 @@ def main() -> int:
             path_type = fm.get("path", "")
             if path_type not in VALID_PATHS:
                 raise GateError(f"ship stage has unknown Athena path {path_type!r}")
+            validate_vm_pending_promises(ai_state, sprint_dir, sprint_slug)
             # 9.9.6 P2 fix (see .ai_state/proposals.md): a light ship -- small net diff vs
             # upstream, touching only docs/config/deps/state/tests (no source logic, no
             # harness/hooks) -- has no TDD red/green story and takes the light gate: roadmap

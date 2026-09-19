@@ -293,6 +293,36 @@ class GateBehavior(unittest.TestCase):
             self.assertNotEqual(run.returncode,0)
             self.assertIn('unreviewed .ai_state drift',run.stderr)
 
+    def test_ship_closes_vm_pending_promises_in_current_sprint(self):
+        gate=py_module('delivery-gate')
+        promises={
+            'design.md':'后续记 vm-pending',
+            'runtime-verify.md':'后续记 `vm-pending`',
+            'cleanup-pass.md':'失败 → vm-pending',
+            'fix-note.md':'需要登 vm-pending',
+            'session-log.md':'稍后转 vm-pending',
+        }
+        for filename,promise in promises.items():
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as tmp:
+                ai=Path(tmp)/'.ai_state'
+                sprint=ai/'sprints/q12-test'
+                sprint.mkdir(parents=True)
+                (sprint/filename).write_text(promise+'\n')
+                docs=ai/'docs'
+                docs.mkdir()
+                (docs/'ignored.md').write_text('记 vm-pending\n')
+                with self.assertRaisesRegex(gate.GateError,rf'found in {re.escape(filename)}.*q12-test'):
+                    gate.validate_vm_pending_promises(ai,sprint,'q12-test')
+                code='const m=require(process.argv[1]);m.validateVmPendingPromises(process.argv[2],process.argv[3],process.argv[4]);'
+                args=['node','-e',code,str(CC/'delivery-gate.cjs'),str(ai),str(sprint),'q12-test']
+                run=subprocess.run(args,text=True,capture_output=True)
+                self.assertNotEqual(run.returncode,0)
+                self.assertIn('unlock: add a .ai_state/vm-pending.md row',run.stderr)
+                (ai/'vm-pending.md').write_text('| q12-test | pending |\n')
+                gate.validate_vm_pending_promises(ai,sprint,'q12-test')
+                run=subprocess.run(args,text=True,capture_output=True)
+                self.assertEqual(run.returncode,0,run.stderr)
+
 
 class InputBindingBehavior(unittest.TestCase):
     def setUp(self):
