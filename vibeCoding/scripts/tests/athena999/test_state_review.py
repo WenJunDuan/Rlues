@@ -226,6 +226,36 @@ class GateBehavior(unittest.TestCase):
             (sprint/'review-packet.md').write_text(f'---\nsource_design_sha256: "{digest}"\n---\n## Done Contract\n- AC1: lock contention preserves bytes\n')
             gate.validate_review_packet(sprint)
 
+    def test_evidence_covers_accepts_inline_and_block_lists(self):
+        document=('collected_evidence:\n'
+                  '  - tool_use_id: block\n    covers:\n      - ac1\n      - "AC2"\n    result: pass\n'
+                  '  - tool_use_id: inline\n    covers: [ac3, "AC4"]\n    result: pass\n'
+                  '  - tool_use_id: indentless\n    covers: # valid YAML indentless sequence\n'
+                  '    - ac5 # first\n    - "AC6"\n    result: pass\n')
+        invalid='collected_evidence:\n  - tool_use_id: bad\n    covers: AC1\n    result: pass\n'
+        gate=py_module('delivery-gate')
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence=Path(tmp)/'evidence.yaml'
+            evidence.write_text(document)
+            expected=[['AC1','AC2'],['AC3','AC4'],['AC5','AC6']]
+            self.assertEqual([r['covers'] for r in gate.parse_evidence_records(evidence)],expected)
+            code='const m=require(process.argv[1]);process.stdout.write(JSON.stringify(m.validateEvidence(process.argv[2])));'
+            run=subprocess.run(['node','-e',code,str(CC/'delivery-gate.cjs'),str(evidence)],text=True,capture_output=True)
+            self.assertEqual(run.returncode,0,run.stderr)
+            self.assertEqual([r['covers'] for r in json.loads(run.stdout)],expected)
+            evidence.write_text(invalid)
+            for platform,action in (
+                ('cx',lambda: gate.parse_evidence_records(evidence)),
+                ('cc',lambda: subprocess.run(['node','-e',code,str(CC/'delivery-gate.cjs'),str(evidence)],text=True,capture_output=True,check=True)),
+            ):
+                with self.subTest(platform=platform), self.assertRaises(Exception) as caught:
+                    action()
+                message=str(caught.exception)
+                if platform == 'cc':
+                    message=caught.exception.stderr
+                self.assertIn('covers: [AC1, AC2]',message)
+                self.assertIn('covers:\n  - AC1\n  - AC2',message)
+
 
 class InputBindingBehavior(unittest.TestCase):
     def setUp(self):

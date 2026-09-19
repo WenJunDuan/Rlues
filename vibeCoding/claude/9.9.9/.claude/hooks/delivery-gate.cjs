@@ -921,19 +921,37 @@ function evidenceField(block, key) {
   return matches.length ? scalar(matches[0][1]) : "";
 }
 
+function evidenceCovers(block) {
+  const example = "evidence covers must use covers: [AC1, AC2] or covers:\n  - AC1\n  - AC2";
+  const matches = [...block.matchAll(/^([ \t]+)covers[ \t]*:[ \t]*([^#\n]*)(?:#.*)?$/gm)];
+  if (matches.length > 1) throw new GateError("evidence record has duplicate covers");
+  if (!matches.length) return [];
+  const raw = scalar(matches[0][2]);
+  let covers = [];
+  if (raw) {
+    if (!raw.startsWith("[") || !raw.endsWith("]")) throw new GateError(example);
+    covers = raw.slice(1, -1).split(",").map(value => scalar(value).toUpperCase()).filter(Boolean);
+  } else {
+    const fieldIndent = matches[0][1].length;
+    const following = block.slice(matches[0].index + matches[0][0].length).split(/\r?\n/).slice(1);
+    for (const line of following) {
+      if (!line.trim() || /^[ \t]*#/.test(line)) continue;
+      const item = line.match(/^([ \t]*)-\s+([^#\n]+)/);
+      if (!item || item[1].length < fieldIndent) break;
+      covers.push(scalar(item[2]).toUpperCase());
+    }
+  }
+  if (covers.some(label => !/^AC\d+$/.test(label))) throw new GateError(`${example}; invalid AC label`);
+  return covers;
+}
+
 function parseEvidenceRecords(filePath) {
   const content = requireFile(filePath, "evidence.yaml");
   const items = [...content.matchAll(/^\s*-\s+tool_use_id\s*:\s*([^#\n]*)/gm)];
   return items.map((item, index) => {
     const end = index + 1 < items.length ? items[index + 1].index : content.length;
     const block = content.slice(item.index, end);
-    const coversRaw = evidenceField(block, "covers");
-    let covers = [];
-    if (coversRaw) {
-      if (!coversRaw.startsWith("[") || !coversRaw.endsWith("]")) throw new GateError("evidence covers must be an inline AC list");
-      covers = coversRaw.slice(1, -1).split(",").map(value => scalar(value).toUpperCase()).filter(Boolean);
-      if (covers.some(label => !/^AC\d+$/.test(label))) throw new GateError("evidence covers contains an invalid AC label");
-    }
+    const covers = evidenceCovers(block);
     return {
       tool_use_id: scalar(item[1]),
       ac_id: evidenceField(block, "ac_id").toUpperCase(),

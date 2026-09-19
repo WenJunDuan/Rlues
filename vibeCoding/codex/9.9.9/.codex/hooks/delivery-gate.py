@@ -608,6 +608,33 @@ def evidence_field(block: str, key: str) -> str:
     return matches[0].strip().strip('"\'') if matches else ""
 
 
+def evidence_covers(block: str) -> list[str]:
+    example = "evidence covers must use covers: [AC1, AC2] or covers:\n  - AC1\n  - AC2"
+    matches = list(re.finditer(r"(?m)^([ \t]+)covers[ \t]*:[ \t]*([^#\n]*)(?:#.*)?$", block))
+    if len(matches) > 1:
+        raise GateError("evidence record has duplicate covers")
+    if not matches:
+        return []
+    raw = matches[0].group(2).strip().strip('"\'')
+    covers: list[str] = []
+    if raw:
+        if not (raw.startswith("[") and raw.endswith("]")):
+            raise GateError(example)
+        covers = [part.strip().strip('"\'').upper() for part in raw[1:-1].split(",") if part.strip()]
+    else:
+        field_indent = len(matches[0].group(1))
+        for line in block[matches[0].end():].splitlines()[1:]:
+            if not line.strip() or re.match(r"^[ \t]*#", line):
+                continue
+            item = re.match(r"^([ \t]*)-\s+([^#\n]+)", line)
+            if not item or len(item.group(1)) < field_indent:
+                break
+            covers.append(item.group(2).strip().strip('"\'').upper())
+    if any(not re.fullmatch(r"AC\d+", label) for label in covers):
+        raise GateError(example + "; invalid AC label")
+    return covers
+
+
 def parse_evidence_records(path: Path) -> list[dict[str, Any]]:
     content = require_file(path, "evidence.yaml")
     items = list(re.finditer(r"(?m)^\s*-\s+tool_use_id\s*:\s*([^#\n]*)", content))
@@ -615,15 +642,7 @@ def parse_evidence_records(path: Path) -> list[dict[str, Any]]:
     for index, item in enumerate(items):
         end = items[index + 1].start() if index + 1 < len(items) else len(content)
         block = content[item.start():end]
-        covers_raw = evidence_field(block, "covers")
-        covers = []
-        if covers_raw:
-            value = covers_raw.strip()
-            if not (value.startswith("[") and value.endswith("]")):
-                raise GateError("evidence covers must be an inline AC list")
-            covers = [part.strip().strip('"\'').upper() for part in value[1:-1].split(",") if part.strip()]
-            if any(not re.fullmatch(r"AC\d+", label) for label in covers):
-                raise GateError("evidence covers contains an invalid AC label")
+        covers = evidence_covers(block)
         records.append(
             {
                 "tool_use_id": item.group(1).strip().strip('"\''),
