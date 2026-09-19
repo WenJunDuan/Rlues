@@ -346,6 +346,34 @@ class InputBindingBehavior(unittest.TestCase):
                     self.assertEqual(len(matching),1,platform+': '+command)
                     self.assertEqual(matching[0]['binding_status'],'current',platform+': '+command)
 
+    def test_evidence_output_keeps_test_summary_tail_after_redaction(self):
+        for platform,directory,suffix,runner in [('cx',CX,'.py',sys.executable),('cc',CC,'.cjs','node')]:
+            ident=platform+'-long-output'
+            payload={'cwd':str(self.root),'tool_use_id':ident,'tool_name':'Bash','hook_event_name':'PreToolUse','tool_input':{'command':'npm test'}}
+            run=subprocess.run([runner,str(directory/('pre-bash-guard'+suffix))],input=json.dumps(payload),text=True,capture_output=True)
+            self.assertEqual(run.returncode,0,run.stderr)
+            summary='\nTests: 42 passed, 42 total\n'
+            payload.update(hook_event_name='PostToolUse',tool_response={'exit_code':0,'stdout':'token=fixture-secret '+('x'*1700)+summary})
+            run=subprocess.run([runner,str(directory/('evidence-collector'+suffix))],input=json.dumps(payload),text=True,capture_output=True)
+            self.assertEqual(run.returncode,0,run.stderr)
+            record=[r for r in py_module('delivery-gate').parse_evidence_records(self.sprint/'evidence.yaml') if r['tool_use_id']==ident][0]
+            artifact=(self.sprint/record['output_artifact']).read_text()
+            self.assertIn('Tests: 42 passed, 42 total',artifact,platform)
+            self.assertIn('…[truncated ',artifact,platform)
+            self.assertIn('token=[REDACTED]',artifact,platform)
+            self.assertNotIn('fixture-secret',artifact,platform)
+            unicode_id=platform+'-unicode-output'
+            payload={'cwd':str(self.root),'tool_use_id':unicode_id,'tool_name':'Bash','hook_event_name':'PreToolUse','tool_input':{'command':'npm test'}}
+            run=subprocess.run([runner,str(directory/('pre-bash-guard'+suffix))],input=json.dumps(payload),text=True,capture_output=True)
+            self.assertEqual(run.returncode,0,run.stderr)
+            payload.update(hook_event_name='PostToolUse',tool_response={'exit_code':0,'stdout':'😀'*1000})
+            run=subprocess.run([runner,str(directory/('evidence-collector'+suffix))],input=json.dumps(payload),text=True,capture_output=True)
+            self.assertEqual(run.returncode,0,run.stderr)
+            record=[r for r in py_module('delivery-gate').parse_evidence_records(self.sprint/'evidence.yaml') if r['tool_use_id']==unicode_id][0]
+            artifact=(self.sprint/record['output_artifact']).read_text()
+            self.assertEqual(artifact.count('😀'),1000,platform)
+            self.assertNotIn('…[truncated ',artifact,platform)
+
     def test_binding_ignores_log_writes_but_rejects_code_contract_environment_drift(self):
         binding = py_module('_input_binding')
         original = binding.snapshot(self.root, self.sprint)

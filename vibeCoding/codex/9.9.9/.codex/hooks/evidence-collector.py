@@ -40,7 +40,9 @@ def redact(value: str) -> str:
     )
     v = re.sub(r"(--(?:password|token|api[-_]?key|secret)(?:=|\s+))[^\s,;]+", r"\1[REDACTED]", v, flags=re.I)
     v = re.sub(r"(\b(?:https?|postgres(?:ql)?|mysql)://)[^\s/@:]+:[^\s/@]+@", r"\1[REDACTED]@", v, flags=re.I)
-    return v[:500]
+    if len(v) <= 1500:
+        return v
+    return f"{v[:300]}\n…[truncated {len(v) - 1500} chars]…\n{v[-1200:]}"
 
 
 def find_ai_state(cwd: Path) -> Path | None:
