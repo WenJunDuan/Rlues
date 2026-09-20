@@ -64,3 +64,4 @@
 - 2026-09-20：ship Stop 门禁 block，经诊断为**假阳性**：ARCHITECTURE.md 已更新并随 `24c8069` 提交，但 `changedFileSet` 首条探针 `git diff main...HEAD` 在默认分支上恒空 → 已提交改动不可见；同时 `ls-files --others` 把三个旧 sprint 的 13 个未跟踪遗留算作本次变更集（本切片 55 文件零入选），把计数推过 ≥5 阈值。已记 proposals P17 与 roadmap 切片 9。**未设 skip_architecture_check** —— 那是宪法禁止的改 skip 绕门禁，会把假阳性教成真豁免。
 - 2026-09-20：**切片 2 交付完成**。commit `24c8069`（实现）、`31845eb`（P17 记录）、`e5f08f4`（补齐三个旧 sprint 遗留记账）。最终 40/40，工作树干净，Stop 门禁放行。
 - 2026-09-20：门禁放行的真实原因需明示——遗留记账入库后 `ls-files --others` 归零，变更集计数回落到 5 以下，architecture 检查变为不适用。这是 P17 的另一面，不是该检查真的通过；本切片的 architecture 更新实际在 `24c8069`，只是探针在默认分支上看不见已提交内容。
+- 2026-09-20：分支清理。`q12/evidence-pipeline-integrity`（codex 初稿，停在 52ff57e）与 `codex/athena-9.9.9-design`（aa0ae23）经核实**均为 main 祖先、零未合并提交、零差异**，无可合并内容，仅为陈旧指针。移除 codex worktree 前已逐文件确认其四份产物都已在 main 且 main 为演进后版本。两分支已删除，`grok/q12-evidence-pipeline` 此前已由用户清理。
