@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 mode: "implementation"
-review_run_id: "cdfb7313-3b66-4914-a1a3-9d81353dc08f"
-reviewer_target: "ad2b07493d2c787aa"
-packet_sha256: "ecf568bb53e225169bb87b6e86f928e95e7f98d512fc3429f6f91b93b35b8b0c"
-input_manifest_sha256: "75b178243a9a1a4d636aa34656ba8e4b7d23dbd5ca72f3c47c437c397178de43"
-native_output_ref: "reviews/_native/cdfb7313-3b66-4914-a1a3-9d81353dc08f-result.json"
+review_run_id: "6388c139-6d37-449d-a7b6-82b4ef4c8f83"
+reviewer_target: "a366db338e28bbb0c"
+packet_sha256: "296582fec3661f0f7c7a43a1aa0db17cea60eb15caa487d35729096db82d95d1"
+input_manifest_sha256: "b63729d2d026f3ff89d00a4230c0c59604ff0a6e8f5cd768feb936a8d93b3585"
+native_output_ref: "reviews/_native/6388c139-6d37-449d-a7b6-82b4ef4c8f83-result.json"
 verdict: "PASS"
 ---
 
@@ -14,90 +14,44 @@ verdict: "PASS"
 ---
 schema_version: 1
 mode: implementation
-packet_sha256: "ecf568bb53e225169bb87b6e86f928e95e7f98d512fc3429f6f91b93b35b8b0c"
-reviewed_diff_sha256: "96947974df4ed69211d667ef16faf19f141392fc2b09f4448cb979fa3073107f"
-review_run_id: "cdfb7313-3b66-4914-a1a3-9d81353dc08f"
-native_output_ref: "reviews/_native/cdfb7313-3b66-4914-a1a3-9d81353dc08f-result.json"
+packet_sha256: "296582fec3661f0f7c7a43a1aa0db17cea60eb15caa487d35729096db82d95d1"
+reviewed_diff_sha256: "9eb654257a82f08734c609cbd799a8e061671ad663711a230ce1818b7f2e3462"
+review_run_id: "6388c139-6d37-449d-a7b6-82b4ef4c8f83"
+native_output_ref: "reviews/_native/6388c139-6d37-449d-a7b6-82b4ef4c8f83-result.json"
 verdict: PASS
-finding_counts: {P0: 0, P1: 0, P2: 5}
+finding_counts: {P0: 0, P1: 0, P2: 4}
 dimensions: [spec, correctness, security, tests, overengineering, evidence]
 ---
 
-# Implementation Review — 2026-09-20-review-binding-preflight
+# Findings — Round 2 delta (d2f1887..HEAD)
 
-Packet hash recomputed and matches. Diff hash from the gate's own `sourceDiffSha256`: `96947974df4ed69211d667ef16faf19f141392fc2b09f4448cb979fa3073107f`.
+## 现场核验结论（全部自查, 未采信转述）
 
-## Spec coverage
+| 核验项 | 命令/方法 | 结果 |
+|---|---|---|
+| 文件类型 | `git diff --name-only d2f1887..HEAD -- vibeCoding` 按后缀分桶 | 53 .md + 4 .toml, 0 .cjs/.py/.js/.sh/.json。packet 断言成立 |
+| 改名残留 | `grep -rn 电宝体 vibeCoding/` | 0 命中。残留仅 `.ai_state/` 历史叙述 6 处 (旧 sprint session-log/design + 本 packet), 属历史记录, 不越界 |
+| 代码字面量依赖 | `grep -rn --include=*.{cjs,js,mjs,py,ts,sh,json,yaml,yml} -e 电报体 -e 电宝体 -e 输出纪律 .` | EXIT=1, 零命中。无 hook/测试断言依赖该词 |
+| 门禁标题/字段名 | `git grep -c` 对比 d2f1887 vs HEAD: `## 验收标准` 142=142, `## Done Contract` 29=29, `## 测试场景` 92=92, `source_design_sha256` 38=38, `native_output_ref` 86=86, `review_run_id` 138=138, `doc_type` 305=305 | 全等, 零触碰 |
+| diff 逐行归因 | 脚本: 对 66 删除行施加「电宝体→电报体」替换后与 69 新增行配对 | 60 行纯替换全配平; 余 3 处标题收敛 + 3 处 stages.md 还原, 无第四类变更 |
+| 锚点 | `grep -rn "#电" vibeCoding/` | 零命中, 标题收敛不破链。stages.md 引用「电报体」↔ doc-style.md `## 电报体（输出纪律）` 三端对上 |
+| stages.md 还原忠实度 | `git diff d556226 HEAD -- <CC/CX stages.md>` | 仅剩 line 94 的错字差; 其余逐字节相同 = 忠实还原 |
+| 三端一致 | Pi 该文件 d556226 时不存在 (手工套用), 逐行比对 CC/CX/Pi line 91-95 | 四行完全一致, 仅 doc-style 路径按端替换 (`~/.claude/` / `~/.codex/standards/` / `~/.pi/agent/`) |
+| 定义处语义 | 抽查 CLAUDE.md:8 / AGENTS.md:9 / 两份 RELEASE.md:3 / CHANGELOG.md:14 / IRON.md / 三份 doc-style.md | 「输出用电宝体=电报体」→「输出用电报体」、「恢复电宝体=电报体」→「恢复电报体」、「Hotfix …: 电宝体=电报体;」→「…: 电报体;」。语义等价, 语句通顺, 无残句 |
+| 测试面影响 | 检查 `validate-athena-9.9.*.py` / `test-athena-*-runtime.*` / `test_claude_rework.py` 对 stages.md、doc-style.md 的断言 | 仅断言路径存在与无关正则 (`PASS/CONCERNS`、runtime 命令名), 无内容/字节预算断言。改名不触发 |
+| state 越界 | `git diff --name-only d2f1887..HEAD | grep -v '^vibeCoding/'` | 6 个 `.ai_state/` 文件 (_index、session-log、evidence.yaml、2 份 evidence artifact、config-events)。均为记账, 无源码面混入 |
+| Evidence (R/S) | evidence.yaml 末条 `toolu_014FKwCa` result=pass, binding_status=current, ts 16:03:45+08 | 晚于末次源码面提交 ad6ba4d (15:55), 早于记账提交 eb818a2 (16:04)。工作区无 vibeCoding 未提交改动 → 绑定成立 |
 
-AC1-AC5 all present. No MISSING.
+维度裁定: Correctness 无问题 (纯文本等价替换 + 已证忠实的还原); Security 无接触面 (无代码、无凭证、无外部 IO); Test risk 零 (无断言依赖); Over-engineering 零 (未引入机制/配置/抽象)。
 
-**AC1 verified.** `partitionInputs` (`_review-binding.cjs:83`) excludes exactly the three paths the CLI writes. Cross-checked the write set against the actual writes: `:50` session-log, `:219`/`:245` `_index.md`, `:242` `reviews/<mode>-review.md` where `doc` at `:233` is mode-derived, so the exclusion list matches the mode-derived name rather than a hardcoded one. `reviews/_native/<run>-<kind>.json` (`:207`) is genuinely unreachable at prepare because the filename embeds the not-yet-issued run id. Exclusion is applied to `kept` which becomes the stored `input_paths` (`:180`), which is what `liveInput` re-reads at bind/accept/ship — the correct fix, not the hash-only one. Zero-input prepare stays legal: the guard is `if (inputs.length && !kept.length)`.
+## P2
 
-**AC2 verified.** `input_hashes` persists the entire `inputs` map (`:95`), which for implementation mode is declared paths plus `Object.assign(inputs, input.snapshot(root,sprint))`, so all three snapshot axes are present and AC2's aggregate clause can name the axis. `input.canonical` recurses and sorts keys, so the nested object serialises deterministically into the session-log row.
+**P2-1 · 写集权威在 packet 附录而非 design。** `design.md:80-88` 的 File Structure Plan 只列 5 个 hook/gate 文件 + 3 份 gate-contracts.md + 1 测试 + ARCHITECTURE.md; 本轮 57 个包文件与 3 份 stages.md 均不在其中, 合法性来自 packet「Round 2 附录」+ 用户对错字的确认。门禁按 source_sha256 拦截是正确行为, 代价是一次额外 review 轮次。建议: 与在飞 sprint 正交的错字/文案修正走独立 Hotfix sprint, 不并入开放 sprint 的源码面。
 
-**AC3 verified.** `manifestCommit` (`:150`) reads only, is root-level-scoped, returns empty for absent/non-40-hex, and prepare only throws when recorded differs from head. No write path touches the manifest.
+**P2-2 · 计数不一致, 正字为 57。** 实测 `git grep -o 电宝体 99a0be5 -- vibeCoding` = 63 处 / 57 文件; ad6ba4d 亦恰好 57 文件。commit message 写「三端 58 文件」、`session-log.md:58` 同样写「58 文件 63 处」, packet:44 写「57 文件 63 处」为正。commit 已推送不可改, 建议 session-log 补一行更正, 避免 58 这个数被后续引用 (铁律[证据与出处])。
 
-**AC4 — DEVIATED (accepted).** The AC reads "importing the gate's own function and its `_index.md` resolution rule". The hash function is imported on both ends; the resolution rule is imported on CX (`_review_binding.py:366-369` calls `gate.git_root` / `gate.find_ai_state`) but re-implemented on CC (`:275`, `:284`). Rated P2, not a spec failure, because AC5 forbids the third and fourth export names an import would need.
+**P2-3 · CX 端丢失唯一具名实例。** 还原后三端 stages.md 统一为「禁止第二任务书」, CX 原先的「禁止 CODEX-TASK.md 等第二任务书」失去该规则历史上唯一的具体命中对象。此为 d556226 既有取舍, 本轮忠实还原无误, 仅记录: 若后续观察到 CX 再造第二任务书, 优先怀疑此处抽象过度。无需本轮动作。
 
-**AC5 verified independently.** `git diff 0ca066c` on both `delivery-gate.cjs` copies is exactly one line each, adding exactly the two names. `delivery-gate.py` has no diff at all. CC and Pi `_review-binding.cjs` are byte-identical. Diffing the Pi base against the CC base confirmed the Pi copy really was the stale pre-dedup variant, missing both the `let` binding and the dedup, so the re-sync is a defect repair as claimed.
-
-**EXTRA, accepted.** The three `gate-contracts.md` clauses go beyond the design's File Structure Plan by also documenting prepare's self-exclusion. This is correct: AC1 introduces two operator-visible behaviours that a contract-only reader could not otherwise predict. All three clauses verified accurate against shipped behaviour, including the mode restriction and both skip claims.
-
-## The referred judgement call — re-derived, not accepted
-
-Compared the copy line by line against the originals rather than trusting `cleanup-pass.md`.
-
-`gateRepoRoot` vs `delivery-gate.cjs:434` `tryRepoRoot`: same probe, same basename test, same dirname result, same fallback, same non-throwing options down to the timeout and stdio. Sole difference is empty-string versus null, both falsy and only consumed as a truth value.
-
-`gateAiState` vs `delivery-gate.cjs:28` `findAiState`: same depth bound, same directory test, same parent walk with the same break — and it does carry the 2026-09-07 `.git`-boundary stop, the line easiest to drop. Only addition is an empty-start guard, load-bearing because `gateRepoRoot` can return empty and resolving null would throw.
-
-Composition is equivalent given that the helper returns empty for an empty start.
-
-Empirically confirmed: CC `governance`, CX `governance` and the gate's own `indexGovernanceSha256` all return `c092c4881d38bf1227fa0a36ac42d4758db9d701a4d1b3b4083cd70a5f051f78`, byte-identical JSON across both platforms.
-
-**Verdict on the call: the copy is faithful, and I accept it for this slice, but the duplication remains a defect on principle** — recorded as P2-1 rather than P1 because it is bounded, documented with resync line numbers, forced by a constraint that is itself a blast-radius guard, and asymmetric only because CX could import while CC could not. The irony is real but does not reach the slice's premise: the authoritative governance hash algorithm is imported on both ends, which is what "do not re-implement" was protecting.
-
-## Correctness
-
-No P0/P1. Specifically checked whether anything became more permissive than `0ca066c`:
-
-- `packet_sha256`: condition unchanged, message only.
-- `input_manifest_sha256`: condition unchanged; legacy rows without `input_hashes` still throw, with an explicit degradation message.
-- `evidence_docs`: old code compared canonical forms of the two maps; new code uses `mapDiffs`, reporting only keys whose values differ. Equivalent **only** because `fileRefs` throws on a missing file rather than returning empty, and because prepared and live are computed over the identical key set. Traced specifically because this is the classic place such a rewrite goes fail-open; it does not.
-- `evidence_ids`: a literal transliteration.
-- `accept` is untouched by the diff, so the dedup is byte-identical and the gate's exactly-one rule remains guaranteed.
-- `partitionInputs` runs before `fileRefs`, so excluded paths never bypass the realpath worktree-escape check. No traversal surface added.
-
-**P2-1 — duplicated path resolution has an untested branch.** `_review-binding.cjs:284-295`. The copy is faithful today, but no test exercises the `.git`-boundary line: both governance tests place `.ai_state` at depth 0, so the branch returns before it is consulted, and the worktree test would still pass with that line deleted. The most drift-prone line in the copy is unpinned. Suggested follow-up for slice 5, which is already permitted to edit the gate: export the two helpers and delete the copies, matching what CX already does.
-
-**P2-2 — `manifestCommit` picks the first root-level key, the gate picks the last.** `_review-binding.cjs:150-164` returns on the first match; `delivery-gate.cjs:485` assigns on every match, so the last wins. With a duplicated root-level key the preflight would compare a different value than ship does. Direction is safe (ship still blocks; only the early catch is missed). Same shape on CX.
-
-**P2-3 — CX `resolve_path` swallows more than CC's.** `_review_binding.py:122-126` catches `OSError` broadly; CC catches only ENOENT and re-throws every other errno, which is the fail-fast the iron law wants. The CX branch is near-dead anyway since `Path.resolve()` is non-strict and every caller passes an absolute path, making it the same class of edge-case defence the polish pass removed from `mapDiffs`.
-
-## Security
-
-Nothing found. All git invocations use array form with no shell and inherited timeouts. `governance` performs no writes; its test hashes every non-`.git` file before and after and asserts equality, which is the right assertion for a read-only claim. No secrets, no new network or subprocess surface, no new user-controlled path reaches a write. The worktree-escape guard is unchanged and still runs on every kept input.
-
-## Test risk
-
-Suite reproduced independently: 52 tests, OK, 23.5s.
-
-**P2-4 — the AC5 pin binds the test suite to this checkout's git history.** `test_state_review.py:1019-1042` shells out to `git show 0ca066c:…` with `check=True`, so the suite fails hard in a shallow clone, an exported tarball, or any checkout where that object is unreachable — a portability cost the other 51 tests do not have. The test is also self-expiring: its comment and `design.md:78` both say slice 5 removes it, but the roadmap's slice-5 entry carries no such obligation. `cleanup-pass.md` flagged this as unverified; it is in fact not recorded. This repo already has the carry-forward pattern used for slice 2's leftovers; the same treatment is what is missing here, along with the P2-1 follow-up. Roadmap edits are outside this slice's allowed write set, so this belongs to ship bookkeeping, not to rework.
-
-**P2-5 — the cross-platform governance equality test cannot detect a resolution-rule divergence.** The tests compare against a hardcoded main-repo expectation rather than against the gate's own resolution. Combined with the pre-existing `findAiState` asymmetry that `cleanup-pass.md` correctly identifies, CC and CX governance will legitimately disagree in any layout where the nearest `.ai_state` lies above a git boundary, and AC4's equality test would not catch it. I agree with the shipped choice and agree it is pre-existing and out of scope; the finding is that the suite does not know the limit of its own equality claim.
-
-Positives worth recording: the new tests run every scenario on both platforms, assert on stderr content rather than just exit codes, restore mutated fixtures and supersede each pending run so scenarios do not leak, and the legacy-row test constructs a genuine old row by rewriting persisted JSON rather than by mocking.
-
-## Over-engineering
-
-Clean. No new config option, flag, parameter or extension point in the whole slice; only the `governance` choice was added to the argument parsers. `excluded_inputs` has no machine consumer but is explicitly required by AC1 as the audit record, and the alternative is a silent hole. The `resolvePath` ENOENT catch on CC is load-bearing and re-throws every other errno. The dead guard the polish pass removed from `mapDiffs` was a correct removal: it guarded `Object.keys` against null while the next line dereferenced unguarded, so it could never have prevented the crash it appeared to prevent. Nothing meets the "delete it and tests stay green with no real caller" test except the items folded into P2-3.
-
-## Evidence
-
-`runtime-verify.md` binds a real run, base commit, input manifest, design contract, scenario and environment hashes, plus the PASS artifact path and sha256, with exit 0 and `blocks_delivery: false`. Eleven scenarios map onto AC1-AC5 with one honestly marked as source-workspace only — the AC5 `git show` assertion, which cannot run inside a `.git`-less bundle. Disclosed rather than papered over.
-
-Independently reproduced the central runtime claim: `governance` returns the same hash from both platforms and equals the gate's own computation. Also confirmed the installed harness at `~/.claude` still lacks the `governance` verb, consistent with the design's stated Non-goal on installed-state sync — no evidence claim overreaches into installed state.
-
-`cleanup-pass.md` is unusually honest for an author-side document: it hands the duplication question to review instead of self-clearing it, and its four residual risks are all real and correctly attributed to pre-existing gate behaviour. Of the four, item 4 is the one that needs action (P2-4); items 1-3 verified and agreed.
+**P2-4 · 遗留 validator 噪声, 非本轮回归。** `python3 vibeCoding/scripts/validate-athena-9.9.3.py` = pass 208 / fail 16。逐条核对失败原因: 指向已不存在的 `vibeCoding/{codex,claude}/9.9.3/` 包、Codex 版本 pin 0.144.1 (实机 0.154.0)、`tests/athena999/__pycache__` 构建残留、9.9.8/9.9.9 「future version marker」。全部与改名/还原无关, 属 9.9.3 期校验器对 9.9.9 树的陈旧断言。记录以防后续误读为本轮引入; 是否退役该脚本由后续切片决定。
 
 VERDICT: PASS

@@ -37,3 +37,11 @@ The review binding CLI must not break its own binding, must say which input drif
 ## Allowed write set
 
 Only the implementation, tests, three contracts, architecture file and current sprint artifacts listed in the design File Structure Plan. `delivery-gate` logic is excluded; the two `module.exports` names are the sole permitted gate diff.
+
+## Round 2 附录（2026-09-20 ship 期源码面变更）
+
+- 触发: round 1 (run cdfb7313, base baf5d9c) accept 后源码面又变, 门禁按 source_sha256 漂移正确拦截 Stop。
+- 待审 delta: `git diff d2f1887..HEAD -- vibeCoding`。仅两类文本变更: ① 99a0be5 还原 stages.md 电报体一节 (3 端, 修正上会话反向同步方向误判); ② ad6ba4d 错字改名「电宝体」→「电报体」(57 文件 63 处, 含「电宝体=电报体」注解与标题收敛)。
+- 断言: delta 内 0 个 .cjs/.py 文件; hook 行为面未动; 52/52 测试在当前源码面 PASS (evidence.yaml toolu_014FKwCa 现绑定)。
+- 审查焦点: 改名是否破坏任何门禁标题/字段名 (doc-style 明文禁改); 「电宝体=电报体」收敛处语义是否保持; stages.md 还原是否完整忠实于 d556226 引入版。
+- Round 1 结论 (PASS, P0=0 P1=0 P2=5) 覆盖 hook 实现本体, 本轮不重审。
