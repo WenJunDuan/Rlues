@@ -71,12 +71,28 @@ function evidenceIds(sprint) {
     .map(match => match[1].trim().replace(/^["']|["']$/g,''))
     .filter(id => id && !['[]','null','~'].includes(id)))].sort();
 }
+function resolvePath(p) {
+  try { return fs.realpathSync(p); } catch (e) { if (e.code !== 'ENOENT') throw e; return path.resolve(p); }
+}
+function partitionInputs(root,sprint,mode,inputs) {
+  const written = [
+    path.join(sprint,'session-log.md'),
+    path.join(sprint,'reviews',mode+'-review.md'),
+    path.join(root,'.ai_state','_index.md'),
+  ].map(resolvePath);
+  const kept=[], excluded=[];
+  for (const name of [...new Set(inputs)].sort()) {
+    if (written.includes(resolvePath(path.resolve(root,name)))) excluded.push(name);
+    else kept.push(name);
+  }
+  return [kept,excluded];
+}
 function liveInput(root,sprint,prepared) {
   const inputs = fileRefs(root,prepared.input_paths || []);
   if (prepared.mode==='implementation') Object.assign(inputs,input.snapshot(root,sprint));
   else inputs.design_sha256 = input.digest(fs.readFileSync(path.join(sprint,'design.md')));
   return {base_commit:input.git(root,'rev-parse','HEAD').toString().trim(),packet_sha256:input.digest(fs.readFileSync(path.join(sprint,'review-packet.md'))),
-    input_manifest_sha256:input.digest(input.canonical(inputs)),evidence_ids:evidenceIds(sprint),
+    input_manifest_sha256:input.digest(input.canonical(inputs)),input_hashes:inputs,evidence_ids:evidenceIds(sprint),
     evidence_docs:fileRefs(root,Object.keys(prepared.evidence_docs || {}))};
 }
 function assertLive(root,sprint,prepared) {
@@ -115,8 +131,10 @@ function prepare(cwd,mode,inputs) {
     if (!fs.existsSync(path.join(sprint,'evidence.yaml'))) throw new Error('implementation review requires evidence.yaml');
     docs = ['runtime-verify.md','cleanup-pass.md','review-manifest.yaml'].filter(n=>fs.existsSync(path.join(sprint,n))).map(n=>path.relative(root,path.join(sprint,n)).split(path.sep).join('/'));
   }
+  const [kept,excluded] = partitionInputs(root,sprint,mode,inputs);
+  if (inputs.length && !kept.length) throw new Error('review inputs empty after excluding CLI-written paths');
   const row = {event:'prepared',schema_version:1,review_run_id:crypto.randomUUID(),mode,author_target:process.env.CODEX_THREAD_ID || process.env.CLAUDE_SESSION_ID || '',
-    input_paths:[...new Set(inputs)].sort(),evidence_docs:Object.fromEntries(docs.map(n=>[n,'']))};
+    input_paths:kept,excluded_inputs:excluded,evidence_docs:Object.fromEntries(docs.map(n=>[n,'']))};
   Object.assign(row,liveInput(root,sprint,row));
   return append(sprint,row);
 }

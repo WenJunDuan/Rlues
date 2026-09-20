@@ -510,10 +510,13 @@ class InputBindingBehavior(unittest.TestCase):
         cli=directory.parent/'skills/pace/scripts'/('review-binding'+suffix)
         return subprocess.run([runner,str(cli),action,'--cwd',str(self.root),*args],text=True,capture_output=True)
 
-    def prepare_review(self, platform, target):
+    def seed_review_packet(self):
         design=(self.sprint/'design.md').read_bytes()
         (self.sprint/'review-packet.md').write_text('---\nsource_design_sha256: "'+hashlib.sha256(design).hexdigest()+'"\n---\n## Done Contract\n- AC1: returns exact bytes\n')
         (self.sprint/'evidence.yaml').write_text('collected_evidence: []\n')
+
+    def prepare_review(self, platform, target):
+        self.seed_review_packet()
         run=self.review_command(platform,'prepare')
         self.assertEqual(run.returncode,0,run.stderr)
         prepared=json.loads(run.stdout)
@@ -522,6 +525,22 @@ class InputBindingBehavior(unittest.TestCase):
         run=self.review_command(platform,'bind','--run',prepared['review_run_id'],'--receipt',str(dispatch))
         self.assertEqual(run.returncode,0,run.stderr)
         return prepared
+
+    def accept_pass(self, platform, run_id, target):
+        receipt=self.sprint/'result.json'
+        receipt.write_text(json.dumps({'task_name':target,'status':'completed','output':'VERDICT: PASS\n'}))
+        run=self.review_command(platform,'accept','--run',run_id,'--receipt',str(receipt))
+        self.assertEqual(run.returncode,0,run.stderr)
+        return json.loads(run.stdout)
+
+    def validate_current_review(self, platform):
+        review=self.sprint/'reviews/implementation-review.md'
+        if platform=='cx':
+            py_module('_review_binding').validate_current(self.root,self.sprint,review)
+            return
+        code='require(process.argv[1]).validateCurrent(process.argv[2],process.argv[3],process.argv[4]);'
+        run=subprocess.run(['node','-e',code,str(CC/'_review-binding.cjs'),str(self.root),str(self.sprint),str(review)],text=True,capture_output=True)
+        self.assertEqual(run.returncode,0,run.stderr)
 
     def test_review_rejects_conflicting_native_frontmatter_without_scanning_body(self):
         for platform in ('cx','cc'):
@@ -756,6 +775,54 @@ class InputBindingBehavior(unittest.TestCase):
                 else:
                     with self.assertRaises(gate.GateError): gate.validate_review(self.sprint/'reviews/implementation-review.md',self.root,self.sprint)
                 command('accept','--run',ident,'--receipt',str(result),ok=False)
+
+    def test_prepare_excludes_cli_written_paths_from_stored_inputs(self):
+        self.seed_review_packet()
+        (self.root/'notes.md').write_text('bound note\n')
+        written=(
+            '.ai_state/sprints/test/session-log.md',
+            './.ai_state/sprints/test/session-log.md',
+            '.ai_state/sprints/test/reviews/implementation-review.md',
+            './.ai_state/_index.md',
+            '.ai_state/_index.md',
+        )
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                args=['--input','notes.md']
+                for path in written:
+                    args+=['--input',path]
+                run=self.review_command(platform,'prepare',*args)
+                self.assertEqual(run.returncode,0,run.stderr)
+                prepared=json.loads(run.stdout)
+                self.assertEqual(prepared['input_paths'],['notes.md'])
+                for path in written:
+                    self.assertIn(path,prepared['excluded_inputs'])
+                self.assertNotIn('notes.md',prepared['excluded_inputs'])
+                self.assertEqual(prepared['input_hashes']['notes.md'],hashlib.sha256(b'bound note\n').hexdigest())
+                for axis in ('source_sha256','design_sha256','environment_sha256'):
+                    self.assertIn(axis,prepared['input_hashes'])
+                target='/root/exclude-'+platform
+                dispatch=self.sprint/'dispatch.json'
+                dispatch.write_text(json.dumps({'task_name':target}))
+                run=self.review_command(platform,'bind','--run',prepared['review_run_id'],'--receipt',str(dispatch))
+                self.assertEqual(run.returncode,0,run.stderr)
+                self.accept_pass(platform,prepared['review_run_id'],target)
+                self.validate_current_review(platform)
+
+    def test_prepare_fails_when_exclusion_empties_declared_inputs(self):
+        self.seed_review_packet()
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                run=self.review_command(platform,'prepare','--input','.ai_state/_index.md',
+                    '--input','.ai_state/sprints/test/session-log.md',
+                    '--input','.ai_state/sprints/test/reviews/implementation-review.md')
+                self.assertEqual(run.returncode,2,run.stdout)
+                self.assertIn('empty after excluding',run.stderr)
+                run=self.review_command(platform,'prepare')
+                self.assertEqual(run.returncode,0,run.stderr)
+                prepared=json.loads(run.stdout)
+                self.assertEqual(prepared['input_paths'],[])
+                self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
 
     def run_hook_chain(self, platform, ident, command, *, success=True, stdout='validated'):
         directory, suffix, runner = (CX,'.py',sys.executable) if platform == 'cx' else (CC,'.cjs','node')

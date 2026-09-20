@@ -114,6 +114,26 @@ def evidence_ids(sprint: Path) -> list[str]:
             ids.append(ident)
     return sorted(set(ids))
 
+def resolve_path(p: Path) -> Path:
+    try:
+        return p.resolve()
+    except OSError:
+        return p if p.is_absolute() else Path.cwd()/p
+
+def partition_inputs(root: Path, sprint: Path, mode: str, inputs: list[str]) -> tuple[list[str], list[str]]:
+    written = [
+        resolve_path(sprint/'session-log.md'),
+        resolve_path(sprint/'reviews'/f'{mode}-review.md'),
+        resolve_path(root/'.ai_state'/'_index.md'),
+    ]
+    kept, excluded = [], []
+    for name in sorted(set(inputs)):
+        if resolve_path((root/name)) in written:
+            excluded.append(name)
+        else:
+            kept.append(name)
+    return kept, excluded
+
 def live_input(root: Path, sprint: Path, prepared: dict) -> dict:
     mode = prepared['mode']
     inputs = file_refs(root, prepared.get('input_paths', []))
@@ -124,6 +144,7 @@ def live_input(root: Path, sprint: Path, prepared: dict) -> dict:
     return {'base_commit':git(root,'rev-parse','HEAD').decode().strip(),
             'packet_sha256':digest((sprint/'review-packet.md').read_bytes()),
             'input_manifest_sha256':digest(canonical(inputs)),
+            'input_hashes':inputs,
             'evidence_ids':evidence_ids(sprint),
             'evidence_docs':file_refs(root,list(prepared.get('evidence_docs',{})))}
 
@@ -171,9 +192,12 @@ def prepare(cwd: Path, mode: str, inputs: list[str]) -> dict:
         if not (sprint/'evidence.yaml').is_file():
             raise ValueError('implementation review requires evidence.yaml')
         docs = [(sprint/name).relative_to(root).as_posix() for name in ('runtime-verify.md','cleanup-pass.md','review-manifest.yaml') if (sprint/name).is_file()]
+    kept, excluded = partition_inputs(root,sprint,mode,inputs)
+    if inputs and not kept:
+        raise ValueError('review inputs empty after excluding CLI-written paths')
     row = {'event':'prepared','schema_version':1,'review_run_id':str(uuid.uuid4()),'mode':mode,
            'author_target':os.environ.get('CODEX_THREAD_ID') or os.environ.get('CLAUDE_SESSION_ID') or '',
-           'input_paths':sorted(set(inputs)), 'evidence_docs':dict.fromkeys(docs,'')}
+           'input_paths':kept, 'excluded_inputs':excluded, 'evidence_docs':dict.fromkeys(docs,'')}
     row.update(live_input(root,sprint,row))
     return append(sprint,row)
 
