@@ -5,7 +5,7 @@ version: "9.9.9"
 
 # === PACE 路由状态 ===
 path: "System"
-stage: "review"
+stage: "ship"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
 current_sprint_slug: "2026-09-20-contract-parser-diagnostics"
 current_roadmap_slug: "q12-batch2-production-gaps"
@@ -81,7 +81,7 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "await-review-result"
+next_action: "安装态同步与 settings.json 漂移待用户定夺"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []
@@ -110,6 +110,8 @@ fingerprint: ""
 > 本文件由 Athena 自动维护. 不要手工修改 frontmatter 字段以外的部分除非你知道你在做什么.
 
 ## 当前状态
+
+- 2026-09-20 切片4 ship：合同解析诊断三端交付，review PASS（复核 0 findings），待安装态同步授权。
 
 - 2026-09-06 design: 用户授权生成CC/CX 9.9.9候选包；设计已复核，进入实现。
 - 2026-09-06 VM: SSH可达RHEL10.2；仅证明传输，项目服务待验证。

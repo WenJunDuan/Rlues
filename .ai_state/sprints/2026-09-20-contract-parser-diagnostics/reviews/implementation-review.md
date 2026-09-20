@@ -1,12 +1,12 @@
 ---
 schema_version: 1
 mode: "implementation"
-review_run_id: "ba19b5a4-74c2-45e9-bf43-f74c05f2f219"
-reviewer_target: "a02ce5bc53878a665"
+review_run_id: "a1e432e8-c395-4cc0-8261-cfd379fca187"
+reviewer_target: "a1b50d358a37411b5"
 packet_sha256: "b716a7d5ff66ddbf0374c4dfd344f1103417261d87735ca2bc3d52894dfebbf3"
-input_manifest_sha256: "383e9dc600b1dc79f4947b8d202bdccd5ebe5884a5d03510e3e414c2a7bc9858"
-native_output_ref: "reviews/_native/ba19b5a4-74c2-45e9-bf43-f74c05f2f219-result.json"
-verdict: "CONCERNS"
+input_manifest_sha256: "4ed6cb255b4937a2c188950e5cc97e60460fa6a857dcdc5426536f4f1c7054fb"
+native_output_ref: "reviews/_native/a1e432e8-c395-4cc0-8261-cfd379fca187-result.json"
+verdict: "PASS"
 ---
 
 ## Native review output
@@ -16,29 +16,27 @@ schema_version: 1
 mode: implementation
 packet_sha256: "b716a7d5ff66ddbf0374c4dfd344f1103417261d87735ca2bc3d52894dfebbf3"
 reviewed_diff_sha256: "f5271ec444062e8e47734d4f0e4aeed333e9fda972df30317710cb4637718714"
-review_run_id: "ba19b5a4-74c2-45e9-bf43-f74c05f2f219"
-native_output_ref: "reviews/_native/ba19b5a4-74c2-45e9-bf43-f74c05f2f219-result.json"
-verdict: CONCERNS
-finding_counts: {P0: 0, P1: 1, P2: 4}
-dimensions: [spec, correctness, security, tests, overengineering, evidence]
+review_run_id: "a1e432e8-c395-4cc0-8261-cfd379fca187"
+native_output_ref: "reviews/_native/a1e432e8-c395-4cc0-8261-cfd379fca187-result.json"
+verdict: PASS
+finding_counts: {P0: 0, P1: 0, P2: 0}
+dimensions: [spec, correctness, security, tests, overengineering]
 ---
 
 ## Findings
 
-P1-1 Spec MISSING：AC6 第三分句未落实。items.yaml:39 与 roadmap.md:97 仍把字节钉写归切片 5；git log 该目录为空。修法两处各一行；不需重跑测试。
+无 P0/P1/P2。定向复核四项全闭合。
 
-P2-1 Correctness：bullet 形态纯反引号包裹的 AC 标签（- `AC2`: …）从 designIds 与 labels 同时静默剔除且无诊断（表格形态因 cell 剥离不受影响）；改前该写法被计入，属强度下降方向，概率低，已文字化于 gate-contracts。可选补强：span 恰为 ACn 时不置空或报错。
+INFO-1 Ship 卫生：工作树存在未提交的范围外源码改动 vibeCoding/pi-agent/config/settings.json（defaultThinkingLevel medium→auto），与本切片无关且不在写集；reviewed_diff_sha256 与首轮逐字相同，不影响定级；ship 前勿顺带带入 commit。
 
-P2-2 Evidence：runtime-verify.md:28「既有 8 条 discover 失败」不复现（discover -p 实测 123 tests OK），属未经复核转述，建议更正。
+## 闭合核验（现场）
 
-P2-3 Test risk：TDD 新消息携带可变数据（record #N/时间值），同根因连续失败 reason_sha1 不同，Stop 断路器（GATE_ESCALATE_AT=3）可能永不升级。先例已存在，方向是少升级非放行。记录。
+- P1-1 roadmap 承接更正：闭合。items.yaml:39 与 roadmap.md:97 更正到位，与 design.md:54/:84 逐句一致，无过度转归。
+- P2-2 RV 豁免作废：闭合且自测一致（discover 123 tests OK 与更正后声明逐字相符；line 26 的 67 为 sprint 范围两文件，非矛盾）。
+- P2-1/3/4 处置如实、零丢弃：roadmap「切片 4 遗留观察」三条一一对应（P2-1/P2-4→切片 9，P2-3→切片 6），均标非阻塞。
+- 源码零变更：git diff 6858ec8..HEAD -- vibeCoding 为空；sourceDiffSha256 = f5271ec4… 与首轮相同 → 首轮通过项无需重审。
+- 测试：test_contract_parsers 15/15 + test_state_review 52/52 = 67/67；全目录 discover 123/123 OK。
 
-P2-4 Correctness：packet found=true items=[] 仍落 AC set mismatch，与 design 侧两层诊断不对称。AC3 未要求，可选补强。
+同因新 P0 计数：0（未触发交还条件）。
 
-INFO：sprint 无 tdd-evidence.yaml/checklist.yaml，evidence 无 covers 映射；ship 由 gate 机械判。
-
-## 通过项（现场核验）
-
-AC1 严边界正10/负10 达成（`## **AC**` 因回溯后 lookahead 失败不识别）；首轮回退担忧封住（全库 grep 仅 roadmap 一处非解析面命中）；活体零回归 31/31（含围栏计数全偶）；自举 OK（design ids=AC1..AC8）；Pi 同源解析区与全部调用点逐字同，parity 风险不成立；AC7 集合为设计超集；CC 探针不掩盖加载错误；红→绿链成立（红提交实为 bcecbfa，rebase 改哈希）；67/67 复跑；fail-closed 无 allow 回退（落单反引号不吞后文实测）；无无消费者机制；门禁标题/字段名零改动；AC8 三端模板同 sha 且过 validateReviewPacket。
-
-VERDICT: CONCERNS
+VERDICT: PASS

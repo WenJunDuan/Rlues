@@ -25,7 +25,7 @@ items:
     notes: "Q12#6/#9/#10；逐文件漂移诊断"
   - slug: contract-parser-diagnostics
     title: "TDD 与 AC 合同解析诊断"
-    status: pending
+    status: completed
     sprint_slug: "2026-09-20-contract-parser-diagnostics"
     blocked_by: []
     estimated_complexity: M
