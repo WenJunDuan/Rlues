@@ -90,3 +90,4 @@ implementation_authorized: true
 
 - **CX 4000 字符决策截断**：`codex/9.9.9/.codex/hooks/evidence-collector.py:117` 在分类与策略调用**之前**把 command 截到 4000 字符，与切片 2 刚在 CC 端修掉的是同一缺陷类，只是阈值高一个数量级。实测 4518 字符的被掩盖管道：CC 记 `unknown`，CX 记 `pass`。修法与 CC 相同一行：决策用 `command_of(payload)`，只在 `:153` 落盘处截断。切片 2 未修，因为改动会使已绑定的 implementation review PASS 失效而需重开一轮；独立 reviewer 评为 P2 可延后（4000 字符的验证命令不现实，且该上限早于本切片存在）。
 - **`_shell-lex` 不在 `setup-athena.py` 的 `REQUIRED_ASSETS`**：既有 9.9.9 home 若拿到新 `_input-binding` 而缺 lexer，`managed_complete()` 仍判其完整，此后验证全记 `unknown`。方向是永久卡住交付而非假通过。归切片 9（发行一致性）。
+- **ship architecture 检查的变更集失真**（2026-09-20 实测，详见 `proposals.md` P17）：`changedFileSet` 首条探针 `git diff main...HEAD` 在默认分支上恒空，已提交改动不可见；`ls-files --others` 又把其他 sprint 的未跟踪遗留计入，导致「本次变更集」既漏掉本切片 55 个文件、又被 13 个无关文件推过 ≥5 阈值。建议改用 design 的 `base_commit..HEAD` 锚定并按当前 sprint 过滤未跟踪项。归切片 9。

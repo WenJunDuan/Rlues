@@ -129,3 +129,13 @@
 
 - **现象**: `flush()` 不判 spill 是否为空一律写文件; `current_sprint_slug` 为空时 `spillPath()` 回落 `.ai_state/index-overflow.md`, 于是每次 index-updater 运行都重建一个 3 行空头文件, 删了即复活。
 - **建议修复**: `flush()` 在零溢出时 no-op; sprint 为空且确有溢出时才允许根路径回落。一行判断, 与 P15 同批。**待修**。
+
+## P17 · ship 的 architecture 检查看不见已提交在默认分支上的改动, 且把别的 sprint 的遗留算作本次变更集 (2026-09-20, slice 2 ship 实测撞上)
+
+- **现象**: `2026-09-20-evidence-pipeline-integrity` 的 ARCHITECTURE.md 确实更新并随 commit `24c8069` 提交, Stop 仍 block: `architecture/ARCHITECTURE.md exists but was not updated in this >=5-file change set`。
+- **根因一 · 提交即隐形**: `changedFileSet` / `changedFiles` (delivery-gate.cjs:697-735) 的探针首条是 `git diff --name-only main...HEAD`。在默认分支上工作时 HEAD 就是 main, 该 diff **恒为空**; 其余探针只看未暂存/已暂存/未跟踪。于是「已提交到 main 的改动」对变更集完全不可见——检查只在 feature 分支或提交之前才有效。实测: 本切片 55 个文件, 探针全部合计后不含 ARCHITECTURE.md。
+- **根因二 · 计数被无关文件污染**: `ls-files --others --exclude-standard` 把**其他 sprint 的未跟踪遗留**一并计入。实测本次 13 个「变更文件」全部来自 2026-09-14 / 2026-09-16 / 2026-09-20-index-overflow 三个旧 sprint, 本切片零文件入选。这既把计数推过 >=5 阈值, 又让「本次是否更新了 architecture」这个问题问错了对象。
+- **两者叠加的后果**: 越是规范地「先提交再 Stop」, 越必然 block; 而 block 理由与事实相反 (档案已更新)。唯一现成出路是 `skip_architecture_check`, 但那正是宪法禁止的改 skip 绕门禁, 等于把一个假阳性教成一个真豁免。
+- **master 分支残留**: 探针第二条 `master...HEAD` 在本仓恒 fatal (默认分支为 main), 每次 Stop 打两行 stderr。无害但说明探针表未按实际默认分支推导。
+- **连带**: stage=ship 时 PreToolUse 对每次 Edit/Write 都跑完整 ship 校验, 所以该假阳性同时封死了写入通道 (含仓库外路径), 与 Q12 批二第 2 条同族。
+- **建议修复**: 变更集改为以 sprint 基线为锚——用 design.md frontmatter 的 `base_commit` (本切片为 `52ff57eb`) 做 `git diff --name-only <base_commit>..HEAD`, 再并上未暂存/已暂存; 默认分支名用 `git rev-parse --abbrev-ref HEAD` 推导而非硬编码 master。未跟踪文件若要计入, 需按当前 sprint 目录过滤。双端对称 (delivery-gate.py 同构)。**待修, 建议并入 Q12 切片 9 发行收口。**
