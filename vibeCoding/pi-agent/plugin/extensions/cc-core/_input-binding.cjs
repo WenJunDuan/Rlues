@@ -107,4 +107,88 @@ function currentRecord(record,root,sprint,live) {
     return FIELDS.every(k=>record[k]===current[k]) && digest(fs.readFileSync(output))===record.artifact_sha256;
   } catch (_) { return false; }
 }
-module.exports = {FIELDS,classifyValidation,required,canonical,digest,git,context,sourceSha256,environment,snapshot,captureBefore,finish,currentRecord};
+function words(text) {
+  const out = [];
+  let buf = '', quote = '', escaped = false;
+  const flush = () => { if (buf) { out.push(buf); buf = ''; } };
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (escaped) { buf += ch; escaped = false; continue; }
+    if (ch === '\\' && quote !== "'") { escaped = true; continue; }
+    if (quote) { if (ch === quote) quote = ''; else buf += ch; continue; }
+    if (ch === "'" || ch === '"') { quote = ch; continue; }
+    if (/\s/.test(ch)) { flush(); continue; }
+    buf += ch;
+  }
+  flush();
+  return out;
+}
+function setPipefailDelta(text) {
+  const toks = words(text);
+  let i = 0;
+  while (i < toks.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(toks[i])) i += 1;
+  if (i >= toks.length || toks[i].split('/').pop() !== 'set') return null;
+  i += 1;
+  let mentioned = null;
+  while (i < toks.length) {
+    const arg = toks[i];
+    i += 1;
+    if (arg === '-o' || arg === '+o') {
+      if (i < toks.length && toks[i] === 'pipefail') { mentioned = arg === '-o'; i += 1; }
+      continue;
+    }
+    if ((arg.startsWith('-') || arg.startsWith('+')) && !arg.startsWith('--')) {
+      const flags = arg.slice(1), oAt = flags.indexOf('o');
+      if (oAt < 0) continue;
+      const attached = flags.slice(oAt + 1);
+      if (attached) { if (attached === 'pipefail') mentioned = arg[0] === '-'; }
+      else if (i < toks.length && toks[i] === 'pipefail') { mentioned = arg[0] === '-'; i += 1; }
+    }
+  }
+  return mentioned;
+}
+function pipefailBefore(segments, vIndex) {
+  let on = false;
+  for (let i = 0; i < vIndex; i += 1) {
+    const delta = setPipefailDelta(segments[i].text);
+    if (delta === true) on = true;
+    else if (delta === false) on = false;
+  }
+  return on;
+}
+function pipelineEnd(segments, vIndex) {
+  let end = vIndex;
+  while (end < segments.length && (segments[end].op === '|' || segments[end].op === '|&')) end += 1;
+  return end;
+}
+function operatorsAfterPipeline(segments, end) {
+  const ops = [];
+  for (let i = end; i < segments.length; i += 1) {
+    const op = segments[i].op === '\n' ? ';' : segments[i].op;
+    if (op && op !== '|' && op !== '|&') ops.push(op);
+  }
+  return ops;
+}
+function validationStatusPolicy(command) {
+  let scan;
+  try { scan = require('./_shell-lex.cjs').scan; }
+  catch (_) { return { provable: false, reason: 'validation_status_not_reported' }; }
+  const segments = scan(command);
+  const validations = [];
+  for (let i = 0; i < segments.length; i += 1) {
+    if (classifyValidation(segments[i].text)) validations.push(i);
+  }
+  if (!validations.length) return { provable: true, reason: null };
+  if (segments[segments.length - 1].op === '&') return { provable: false, reason: 'validation_backgrounded' };
+  for (const vi of validations) {
+    const end = pipelineEnd(segments, vi);
+    if (operatorsAfterPipeline(segments, end).some(op => op !== '&&')) {
+      return { provable: false, reason: 'validation_status_not_reported' };
+    }
+    if (vi !== end && !pipefailBefore(segments, vi)) {
+      return { provable: false, reason: 'pipeline_without_pipefail' };
+    }
+  }
+  return { provable: true, reason: null };
+}
+module.exports = {FIELDS,classifyValidation,validationStatusPolicy,required,canonical,digest,git,context,sourceSha256,environment,snapshot,captureBefore,finish,currentRecord};
