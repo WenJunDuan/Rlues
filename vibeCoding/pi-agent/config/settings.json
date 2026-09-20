@@ -1,7 +1,7 @@
 {
   "defaultProvider": "deepseek",
   "defaultModel": "deepseek-v4-flash",
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "auto",
   "quietStartup": true,
   "enableSkillCommands": true,
   "retry": {
