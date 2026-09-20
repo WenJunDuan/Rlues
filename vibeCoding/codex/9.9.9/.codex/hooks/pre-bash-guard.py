@@ -253,8 +253,9 @@ def narrow_heredoc(command: str) -> dict[str, Any] | None:
 
 def mask_body(command: str, span: dict[str, Any]) -> str:
     """Blank out a heredoc body in place, same length, newlines kept."""
-    body = "".join(ch if ch == "\n" else " " for ch in command[span["start"]:span["end"]])
-    return command[:span["start"]] + body + command[span["end"]:]
+    return (command[:span["start"]]
+            + re.sub(r"[^\n]", " ", command[span["start"]:span["end"]])
+            + command[span["end"]:])
 
 
 def analyze(command: str, depth: int = 0) -> dict[str, Any]:
