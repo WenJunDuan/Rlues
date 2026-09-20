@@ -56,10 +56,12 @@ raw schema 恰为 `schema_version,event,agent_id,agent_type,sprint_slug,timestam
 
 命令前缀：CC = `node ~/.pi/agent/skills/pace/scripts/review-binding.cjs`；CX = `python3 ~/.agents/skills/pace/scripts/review-binding.py`。下面只列子命令，路径/run 均替换为现场值：
 
-1. **prepare**：`prepare --cwd <绝对目录> --mode implementation`（设计用 design，可重复 `--input <仓库相对文档>`）；保存返回的实际 review_run_id。待审输入必须已就绪。
+1. **prepare**：`prepare --cwd <绝对目录> --mode implementation`（设计用 design，可重复 `--input <仓库相对文档>`）；保存返回的实际 review_run_id。待审输入必须已就绪。implementation 且 `review-manifest.yaml` 根级 `implementation_commit` 为 40-hex 且不等于 HEAD 时 prepare 失败（打印两侧值并指出 manifest 过期），不改写该文件；字段缺失或不是 40-hex 则跳过预检，完整校验仍在 ship。
 2. **原生派发**：向一个独立 reviewer 发送实际 packet/输入与 run；原样保存工具返回 JSON 作 dispatch receipt。优先可用原生 review，否则本平台只读 reviewer。
 3. **bind**：`bind --cwd <绝对目录> --run <实际run> --receipt <dispatch JSON绝对路径>`；完成真实 target 持久绑定。
 4. **accept**：真实通知/等待/回读后，原样保存 completion JSON，再 `accept --cwd <绝对目录> --run <同一run> --receipt <completion JSON绝对路径>`。核对 completed/complete/succeeded、正文显式 VERDICT 与现场输入；只有 PASS 算通过，其他结论落盘返工。
+
+查询治理哈希（不写文件、不要求 `--run` 或活跃 sprint）：`governance --cwd <绝对目录>`。按门禁 `--git-common-dir` 规则读主仓 `_index.md` 并调用门禁自己的哈希函数；该文件缺失则非零退出。
 
 同步完成也按 bind→accept；只有真实异步请求设 `next_action: await-review-result`。等待中不重复 prepare；旧请求已结束/失效才 `supersede --cwd … --run …`，它不取消任务，复核使用新独立 target。receipt 原文不能加工补 ID/状态；接口不支持则保留原文并报告。完整恢复见 [execution-contracts.md](execution-contracts.md)。
 
