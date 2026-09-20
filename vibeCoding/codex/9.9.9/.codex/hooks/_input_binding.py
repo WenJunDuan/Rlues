@@ -15,6 +15,35 @@ from _index_io import write_atomic
 
 FIELDS = ('source_sha256', 'design_sha256', 'environment_sha256')
 PUBLIC_ENV = {'system', 'release', 'machine', 'os', 'arch', 'image', 'runtime', 'version', 'scenario', 'seed', 'recipe', 'required'}
+# Placeholder allowlist mirrors runtime-run.py: template values carry no live credential.
+CREDENTIAL_KEY = re.compile(r'(?i:token|password|secret|api.key)\s*[=:]')
+PLACEHOLDER_WORD = re.compile(r'YOUR|REPLACE|EXAMPLE|PLACEHOLDER|CHANGE[-_]?ME|DUMMY|SAMPLE|NOT[-_]A[-_]REAL|REDACTED', re.I)
+ALNUM = re.compile(r'[A-Za-z0-9]')
+HIGH_ENTROPY = re.compile(r'[A-Za-z0-9]{16,}')
+
+
+def is_placeholder(value: str) -> bool:
+    body = value.strip()
+    if not body or re.fullmatch(r'none|null|empty|TBD|TODO', body, re.I):
+        return True
+    if re.fullmatch(r'\$\{[^{}]*\}|\{\{[^{}]*\}\}', body) or re.fullmatch(r'(.)\1{5,}', body):
+        return True
+    # A placeholder word always has non-alphanumeric borders, so vetoing the whole body
+    # on a long alphanumeric run equals vetoing "the rest of the body".
+    if HIGH_ENTROPY.search(body):
+        return False
+    if re.fullmatch(r'<[A-Za-z0-9_.-]*>', body) and len(body) <= 48:
+        return True
+    for match in PLACEHOLDER_WORD.finditer(body):
+        before = body[match.start() - 1:match.start()] if match.start() else ''
+        if not ALNUM.fullmatch(before) and not ALNUM.fullmatch(body[match.end():match.end() + 1]):
+            return True
+    return False
+
+
+def credential_values(value: str) -> list:
+    """Each credential separator on the line owns the rest of the line."""
+    return [value[match.end():] for match in CREDENTIAL_KEY.finditer(value)]
 _COMMAND_PREFIX = r'(?:^|[;&|]\s*)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*(?:npx\s+)?'
 _VALIDATION_PATTERNS = [
     ('test', r'(?:python3?\s+-m\s+(?:pytest|unittest)|pytest|unittest|(?:npm|pnpm|yarn|bun)\s+(?:test|run\s+test)|cargo\s+test|go\s+test|mvn\s+(?:test|verify)|\./gradlew\s+test)'),
@@ -94,7 +123,8 @@ def environment(root: Path) -> dict:
             match = re.match(r'^\s*([A-Za-z_]+):\s*(.*?)\s*$', line)
             if match and match.group(1) in PUBLIC_ENV:
                 value = match.group(2)
-                if re.search(r'://[^/\s]*@|(?i:token|password|secret|api.key)\s*[=:]', value):
+                if re.search(r'://[^/\s]*@', value) or any(
+                        not is_placeholder(item) for item in credential_values(value)):
                     raise ValueError('public environment field contains credential syntax')
                 public.append([match.group(1), value])
         result['recipe'].append([name, public])

@@ -5,6 +5,25 @@ const {execFileSync} = require('child_process');
 const {writeAtomic} = require('./_index-io.cjs');
 const FIELDS = ['source_sha256', 'design_sha256', 'environment_sha256'];
 const PUBLIC_ENV = new Set(['system','release','machine','os','arch','image','runtime','version','scenario','seed','recipe','required']);
+// Placeholder allowlist mirrors runtime-run.py: template values carry no live credential.
+const CREDENTIAL_KEY = /(?:token|password|secret|api.key)\s*[=:]/ig;
+const PLACEHOLDER_WORD = /YOUR|REPLACE|EXAMPLE|PLACEHOLDER|CHANGE[-_]?ME|DUMMY|SAMPLE|NOT[-_]A[-_]REAL|REDACTED/ig;
+const ALNUM = /[A-Za-z0-9]/, HIGH_ENTROPY = /[A-Za-z0-9]{16,}/;
+function isPlaceholder(value) {
+  const body = value.trim();
+  if (!body || /^(?:none|null|empty|TBD|TODO)$/i.test(body)) return true;
+  if (/^\$\{[^{}]*\}$/.test(body) || /^\{\{[^{}]*\}\}$/.test(body) || /^(.)\1{5,}$/.test(body)) return true;
+  // A placeholder word always has non-alphanumeric borders, so vetoing the whole body
+  // on a long alphanumeric run equals vetoing "the rest of the body".
+  if (HIGH_ENTROPY.test(body)) return false;
+  if (/^<[A-Za-z0-9_.-]*>$/.test(body) && body.length <= 48) return true;
+  for (const match of body.matchAll(PLACEHOLDER_WORD)) {
+    if (!ALNUM.test(body[match.index-1]||'') && !ALNUM.test(body[match.index+match[0].length]||'')) return true;
+  }
+  return false;
+}
+// Each credential separator on the line owns the rest of the line; any non-placeholder throws.
+function credentialValues(value) { return [...value.matchAll(CREDENTIAL_KEY)].map(m=>value.slice(m.index+m[0].length)); }
 const COMMAND_PREFIX = String.raw`(?:^|[;&|]\s*)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*(?:npx\s+)?`;
 const VALIDATION_PATTERNS = [
   ['test',String.raw`(?:python3?\s+-m\s+(?:pytest|unittest)|pytest|unittest|(?:npm|pnpm|yarn|bun)\s+(?:test|run\s+test)|cargo\s+test|go\s+test|mvn\s+(?:test|verify)|\./gradlew\s+test)`],
@@ -64,7 +83,7 @@ function environment(root) {
     for (const line of fs.readFileSync(file,'utf8').split(/\r?\n/)) {
       const m = line.match(/^\s*([A-Za-z_]+):\s*(.*?)\s*$/);
       if (m && PUBLIC_ENV.has(m[1])) {
-        if (/:\/\/[^/\s]*@|(?:token|password|secret|api.key)\s*[=:]/i.test(m[2])) throw new Error('public environment field contains credential syntax');
+        if (/:\/\/[^/\s]*@/.test(m[2]) || credentialValues(m[2]).some(value=>!isPlaceholder(value))) throw new Error('public environment field contains credential syntax');
         publicFields.push([m[1],m[2]]);
       }
     }
