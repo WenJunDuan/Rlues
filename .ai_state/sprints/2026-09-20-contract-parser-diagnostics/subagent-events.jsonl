@@ -2,3 +2,4 @@
 {"schema_version":1,"event":"SubagentStop","agent_id":"a1b28c6f0c9281684","agent_type":"reviewer","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T08:59:38.112Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"a9b127a6bb4606253","agent_type":"reviewer","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T09:05:37.411Z"}
 {"schema_version":1,"event":"SubagentStop","agent_id":"a9b127a6bb4606253","agent_type":"reviewer","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T09:11:03.409Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a9095c9a3b1d47964","agent_type":"generator","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T09:15:12.483Z"}
