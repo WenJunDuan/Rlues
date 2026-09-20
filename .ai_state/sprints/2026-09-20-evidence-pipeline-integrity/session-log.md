@@ -62,3 +62,5 @@
 - 2026-09-20：定向 re-review run `14fa29c2` **PASS**（P0=0 P1=0 P2=1）已 accept 并绑定当前源码摘要 `2541d39e`。P1 确认关闭：reviewer 在 /tmp 镜像里还原修复前两行，回归确实 RED（'pass' != 'unknown'），修复后绿。另实证截断作用于已脱敏文本：1701 字符命令第 548 位的密钥落在落盘窗口内，两端均输出 `--token=[REDACTED]` 且字节一致。
 - 2026-09-20：新 P2-5 记账不修：CX `evidence-collector.py:117` 在分类前截断 4000 字符，与 CC 刚修的同类，实测 4518 字符掩盖管道 CC 记 unknown / CX 记 pass。**未在本切片修**——改动会使已绑定 PASS 失效需重开审查轮（铁律[门禁即律法]：待审代码变化后原 PASS 不直接复用）；已写入 roadmap 并把切片 8 的 blocked_by 设为本切片，附一行修法。
 - 2026-09-20：ship Stop 门禁 block，经诊断为**假阳性**：ARCHITECTURE.md 已更新并随 `24c8069` 提交，但 `changedFileSet` 首条探针 `git diff main...HEAD` 在默认分支上恒空 → 已提交改动不可见；同时 `ls-files --others` 把三个旧 sprint 的 13 个未跟踪遗留算作本次变更集（本切片 55 文件零入选），把计数推过 ≥5 阈值。已记 proposals P17 与 roadmap 切片 9。**未设 skip_architecture_check** —— 那是宪法禁止的改 skip 绕门禁，会把假阳性教成真豁免。
+- 2026-09-20：**切片 2 交付完成**。commit `24c8069`（实现）、`31845eb`（P17 记录）、`e5f08f4`（补齐三个旧 sprint 遗留记账）。最终 40/40，工作树干净，Stop 门禁放行。
+- 2026-09-20：门禁放行的真实原因需明示——遗留记账入库后 `ls-files --others` 归零，变更集计数回落到 5 以下，architecture 检查变为不适用。这是 P17 的另一面，不是该检查真的通过；本切片的 architecture 更新实际在 `24c8069`，只是探针在默认分支上看不见已提交内容。
