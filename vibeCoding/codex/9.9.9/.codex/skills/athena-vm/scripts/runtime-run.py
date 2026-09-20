@@ -28,10 +28,56 @@ MAX_BYTES = 256 * 1024 * 1024
 MAX_LOG = 128 * 1024
 SECRET = re.compile(
     rb'-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----'
-    rb'|\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,})\b'
-    rb'|(?:password|passwd|api[_-]?key|access[_-]?token|client[_-]?secret)\s*["\x27]?\s*[:=]\s*["\x27][^\s"\x27]{12,}["\x27]',
+    rb'|\bsk-(?P<sk>[A-Za-z0-9_-]{20,})\b|\bgh[pousr]_(?P<gh>[A-Za-z0-9]{20,})\b'
+    rb'|(?:password|passwd|api[_-]?key|access[_-]?token|client[_-]?secret)\s*["\x27]?\s*[:=]\s*["\x27](?P<quoted>[^\s"\x27]{12,})["\x27]',
     re.I,
 )
+# Placeholder allowlist: documentation and template values that cannot carry a live credential.
+PLACEHOLDER_WORD = re.compile(
+    rb'YOUR|REPLACE|EXAMPLE|PLACEHOLDER|CHANGE[-_]?ME|DUMMY|SAMPLE|NOT[-_]A[-_]REAL|REDACTED', re.I)
+HIGH_ENTROPY = re.compile(rb'[A-Za-z0-9]{16,}')
+REFERENCE = re.compile(rb'\$\{[^{}]*\}|\{\{[^{}]*\}\}')
+BRACKETED = re.compile(rb'<[A-Za-z0-9_.-]*>')
+REPEATED = re.compile(rb'(.)\1{5,}')
+FILLER = re.compile(rb'TBD|TODO', re.I)
+
+
+def is_placeholder(value):
+    """Conservative allowlist over a credential value body; anything unclear stays a secret."""
+    if not value:
+        return False
+    if REFERENCE.fullmatch(value) or REPEATED.fullmatch(value) or FILLER.fullmatch(value):
+        return True
+    # A placeholder word always carries non-alphanumeric borders, so it is its own short
+    # alphanumeric run: vetoing the whole body equals vetoing "the rest of the body".
+    if HIGH_ENTROPY.search(value):
+        return False
+    if BRACKETED.fullmatch(value) and len(value) <= 48:
+        return True
+    for match in PLACEHOLDER_WORD.finditer(value):
+        before = value[match.start() - 1:match.start()] if match.start() else b''
+        if not before.isalnum() and not value[match.end():match.end() + 1].isalnum():
+            return True
+    return False
+
+
+def secret_body(match):
+    """Credential value body of a SECRET match; None for branches that are never placeholders."""
+    return match.group('sk') or match.group('gh') or match.group('quoted')
+
+
+def secret_present(data):
+    """True when data holds any match that is not a recognized placeholder.
+
+    Every match must clear the predicate, and a released body is rescanned so a prefixed
+    key nested inside a reference-shaped value still blocks. Bodies shrink on each hop,
+    so the recursion terminates.
+    """
+    for match in SECRET.finditer(data):
+        body = secret_body(match)
+        if body is None or not is_placeholder(body) or secret_present(body):
+            return True
+    return False
 
 
 def canonical(value):
@@ -111,7 +157,7 @@ def collect(repo, allow_untracked, omitted):
         if not path.is_file():
             raise ValueError('unsupported input type: ' + name)
         data = path.read_bytes()
-        if SECRET.search(data):
+        if secret_present(data):
             exclusions.append({'path': name, 'reason': 'secret_pattern'})
             print('excluded secret pattern: ' + name, file=sys.stderr)
             continue
@@ -232,7 +278,7 @@ def inspect_bundle(data, destination=None):
                 continue
             member = archive.getmember('source/' + row['path'])
             content = archive.extractfile(member).read()
-            if SECRET.search(content):
+            if secret_present(content):
                 raise ValueError('secret pattern in transferred input')
             if member.mode != row['mode'] or len(content) != row['size'] or digest(content) != row['sha256']:
                 raise ValueError('input content or mode mismatch')
@@ -303,7 +349,7 @@ def validate_scenario(scenario):
             continue
         if not isinstance(argv, list) or not argv or any(not isinstance(value, str) or '\x00' in value for value in argv):
             raise ValueError('scenario ' + name + ' must be a nonempty argv array')
-    if SECRET.search(canonical(scenario)):
+    if secret_present(canonical(scenario)):
         raise ValueError('scenario contains a secret pattern; use authorized external injection')
 
 
@@ -501,7 +547,7 @@ def run(args):
         bundle = args.bundle.read_bytes()
         manifest = inspect_bundle(bundle)
         contract = args.contract.read_bytes()
-        if SECRET.search(contract):
+        if secret_present(contract):
             raise ValueError('contract contains a secret pattern')
         scenario = json.loads(args.scenario.read_text())
         validate_scenario(scenario)
