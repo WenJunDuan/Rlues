@@ -56,7 +56,7 @@ raw schema 恰为 `schema_version,event,agent_id,agent_type,sprint_slug,timestam
 
 命令前缀：CC = `node ~/.pi/agent/skills/pace/scripts/review-binding.cjs`；CX = `python3 ~/.agents/skills/pace/scripts/review-binding.py`。下面只列子命令，路径/run 均替换为现场值：
 
-1. **prepare**：`prepare --cwd <绝对目录> --mode implementation`（设计用 design，可重复 `--input <仓库相对文档>`）；保存返回的实际 review_run_id。待审输入必须已就绪。implementation 且 `review-manifest.yaml` 根级 `implementation_commit` 为 40-hex 且不等于 HEAD 时 prepare 失败（打印两侧值并指出 manifest 过期），不改写该文件；字段缺失或不是 40-hex 则跳过预检，完整校验仍在 ship。
+1. **prepare**：`prepare --cwd <绝对目录> --mode implementation`（设计用 design，可重复 `--input <仓库相对文档>`）；保存返回的实际 review_run_id。待审输入必须已就绪。implementation 且 `review-manifest.yaml` 根级 `implementation_commit` 为 40-hex 且不等于 HEAD 时 prepare 失败（打印两侧值并指出 manifest 过期），不改写该文件；字段缺失或不是 40-hex 则跳过预检，完整校验仍在 ship。CLI 自己会写的路径（本 sprint `session-log.md`、`reviews/<mode>-review.md`、`.ai_state/_index.md`）即使用 `--input` 声明，也会按解析后的真实路径移出 `input_paths` 并记入 `excluded_inputs`；声明了输入且全部被排除时 prepare 失败，未声明任何输入仍合法。
 2. **原生派发**：向一个独立 reviewer 发送实际 packet/输入与 run；原样保存工具返回 JSON 作 dispatch receipt。优先可用原生 review，否则本平台只读 reviewer。
 3. **bind**：`bind --cwd <绝对目录> --run <实际run> --receipt <dispatch JSON绝对路径>`；完成真实 target 持久绑定。
 4. **accept**：真实通知/等待/回读后，原样保存 completion JSON，再 `accept --cwd <绝对目录> --run <同一run> --receipt <completion JSON绝对路径>`。核对 completed/complete/succeeded、正文显式 VERDICT 与现场输入；只有 PASS 算通过，其他结论落盘返工。

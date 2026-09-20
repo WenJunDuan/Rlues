@@ -1,0 +1,8 @@
+{"schema_version":1,"event":"SubagentStart","agent_id":"a7874f964c12426f9","agent_type":"architect","sprint_slug":"2026-09-20-review-binding-preflight","timestamp":"2026-09-20T05:44:50.896Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a7874f964c12426f9","agent_type":"architect","sprint_slug":"2026-09-20-review-binding-preflight","timestamp":"2026-09-20T05:50:26.808Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a71221739be2a76e6","agent_type":"architect","sprint_slug":"2026-09-20-review-binding-preflight","timestamp":"2026-09-20T05:54:04.170Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a71221739be2a76e6","agent_type":"architect","sprint_slug":"2026-09-20-review-binding-preflight","timestamp":"2026-09-20T06:02:53.520Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"af7756a086abef988","agent_type":"polish-worker","sprint_slug":"2026-09-20-review-binding-preflight","timestamp":"2026-09-20T07:09:21.736Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"af7756a086abef988","agent_type":"polish-worker","sprint_slug":"2026-09-20-review-binding-preflight","timestamp":"2026-09-20T07:17:42.118Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"ad2b07493d2c787aa","agent_type":"reviewer","sprint_slug":"2026-09-20-review-binding-preflight","timestamp":"2026-09-20T07:21:06.015Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"ad2b07493d2c787aa","agent_type":"reviewer","sprint_slug":"2026-09-20-review-binding-preflight","timestamp":"2026-09-20T07:28:03.154Z"}

@@ -114,6 +114,11 @@ def evidence_ids(sprint: Path) -> list[str]:
             ids.append(ident)
     return sorted(set(ids))
 
+# prepare/bind/accept themselves write the session log, the mode's review doc and
+# _index.md; binding those as inputs makes the hash stale the moment prepare returns.
+# They are dropped from the *stored* input_paths, not just from the hash, because
+# live_input re-reads input_paths at bind, accept and ship. Paths are compared after
+# resolution so a './' prefix or a symlink cannot slip past the match.
 def resolve_path(p: Path) -> Path:
     try:
         return p.resolve()
@@ -194,6 +199,10 @@ def explicit_verdict(output: str) -> str:
         raise ValueError('native result has conflicting verdicts')
     return verdicts[0]
 
+# Narrow root-level scan of the single field the gate compares at ship, deliberately not
+# the gate's whole-file parse_review_manifest (which also needs a path type prepare has no
+# access to). Absent or non-40-hex returns '' so prepare skips the check: a manifest
+# legitimately incomplete mid-sprint must not start failing prepare. Never rewrites it.
 def manifest_commit(sprint: Path) -> str:
     file = sprint/'review-manifest.yaml'
     if not file.is_file():
@@ -349,6 +358,11 @@ def validate_current(root: Path, sprint: Path, review: Path) -> None:
         raise ValueError('native result identity/status mismatch')
     validate_native_metadata(output,prepared,root)
 
+# governance must hash the _index.md the *gate* reads. Every other verb resolves through
+# context() (git rev-parse --show-toplevel), which inside a linked worktree is the worktree
+# root, while the gate resolves via --git-common-dir to the main repository — two different
+# files with two different hashes. delivery-gate.py is loaded by path here, so git_root and
+# find_ai_state are imported rather than copied; CC has to copy them instead.
 def governance(cwd: Path) -> dict:
     gate = delivery_gate()
     root = gate.git_root(cwd)

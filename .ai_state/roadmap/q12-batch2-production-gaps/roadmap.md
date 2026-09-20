@@ -91,3 +91,9 @@ implementation_authorized: true
 - **CX 4000 字符决策截断**：`codex/9.9.9/.codex/hooks/evidence-collector.py:117` 在分类与策略调用**之前**把 command 截到 4000 字符，与切片 2 刚在 CC 端修掉的是同一缺陷类，只是阈值高一个数量级。实测 4518 字符的被掩盖管道：CC 记 `unknown`，CX 记 `pass`。修法与 CC 相同一行：决策用 `command_of(payload)`，只在 `:153` 落盘处截断。切片 2 未修，因为改动会使已绑定的 implementation review PASS 失效而需重开一轮；独立 reviewer 评为 P2 可延后（4000 字符的验证命令不现实，且该上限早于本切片存在）。
 - **`_shell-lex` 不在 `setup-athena.py` 的 `REQUIRED_ASSETS`**：既有 9.9.9 home 若拿到新 `_input-binding` 而缺 lexer，`managed_complete()` 仍判其完整，此后验证全记 `unknown`。方向是永久卡住交付而非假通过。归切片 9（发行一致性）。
 - **ship architecture 检查的变更集失真**（2026-09-20 实测，详见 `proposals.md` P17）：`changedFileSet` 首条探针 `git diff main...HEAD` 在默认分支上恒空，已提交改动不可见；`ls-files --others` 又把其他 sprint 的未跟踪遗留计入，导致「本次变更集」既漏掉本切片 55 个文件、又被 13 个无关文件推过 ≥5 阈值。建议改用 design 的 `base_commit..HEAD` 锚定并按当前 sprint 过滤未跟踪项。归切片 9。
+
+## 切片 3 遗留，指名切片 5 承接 (2026-09-20)
+
+- **移除 sprint 范围的门禁字节断言**：`test_review_binding_gate_export_diff_is_sprint_scoped_and_pi_matches_cc` 硬编码 `0ca066c`，用来把切片 3 对 `delivery-gate` 的改动面钉死为「仅两个导出名」。切片 5 合法改门禁的那一刻它必然失败，**由切片 5 删除**。该义务此前只写在测试注释与 design 里，未进 roadmap（implementation review P2-4 指出），现补记。
+- **消除 `governance` 的路径解析复写**：CC 端 `gateRepoRoot`/`gateAiState`（`_review-binding.cjs:275,284`）是门禁 `tryRepoRoot`/`findAiState` 的 20 行副本，因切片 3 只获准导出两个名字而无法 import；CX 端已是 import。副本经两轮逐行核实为忠实，但其中最易漂移的 `.git` 边界停止那行**无测试覆盖**。切片 5 既然要动门禁，顺带导出这两个 helper 并删除副本，与 CX 对齐。
+- 另记两条已知非阻塞差异，切片 5 动门禁时留意：两端 `findAiState` 的 `.git` 边界语义不同；两端 `parseFrontmatter` 对畸形行一个跳过一个抛错。

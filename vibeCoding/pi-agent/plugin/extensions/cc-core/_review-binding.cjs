@@ -72,6 +72,11 @@ function evidenceIds(sprint) {
     .map(match => match[1].trim().replace(/^["']|["']$/g,''))
     .filter(id => id && !['[]','null','~'].includes(id)))].sort();
 }
+// prepare/bind/accept themselves write the session log, the mode's review doc and
+// _index.md; binding those as inputs makes the hash stale the moment prepare returns.
+// They are dropped from the *stored* input_paths, not just from the hash, because
+// liveInput re-reads input_paths at bind, accept and ship. Paths are compared after
+// resolution so a './' prefix or a symlink cannot slip past the match.
 function resolvePath(p) {
   try { return fs.realpathSync(p); } catch (e) { if (e.code !== 'ENOENT') throw e; return path.resolve(p); }
 }
@@ -104,7 +109,7 @@ function formatEntry(key,expected,live) {
 }
 function mapDiffs(expected,live) {
   const diffs=[];
-  for (const key of [...new Set([...Object.keys(expected||{}),...Object.keys(live||{})])].sort()) {
+  for (const key of [...new Set([...Object.keys(expected),...Object.keys(live)])].sort()) {
     if ((expected[key]||'')!==(live[key]||'')) diffs.push(formatEntry(key,expected[key]||'',live[key]||''));
   }
   return diffs;
@@ -138,6 +143,10 @@ function explicitVerdict(output) {
   if (verdicts.length!==1) throw new Error('native result has conflicting verdicts');
   return verdicts[0];
 }
+// Narrow root-level scan of the single field the gate compares at ship, deliberately not
+// the gate's whole-file parseReviewManifest (which also needs a pathType prepare has no
+// access to). Absent or non-40-hex returns '' so prepare skips the check: a manifest
+// legitimately incomplete mid-sprint must not start failing prepare. Never rewrites it.
 function manifestCommit(sprint) {
   const file = path.join(sprint,'review-manifest.yaml');
   if (!fs.existsSync(file)) return '';
@@ -257,6 +266,12 @@ function validateCurrent(root,sprint,review) {
   if (target!==bound[0].reviewer_target || target!==row.reviewer_target || !['completed','complete','succeeded'].includes(status)) throw new Error('native result identity/status mismatch');
   validateNativeMetadata(output,prepared,root);
 }
+// governance must hash the _index.md the *gate* reads. Every other verb resolves through
+// input.context (git rev-parse --show-toplevel), which inside a linked worktree is the
+// worktree root, while the gate resolves via --git-common-dir to the main repository — two
+// different files with two different hashes. Mirrors delivery-gate.cjs tryRepoRoot (:434)
+// and findAiState (:28) including its git-boundary stop; copied rather than imported
+// because this slice may only add two names to that module.exports. Keep them in step.
 function gateRepoRoot(cwd) {
   const run = args => {
     try { return execFileSync('git', args, {cwd, encoding:'utf8', stdio:['ignore','pipe','ignore'], timeout:15000}).trim(); }

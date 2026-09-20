@@ -84,4 +84,8 @@ sequenceDiagram
 - 证据的 `result: pass` 只在被分类的验证命令**自身**退出状态能到达被观测到的退出码时才成立。判据三条：段的状态到达其 pipeline（末位或 `pipefail`）、该 pipeline 到达整行（其间只有 `&&`）、整行未被后台化；任一不成立则名义成功降为 `unknown` 并带 `result_reason`（`pipeline_without_pipefail` / `validation_status_not_reported` / `validation_backgrounded`），真实失败始终保持 `fail`。CC 的 Bash 响应不含 `exit_code`，因此这条边界在 CC 上尤其关键。
 - 引号感知的控制符扫描位于独立的 `_shell-lex`（CC/CX/Pi 三份），**只服务证据策略**；`pre-bash-guard` 的分段器本轮字节未改。两个扫描器并存是计划内债务，收敛由 roadmap 切片 8（heredoc-aware-shell-guard）承担。
 - `_shell-lex` 必须由 `validationStatusPolicy` **惰性**载入：`delivery-gate` 在三端都以模块顶层无 try 的方式引入 `_input-binding`，模块层载入失败会在门禁 import 期抛错，而 CC 视 exit 1 为非阻塞、Pi 把非 2 退出码映射为放行、CX 不输出 block JSON —— 即 ship 门禁由 fail-closed 变静默放行。载入失败只降级证据。
+- review 绑定 CLI 不得弄坏自己的绑定：`prepare` 把四个步骤自身会写的路径（sprint `session-log.md`、`reviews/<mode>-review.md`、`.ai_state/_index.md`）从**存储的** `input_paths` 中剔除并记入 `excluded_inputs`，因为 `liveInput` 在 bind/accept/ship 每次都重读该列表；只过滤哈希输入等于把故障推迟一步。声明为空时仍合法，只有「声明非空但排除后为空」才失败。
+- 漂移诊断按证据分层：声明路径由持久化的 `input_hashes` 逐项归因（路径 + 前后哈希），聚合摘要（`source_sha256` / `environment_sha256` 等）只报轴名与两个哈希且不声称指出文件，`evidence_docs` / `evidence_ids` 指名具体文档或缺失 id。旧 row 无 `input_hashes` 时显式降级。诊断变清晰，fail-closed 不变。
+- manifest 的 `implementation_commit` 在 prepare 即与 HEAD 比对，窄扫单字段：过期则失败并指出哪侧过期，缺失或非 40-hex 则跳过（完整校验仍在 ship），**绝不重写该文件**——静默改正会销毁「本次审查针对另一份代码准备」的证据。预检不新增运行期 `base_commit` 比较，ship 记账提交移动 HEAD 不作废审查这一容忍保持。
+- 治理哈希由 `review-binding governance` 输出，调用门禁自己的函数而非重抄，并**按门禁的 `--git-common-dir` 规则解析 `_index.md`**：CLI 惯用的 `--show-toplevel` 在 linked worktree 中指向 worktree 根，两份 `_index.md` 会分叉，那正是该子命令要防的错哈希。
 - Fullstack delivery orchestration remains a PACE specialization; Capability Manifest reads are runtime-only and read-only.

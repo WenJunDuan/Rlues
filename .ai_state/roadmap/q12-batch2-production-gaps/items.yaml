@@ -18,8 +18,8 @@ items:
     notes: "Q12#4；#13 仅回归。实际范围扩至「最终 pipeline + 段序」三条件可证性，覆盖 || / ; / & 掩盖；遗留 CX 4000 字符截断转切片 8"
   - slug: review-binding-preflight
     title: "Review prepare 自一致与治理摘要 CLI"
-    status: pending
-    sprint_slug: ""
+    status: completed
+    sprint_slug: "2026-09-20-review-binding-preflight"
     blocked_by: []
     estimated_complexity: M
     notes: "Q12#6/#9/#10；逐文件漂移诊断"
@@ -36,7 +36,7 @@ items:
     sprint_slug: ""
     blocked_by: [contract-parser-diagnostics]
     estimated_complexity: L
-    notes: "Q12#1/#2/#16；共享 delivery gate，串行实施"
+    notes: "Q12#1/#2/#16；共享 delivery gate，串行实施。另接切片 3 遗留：删除 sprint 范围的门禁字节断言、导出 tryRepoRoot/findAiState 并消除 governance 的解析复写"
   - slug: ship-session-and-architecture-binding
     title: "Ship 会话退出与 Architecture 已审范围绑定"
     status: pending
