@@ -9,6 +9,8 @@ const PUBLIC_ENV = new Set(['system','release','machine','os','arch','image','ru
 const CREDENTIAL_KEY = /(?:token|password|secret|api.key)\s*[=:]/ig;
 const PLACEHOLDER_WORD = /YOUR|REPLACE|EXAMPLE|PLACEHOLDER|CHANGE[-_]?ME|DUMMY|SAMPLE|NOT[-_]A[-_]REAL|REDACTED/ig;
 const ALNUM = /[A-Za-z0-9]/, HIGH_ENTROPY = /[A-Za-z0-9]{16,}/;
+// Conservative allowlist over an environment credential value; anything unclear stays a credential.
+// Unlike runtime-run.py, an empty body is a placeholder: a bare "password=" field holds no value.
 function isPlaceholder(value) {
   const body = value.trim();
   if (!body || /^(?:none|null|empty|TBD|TODO)$/i.test(body)) return true;

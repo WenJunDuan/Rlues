@@ -23,6 +23,10 @@ HIGH_ENTROPY = re.compile(r'[A-Za-z0-9]{16,}')
 
 
 def is_placeholder(value: str) -> bool:
+    """Conservative allowlist over an environment credential value; unclear stays a credential.
+
+    Unlike runtime-run.py, an empty body is a placeholder: a bare "password=" field holds no value.
+    """
     body = value.strip()
     if not body or re.fullmatch(r'none|null|empty|TBD|TODO', body, re.I):
         return True
@@ -42,7 +46,7 @@ def is_placeholder(value: str) -> bool:
 
 
 def credential_values(value: str) -> list:
-    """Each credential separator on the line owns the rest of the line."""
+    """Each credential separator on the line owns the rest of the line; any non-placeholder raises."""
     return [value[match.end():] for match in CREDENTIAL_KEY.finditer(value)]
 _COMMAND_PREFIX = r'(?:^|[;&|]\s*)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*(?:npx\s+)?'
 _VALIDATION_PATTERNS = [
