@@ -326,3 +326,9 @@
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-09-20T12:42:45.919Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-09-20T12:42:45.921Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-09-20T12:42:45.921Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-09-20T12:46:06.814Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"iron-law-provenance.md","timestamp":"2026-09-20T12:46:06.814Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"doc-style.md","timestamp":"2026-09-20T12:46:06.813Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-09-20T12:46:06.815Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"git-conventions.md","timestamp":"2026-09-20T12:46:06.815Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-09-20T12:46:06.816Z"}
