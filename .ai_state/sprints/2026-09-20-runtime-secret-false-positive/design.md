@@ -2,7 +2,7 @@
 sprint_slug: "2026-09-20-runtime-secret-false-positive"
 path: "System"
 stage: "design"
-author: "cc-main (rev 2 + 95299306 PASS 的 3 条 P2 子句落实)"
+author: "cc-main (rev 2 + P2 子句 + impl review 62352b88 返工子句)"
 base_commit: "a385d2e"
 ---
 
@@ -17,8 +17,8 @@ base_commit: "a385d2e"
 
 ## HOW
 
-- **占位符谓词 `is_placeholder(value)`**（保守白名单，判不准=仍按密钥）：整值为 `${…}`/`{{…}}`；整值为 `<…>` 且尖括号内仅 `[A-Za-z0-9_.-]`、长度 ≤48 且无 ≥16 连续 alnum（「非高熵」即此判据）；或占位词（YOUR / REPLACE / EXAMPLE / PLACEHOLDER / CHANGE[-_]?ME / DUMMY / SAMPLE / NOT[-_]A[-_]REAL / REDACTED）以**两侧**非字母数字边界出现**且**值体其余部分无 ≥16 连续 alnum（防前缀拼真随机体）；TBD / TODO 仅整值成立；或值体为单一字符重复 ≥6。
-- **全匹配语义（review P0-1）**：A 各消费点改 `finditer`，**全部**命中均为占位符才放行，任一非占位即按密钥走原路径；C 侧对行内**每个**凭据分隔符取值（取到行尾）分别过谓词，任一非占位即抛。混排（占位+真密钥同文件/同行）必须保持 block/剔除；**被释放的 match span 自身须再过一遍 SECRET 其余分支**（防第三分支整体吞掉内嵌的前缀型密钥）。
+- **占位符谓词 `is_placeholder(value)`**（保守白名单，判不准=仍按密钥）：整值为 `${…}`/`{{…}}` 且内体无 ≥16 连续 alnum（熵否决对引用形态同样前置——impl review P2-2）；整值为 `<…>` 且尖括号内仅 `[A-Za-z0-9_.-]`、长度 ≤48 且无 ≥16 连续 alnum（「非高熵」即此判据）；或占位词（YOUR / REPLACE / EXAMPLE / PLACEHOLDER / CHANGE[-_]?ME / DUMMY / SAMPLE / NOT[-_]A[-_]REAL / REDACTED）以**两侧**非字母数字边界出现**且**值体其余部分无 ≥16 连续 alnum（防前缀拼真随机体）；TBD / TODO 仅整值成立；或值体为单一字符重复 ≥6。
+- **全匹配语义（review P0-1）**：A 各消费点改 `finditer`，**全部**命中均为占位符才放行，任一非占位即按密钥走原路径；C 侧对行内**每个**凭据分隔符取值（截到下一凭据键起点，不再取到行尾——impl review P1-1 顺序绕过修正）分别过谓词，任一非占位即抛。混排（占位+真密钥同文件/同行）必须保持 block/剔除；**被释放的 match span 自身须再过一遍 SECRET 其余分支**（防第三分支整体吞掉内嵌的前缀型密钥）。
 - A：谓词应用于四类 block/剔除消费点 = run():504、snapshot()/collect():152/114、inspect_bundle():235、validate_scenario():306；redacted():249 **不应用**——占位符行多脱敏无害，保持原行为（Non-goals 声明）。真密钥路径逐字不变，CC/CX 字节同源维持。
 - C：命中凭据语法后取 `[=:]` 后值 token 过同一谓词（另放行 none/null/empty）；真凭据（URL userinfo `://user:pw@`、高熵值）仍抛。CC 与 Pi 字节同改（既有 parity 测试锁）、CX 语义同。
 - 谓词在 `runtime-run.py` 与 `_input-binding` 各自实现但逐字对齐哲学（跨 skill/hook 无共享 import 通道）；一致性由对照矩阵测试钉。
