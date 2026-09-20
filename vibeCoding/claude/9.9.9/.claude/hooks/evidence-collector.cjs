@@ -66,6 +66,7 @@ function appendEvidence(filePath, sprintSlug, row) {
     `  - tool_use_id: ${yamlString(row.tool_use_id)}`,
     `    tool: ${yamlString(row.tool)}`,
     `    result: ${row.result}`,
+    ...(row.result_reason ? [`    result_reason: ${yamlString(row.result_reason)}`] : []),
     `    command: ${yamlString(row.command)}`,
     `    timestamp: ${yamlString(row.timestamp)}`,
     ...Object.entries(row.binding).map(([key,value])=>'    '+key+': '+yamlString(value)),
@@ -104,10 +105,13 @@ function main() {
       fs.mkdirSync(sprintDir, { recursive: true });
       // F3 (2026-07-29, W35): command 必须脱敏后落盘 — redact 原只盖 error 字段,
       // 凭据/敏感参数经 command 原文进入版本化 evidence 是 P0 泄露面。
+      const policy = binding.validationStatusPolicy(command);
+      const result = status === "pass" && policy.provable === false ? "unknown" : status;
       appendEvidence(path.join(sprintDir, "evidence.yaml"), sprintSlug, {
         tool_use_id: toolUseId,
         tool,
-        result: status,
+        result,
+        result_reason: result === "unknown" && status === "pass" ? policy.reason : "",
         command: redact(command),
         timestamp,
         binding: binding.finish(payload, redact(JSON.stringify(payload.tool_response || payload.tool_result || {}))),

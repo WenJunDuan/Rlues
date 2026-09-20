@@ -22,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
-from _input_binding import finish, classify_validation as classify_evidence
+from _input_binding import finish, classify_validation as classify_evidence, validation_status_policy
 from _index_io import acquire, release, write_atomic
 
 EXIT_SUCCESS = 0
@@ -138,13 +138,19 @@ def main() -> int:
         # F8 (2026-07-29, W35): result 只允许 pass/fail/unknown — "fail (exit N)" 会让
         # 双端 validateEvidence 抛 unsupported result, 一条失败验证永久卡死 evidence 解析。
         result = status
+        policy = validation_status_policy(command)
+        reason_line = ""
+        if status == "pass" and policy.get("provable") is False:
+            result = "unknown"
+            reason_line = f"    result_reason: {json.dumps(policy.get('reason'), ensure_ascii=False)}\n"
         entry = (
             f"  - tool_use_id: {json.dumps(scalar(payload.get('tool_use_id'), 200), ensure_ascii=False)}\n"
             f"    tool: {json.dumps(tool_name, ensure_ascii=False)}\n"
             '    file: ""\n'
             f"    kind: {json.dumps(kind, ensure_ascii=False)}\n"
-            f"    command: {json.dumps(redact(command)[:120], ensure_ascii=False)}\n"
+            f"    command: {json.dumps(redact(command)[:500], ensure_ascii=False)}\n"
             f"    result: {json.dumps(result, ensure_ascii=False)}\n"
+            f"{reason_line}"
             f"    timestamp: {json.dumps(timestamp)}\n"
         )
         binding = finish(payload, redact(json.dumps(tool_response, ensure_ascii=False)))
