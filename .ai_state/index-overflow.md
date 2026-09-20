@@ -17,3 +17,6 @@ Full items moved off `_index.md` (AC9). Do not delete.
 
 ### rh-spill-2026-09-20
 2026-09-06 System/brainstorm: CC/CX next release; conf=0.96
+
+### rh-spill-2026-09-20b
+2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane →index-overflow.md#rh-3

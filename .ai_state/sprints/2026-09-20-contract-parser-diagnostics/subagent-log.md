@@ -62,3 +62,13 @@
 - Event: SubagentStart
 - Agent ID: ab4cd410066633157
 
+## 2026-09-20T10:49:02.814Z · Explore
+- Event: SubagentStop
+- Agent ID: a022d4786a3671f9a
+- Last message: Report delivered to caller via SubagentHandback.
+
+## 2026-09-20T10:49:35.102Z · Explore
+- Event: SubagentStop
+- Agent ID: ab4cd410066633157
+- Last message: Report delivered to caller via SubagentHandback.
+

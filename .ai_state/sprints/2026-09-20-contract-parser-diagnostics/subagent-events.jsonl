@@ -12,3 +12,5 @@
 {"schema_version":1,"event":"SubagentStop","agent_id":"a1b50d358a37411b5","agent_type":"reviewer","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T10:28:02.662Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"a022d4786a3671f9a","agent_type":"Explore","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T10:43:31.526Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"ab4cd410066633157","agent_type":"Explore","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T10:43:34.403Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a022d4786a3671f9a","agent_type":"Explore","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T10:49:02.814Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"ab4cd410066633157","agent_type":"Explore","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T10:49:35.101Z"}

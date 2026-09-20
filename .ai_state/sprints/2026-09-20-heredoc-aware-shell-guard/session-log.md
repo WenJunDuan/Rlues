@@ -1,0 +1,7 @@
+# Session Log — heredoc-aware-shell-guard
+
+- 2026-09-20：切片8启动（Q12#14+切片2遗留②截断+字节钉承接）；基线 `a385d2e`；侦察→design→packet 一轮完成，双切片并行、generator 写窗错开（Q12#16 账本归档缺陷规避）。
+
+<!-- athena-review:{"author_target":"","base_commit":"a385d2e85657e094d74c2edc216491eeddab041b","event":"prepared","evidence_docs":{},"evidence_ids":[],"excluded_inputs":[],"input_hashes":{".ai_state/sprints/2026-09-20-heredoc-aware-shell-guard/design.md":"feea3e8535a11c2ce06dfbf60f88dced039b69dd561196b83fc7128db9ddde5a",".ai_state/sprints/2026-09-20-heredoc-aware-shell-guard/review-packet.md":"f6c0f1ee98c2874637f7163f0c2909c1400c636cc78e0960c50b4cff5be07b88","design_sha256":"feea3e8535a11c2ce06dfbf60f88dced039b69dd561196b83fc7128db9ddde5a"},"input_manifest_sha256":"305c81211380077b325dcf69eba8e5ebc37166e011d8b001af4666596808f5a0","input_paths":[".ai_state/sprints/2026-09-20-heredoc-aware-shell-guard/design.md",".ai_state/sprints/2026-09-20-heredoc-aware-shell-guard/review-packet.md"],"mode":"design","packet_sha256":"f6c0f1ee98c2874637f7163f0c2909c1400c636cc78e0960c50b4cff5be07b88","recorded_at":"2026-09-20T10:55:43.477Z","review_run_id":"a3f6ebdb-576c-41b7-ab13-c03fc927bcad","schema_version":1} -->
+
+<!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/a3f6ebdb-576c-41b7-ab13-c03fc927bcad-dispatch.json","dispatch_receipt_sha256":"92fcfbe4d84861eac5c7c0ff35f267a913324f78fcf149b8150ef590fd585b89","event":"bound","recorded_at":"2026-09-20T10:56:40.254Z","review_run_id":"a3f6ebdb-576c-41b7-ab13-c03fc927bcad","reviewer_target":"a65a6abb3ac492187"} -->
