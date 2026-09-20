@@ -81,3 +81,7 @@
 - Agent ID: a03c809af90bf1167
 - Last message: REWORK 已交付主 agent。核心结论：白名单文法的**词法**面经对抗实测站得住（赋值前缀/fd 歧义/`:`/`%`/`@`/`$VAR` 展开/`<<-`/`<<<` 全部未攻破），但掩码**语义**面存在新 fail-open——`bash <<'EOF' … EOF` 完全落在文法内，正文却是真执行的 shell，今日 BLOCK、rev 7 会放行，并顺带绕过 git push 
 
+## 2026-09-20T13:18:37.934Z · reviewer
+- Event: SubagentStart
+- Agent ID: a749ee2cd32cdd7c4
+
