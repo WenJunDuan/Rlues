@@ -51,3 +51,6 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/857e5251-b71d-4c01-8777-b69ce7731849-dispatch.json","dispatch_receipt_sha256":"7336191080589a967bd6bab184214c9e115cf973223711a069ecae08572f8e3b","event":"bound","recorded_at":"2026-09-20T12:42:56.208Z","review_run_id":"857e5251-b71d-4c01-8777-b69ce7731849","reviewer_target":"a03c809af90bf1167"} -->
 - 2026-09-20：用户批准白名单路线（第四裁）。rev 7：封闭首行文法（WORD/裸VAR/REDIR + 行尾定界符），未知语法=不匹配=今日行为；六活体样本原文落 evidence/live-samples.md（rev6 P1-2 闭合）；同行判据取消；AC3 全量清单。复核 run `857e5251` 派发，核心挑战=TOKEN 字符集词法惰性。
+- 2026-09-20：rev 7 复核 REWORK（run `857e5251`）：词法核心全对抗通过（五次 P0 根因结构性关闭）；新 P0 为不同类掩码语义缺口（解释器 stdin：bash <<'EOF' 正文即代码，含 push 闸门绕过），修法有界同构（解释器集合排除/递归）；live-samples 转写失真须还原真原文。交还用户（第五裁）。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/857e5251-b71d-4c01-8777-b69ce7731849-result.json","native_output_sha256":"840ecd740b6d9354334e5e3c29be403af6facd76374ef1aeef536da281ffa196","output_ref":"reviews/design-review.md","output_sha256":"3874904bc9fd11a188d9329f378bbf3c82b57b2e7121b79a3ac770760699a114","recorded_at":"2026-09-20T12:54:09.844Z","review_run_id":"857e5251-b71d-4c01-8777-b69ce7731849","reviewer_target":"a03c809af90bf1167","verdict":"REWORK"} -->
