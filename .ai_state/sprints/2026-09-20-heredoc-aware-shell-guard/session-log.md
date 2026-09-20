@@ -64,3 +64,4 @@
 - 2026-09-20：rev 8 复核 **CONCERNS P0=0**（run `135ab562`）：语义层裁定成立（python/node/tee/cat 通道零有意防线实证、正集边界保守性实测、rev7 全 CLOSED）。四子句照抄落实（闭合后后续行双钉、成员矩阵、风险节语义层、cat|bash 点名）；accept 先于编辑的顺序这次也踩了一脚（恢复输入后重 accept）。八轮设计收口，进 impl。
 - 2026-09-20：generator 撞 90 轮上限未交报告；主 agent 实查 worktree（红测+实现两提交在案、CX 两文件未提交），按恢复流程续派同一 agent 收尾（报告优先指令）。
 - 2026-09-20：generator 续派后交付完整（3 commit，20红→21绿，干净路径 160/160）；ff 合入（2dd3636）、worktree 清理、AC6 记账落定。runtime-verify PASS（6 场景双端实跑；S5 首测 cwd 误用经基线对照澄清零回归；落盘时旧 guard 第 7 例误拦）。转 polish。
+- 2026-09-20：polish PASS（a2bba73：CX mask_body 对齐 CC 消除三端形状分叉；74/74；stash 栈复核清洁）。cleanup-pass 落盘、compound learning（跨端形状分叉靠 cmp 不靠 grep）沉淀。stage→review。

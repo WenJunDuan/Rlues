@@ -103,3 +103,12 @@
 - Agent ID: ad7f841a3d983e1fa
 - Last message: Report delivered.
 
+## 2026-09-20T14:10:21.617Z · polish-worker
+- Event: SubagentStart
+- Agent ID: af904acfc253010e0
+
+## 2026-09-20T14:16:57.767Z · polish-worker
+- Event: SubagentStop
+- Agent ID: af904acfc253010e0
+- Last message: Polish pass complete and handed back to the coordinator. Outcome: one real finding fixed (Codex `mask_body` aligned to the Claude/Pi single-regex form), four of the five check items clean. Committed a
+
