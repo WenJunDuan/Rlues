@@ -1,0 +1,3 @@
+{"schema_version":1,"event":"SubagentStart","agent_id":"01a0bc5c-6fa0-7ab1-a55c-494e52a88135","agent_type":"architect","sprint_slug":"2026-09-16-cc-agent-turn-cap","timestamp":"2026-09-20T01:09:31.541693Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"01a0bc62-32b4-7321-829f-c46bc97c1194","agent_type":"architect","sprint_slug":"2026-09-16-cc-agent-turn-cap","timestamp":"2026-09-20T01:15:47.786987Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"01a0bc62-32b4-7321-829f-c46bc97c1194","agent_type":"architect","sprint_slug":"2026-09-16-cc-agent-turn-cap","timestamp":"2026-09-20T01:25:56.602662Z"}

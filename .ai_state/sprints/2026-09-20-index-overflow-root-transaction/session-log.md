@@ -16,6 +16,9 @@
 - 定向修复 generator `q12_index_overflow_review_fixes` 绑定真实 agent `01a0bc91-ad72-7d51-aa92-379a56e64d6b`，仅拥有 `test_state_review.py`。
 - P2×2 已修；完整测试 33/33、并发连续 10/10，修复后 runtime run `96ee729e97ca44c6afebadad48b97878` PASS，current evidence `review-fix-bound-96ee729e97ca44c6afebadad48b97878`。
 - 定向 implementation re-review run `d11f8f02-3048-4766-beba-610242dd8891` 已绑定并接受 PASS（P0/P1/P2 均为 0）；进入 ship。
+- commit `7849c9d` 已 fast-forward 合入主仓；主仓完整测试 33/33 PASS，current evidence `main-integration-7849c9d` 覆盖 AC1–AC4，review binding 复核仍为 current。
+- `worktree-violations.jsonl` 三条误报已逐条带证据标记 resolved：三次 dispatch 均携带真实 worktree，写入均隔离并由同一 commit 合入。
+- 主仓提交后受控 bundle 复跑 run `e76abdef0a864651a1e6d9b489e6bec5` PASS；主仓与原 worktree commit tree diff 为零。
 
 <!-- athena-review:{"author_target":"01a0bc5a-95c6-79b2-bf6f-b753a5ce5ff1","base_commit":"7b3f1b49e9bc81f96a44ad81d0c5ce7ede395be3","event":"prepared","evidence_docs":{},"evidence_ids":[],"input_manifest_sha256":"6741fc240670609c638b82e5c823f69796d630b8f53788ff86db862d832fdcc5","input_paths":[".ai_state/sprints/2026-09-20-index-overflow-root-transaction/design.md",".ai_state/sprints/2026-09-20-index-overflow-root-transaction/review-packet.md"],"mode":"design","packet_sha256":"ca3f6d6e0d885679708d5f24b39f8f5893dfc7687a2e2cba0885b285cd398279","recorded_at":"2026-09-20T01:36:15.193510+00:00","review_run_id":"5ad3e337-c0c5-4544-9632-6a380998820d","schema_version":1} -->
 

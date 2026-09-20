@@ -12,3 +12,8 @@
 - 候选校验初次为 59/60：CC agent frontmatter 缺少 `maxTurns: 70`。已将该字段补入源包及本机 7 个 agent，且不改动本机 model/effort 覆盖。
 - 复验：`python3 vibeCoding/scripts/validate-athena-9.9.9.py` → 60 PASS / 0 FAIL；迁移预演零待写入；CC/CX 安装态均为 9.9.9；会话与历史路径存在。
 - 清理：所有已核验备份、陈旧锁和 Finder 元数据移至系统废纸篓；不删除对话历史、插件缓存、粘贴缓存或安全运行环境。受管 Python 缓存会被运行中的 Codex 自动重建，视为有效缓存保留。
+
+## 2026-09-16 task switch
+
+- 已完成的 Hotfix 保持 `ship / re-route`；无活动 writer 或 worktree。
+- 新的独立 Quick 仅修改本机 CC agent 的 `maxTurns`，见 `../2026-09-16-cc-agent-turn-cap/session-log.md`。
