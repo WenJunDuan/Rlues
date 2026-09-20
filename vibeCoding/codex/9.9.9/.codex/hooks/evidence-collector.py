@@ -119,9 +119,9 @@ def main() -> int:
             tool_input = {}
         tool_response = payload.get("tool_response")
         tool_name = scalar(payload.get("tool_name"), 100) or "unknown"
-        # classify_evidence 与 validation_status_policy 必须看到整条命令: 先截断会把
-        # 尾部的 `| tail -8` 切掉, 把一条被掩盖的管道判成可证明的 pass。只有落盘的副本
-        # 有上限 (见下方 redact(command)[:500])。
+        # Classification and the status policy must see the whole command: truncating
+        # first can cut a trailing `| tail -8` off and turn a masked pipeline into a
+        # provable one. Only the persisted copy is bounded.
         command = whole(tool_input.get("command")) or whole(tool_input.get("cmd"))
 
         ai_state = find_ai_state(payload_cwd(payload))

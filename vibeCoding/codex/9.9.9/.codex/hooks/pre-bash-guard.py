@@ -221,7 +221,11 @@ def git_subcommand(args: list[str]) -> str:
 
 
 def analyze_substitutions(command: str, depth: int) -> dict[str, Any]:
-    """递归分析 bash 真会执行的每个命令替换; 不可解析 fail-closed。"""
+    """Command substitutions ($(...) and `...`) execute even when the whole
+    expression sits inside double quotes, so every span bash would run must be
+    recursively analyzed. A substitution that cannot be parsed (unbalanced
+    parens/backticks) fails closed rather than silently passing through.
+    """
     for inner in find_substitutions(command):
         if inner is None:
             return {"danger": "unparsable command substitution"}
@@ -234,10 +238,11 @@ def analyze_substitutions(command: str, depth: int) -> dict[str, Any]:
 
 
 def narrow_heredoc(command: str) -> dict[str, Any] | None:
-    """窄形白名单 heredoc, 或 None 表示"与改动前逐字节同样分析"。
-
-    lexer 的 import 刻意放在函数内: guard 必须在 _shell_lex 缺失或抛异常时照样
-    加载并判定, 而该路径必须回落到今日分析 —— 查不到白名单只能过拦, 绝不放行。
+    """The narrow whitelist heredoc this command opens, or None for "analyze exactly
+    as before". The lexer is imported inside the function on purpose: the guard must
+    load and decide even when _shell_lex is missing or throws, and that path has to
+    fall back to today's analysis — a whitelist that cannot be consulted must
+    over-block, never open a way through.
     """
     try:
         from _shell_lex import simple_heredoc
@@ -247,7 +252,7 @@ def narrow_heredoc(command: str) -> dict[str, Any] | None:
 
 
 def mask_body(command: str, span: dict[str, Any]) -> str:
-    """把 heredoc 正文原地抹成等长空白, 保留换行。"""
+    """Blank out a heredoc body in place, same length, newlines kept."""
     body = "".join(ch if ch == "\n" else " " for ch in command[span["start"]:span["end"]])
     return command[:span["start"]] + body + command[span["end"]:]
 
@@ -256,15 +261,18 @@ def analyze(command: str, depth: int = 0) -> dict[str, Any]:
     if depth > MAX_DEPTH:
         return {"danger": "nested shell depth exceeds policy"}
     heredoc = narrow_heredoc(command)
-    # quoted 正文原样抵达消费者, 是文本不是命令: 在原始串上、先于 strip_comments
-    # 掩码, 使检出永远不落在 bash 不执行的字符上。
+    # A quoted body reaches the consumer verbatim, so it is text and not commands.
+    # Mask it on the raw string, before strip_comments, so no finding is ever raised
+    # on characters bash does not execute.
     active = strip_comments(mask_body(command, heredoc) if heredoc and heredoc["quoted"] else command)
 
     substitution = analyze_substitutions(active, depth)
     if substitution.get("danger") or substitution.get("push"):
         return substitution
-    # unquoted 正文确实被 bash 展开, 因此上面的主扫描逐字节不变, 另把正文按干净
-    # 词法态单独再扫一遍: 检出只增不减 —— 这关掉了正文行首 "#" 遮蔽真实替换的洞。
+    # An unquoted body *is* expanded by bash, so the scan above stays byte for byte
+    # what it was and the body is additionally scanned on its own, from a clean
+    # lexical state. Findings are only ever added — that closes the hole where a
+    # body line starting with "#" hid a substitution bash really runs.
     if heredoc and not heredoc["quoted"]:
         body = analyze_substitutions(command[heredoc["start"]:heredoc["end"]], depth)
         if body.get("danger") or body.get("push"):
