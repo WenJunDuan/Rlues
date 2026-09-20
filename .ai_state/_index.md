@@ -5,9 +5,9 @@ version: "9.9.9"
 
 # === PACE 路由状态 ===
 path: "System"
-stage: "review"
+stage: "ship"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-20-heredoc-aware-shell-guard"
+current_sprint_slug: "2026-09-20-runtime-secret-false-positive"
 current_roadmap_slug: "q12-batch2-production-gaps"
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
@@ -81,13 +81,13 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "rework_impl"
+next_action: "切片7 ship 推送; 切片8 rev8 出包"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []
 harness_target_outside_repo: false
 last_critic_round: 0              # 9.9.8: 设计作者不自审, critic 为 stub
-design_changed_after_impl: true
+design_changed_after_impl: false
 
 # === 用户偏好 ===
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6

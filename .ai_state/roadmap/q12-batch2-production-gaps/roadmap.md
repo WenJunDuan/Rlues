@@ -107,6 +107,7 @@ implementation_authorized: true
 
 - `codex/9.9.9/.codex/skills/athena-init/scripts/init-platforms.py:100` 用 `'.claude' in script.parts` 判端：路径含 `.claude/worktrees/` 的 CX 脚本被误判为 CC 去找不存在的 commit-index.cjs → worktree 内跑安装类测试恒 8 FAIL（本会话多次目击的幽灵失败根因）。对照实验证实纯路径诱发。归切片 9 或单开 Bugfix。
 - 切片 7 impl review P2-3 余项：test_secret_placeholder.py:145 端到端 cli 单 runner（已注明由字节相等覆盖）。
+- 切片 7 复核记账两条（归切片 9）：①C 侧 shape 分支被包裹引号击穿（带引号引用形态 THROW，基线同判 fail-closed 方向）；②design:50 残余理由句未覆盖人选口令短段形态，补半句文字精确性。
 
 ## 切片 4 遗留观察（2026-09-20，implementation review P2 记录，非阻塞）
 

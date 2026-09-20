@@ -46,8 +46,8 @@ items:
     notes: "Q12#11/#17；只读 Stop 不能等价于 ship PASS"
   - slug: runtime-secret-false-positive
     title: "Runtime bundle 秘密识别假阳性"
-    status: pending
-    sprint_slug: ""
+    status: completed
+    sprint_slug: "2026-09-20-runtime-secret-false-positive"
     blocked_by: []
     estimated_complexity: S
     notes: "Q12#12；placeholder/reference 与真实 secret 对照测试"
