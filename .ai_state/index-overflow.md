@@ -20,3 +20,11 @@ Full items moved off `_index.md` (AC9). Do not delete.
 
 ### rh-spill-2026-09-20b
 2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane →index-overflow.md#rh-3
+
+## st-1
+
+### archived-0
+2026-09-20 切片4 ship：合同解析诊断三端交付，review PASS（复核 0 findings），待安装态同步授权。
+
+### archived-1
+2026-09-06 design: 用户授权生成CC/CX 9.9.9候选包；设计已复核，进入实现。

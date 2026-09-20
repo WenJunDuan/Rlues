@@ -15,7 +15,7 @@ skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/�
 
 # === 路由审议 (v9.9.6) ===
 route_confidence: 0.97  # 切片7+8 并行设计流水线; 双侦察逐行核实; 写集互斥, generator 窗口错开
-route_history: ["2026-09-20 System/design: q12 slice7+8 并行流水线; Q12#12 + Q12#14+切片2遗留; conf=0.97", "2026-09-20 System/design: q12 slice4 contract-parser-diagnostics; Q12#5/#7/#8 + 字节断言接管; conf=0.98", "2026-09-20 System/design: q12 slice3 review-binding-preflight; Q12#6/#9/#10; conf=0.99", "2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99", "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 →index-overflow.md#rh-1", "2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2"]  # re-route ≤10, item ≤160B  # re-route ≤10, item ≤160B
+route_history: ["2026-09-20 System/design: q12 slice7+8 并行流水线; Q12#12 + Q12#14+切片2遗留; conf=0.97", "2026-09-20 System/design: q12 slice4 contract-parser-diagnostics; Q12#5/#7/#8 + 字节断言接管; conf=0.98", "2026-09-20 System/design: q12 slice3 review-binding-preflight; Q12#6/#9/#10; conf=0.99", "2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99", "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 →index-overflow.md#rh-1", "2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2"]  # re-route ≤10, item ≤160B
 plan_model: "opus"              # 2026-09-20: fable 触发额度上限, System plan/design 审议改 opus
 
 # === 平台与版本 ===
@@ -111,9 +111,6 @@ fingerprint: ""
 
 ## 当前状态
 
-- 2026-09-20 切片4 ship：合同解析诊断三端交付，review PASS（复核 0 findings），待安装态同步授权。
-
-- 2026-09-06 design: 用户授权生成CC/CX 9.9.9候选包；设计已复核，进入实现。
 - 2026-09-06 VM: SSH可达RHEL10.2；仅证明传输，项目服务待验证。
 - Previous status and shifted route →index-overflow.md#previous-current-state
 - older 当前状态 →index-overflow.md#st-0
@@ -123,6 +120,8 @@ fingerprint: ""
 - older 当前状态 →index-overflow.md#st-0
 - older 当前状态 →index-overflow.md#st-1
 - older 当前状态 →index-overflow.md#st-2
+- older 当前状态 →.ai_state/index-overflow.md#st-1
+
 
 
 ## 工具调度建议

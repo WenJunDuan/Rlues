@@ -1,2 +1,6 @@
 {"schema_version":1,"event":"SubagentStart","agent_id":"a38b598d5e78d750a","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T10:56:07.671Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"a65a6abb3ac492187","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T10:56:23.631Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a65a6abb3ac492187","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T11:02:10.303Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a38b598d5e78d750a","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T11:02:26.743Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"ab79e9936f003df16","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T11:07:48.886Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a8c7152a0c36bf6e1","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T11:08:02.212Z"}
