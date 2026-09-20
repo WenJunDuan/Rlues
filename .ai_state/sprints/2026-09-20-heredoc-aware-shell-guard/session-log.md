@@ -19,3 +19,6 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/eeed0a10-64e0-4313-935d-f4b706b81741-dispatch.json","dispatch_receipt_sha256":"aa3a9e59ae3f2d93f0ad31294d13c5c467ca659b16d12f7a78960491d1cdb02d","event":"bound","recorded_at":"2026-09-20T11:16:30.923Z","review_run_id":"eeed0a10-64e0-4313-935d-f4b706b81741","reviewer_target":"a639b62532d78ac38"} -->
 - 2026-09-20：rev 3 出包（声明扫描上下文/<<-终止行/哨兵语义三组规则收口），复核 run `eeed0a10` 派发绑定；上轮警告在案：识别类 fail-open 再现即同因二次交还用户。
+- 2026-09-20：rev 3 复核 REWORK 且**同因 P0 二次触发**（run `eeed0a10`）：作者事故——rev 3 规则文本的 str.replace 静默未生效（packet 有 design 无，复核机械比对抓获）；且行续反斜杠形态为规则外新 fail-open（bash 实测续行命令真执行）。按合同停止自动返工，交还用户裁决（a 三条规范化规则+逻辑行语义收口后再审 / b 缩小方案面仅 quoted 单行声明掩码）。切片 8 design 挂起。落盘期间 guard 又误拦引用示例文本一次（第 6 例活体）。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/eeed0a10-64e0-4313-935d-f4b706b81741-result.json","native_output_sha256":"45cdbde1e1a08d03ffdca9d24312175e342f0861fa48f35c366700591b9a5d77","output_ref":"reviews/design-review.md","output_sha256":"e22ab8f073fbe9c295eae6288e648fd23ca2168ceb4b27c025c7d66fc009b9b6","recorded_at":"2026-09-20T11:22:02.670Z","review_run_id":"eeed0a10-64e0-4313-935d-f4b706b81741","reviewer_target":"a639b62532d78ac38","verdict":"REWORK"} -->
