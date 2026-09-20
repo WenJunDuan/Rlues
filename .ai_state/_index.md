@@ -5,17 +5,17 @@ version: "9.9.9"
 
 # === PACE 路由状态 ===
 path: "System"
-stage: "ship"
+stage: "design"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-20-review-binding-preflight"
+current_sprint_slug: "2026-09-20-contract-parser-diagnostics"
 current_roadmap_slug: "q12-batch2-production-gaps"
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.6) ===
-route_confidence: 0.99  # System 切片3：改 review 绑定 CLI 与门禁诊断，三条缺陷现场已逐行核实
-route_history: ["2026-09-20 System/design: q12 slice3 review-binding-preflight; Q12#6/#9/#10; conf=0.99", "2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99", "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 →index-overflow.md#rh-1", "2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; conf=0.96"]  # re-route ≤10, item ≤160B
+route_confidence: 0.98  # System 切片4：三端合同解析器缺陷已逐行核实，字节断言接管已确认
+route_history: ["2026-09-20 System/design: q12 slice4 contract-parser-diagnostics; Q12#5/#7/#8 + 字节断言接管; conf=0.98", "2026-09-20 System/design: q12 slice3 review-binding-preflight; Q12#6/#9/#10; conf=0.99", "2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99", "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 →index-overflow.md#rh-1", "2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane →index-overflow.md#rh-3"]  # re-route ≤10, item ≤160B  # re-route ≤10, item ≤160B
 plan_model: "opus"              # 2026-09-20: fable 触发额度上限, System plan/design 审议改 opus
 
 # === 平台与版本 ===
@@ -81,7 +81,7 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "切片 4 contract-parser-diagnostics (design)"
+next_action: "await-review-result"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []

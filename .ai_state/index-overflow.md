@@ -14,3 +14,6 @@ Full items moved off `_index.md` (AC9). Do not delete.
 
 ### archived-1
 2026-09-16 Quick: 本机 CC 7 个 agent 的 maxTurns 与正文轮次均已从 70 调整至 90；逐文件差异已核对。
+
+### rh-spill-2026-09-20
+2026-09-06 System/brainstorm: CC/CX next release; conf=0.96

@@ -1,0 +1,10 @@
+# Session Log — contract-parser-diagnostics
+
+- 2026-09-20：roadmap 第四项启动（Q12#5/#7/#8）。基线 `4b0ba98`。切片 3 已 ship（含 round 2 补充审查）。
+- 现场核实（写设计前逐行读源码）：三端同源消费点定位——CC `delivery-gate.cjs` extractAcIds:277 / packet 全文提取:347 / ACCEPTANCE_HEAD:765 / spec-gate 报错:916 / mapping label 提取:989 / validateTddEvidence:616；CX 对应 :923/:996/:396/:1272；Pi :277/:347/:761/:612。Pi gate 与 CC 存在既有分叉（overflow 排除集、evidenceCovers 等），本切片只同步同源函数。
+- 关键交叉发现：切片 3 的 `test_review_binding_gate_export_diff_is_sprint_scoped_and_pi_matches_cc`（test_state_review.py:1019）钉死三端 gate 于 `0ca066c`；实施顺序令本切片先于切片 5 合法改 gate，移除义务由本切片承接（design AC6），roadmap 待 ship 时同步更正。
+- 自指陷阱排除：design 验收表初稿含字面 AC99 示例，在现行全文抓取规则下会进本 sprint AC 集（正是待修缺陷），已改为描述性措辞；design/packet 全文 AC 标识审计 = 恰好 AC1-AC7。
+
+<!-- athena-review:{"author_target":"","base_commit":"4b0ba980e6b9163f6510e6733f3d4d2736d766c1","event":"prepared","evidence_docs":{},"evidence_ids":[],"excluded_inputs":[],"input_hashes":{".ai_state/sprints/2026-09-20-contract-parser-diagnostics/design.md":"a8ec4014f7c7db38ff396b329b66b2c4d150e8dbb70be68575f30128a0fb8a88",".ai_state/sprints/2026-09-20-contract-parser-diagnostics/review-packet.md":"855150a6a8467f6aef5bf4efa298733b1df1a01c5bf93d6bebee278665ae7733","design_sha256":"a8ec4014f7c7db38ff396b329b66b2c4d150e8dbb70be68575f30128a0fb8a88"},"input_manifest_sha256":"17392788e5ca80b80b129195fde845dd1b84daa28798d322700d002a07f66f16","input_paths":[".ai_state/sprints/2026-09-20-contract-parser-diagnostics/design.md",".ai_state/sprints/2026-09-20-contract-parser-diagnostics/review-packet.md"],"mode":"design","packet_sha256":"855150a6a8467f6aef5bf4efa298733b1df1a01c5bf93d6bebee278665ae7733","recorded_at":"2026-09-20T08:53:20.741Z","review_run_id":"563309c0-0509-4594-84bb-132784e2401e","schema_version":1} -->
+
+<!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/563309c0-0509-4594-84bb-132784e2401e-dispatch.json","dispatch_receipt_sha256":"aa20be478179055034fa8a79acda82a731d7526db89951754828ad1612be3e54","event":"bound","recorded_at":"2026-09-20T08:54:32.793Z","review_run_id":"563309c0-0509-4594-84bb-132784e2401e","reviewer_target":"a1b28c6f0c9281684"} -->

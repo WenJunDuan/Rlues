@@ -26,7 +26,7 @@ items:
   - slug: contract-parser-diagnostics
     title: "TDD 与 AC 合同解析诊断"
     status: pending
-    sprint_slug: ""
+    sprint_slug: "2026-09-20-contract-parser-diagnostics"
     blocked_by: []
     estimated_complexity: M
     notes: "Q12#5/#7/#8；结构化提取与标题别名"
