@@ -288,3 +288,15 @@
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-09-20T11:16:24.143Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"iron-law-provenance.md","timestamp":"2026-09-20T11:16:24.142Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-09-20T11:16:24.144Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"iron-law-provenance.md","timestamp":"2026-09-20T11:48:05.975Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"git-conventions.md","timestamp":"2026-09-20T11:48:05.976Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"doc-style.md","timestamp":"2026-09-20T11:48:05.977Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-09-20T11:48:05.977Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-09-20T11:48:05.977Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-09-20T11:48:05.978Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"iron-law-provenance.md","timestamp":"2026-09-20T11:48:16.131Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"coding-standards.md","timestamp":"2026-09-20T11:48:16.131Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"doc-style.md","timestamp":"2026-09-20T11:48:16.132Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"security-checklist.md","timestamp":"2026-09-20T11:48:16.132Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"git-conventions.md","timestamp":"2026-09-20T11:48:16.131Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-09-20T11:48:16.131Z"}
