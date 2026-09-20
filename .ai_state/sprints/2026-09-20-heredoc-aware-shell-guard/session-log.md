@@ -35,3 +35,6 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/9929ee26-f80f-47e4-bff2-e8683b53ab71-dispatch.json","dispatch_receipt_sha256":"052df0c618cc99d662f477eabbfd7b090d6512a850fa945acf6eb53d7ae4c2b0","event":"bound","recorded_at":"2026-09-20T12:06:27.272Z","review_run_id":"9929ee26-f80f-47e4-bff2-e8683b53ab71","reviewer_target":"ac68650c220cd5d48"} -->
 - 2026-09-20：用户批准窄核方案，rev 5 整体重写（首行单声明+词法平凡=唯一需证断言；非窄形字节等价矩阵替代语义推演；未闭合不新增拦截）。复核 run `9929ee26` 派发绑定。
+- 2026-09-20：rev 5 复核 REWORK，同因第四次（run `9929ee26`）：算术上下文逃逸（(( 与 $[ 不在黑名单）+ unquoted 豁免非单调（正文撇号致既存遮蔽缺陷被激活为本切片 fail-open）。两修复面有界；复核建议 rev 6 改正向枚举论证。按合同交还用户。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/9929ee26-f80f-47e4-bff2-e8683b53ab71-result.json","native_output_sha256":"ffbd285031b9e1bcbc5391e1c1e9f40c44de6a5bbd9371c12d16c929e53e63b4","output_ref":"reviews/design-review.md","output_sha256":"72ef49c04f1c32c63841281197d6d9b37c4d4507d2a757fbe5c0d8b16d9fcdde","recorded_at":"2026-09-20T12:16:31.582Z","review_run_id":"9929ee26-f80f-47e4-bff2-e8683b53ab71","reviewer_target":"ac68650c220cd5d48","verdict":"REWORK"} -->
