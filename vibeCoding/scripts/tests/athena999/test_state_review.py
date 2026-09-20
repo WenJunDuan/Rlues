@@ -923,6 +923,34 @@ class InputBindingBehavior(unittest.TestCase):
                 (self.sprint/'evidence.yaml').write_text('collected_evidence:\n  - tool_use_id: keep-me\n    result: pass\n')
                 self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
 
+    def test_prepare_rejects_stale_manifest_implementation_commit(self):
+        self.seed_review_packet()
+        head=subprocess.run(['git','-C',str(self.root),'rev-parse','HEAD'],check=True,text=True,capture_output=True).stdout.strip()
+        stale='a'*40
+        self.assertNotEqual(stale,head)
+        manifest=self.sprint/'review-manifest.yaml'
+        original='schema_version: 1\nimplementation_commit: '+stale+'\n'
+        manifest.write_text(original)
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                run=self.review_command(platform,'prepare')
+                self.assertEqual(run.returncode,2,run.stdout)
+                self.assertIn(stale,run.stderr)
+                self.assertIn(head,run.stderr)
+                self.assertIn('stale',run.stderr)
+                self.assertEqual(manifest.read_bytes(),original.encode())
+
+    def test_prepare_skips_manifest_preflight_when_commit_absent_or_malformed(self):
+        self.seed_review_packet()
+        manifest=self.sprint/'review-manifest.yaml'
+        for platform in ('cx','cc'):
+            for body in ('schema_version: 1\n','schema_version: 1\nimplementation_commit: not-a-commit\n'):
+                with self.subTest(platform=platform,body=body):
+                    manifest.write_text(body)
+                    run=self.review_command(platform,'prepare')
+                    self.assertEqual(run.returncode,0,run.stderr)
+                    self.assertEqual(self.review_command(platform,'supersede','--run',json.loads(run.stdout)['review_run_id']).returncode,0)
+
     def test_assert_live_degrades_without_input_hashes(self):
         self.seed_review_packet()
         (self.root/'notes.md').write_text('v1\n')

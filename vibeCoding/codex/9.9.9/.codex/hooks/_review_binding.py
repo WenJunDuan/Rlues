@@ -194,6 +194,24 @@ def explicit_verdict(output: str) -> str:
         raise ValueError('native result has conflicting verdicts')
     return verdicts[0]
 
+def manifest_commit(sprint: Path) -> str:
+    file = sprint/'review-manifest.yaml'
+    if not file.is_file():
+        return ''
+    for raw in file.read_text().splitlines():
+        if raw[:1].isspace() or not raw.strip() or raw.lstrip().startswith('#'):
+            continue
+        match = re.match(r'^implementation_commit\s*:\s*(.*?)\s*$', raw)
+        if not match:
+            continue
+        value = match.group(1).strip()
+        if ' #' in value:
+            value = value.split(' #',1)[0].strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            value = value[1:-1]
+        return value if re.fullmatch(r'[0-9a-f]{40}', value) else ''
+    return ''
+
 def prepare(cwd: Path, mode: str, inputs: list[str]) -> dict:
     root,sprint = context(cwd)
     if mode not in {'design','implementation'}:
@@ -204,6 +222,10 @@ def prepare(cwd: Path, mode: str, inputs: list[str]) -> dict:
         if latest and not any(r.get('review_run_id') == latest[-1]['review_run_id'] and r.get('event') in {'accepted','received','superseded'} for r in rows):
             raise ValueError('review already pending; recover its receipt or explicitly supersede')
     delivery_gate().validate_review_packet(sprint)
+    if mode == 'implementation':
+        recorded, head = manifest_commit(sprint), git(root,'rev-parse','HEAD').decode().strip()
+        if recorded and recorded != head:
+            raise ValueError('review-manifest implementation_commit is stale: manifest='+recorded+' HEAD='+head)
     docs = []
     if mode == 'implementation':
         if not (sprint/'evidence.yaml').is_file():

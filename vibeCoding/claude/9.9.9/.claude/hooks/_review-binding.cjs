@@ -137,12 +137,30 @@ function explicitVerdict(output) {
   if (verdicts.length!==1) throw new Error('native result has conflicting verdicts');
   return verdicts[0];
 }
+function manifestCommit(sprint) {
+  const file = path.join(sprint,'review-manifest.yaml');
+  if (!fs.existsSync(file)) return '';
+  for (const raw of fs.readFileSync(file,'utf8').split(/\r?\n/)) {
+    if (/^\s/.test(raw) || !raw.trim() || raw.trimStart().startsWith('#')) continue;
+    const match = raw.match(/^implementation_commit\s*:\s*(.*?)\s*$/);
+    if (!match) continue;
+    let value = match[1].trim();
+    if (value.includes(' #')) value = value.split(' #',1)[0].trim();
+    if (value.length>=2 && value[0]===value.at(-1) && ['"',"'"].includes(value[0])) value = value.slice(1,-1);
+    return /^[0-9a-f]{40}$/.test(value) ? value : '';
+  }
+  return '';
+}
 function prepare(cwd,mode,inputs) {
   const [root,sprint] = input.context(cwd);
   if (!['design','implementation'].includes(mode)) throw new Error('mode must be design or implementation');
   const rows = events(sprint), latest = rows.filter(r=>r.event==='prepared').at(-1);
   if (latest && !rows.some(r=>r.review_run_id===latest.review_run_id && ['accepted','received','superseded'].includes(r.event))) throw new Error('review already pending; recover its receipt or explicitly supersede');
   require('./delivery-gate.cjs').validateReviewPacket(sprint);
+  if (mode==='implementation') {
+    const recorded = manifestCommit(sprint), head = input.git(root,'rev-parse','HEAD').toString().trim();
+    if (recorded && recorded!==head) throw new Error('review-manifest implementation_commit is stale: manifest='+recorded+' HEAD='+head);
+  }
   let docs = [];
   if (mode==='implementation') {
     if (!fs.existsSync(path.join(sprint,'evidence.yaml'))) throw new Error('implementation review requires evidence.yaml');
