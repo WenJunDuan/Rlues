@@ -20,3 +20,4 @@
 {"schema_version":1,"event":"SubagentStop","agent_id":"a749ee2cd32cdd7c4","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T13:25:20.840Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"ad7f841a3d983e1fa","agent_type":"generator","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T13:27:35.820Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"ad7f841a3d983e1fa","agent_type":"generator","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T13:55:16.757Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"ad7f841a3d983e1fa","agent_type":"generator","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T14:01:18.099Z"}

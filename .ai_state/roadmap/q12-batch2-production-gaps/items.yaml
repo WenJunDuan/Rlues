@@ -57,7 +57,7 @@ items:
     sprint_slug: ""
     blocked_by: [evidence-pipeline-integrity]
     estimated_complexity: M
-    notes: "Q12#14；正文跳过、命令位置继续 fail-closed。另接切片 2 遗留：两个 scanner 收敛 + CX evidence-collector 4000 字符决策截断"
+    notes: "Q12#14；白名单窄形（首行封闭文法+消费者正集）quoted 正文免疫，非窄形字节等价；scanner 收敛=heredoc 判定单源 _shell-lex（完整合并证伪不做）；CX 4000 决策截断已修"
   - slug: package-parity-and-release-regressions
     title: "平台适用性同步与发行回归"
     status: pending

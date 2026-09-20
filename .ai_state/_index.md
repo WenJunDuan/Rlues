@@ -5,7 +5,7 @@ version: "9.9.9"
 
 # === PACE 路由状态 ===
 path: "System"
-stage: "impl"
+stage: "polish"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
 current_sprint_slug: "2026-09-20-heredoc-aware-shell-guard"
 current_roadmap_slug: "q12-batch2-production-gaps"
@@ -75,13 +75,13 @@ pointers:
   latest_brainstorm: "sprints/2026-09-06-athena-next-version/brainstorm.md"
   latest_decisions: ["compound/2026-08-27-decision-retire-local-telemetry-collection.md", "compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-09-20-learning-single-source-error-strings.md", "compound/2026-09-20-learning-self-mutating-regression-test.md", "compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md"]
-  latest_architecture_update: "2026-09-20T12:17:35.309Z"
+  latest_architecture_update: "2026-09-20T14:06:36.135Z"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "切片8 generator worktree 施工中"
+next_action: "切片8 polish-worker 施工中"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []

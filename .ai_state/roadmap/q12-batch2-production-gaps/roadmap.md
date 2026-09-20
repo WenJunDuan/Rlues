@@ -70,7 +70,7 @@ implementation_authorized: true
 | 5 | writer-provenance-and-repo-boundary | 1、2、16 | 4 | 外部回执严格验证；repo 外写不触发 drift；worktree Start 归属正确 |
 | 6 | ship-session-and-architecture-binding | 11、17 | 3、5 | 架构证明绑定已审范围；只读 Stop 不误报 ship PASS 且不放宽真实写会话 |
 | 7 | runtime-secret-false-positive | 12 | 无 | placeholder/reference 保留，真实 token 仍剔除；豁免若存在则按文件 SHA 绑定 |
-| 8 | heredoc-aware-shell-guard | 14 | 无 | quoted heredoc 正文不误拦，delimiter/命令位置的真实危险命令仍拦截 |
+| 8 | heredoc-aware-shell-guard | 14 | 无 | 白名单窄形（首行封闭文法+消费者正集）的 quoted 正文不误拦；一切非窄形与今日行为逐字节等价（解释器族/命令位置照拦） |
 | 9 | package-parity-and-release-regressions | 13、15、18 记录及全量收口 | 1–8 | 仅同步适用平台，完整 validator 通过，外部项明确不纳入修复 |
 
 切片 1–4、7、8 在文件写集互斥时可并行设计，但 System 实现按红区规则隔离；切片 5、6 因共享门禁且合同相关，按依赖串行。第 9 项只做发行一致性与全量回归，不重新实现第 13、15、18 条。
@@ -84,7 +84,7 @@ implementation_authorized: true
 
 ## 切片顺序补充 (2026-09-20)
 
-切片 8 `heredoc-aware-shell-guard` 现排在切片 2 之后：切片 2 新增的 `_shell-lex` 只服务证据策略，`pre-bash-guard` 字节未改；切片 8 为 heredoc 重写 guard scanner 时，负责把两个 scanner 收敛到同一模块。
+切片 8 `heredoc-aware-shell-guard` 现排在切片 2 之后：切片 2 新增的 `_shell-lex` 只服务证据策略，`pre-bash-guard` 字节未改；切片 8 实际交付（2026-09-20 更正）：heredoc 白名单窄形判定单源 `_shell-lex`（`simpleHeredoc`），guard 以函数内惰性载入消费；guard 自有引号扫描保留为 lexer 缺失回退层（安全关键可用性），完整合并经八轮审查裁定不做——黑名单与全文法路线证伪档案在该 sprint reviews/。
 
 ## 切片 2 遗留，指名切片 8 承接 (2026-09-20)
 
@@ -97,6 +97,11 @@ implementation_authorized: true
 - **移除 sprint 范围的门禁字节断言**：`test_review_binding_gate_export_diff_is_sprint_scoped_and_pi_matches_cc` 硬编码 `0ca066c`，用来把切片 3 对 `delivery-gate` 的改动面钉死为「仅两个导出名」。切片 5 合法改门禁的那一刻它必然失败，原计划由切片 5 删除。**2026-09-20 更正：实施顺序令切片 4 先合法改 gate，该断言已由切片 4（AC6）删除并以 Pi 同源函数文本相等断言（PiSameSourceParity）+ 独立的 Pi `_review-binding`==CC 测试承接**。该义务此前只写在测试注释与 design 里，未进 roadmap（切片 3 implementation review P2-4 指出），现按切片 4 review P1-1 落实更正。
 - **消除 `governance` 的路径解析复写**：CC 端 `gateRepoRoot`/`gateAiState`（`_review-binding.cjs:275,284`）是门禁 `tryRepoRoot`/`findAiState` 的 20 行副本，因切片 3 只获准导出两个名字而无法 import；CX 端已是 import。副本经两轮逐行核实为忠实，但其中最易漂移的 `.git` 边界停止那行**无测试覆盖**。切片 5 既然要动门禁，顺带导出这两个 helper 并删除副本，与 CX 对齐。
 - 另记两条已知非阻塞差异，切片 5 动门禁时留意：两端 `findAiState` 的 `.git` 边界语义不同；两端 `parseFrontmatter` 对畸形行一个跳过一个抛错。
+
+## 切片 8 记账（2026-09-20，AC6，归切片 9）
+
+- CC/CX pre-bash-guard 危险清单既有差异：CX 多 mariadb（DB_CLIENTS）、dash/ksh（SHELLS）与 fork-bomb 检测（`pre-bash-guard.py:37-38,282`），CC 无。三端判定面统一由切片 9 发行一致性裁量。
+- `scan()` 语义面微扩（窄形 quoted 正文并入 segment 后 classify_validation 可能在解释器源码文本命中验证模式）：方向多记不少记，POLICY_MATRIX 零变化，观察项。
 
 ## 切片 7 记账（2026-09-20，AC6，归切片 9）
 
