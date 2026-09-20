@@ -4,29 +4,19 @@
 version: "9.9.9"
 
 # === PACE 路由状态 ===
-path: "Hotfix"
+path: "System"
 stage: "ship"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-14-athena-9-9-9-local-hotfix"
-current_roadmap_slug: ""
+current_sprint_slug: "2026-09-20-evidence-pipeline-integrity"
+current_roadmap_slug: "q12-batch2-production-gaps"
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.6) ===
-route_confidence: 0.99  # Hotfix：9.9.9 版本标识已装；预演发现 13 项受管补丁未同步，双端迁移可逆
-route_history:
-  - "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX managed patches; preserve chats and user overrides; conf=0.99"
-  - "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0"
-  - "2026-07-28 System impl 红区降级 →index-overflow.md#rh-1"
-  - "2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2"
-  - "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane →index-overflow.md#rh-3"
-  - "2026-09-06 System/brainstorm: CC/CX next release; proposal only; conf=0.96"
-  - "2026-09-06 System/design: 9.9.9; PACE+state; design reviewed; conf=0.98"
-  - "2026-09-07 System audit: candidate assets pass; core gaps reproduced; no install; conf=0.99"
-  - "2026-09-08 Hotfix: sync CC worktree cleanup ruling; bounded docs; conf=1.0"
-  - "2026-09-13 Feature: CC 9.9.9 migration to Pi 9.10; conf=0.92"
-plan_model: "fable"               # "" | "fable" — System/Refactor 的 plan/design 审议切 fable-5 (贵, opt-in)
+route_confidence: 0.98  # System 切片2 由 CC 接管 codex 草案：设计事实核对通过（CC Bash 无 exit_code，管道尾段掩盖失败）
+route_history: ["2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99", "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 →index-overflow.md#rh-1", "2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2", "2026-08-27 System: Athena 9.9.8 Thin PACE Control Plane →index-overflow.md#rh-3", "2026-09-06 System/brainstorm: CC/CX next release; conf=0.96", "2026-09-06 System/design: 9.9.9; conf=0.98"]  # re-route ≤10, item ≤160B
+plan_model: "opus"              # 2026-09-20: fable 触发额度上限, System plan/design 审议改 opus
 
 # === 平台与版本 ===
 platforms_enabled: ["both"]       # cc | cx | both
@@ -67,35 +57,35 @@ counts:
   features_count: 1
   issues_count: 0
   refactors_count: 0
-  systems_count: 2
+  systems_count: 4
   requirements_count: 1
-  reviews_count: 10
-  cleanup_count: 1
+  reviews_count: 13
+  cleanup_count: 3
   compound:
-    learning: 5
+    learning: 6
     trick: 0
     decision: 5
     explore: 2
 
 # === Pointers (指向最新相关文件) ===
 pointers:
-  latest_design: ""
-  latest_review: ""
-  latest_cleanup: ""
+  latest_design: "sprints/2026-09-20-evidence-pipeline-integrity/design.md"
+  latest_review: "sprints/2026-09-20-evidence-pipeline-integrity/reviews/implementation-review.md"
+  latest_cleanup: "sprints/2026-09-20-evidence-pipeline-integrity/cleanup-pass.md"
   latest_brainstorm: "sprints/2026-09-06-athena-next-version/brainstorm.md"
-  latest_decisions: ["compound/2026-08-27-decision-retire-local-telemetry-collection.md", "compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
-  latest_lessons: ["compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md", "compound/2026-07-08-learning-hook-order-and-worktree-counts.md"]
-  latest_architecture_update: "2026-08-27T19:26:23+08:00"
+  latest_decisions: ["compound/2026-08-27-decision-retire-local-telemetry-collection.md", "compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
+  latest_lessons: ["compound/2026-09-20-learning-self-mutating-regression-test.md", "compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md", "compound/2026-07-11-learning-worktree-generator-ledger-gap.md", "compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md"]
+  latest_architecture_update: "2026-09-20T04:30:00+08:00"
   latest_requirement: "requirements/fullstack-delivery-pack.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "re-route"
-last_subagent: ""
-last_subagent_at: ""
+next_action: "ship"
+last_subagent: "polish-worker"
+last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []
-harness_target_outside_repo: true  # 本 Hotfix 修改本机 CC/CX 安装态；安装器逐文件备份
+harness_target_outside_repo: false
 last_critic_round: 0              # 9.9.8: 设计作者不自审, critic 为 stub
 design_changed_after_impl: false
 
@@ -103,7 +93,7 @@ design_changed_after_impl: false
 plan_critique_max_rounds: 4       # 默认 4, 可调 2-6
 plan_critique_min_rounds: 0       # 9.9.8: 作者会话 0 轮; 独立挑战走派生 review-packet
 plan_critique_disabled: false     # 关闭多轮 critique (用户自负责)
-skip_impl_subagent_check: true   # 本 Feature 为配置/提示词打包，主 thread 直写
+skip_impl_subagent_check: false
 network_in_polish: true           # polish_worker 是否允许 network
 
 # === Fingerprint (index-updater 用于 mtime 比对) ===
@@ -121,16 +111,16 @@ fingerprint: ""
 
 ## 当前状态
 
-- 2026-09-07 Hotfix: gate quickref + agent 70-turn policy installed; parent System pending. See session-log.
-- 2026-09-07 audit: 首装资产通过；核心缺陷仍在，见latest_review；不安装。
-- 2026-09-07 impl: 已合入审查绑定/init 并发/Gradle 分类/LaaV 评分修复；validator 58 PASS；未安装。
-- 2026-09-07 impl: 9.9.9 候选包已核对补全（无 maxTurns、REVIEW 进 skill、LaaV opt-in、VM json 入包）；未安装；待 Claude 审核。
 - 2026-09-06 design: 用户授权生成CC/CX 9.9.9候选包；设计已复核，进入实现。
 - 2026-09-06 VM: SSH可达RHEL10.2；仅证明传输，项目服务待验证。
 - Previous status and shifted route →index-overflow.md#previous-current-state
 - older 当前状态 →index-overflow.md#st-0
 - older 当前状态 →index-overflow.md#st-0
 - older 当前状态 →index-overflow.md#st-1
+- older 当前状态 →index-overflow.md#st-0
+- older 当前状态 →index-overflow.md#st-0
+- older 当前状态 →index-overflow.md#st-1
+- older 当前状态 →index-overflow.md#st-2
 
 
 ## 工具调度建议

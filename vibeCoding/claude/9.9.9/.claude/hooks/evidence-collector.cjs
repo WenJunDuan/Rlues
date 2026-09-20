@@ -94,7 +94,10 @@ function main() {
     const tool = String(payload.tool_name || "");
     const toolUseId = String(payload.tool_use_id || "");
     const toolInput = payload.tool_input && typeof payload.tool_input === "object" ? payload.tool_input : {};
-    const command = tool === "Bash" ? String(toolInput.command || "").slice(0, 500) : "";
+    // Classification and the status policy must see the whole command: truncating
+    // first can cut a trailing `| tail -8` off and turn a masked pipeline into a
+    // provable one. Only the persisted copy is bounded.
+    const command = tool === "Bash" ? String(toolInput.command || "") : "";
     const timestamp = new Date().toISOString();
     // hotfix2 (2026-07-29, 台账 W35/AC3): tool-trace.jsonl 默认零遥测 —
     // 普通 Bash/Edit/MCP 不再逐行记账 (写放大主源, 无核心 gate 消费者);
@@ -103,16 +106,18 @@ function main() {
     if (tool === "Bash" && toolUseId && binding.classifyValidation(command)) {
       const sprintDir = path.join(aiState, "sprints", sprintSlug);
       fs.mkdirSync(sprintDir, { recursive: true });
+      // A nominal pass only proves the shell line exited 0; downgrade it when the
+      // validation command's own status could not reach that exit code.
+      const policy = binding.validationStatusPolicy(command);
+      const downgraded = status === "pass" && policy.provable === false;
       // F3 (2026-07-29, W35): command 必须脱敏后落盘 — redact 原只盖 error 字段,
       // 凭据/敏感参数经 command 原文进入版本化 evidence 是 P0 泄露面。
-      const policy = binding.validationStatusPolicy(command);
-      const result = status === "pass" && policy.provable === false ? "unknown" : status;
       appendEvidence(path.join(sprintDir, "evidence.yaml"), sprintSlug, {
         tool_use_id: toolUseId,
         tool,
-        result,
-        result_reason: result === "unknown" && status === "pass" ? policy.reason : "",
-        command: redact(command),
+        result: downgraded ? "unknown" : status,
+        result_reason: downgraded ? policy.reason : "",
+        command: redact(command).slice(0, 500),
         timestamp,
         binding: binding.finish(payload, redact(JSON.stringify(payload.tool_response || payload.tool_result || {}))),
       });

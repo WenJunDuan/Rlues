@@ -169,8 +169,17 @@ function operatorsAfterPipeline(segments, end) {
   }
   return ops;
 }
+// An observed exit 0 proves a validation segment succeeded only when every path to
+// exit 0 runs it: its status reaches its pipeline (last element, or pipefail), the
+// pipeline reaches the line (only '&&' after it), and the line is not backgrounded.
+// Returns {provable, reason}, reason being one of pipeline_without_pipefail,
+// validation_status_not_reported, validation_backgrounded.
 function validationStatusPolicy(command) {
   let scan;
+  // The require stays inside the function on purpose: delivery-gate requires this
+  // module at load with no try, so a module-level require of a missing _shell-lex
+  // would throw at gate import and turn the ship gate permissive. Load failure here
+  // only downgrades evidence, which fails closed.
   try { scan = require('./_shell-lex.cjs').scan; }
   catch (_) { return { provable: false, reason: 'validation_status_not_reported' }; }
   const segments = scan(command);

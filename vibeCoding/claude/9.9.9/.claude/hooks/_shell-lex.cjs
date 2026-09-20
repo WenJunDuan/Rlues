@@ -1,5 +1,10 @@
 'use strict';
+// Quote-aware control-operator scan for the validation-status evidence policy.
+// scan(command) -> [{text, op}]: each segment body with the control operator that
+// follows it ('' on the last). Not an AST: no expansion, no heredocs.
 
+// '&' backgrounds only outside a redirection: 2>&1, >&2, <&0, &>f and &>>f keep it
+// inside the segment. '&&' and '|&' are matched as pairs before this is consulted.
 function redirectionAmpersand(command, i) {
   return (i > 0 && (command[i - 1] === '>' || command[i - 1] === '<')) || command[i + 1] === '>';
 }

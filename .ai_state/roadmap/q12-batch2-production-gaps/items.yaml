@@ -1,0 +1,67 @@
+roadmap_slug: q12-batch2-production-gaps
+created: 2026-09-20
+total_items: 9
+items:
+  - slug: index-overflow-root-transaction
+    title: "根级 index overflow 与可解析指针"
+    status: completed
+    sprint_slug: "2026-09-20-index-overflow-root-transaction"
+    blocked_by: []
+    estimated_complexity: M
+    notes: "Q12#3；原子 spill、并发与 zero-spill no-op"
+  - slug: evidence-pipeline-integrity
+    title: "管道测试证据与退出状态完整性"
+    status: completed
+    sprint_slug: "2026-09-20-evidence-pipeline-integrity"
+    blocked_by: []
+    estimated_complexity: M
+    notes: "Q12#4；#13 仅回归。实际范围扩至「最终 pipeline + 段序」三条件可证性，覆盖 || / ; / & 掩盖；遗留 CX 4000 字符截断转切片 8"
+  - slug: review-binding-preflight
+    title: "Review prepare 自一致与治理摘要 CLI"
+    status: pending
+    sprint_slug: ""
+    blocked_by: []
+    estimated_complexity: M
+    notes: "Q12#6/#9/#10；逐文件漂移诊断"
+  - slug: contract-parser-diagnostics
+    title: "TDD 与 AC 合同解析诊断"
+    status: pending
+    sprint_slug: ""
+    blocked_by: []
+    estimated_complexity: M
+    notes: "Q12#5/#7/#8；结构化提取与标题别名"
+  - slug: writer-provenance-and-repo-boundary
+    title: "外部写者 provenance、仓库边界与 worktree 归属"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [contract-parser-diagnostics]
+    estimated_complexity: L
+    notes: "Q12#1/#2/#16；共享 delivery gate，串行实施"
+  - slug: ship-session-and-architecture-binding
+    title: "Ship 会话退出与 Architecture 已审范围绑定"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [review-binding-preflight, writer-provenance-and-repo-boundary]
+    estimated_complexity: L
+    notes: "Q12#11/#17；只读 Stop 不能等价于 ship PASS"
+  - slug: runtime-secret-false-positive
+    title: "Runtime bundle 秘密识别假阳性"
+    status: pending
+    sprint_slug: ""
+    blocked_by: []
+    estimated_complexity: S
+    notes: "Q12#12；placeholder/reference 与真实 secret 对照测试"
+  - slug: heredoc-aware-shell-guard
+    title: "Quoted heredoc 感知的 shell guard"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [evidence-pipeline-integrity]
+    estimated_complexity: M
+    notes: "Q12#14；正文跳过、命令位置继续 fail-closed。另接切片 2 遗留：两个 scanner 收敛 + CX evidence-collector 4000 字符决策截断"
+  - slug: package-parity-and-release-regressions
+    title: "平台适用性同步与发行回归"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [index-overflow-root-transaction, evidence-pipeline-integrity, review-binding-preflight, contract-parser-diagnostics, writer-provenance-and-repo-boundary, ship-session-and-architecture-binding, runtime-secret-false-positive, heredoc-aware-shell-guard]
+    estimated_complexity: M
+    notes: "#13/#15 保留回归，#18 只记录；完整 validator 收口"

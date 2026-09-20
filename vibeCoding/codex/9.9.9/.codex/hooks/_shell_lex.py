@@ -1,7 +1,13 @@
-"""Quote-aware control-operator scan for validation-status evidence policy."""
+"""Quote-aware control-operator scan for validation-status evidence policy.
+
+scan(command) returns each segment body with the control operator that follows it
+('' on the last). Not an AST: no expansion, no heredocs.
+"""
 from __future__ import annotations
 
 
+# '&' backgrounds only outside a redirection: 2>&1, >&2, <&0, &>f and &>>f keep it
+# inside the segment. '&&' and '|&' are matched as pairs before this is consulted.
 def _redirection_ampersand(command: str, i: int) -> bool:
     return (i > 0 and command[i - 1] in '><') or (i + 1 < len(command) and command[i + 1] == '>')
 

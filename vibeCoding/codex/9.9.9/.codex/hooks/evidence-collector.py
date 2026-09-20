@@ -138,11 +138,13 @@ def main() -> int:
         # F8 (2026-07-29, W35): result 只允许 pass/fail/unknown — "fail (exit N)" 会让
         # 双端 validateEvidence 抛 unsupported result, 一条失败验证永久卡死 evidence 解析。
         result = status
+        # A nominal pass only proves the shell line exited 0; downgrade it when the
+        # validation command's own status could not reach that exit code.
         policy = validation_status_policy(command)
         reason_line = ""
-        if status == "pass" and policy.get("provable") is False:
+        if status == "pass" and policy["provable"] is False:
             result = "unknown"
-            reason_line = f"    result_reason: {json.dumps(policy.get('reason'), ensure_ascii=False)}\n"
+            reason_line = f"    result_reason: {json.dumps(policy['reason'], ensure_ascii=False)}\n"
         entry = (
             f"  - tool_use_id: {json.dumps(scalar(payload.get('tool_use_id'), 200), ensure_ascii=False)}\n"
             f"    tool: {json.dumps(tool_name, ensure_ascii=False)}\n"

@@ -1,0 +1,1 @@
+{"stdout":"\"npm test\" -> test\n\"npm run lint\" -> lint\n\"npm run lint && npm test\" -> test\n\"npm test && echo ok\" -> test\n\"tail -8\" -> null\n\"echo ok\" -> null\n\"true\" -> null\n\"echo done\" -> null\n\"tee test.log\" -> null\n\"set -o pipefail\" -> null\n\"npm test 2>&1\" -> test","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false}

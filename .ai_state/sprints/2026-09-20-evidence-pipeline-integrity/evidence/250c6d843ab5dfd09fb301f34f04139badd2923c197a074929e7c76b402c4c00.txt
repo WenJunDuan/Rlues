@@ -1,0 +1,1 @@
+{"stdout":"== baseline (mirror, fixed code) ==\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false}

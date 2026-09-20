@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -828,6 +829,27 @@ class InputBindingBehavior(unittest.TestCase):
                     self.assertEqual(record['result'],'fail',block)
                     self.assertNotIn('result_reason:', block)
 
+    def test_ac2_masking_survives_the_persisted_command_bound(self):
+        """A masked pipeline past the 500-char persisted bound must still downgrade.
+
+        CC used to truncate to 500 before classifying, which cut a trailing
+        `| tail -8` off long commands and recorded them as `pass` while CX (which
+        decides on 4000 chars) recorded `unknown` — fail-open plus CC/CX divergence
+        on the exact axis this slice closes.
+        """
+        command='npm test '+'-x '*180+'| tail -8'
+        self.assertGreater(len(command),500,'fixture must cross the persisted bound')
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                ident=f'{platform}-ac2-longbound'
+                self.run_hook_chain(platform,ident,command,success=True)
+                record, raw=self.evidence_record(ident)
+                block=raw.split(ident,1)[-1].split('\n  - ',1)[0]
+                self.assertEqual(record['result'],'unknown',block)
+                self.assertIn('result_reason: "pipeline_without_pipefail"',block)
+                # the persisted copy stays bounded on both platforms
+                self.assertLessEqual(len(record['command']),500,block)
+
     def test_ac4_cc_shaped_response_and_redaction_tail(self):
         ident='cc-ac4-long'
         summary='\nTests: 42 passed, 42 total\n'
@@ -908,40 +930,36 @@ class EvidencePipelineIntegrity(unittest.TestCase):
         for name in ('_shell-lex.cjs','_input-binding.cjs','pre-bash-guard.cjs'):
             self.assertEqual((CC/name).read_bytes(),(PI/name).read_bytes(),name)
         evidence_body='collected_evidence:\n  - tool_use_id: x\n    result: unknown\n'
-        hidden=[]
-        try:
-            for path in (CC/'_shell-lex.cjs', CX/'_shell_lex.py'):
-                if path.exists():
-                    dest=path.with_name(path.name+'.hidden')
-                    path.rename(dest)
-                    hidden.append((path,dest))
-            with tempfile.TemporaryDirectory() as tmp:
-                evidence=Path(tmp)/'evidence.yaml'
-                evidence.write_text(evidence_body)
-                cx_code=('import sys,importlib.util\nfrom pathlib import Path\n'
-                         'sys.path.insert(0, str(Path(sys.argv[1]).parent))\n'
-                         'spec=importlib.util.spec_from_file_location("delivery_gate", sys.argv[1])\n'
-                         'mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\n'
-                         'try:\n'
-                         '    mod.validate_evidence(Path(sys.argv[2]))\n'
-                         '    sys.exit(0)\n'
-                         'except mod.GateError as exc:\n'
-                         '    sys.stderr.write(str(exc))\n'
-                         '    sys.exit(2)\n')
-                cx=subprocess.run([sys.executable,'-c',cx_code,str(CX/'delivery-gate.py'),str(evidence)],text=True,capture_output=True)
-                self.assertEqual(cx.returncode,2,cx.stdout+cx.stderr)
-                self.assertIn('insufficient',cx.stderr)
-                self.assertIn('unknown',cx.stderr.lower())
-                cc_code=('try{require(process.argv[1]).validateEvidence(process.argv[2]);process.exit(0)}'
-                         'catch(e){process.stderr.write(String(e.message||e));process.exit(2)}')
-                cc=subprocess.run(['node','-e',cc_code,str(CC/'delivery-gate.cjs'),str(evidence)],text=True,capture_output=True)
-                self.assertEqual(cc.returncode,2,cc.stdout+cc.stderr)
-                self.assertIn('insufficient',cc.stderr)
-                self.assertIn('unknown',cc.stderr.lower())
-        finally:
-            for path,dest in hidden:
-                if dest.exists() and not path.exists():
-                    dest.rename(path)
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence=Path(tmp)/'evidence.yaml'
+            evidence.write_text(evidence_body)
+            # Drop the lexer from a copy of each hook tree, never from the package itself:
+            # an interrupted run must not leave the shipped hooks without _shell-lex.
+            cc_dir,cx_dir=Path(tmp)/'cc',Path(tmp)/'cx'
+            shutil.copytree(CC,cc_dir,ignore=shutil.ignore_patterns('__pycache__'))
+            shutil.copytree(CX,cx_dir,ignore=shutil.ignore_patterns('__pycache__'))
+            (cc_dir/'_shell-lex.cjs').unlink()
+            (cx_dir/'_shell_lex.py').unlink()
+            cx_code=('import sys,importlib.util\nfrom pathlib import Path\n'
+                     'sys.path.insert(0, str(Path(sys.argv[1]).parent))\n'
+                     'spec=importlib.util.spec_from_file_location("delivery_gate", sys.argv[1])\n'
+                     'mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\n'
+                     'try:\n'
+                     '    mod.validate_evidence(Path(sys.argv[2]))\n'
+                     '    sys.exit(0)\n'
+                     'except mod.GateError as exc:\n'
+                     '    sys.stderr.write(str(exc))\n'
+                     '    sys.exit(2)\n')
+            cx=subprocess.run([sys.executable,'-c',cx_code,str(cx_dir/'delivery-gate.py'),str(evidence)],text=True,capture_output=True)
+            self.assertEqual(cx.returncode,2,cx.stdout+cx.stderr)
+            self.assertIn('insufficient',cx.stderr)
+            self.assertIn('unknown',cx.stderr.lower())
+            cc_code=('try{require(process.argv[1]).validateEvidence(process.argv[2]);process.exit(0)}'
+                     'catch(e){process.stderr.write(String(e.message||e));process.exit(2)}')
+            cc=subprocess.run(['node','-e',cc_code,str(cc_dir/'delivery-gate.cjs'),str(evidence)],text=True,capture_output=True)
+            self.assertEqual(cc.returncode,2,cc.stdout+cc.stderr)
+            self.assertIn('insufficient',cc.stderr)
+            self.assertIn('unknown',cc.stderr.lower())
 
     def test_ac6_gate_contracts_document_admissible_evidence(self):
         paths=(
@@ -964,4 +982,3 @@ class EvidencePipelineIntegrity(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

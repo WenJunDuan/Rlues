@@ -81,4 +81,7 @@ sequenceDiagram
 - `_index.md` 的 route/current/history/body 溢出统一进入 Git 跟踪的 `.ai_state/index-overflow.md`；pointer 使用项目相对路径，CC/CX 共用 `_index` 锁维持 overflow-before-index 事务，不再按 sprint 分叉同名文件。
 - Token usage unknown totals use `null`, not `0` -> `compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md`
 - Hook/tool outcomes that cannot be proven remain `unknown`; 9.9.2 additionally requires every labeled AC to have its own admissible PASS record with captured command/artifact or final review evidence -> `compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md`
+- 证据的 `result: pass` 只在被分类的验证命令**自身**退出状态能到达被观测到的退出码时才成立。判据三条：段的状态到达其 pipeline（末位或 `pipefail`）、该 pipeline 到达整行（其间只有 `&&`）、整行未被后台化；任一不成立则名义成功降为 `unknown` 并带 `result_reason`（`pipeline_without_pipefail` / `validation_status_not_reported` / `validation_backgrounded`），真实失败始终保持 `fail`。CC 的 Bash 响应不含 `exit_code`，因此这条边界在 CC 上尤其关键。
+- 引号感知的控制符扫描位于独立的 `_shell-lex`（CC/CX/Pi 三份），**只服务证据策略**；`pre-bash-guard` 的分段器本轮字节未改。两个扫描器并存是计划内债务，收敛由 roadmap 切片 8（heredoc-aware-shell-guard）承担。
+- `_shell-lex` 必须由 `validationStatusPolicy` **惰性**载入：`delivery-gate` 在三端都以模块顶层无 try 的方式引入 `_input-binding`，模块层载入失败会在门禁 import 期抛错，而 CC 视 exit 1 为非阻塞、Pi 把非 2 退出码映射为放行、CX 不输出 block JSON —— 即 ship 门禁由 fail-closed 变静默放行。载入失败只降级证据。
 - Fullstack delivery orchestration remains a PACE specialization; Capability Manifest reads are runtime-only and read-only.

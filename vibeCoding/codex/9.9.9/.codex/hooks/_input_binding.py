@@ -246,6 +246,20 @@ def _operators_after_pipeline(segments: list[dict[str, str]], end: int) -> list[
     return ops
 
 def validation_status_policy(command: str) -> dict:
+    """Decide whether an observed exit 0 proves the validation command succeeded.
+
+    Exit 0 proves it only when every path to exit 0 runs the validation segment: its
+    status reaches its pipeline (last element, or pipefail), the pipeline reaches the
+    line (only ``&&`` after it), and the line is not backgrounded.
+
+    Returns:
+        ``{provable, reason}``; reason is one of ``pipeline_without_pipefail``,
+        ``validation_status_not_reported``, ``validation_backgrounded``, else None.
+    """
+    # The import stays inside the function on purpose: delivery-gate imports this
+    # module at load with no try, so a module-level import of a missing _shell_lex
+    # would raise at gate import and turn the ship gate permissive. A load failure
+    # here only downgrades evidence, which fails closed.
     try:
         from _shell_lex import scan
     except Exception:
