@@ -100,6 +100,11 @@ def scalar(value: Any, limit: int) -> str:
     return value[:limit]
 
 
+def whole(value: Any) -> str:
+    """Untruncated string for the decision path; only the persisted copy is bounded."""
+    return value if isinstance(value, str) else ""
+
+
 def main() -> int:
     try:
         try:
@@ -114,7 +119,10 @@ def main() -> int:
             tool_input = {}
         tool_response = payload.get("tool_response")
         tool_name = scalar(payload.get("tool_name"), 100) or "unknown"
-        command = scalar(tool_input.get("command"), 4000) or scalar(tool_input.get("cmd"), 4000)
+        # classify_evidence 与 validation_status_policy 必须看到整条命令: 先截断会把
+        # 尾部的 `| tail -8` 切掉, 把一条被掩盖的管道判成可证明的 pass。只有落盘的副本
+        # 有上限 (见下方 redact(command)[:500])。
+        command = whole(tool_input.get("command")) or whole(tool_input.get("cmd"))
 
         ai_state = find_ai_state(payload_cwd(payload))
         if ai_state is None:

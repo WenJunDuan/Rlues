@@ -267,11 +267,42 @@ function analyzeSubstitutions(command, depth) {
   return {};
 }
 
+/**
+ * The narrow whitelist heredoc this command opens, or null for "analyze exactly as
+ * before". The lexer is required inside the function on purpose: the guard must
+ * load and decide even when _shell-lex is missing or throws, and that path has to
+ * fall back to today's analysis — a whitelist that cannot be consulted must
+ * over-block, never open a way through.
+ */
+function narrowHeredoc(command) {
+  try { return require("./_shell-lex.cjs").simpleHeredoc(command); }
+  catch (_) { return null; }
+}
+
+/** Blank out a heredoc body in place, same length, newlines kept. */
+function maskBody(command, span) {
+  return command.slice(0, span.start)
+    + command.slice(span.start, span.end).replace(/[^\n]/g, " ")
+    + command.slice(span.end);
+}
+
 function analyze(command, depth = 0) {
   if (depth > 2) return { danger: "nested shell depth exceeds policy" };
-  const active = stripComments(command);
+  const heredoc = narrowHeredoc(command);
+  // A quoted body reaches the consumer verbatim, so it is text and not commands.
+  // Mask it on the raw string, before stripComments, so no finding is ever raised
+  // on characters bash does not execute.
+  const active = stripComments(heredoc && heredoc.quoted ? maskBody(command, heredoc) : command);
   const substitution = analyzeSubstitutions(active, depth);
   if (substitution.danger || substitution.push) return substitution;
+  // An unquoted body *is* expanded by bash, so the scan above stays byte for byte
+  // what it was and the body is additionally scanned on its own, from a clean
+  // lexical state. Findings are only ever added — that closes the hole where a
+  // body line starting with "#" hid a substitution bash really runs.
+  if (heredoc && !heredoc.quoted) {
+    const body = analyzeSubstitutions(command.slice(heredoc.start, heredoc.end), depth);
+    if (body.danger || body.push) return body;
+  }
   const segments = commandSegments(active);
   const parsed = segments.map(segment => unwrap({ segment, ...executable(segment) }));
   for (const item of parsed) {

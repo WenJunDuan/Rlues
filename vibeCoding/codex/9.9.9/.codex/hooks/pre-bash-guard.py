@@ -220,12 +220,9 @@ def git_subcommand(args: list[str]) -> str:
     return ""
 
 
-def analyze(command: str, depth: int = 0) -> dict[str, Any]:
-    if depth > MAX_DEPTH:
-        return {"danger": "nested shell depth exceeds policy"}
-    active = strip_comments(command)
-
-    for inner in find_substitutions(active):
+def analyze_substitutions(command: str, depth: int) -> dict[str, Any]:
+    """递归分析 bash 真会执行的每个命令替换; 不可解析 fail-closed。"""
+    for inner in find_substitutions(command):
         if inner is None:
             return {"danger": "unparsable command substitution"}
         nested = analyze(inner, depth + 1)
@@ -233,6 +230,45 @@ def analyze(command: str, depth: int = 0) -> dict[str, Any]:
             return nested
         if nested.get("push") and not nested.get("allow_push"):
             return {"push": True, "allow_push": False}
+    return {}
+
+
+def narrow_heredoc(command: str) -> dict[str, Any] | None:
+    """窄形白名单 heredoc, 或 None 表示"与改动前逐字节同样分析"。
+
+    lexer 的 import 刻意放在函数内: guard 必须在 _shell_lex 缺失或抛异常时照样
+    加载并判定, 而该路径必须回落到今日分析 —— 查不到白名单只能过拦, 绝不放行。
+    """
+    try:
+        from _shell_lex import simple_heredoc
+        return simple_heredoc(command)
+    except Exception:
+        return None
+
+
+def mask_body(command: str, span: dict[str, Any]) -> str:
+    """把 heredoc 正文原地抹成等长空白, 保留换行。"""
+    body = "".join(ch if ch == "\n" else " " for ch in command[span["start"]:span["end"]])
+    return command[:span["start"]] + body + command[span["end"]:]
+
+
+def analyze(command: str, depth: int = 0) -> dict[str, Any]:
+    if depth > MAX_DEPTH:
+        return {"danger": "nested shell depth exceeds policy"}
+    heredoc = narrow_heredoc(command)
+    # quoted 正文原样抵达消费者, 是文本不是命令: 在原始串上、先于 strip_comments
+    # 掩码, 使检出永远不落在 bash 不执行的字符上。
+    active = strip_comments(mask_body(command, heredoc) if heredoc and heredoc["quoted"] else command)
+
+    substitution = analyze_substitutions(active, depth)
+    if substitution.get("danger") or substitution.get("push"):
+        return substitution
+    # unquoted 正文确实被 bash 展开, 因此上面的主扫描逐字节不变, 另把正文按干净
+    # 词法态单独再扫一遍: 检出只增不减 —— 这关掉了正文行首 "#" 遮蔽真实替换的洞。
+    if heredoc and not heredoc["quoted"]:
+        body = analyze_substitutions(command[heredoc["start"]:heredoc["end"]], depth)
+        if body.get("danger") or body.get("push"):
+            return body
 
     segments = split_segments(active)
     parsed = []
