@@ -20,3 +20,4 @@
 
 <!-- athena-review:{"event":"superseded","recorded_at":"2026-09-20T11:15:44.478Z","review_run_id":"1b32be6e-6c6b-43f3-877e-479d6f2d65fe"} -->
 - 2026-09-20：主 agent 事故：忘切 sprint 指针致切片 8 的 prepare 落错账本（run 1b32be6e 已 supersede 于原处）。教训并入减脂提案的多 sprint 并行痛点。
+- 2026-09-20：generator 交付核验通过（4 commit、写集 6 文件精确、14 新测试红→绿、双字节不变量、值体复扫措辞差已声明留审）；ff 合入 `86b39a8`，主仓 137/137 全绿（worktree 的 8 条既有失败不复现）。runtime-verify PASS（6 场景真实 CLI 实跑）。AC6 记账落 roadmap。worktree 已清理，进 polish。

@@ -1,0 +1,9 @@
+sprint_slug: "2026-09-20-heredoc-aware-shell-guard"
+collected_evidence:
+  - tool_use_id: "toolu_01PvG8Y3QBKW17DxRXSCV74d"
+    tool: "Bash"
+    result: unknown
+    result_reason: "validation_status_not_reported"
+    command: "cd /Users/mi_manchi/workspace/Rlues && set -o pipefail && python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999 2>&1 | tail -3; git worktree remove /Users/mi_manchi/workspace/Rlues/.claude/worktrees/agent-ac0629f1625be8846 --force && git branch -d worktree-agent-ac0629f1625be8846 | tail -1"
+    timestamp: "2026-09-20T11:51:57.415Z"
+    binding_status: "unverifiable"

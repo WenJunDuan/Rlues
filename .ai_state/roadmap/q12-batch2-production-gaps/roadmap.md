@@ -98,6 +98,11 @@ implementation_authorized: true
 - **消除 `governance` 的路径解析复写**：CC 端 `gateRepoRoot`/`gateAiState`（`_review-binding.cjs:275,284`）是门禁 `tryRepoRoot`/`findAiState` 的 20 行副本，因切片 3 只获准导出两个名字而无法 import；CX 端已是 import。副本经两轮逐行核实为忠实，但其中最易漂移的 `.git` 边界停止那行**无测试覆盖**。切片 5 既然要动门禁，顺带导出这两个 helper 并删除副本，与 CX 对齐。
 - 另记两条已知非阻塞差异，切片 5 动门禁时留意：两端 `findAiState` 的 `.git` 边界语义不同；两端 `parseFrontmatter` 对畸形行一个跳过一个抛错。
 
+## 切片 7 记账（2026-09-20，AC6，归切片 9）
+
+- Pi `plugin/skills/athena-runtime-verify/references/playbook.md:13-14` 悬空引用：指向 Pi 包内不存在的 `athena-vm/scripts/runtime-run.py`。切片 7 不修不造（Pi 无该机制，不伪造对称）；切片 9 发行一致性时处置。
+- CX `evidence-collector.py:32-42` 同族脱敏正则（仅脱敏非阻断，CX 独有）未纳入占位符谓词，切片 9 裁量。
+
 ## 切片 4 遗留观察（2026-09-20，implementation review P2 记录，非阻塞）
 
 - bullet 形态纯反引号包裹的 AC 标签（`- \`ACn\`: …`）会从强制集静默剔除且无诊断（表格形态不受影响）；属可选补强（span 恰为 ACn 时不置空或显式报错），归切片 9 发行收口时裁量。
