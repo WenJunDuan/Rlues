@@ -1,6 +1,6 @@
 """Athena 9.9.8 _index.md bounds: ≤12 KiB, lists ≤10, item ≤160 bytes.
 
-Overflow is copied to sprints/{slug}/index-overflow.md, never dropped.
+Overflow is copied to .ai_state/index-overflow.md, never dropped.
 """
 from __future__ import annotations
 
@@ -77,37 +77,26 @@ def unquote(item: str) -> str:
     return text
 
 
-def read_slug(content: str) -> str:
-    match = re.search(r'^current_sprint_slug:\s*"?([^"\n]*)"?', content, re.M)
-    return match.group(1).strip() if match else ""
-
-
-def spill_path(ai_state: Path, slug: str) -> Path:
-    if slug:
-        return ai_state / "sprints" / slug / "index-overflow.md"
-    return ai_state / "index-overflow.md"
-
-
 def next_id(existing: str, prefix: str) -> int:
     nums = [int(n) for n in re.findall(rf"^## {re.escape(prefix)}-(\d+)", existing, re.M)]
     return max(nums) + 1 if nums else 0
 
 
 class Spiller:
-    def __init__(self, ai_state: Path, slug: str) -> None:
-        self.path = spill_path(ai_state, slug)
+    def __init__(self, ai_state: Path) -> None:
+        self.path = ai_state / "index-overflow.md"
         self.body = ""
         if self.path.is_file():
             self.body = self.path.read_text(encoding="utf-8")
         self.original = self.body
         if not self.body:
             self.body = (
-                f"# _index overflow — {slug or 'project'}\n\n"
+                "# _index overflow — project\n\n"
                 "Full items moved off `_index.md` (AC9). Do not delete.\n"
             )
 
     def pointer(self, ident: str) -> str:
-        return f"index-overflow.md#{ident}"
+        return f".ai_state/index-overflow.md#{ident}"
 
     def spill(self, prefix: str, full: str) -> str:
         ident = f"{prefix}-{next_id(self.body, prefix)}"
@@ -193,7 +182,7 @@ def enforce_bullet_section(content: str, heading: str, spill_prefix: str, spille
 
 
 def enforce_index_bounds(content: str, ai_state: Path) -> str:
-    spiller = Spiller(ai_state, read_slug(content))
+    spiller = Spiller(ai_state)
     next_content = enforce_route_history(content, spiller)
     next_content = enforce_bullet_section(next_content, "## 当前状态", "st", spiller)
     next_content = enforce_bullet_section(next_content, "## 历史", "hi", spiller)

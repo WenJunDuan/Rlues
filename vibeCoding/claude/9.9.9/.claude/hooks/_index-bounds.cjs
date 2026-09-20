@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Athena 9.9.8 _index.md bounds: ≤12 KiB, lists ≤10, item ≤160 bytes.
- * Overflow is copied to sprints/{slug}/index-overflow.md, never dropped.
+ * Overflow is copied to .ai_state/index-overflow.md, never dropped.
  */
 "use strict";
 
@@ -63,16 +63,6 @@ function unquote(item) {
   return text;
 }
 
-function readSlug(content) {
-  const match = String(content).match(/^current_sprint_slug:\s*"?([^"\n]*)"?/m);
-  return match ? match[1].trim() : "";
-}
-
-function spillPath(aiState, slug) {
-  if (slug) return path.join(aiState, "sprints", slug, "index-overflow.md");
-  return path.join(aiState, "index-overflow.md");
-}
-
 function loadSpill(filePath) {
   try { return fs.readFileSync(filePath, "utf8"); }
   catch (error) { if (error.code === 'ENOENT') return ""; throw error; }
@@ -83,15 +73,15 @@ function nextId(existing, prefix) {
   return nums.length ? Math.max(...nums) + 1 : 0;
 }
 
-function makeSpiller(aiState, slug) {
-  const filePath = spillPath(aiState, slug);
+function makeSpiller(aiState) {
+  const filePath = path.join(aiState, "index-overflow.md");
   let body = loadSpill(filePath);
   const original = body;
   if (!body) {
-    body = `# _index overflow — ${slug || "project"}\n\nFull items moved off \`_index.md\` (AC9). Do not delete.\n`;
+    body = "# _index overflow — project\n\nFull items moved off `_index.md` (AC9). Do not delete.\n";
   }
   return {
-    pointer(id) { return `index-overflow.md#${id}`; },
+    pointer(id) { return `.ai_state/index-overflow.md#${id}`; },
     spill(prefix, full) {
       const id = `${prefix}-${nextId(body, prefix)}`;
       body += `\n## ${id}\n\n${full}\n`;
@@ -155,8 +145,7 @@ function enforceBulletSection(content, heading, spillPrefix, spiller) {
 }
 
 function enforceIndexBounds(content, aiState) {
-  const slug = readSlug(content);
-  const spiller = makeSpiller(aiState, slug);
+  const spiller = makeSpiller(aiState);
   let next = enforceRouteHistory(content, spiller);
   next = enforceBulletSection(next, "## 当前状态", "st", spiller);
   next = enforceBulletSection(next, "## 历史", "hi", spiller);

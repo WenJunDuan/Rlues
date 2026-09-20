@@ -1,4 +1,5 @@
 """Behavioral 9.9.9 state/review regressions; run with unittest discovery."""
+import concurrent.futures
 import hashlib
 import importlib.util
 import json
@@ -10,7 +11,6 @@ import sys
 import tempfile
 import time
 import unittest
-import concurrent.futures
 sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -39,15 +39,64 @@ def invoke(platform, operation, index):
     return subprocess.run(args, text=True, capture_output=True)
 
 
+def invoke_bounds_with_payload(platform, index, payload, sync_dir):
+    if platform == 'cx':
+        code = ('import sys,time; from pathlib import Path; sys.path.insert(0,sys.argv[1]); '
+                'import _index_io as io; from _index_bounds import enforce_index_bounds; '
+                'p=Path(sys.argv[2]); sync=Path(sys.argv[3]); payload=sys.stdin.read(); '
+                'deadline=time.monotonic()+2; held=sync/"cc-held"; '
+                'exec("while not held.exists():\\n if time.monotonic() >= deadline: raise RuntimeError(\'CC did not acquire lock\')\\n time.sleep(0.01)"); '
+                'result=io.update(p,lambda _: enforce_index_bounds(payload,p.parent)); '
+                'print(result or "",end="")')
+        args = [sys.executable, '-c', code, str(CX), str(index), str(sync_dir)]
+    else:
+        code = ('const fs=require("fs"),path=require("path"),p=process.argv[2],'
+                'sync=process.argv[3],held=path.join(sync,"cc-held"),'
+                'observed=path.join(sync,"contention-observed"),'
+                'io=require(process.argv[1]+"/_index-io.cjs"),'
+                'bounds=require(process.argv[1]+"/_index-bounds.cjs"),'
+                'payload=fs.readFileSync(0,"utf8"),'
+                'wait=new Int32Array(new SharedArrayBuffer(4)),'
+                'prefix=path.basename(p)+".lock.",'
+                'result=io.update(p,()=>{fs.writeFileSync(held,"");const deadline=Date.now()+2000;'
+                'while(fs.readdirSync(path.dirname(p)).filter(name=>name.startsWith(prefix)&&name.endsWith(".json")).length<2){'
+                'if(Date.now()>=deadline)throw new Error("CX lock contender did not appear");'
+                'Atomics.wait(wait,0,0,10);}fs.writeFileSync(observed,"");'
+                'return bounds.enforceIndexBounds(payload,path.dirname(p));});'
+                'process.stdout.write(result||"");')
+        args = ['node', '-e', code, str(CC), str(index), str(sync_dir)]
+    return subprocess.run(args, input=payload, text=True, capture_output=True)
+
+
 class StateBehavior(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.ai = Path(self.tmp.name) / '.ai_state'
+        self.root = Path(self.tmp.name)
+        self.ai = self.root / '.ai_state'
         self.ai.mkdir()
         self.idx = self.ai / '_index.md'
         self.base = '---\ncurrent_sprint_slug: "example"\nroute_history: []\n---\n## 当前状态\n- ready\n'
         self.idx.write_text(self.base)
+
+    @property
+    def spill(self):
+        return self.ai / 'index-overflow.md'
+
+    @property
+    def sprint_spill(self):
+        return self.ai / 'sprints/example/index-overflow.md'
+
+    def assert_pointers_resolve(self, content, expected_prefix):
+        pointers = re.findall(r'(\.ai_state/index-overflow\.md)#([a-z]+-\d+)', content)
+        matching = [(relative, ident) for relative, ident in pointers
+                    if ident.startswith(expected_prefix + '-')]
+        self.assertTrue(matching, content)
+        overflow = self.spill.read_text()
+        for relative, ident in matching:
+            self.assertIn(f'## {ident}\n', overflow)
+            self.assertEqual((self.root / relative).resolve(), self.spill.resolve())
+        return [ident for _, ident in matching]
 
     def test_lock_timeout_never_mutates(self):
         for platform in ('cx', 'cc'):
@@ -76,14 +125,16 @@ class StateBehavior(unittest.TestCase):
 
     def test_noop_has_no_overflow_write(self):
         for platform in ('cx', 'cc'):
-            self.idx.write_text(self.base)
-            self.bound(platform)  # first normalization is allowed
+            self.idx.write_text(self.base.replace('- ready', '- ' + '原文' * 100))
+            first = self.bound(platform)
+            self.assertEqual(first.returncode, 0, first.stderr)
             before = self.idx.stat().st_mtime_ns
-            spill = self.ai / 'sprints/example/index-overflow.md'
-            spill_before = spill.stat().st_mtime_ns if spill.exists() else None
-            self.bound(platform)
+            spill_before = self.spill.stat().st_mtime_ns
+            second = self.bound(platform)
+            self.assertEqual(second.returncode, 0, second.stderr)
             self.assertEqual(self.idx.stat().st_mtime_ns, before, platform)
-            self.assertEqual(spill.stat().st_mtime_ns if spill.exists() else None, spill_before, platform)
+            self.assertEqual(self.spill.stat().st_mtime_ns, spill_before, platform)
+            self.assertFalse(self.sprint_spill.exists(), platform)
 
     def test_end_of_file_long_pointer_original_preserved(self):
         original = 'prefix-' + '长' * 200 + ' →index-overflow.md#prior-1'
@@ -93,8 +144,8 @@ class StateBehavior(unittest.TestCase):
             self.assertEqual(run.returncode, 0, run.stderr)
             item = self.idx.read_text().split('## 当前状态\n')[1].strip()[2:]
             self.assertLessEqual(len(item.encode()), 160, platform)
-            spill = self.ai / 'sprints/example/index-overflow.md'
-            self.assertIn(original, spill.read_text(), platform)
+            self.assertIn(original, self.spill.read_text(), platform)
+            self.assertFalse(self.sprint_spill.exists(), platform)
 
     def test_oversized_index_preserves_raw_body(self):
         body = '\n## Narrative\n' + '记录' * 7000
@@ -103,7 +154,61 @@ class StateBehavior(unittest.TestCase):
             run = self.bound(platform)
             self.assertEqual(run.returncode, 0, run.stderr)
             self.assertLessEqual(self.idx.stat().st_size, 12*1024, platform)
-            self.assertIn(body, (self.ai / 'sprints/example/index-overflow.md').read_text(), platform)
+            self.assertIn(body, self.spill.read_text(), platform)
+            self.assertFalse(self.sprint_spill.exists(), platform)
+
+    def test_all_spill_branches_emit_project_relative_resolvable_pointers(self):
+        long_item = '原文' * 100
+        cases = {
+            'rh': '---\ncurrent_sprint_slug: "example"\nroute_history: [' + json.dumps(long_item) + ']\n---\n## 当前状态\n- ready\n',
+            'st': self.base.replace('- ready', '- ' + long_item),
+            'hi': self.base + '\n## 历史\n- ' + long_item + '\n',
+            'body': self.base + '\n## Narrative\n' + '整文件' * 5000,
+        }
+        for platform in ('cx', 'cc'):
+            for prefix, original in cases.items():
+                with self.subTest(platform=platform, branch=prefix):
+                    self.spill.unlink(missing_ok=True)
+                    self.idx.write_text(original)
+                    run = self.bound(platform)
+                    self.assertEqual(run.returncode, 0, run.stderr)
+                    self.assert_pointers_resolve(self.idx.read_text(), prefix)
+                    self.assertFalse(self.sprint_spill.exists())
+
+    def test_mixed_platform_concurrent_bounds_preserve_both_payloads(self):
+        sync_dir = self.root / 'bounds-sync'
+        sync_dir.mkdir()
+        originals = {
+            'cx': 'cx-concurrent-original-' + '甲' * 200,
+            'cc': 'cc-concurrent-original-' + '乙' * 200,
+        }
+        payloads = {
+            platform: self.base.replace('- ready', '- ' + original)
+            for platform, original in originals.items()
+        }
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            futures = {
+                platform: pool.submit(
+                    invoke_bounds_with_payload, platform, self.idx, payload, sync_dir
+                )
+                for platform, payload in payloads.items()
+            }
+        results = {platform: future.result() for platform, future in futures.items()}
+        self.assertTrue(all(result.returncode == 0 for result in results.values()),
+                        {platform: result.stderr for platform, result in results.items()})
+        self.assertTrue((sync_dir / 'contention-observed').exists(),
+                        'CC must observe the CX lock contender before releasing its lock')
+        overflow = self.spill.read_text()
+        for original in originals.values():
+            self.assertIn(original, overflow)
+        headings = re.findall(r'^## (st-\d+)$', overflow, re.M)
+        self.assertEqual(len(headings), 2)
+        self.assertEqual(len(set(headings)), 2)
+        emitted = []
+        for platform, result in results.items():
+            emitted.extend(self.assert_pointers_resolve(result.stdout, 'st'))
+        self.assertEqual(len(set(emitted)), 2)
+        self.assertFalse(self.sprint_spill.exists())
 
     def test_mixed_platform_concurrent_updates_do_not_lose_increments(self):
         self.idx.write_text('0')
@@ -121,27 +226,25 @@ class StateBehavior(unittest.TestCase):
         run=invoke('cx',('io.update(p,lambda c: (enforce_index_bounds(c,p.parent),__import__("os")._exit(77))[0])',''),self.idx)
         self.assertEqual(run.returncode,77)
         self.assertEqual(self.idx.read_text(),original)
-        spill=self.ai/'sprints/example/index-overflow.md'
-        self.assertIn('崩溃原文'*200,spill.read_text())
+        self.assertIn('崩溃原文'*200,self.spill.read_text())
+        self.assertFalse(self.sprint_spill.exists())
         run=self.bound('cc')  # Recovery can happen on the other native implementation.
         self.assertEqual(run.returncode,0,run.stderr)
         self.assertNotEqual(self.idx.read_text(),original)
 
     def test_unreadable_existing_overflow_is_never_replaced(self):
-        spill=self.ai/'sprints/example/index-overflow.md'
-        spill.parent.mkdir(parents=True)
-        spill.write_text('original overflow survives')
+        self.spill.write_text('original overflow survives')
         self.idx.write_text(self.base.replace('- ready','- '+'long'*80))
         code='const fs=require("fs"),read=fs.readFileSync;fs.readFileSync=function(p,...args){if(String(p).endsWith("index-overflow.md")){const e=new Error("injected read failure");e.code="EACCES";throw e;}return read.call(this,p,...args)};require(process.argv[1]).enforceIndexBounds(read(process.argv[2],"utf8"),process.argv[3]);'
         run=subprocess.run(['node','-e',code,str(CC/'_index-bounds.cjs'),str(self.idx),str(self.ai)],capture_output=True,text=True)
         self.assertNotEqual(run.returncode,0)
-        self.assertEqual(spill.read_text(),'original overflow survives')
+        self.assertEqual(self.spill.read_text(),'original overflow survives')
 
     def test_route_history_keeps_newest_head_and_spills_oldest_tail(self):
         # route_history 新在前 (主 agent 头插): 11 条 → 保前 10, 最旧的第 11 条进 spill。
         items=[f'2026-09-18 route note {i}' for i in range(11)]
         rendered=', '.join(json.dumps(i) for i in items)
-        spill_path=self.ai/'sprints/example/index-overflow.md'
+        spill_path=self.spill
         for platform in ('cx','cc'):
             with self.subTest(platform=platform):
                 self.idx.write_text('---\ncurrent_sprint_slug: "example"\nroute_history: ['+rendered+']\n---\n## 当前状态\n- ready\n')
@@ -155,6 +258,39 @@ class StateBehavior(unittest.TestCase):
                 spill=spill_path.read_text()
                 self.assertIn(items[10],spill,platform)
                 self.assertNotIn(items[0],spill,platform)
+                self.assertFalse(self.sprint_spill.exists(),platform)
+
+    def test_templates_and_gitignore_use_root_overflow_contract(self):
+        templates = (
+            ROOT/'claude/9.9.9/.claude/skills/pace/templates/_index.md',
+            ROOT/'codex/9.9.9/.codex/skills/pace/templates/_index.md',
+            ROOT/'pi-agent/plugin/skills/pace/templates/_index.md',
+        )
+        for template in templates:
+            text = template.read_text()
+            self.assertIn('.ai_state/index-overflow.md', text, template)
+            self.assertNotIn('sprints/{slug}/index-overflow.md', text, template)
+        implementations = (
+            ROOT/'claude/9.9.9/.claude/hooks/_index-bounds.cjs',
+            ROOT/'codex/9.9.9/.codex/hooks/_index_bounds.py',
+        )
+        for implementation in implementations:
+            text = implementation.read_text()
+            self.assertNotRegex(text, r'readSlug|read_slug|spillPath|spill_path')
+        ignored = subprocess.run(
+            ['git', '-C', str(ROOT.parent), 'check-ignore', '--no-index',
+             '.ai_state/index-overflow.md'],
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(ignored.returncode, 1, ignored.stdout + ignored.stderr)
+        tracked = subprocess.run(
+            ['git', '-C', str(ROOT.parent), 'ls-files', '--error-unmatch',
+             '.ai_state/index-overflow.md'],
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(tracked.returncode, 0, tracked.stdout + tracked.stderr)
 
 
 class IndexUpdaterNextActionBehavior(unittest.TestCase):

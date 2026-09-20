@@ -1,6 +1,6 @@
 ---
-last_updated: "2026-08-27"
-triggered_by_sprint: "2026-08-27-athena-9-9-8"
+last_updated: "2026-09-20"
+triggered_by_sprint: "2026-09-20-index-overflow-root-transaction"
 state: "current"
 ---
 
@@ -78,6 +78,7 @@ sequenceDiagram
 
 ## 关键决策
 
+- `_index.md` 的 route/current/history/body 溢出统一进入 Git 跟踪的 `.ai_state/index-overflow.md`；pointer 使用项目相对路径，CC/CX 共用 `_index` 锁维持 overflow-before-index 事务，不再按 sprint 分叉同名文件。
 - Token usage unknown totals use `null`, not `0` -> `compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md`
 - Hook/tool outcomes that cannot be proven remain `unknown`; 9.9.2 additionally requires every labeled AC to have its own admissible PASS record with captured command/artifact or final review evidence -> `compound/2026-07-10-learning-codex-wire-evidence-fail-closed.md`
 - Fullstack delivery orchestration remains a PACE specialization; Capability Manifest reads are runtime-only and read-only.

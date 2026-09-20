@@ -15,7 +15,7 @@ skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/�
 
 # === 路由审议 (v9.9.6) ===
 route_confidence: 0               # 0-1, 主 agent 路由决策摘要中的置信度
-route_history: []                 # re-route 记录, 最多 10 条、单条 ≤160B; 溢出进 sprints/{slug}/index-overflow.md
+route_history: []                 # re-route 记录, 最多 10 条、单条 ≤160B; 溢出进 .ai_state/index-overflow.md
 plan_model: ""                    # 兼容旧状态；模型遵从用户有效配置，不按平台固定角色
 
 # === 平台与版本 ===
@@ -106,7 +106,7 @@ fingerprint: ""
 
 ## 当前状态
 
-[由主 agent 在 stage 切换时简短追加; 最多 10 条、单条 ≤160B; 溢出由 index-updater 搬进 sprints/{slug}/index-overflow.md]
+[由主 agent 在 stage 切换时简短追加; 最多 10 条、单条 ≤160B; 溢出由 index-updater 搬进 .ai_state/index-overflow.md]
 
 ## 工具调度建议
 

@@ -3,7 +3,7 @@ version: "9.9.8"
 type: "release"
 slug: "athena-9.9.8"
 status: "current"
-updated: "2026-08-27"
+updated: "2026-09-20"
 supersedes: "athena-9.9.6.md"
 ---
 
@@ -24,7 +24,7 @@ supersedes: "athena-9.9.6.md"
 
 - `sourceDiffSha256`：`git ls-files -c -o --exclude-standard` 树内容（含 untracked，排除 `.ai_state/`）；空哈希 fail-closed。
 - hook 红 block / 黄 warning / 绿 async；同事件最多一个同步 blocker。
-- `_index` ≤12KiB、列表 ≤10、单条 ≤160B；溢出进 `sprints/{slug}/index-overflow.md`，不丢弃。
+- `_index` ≤12KiB、列表 ≤10、单条 ≤160B；route/current/history/body 溢出统一进 Git 跟踪的 `.ai_state/index-overflow.md`，项目相对 pointer 可解析，CC/CX 由同一索引锁串行化且不丢弃原文。
 - telemetry 退出 Git；运行时文件 `.ai_state/.runtime/`（baseline 豁免 retention）。
 - VM 与 LLM-as-a-Verifier 仅 opt-in 槽，不进默认热路径。
 
