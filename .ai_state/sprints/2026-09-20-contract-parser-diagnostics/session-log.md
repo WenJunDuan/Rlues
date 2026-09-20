@@ -24,3 +24,5 @@
 - 2026-09-20：generator 交付（4 commit / 92 tool 轮 / 15 新测试红→绿）。主 agent 核验：改动面=写集 11 文件；15/15+52/52 复跑绿；Pi 既有分叉 55 行原样；三端 exports 未动。rebase 到 main 后 ff 合入 `fd9d1d0`，主仓复跑 67/67 绿，worktree 与临时分支按 2026-09-07 裁定即时清理。
 - 2026-09-20：runtime-verify PASS：受控 git 夹具实跑真实 hook 进程 6 场景（别名放行/两层零条目报错/packet 污染消除/零小节独立报错/TDD 四层诊断），CC/CX 消息逐字一致；S5 因导出面合同用发行文件进程级探针，已在档案中如实注明。generator 报告的 CC/CX 既有文案分叉（requireFile 空文件消息、mismatch 拼接格式）记为非本切片目标，留 roadmap 切片 9 发行一致性核对时裁量。
 - 2026-09-20：tdd-evidence.yaml 未创建：门禁仅在 review-manifest 存在时校验之，本 sprint 无 manifest，无消费者不造文书（铁律[反过度工程]）。红→绿事实由 generator commit 序列（61123a5 红先行→aa49755 绿）与 evidence collector 记录佐证。
+- 2026-09-20：polish PASS（commit `d7e6786`）：报错提示折叠为 acceptanceHeadHint 单一来源（端内 6 份拷贝漂移无测试可拦——已沉淀 compound learning single-source-error-strings）；删 3 处边界内死防御/死分支；行为零变化有旧新版本同进程逐字比对佐证。主 agent 复核 67/67 绿、写集合规。ARCHITECTURE.md 补合同解析一节，cleanup-pass.md 落盘，stage→review。
+- 2026-09-20：**异常挂起**：工作树出现非任何 writer 的 `vibeCoding/pi-agent/config/settings.json` 漂移（defaultThinkingLevel medium→auto），generator（worktree 隔离）与 polish-worker（自述未碰）均无嫌疑，疑似 Pi 进程或用户本机改动。不入本 sprint 提交，留工作树，ship 收口时向用户报告定夺。

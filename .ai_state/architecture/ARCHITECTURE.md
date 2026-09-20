@@ -89,3 +89,4 @@ sequenceDiagram
 - manifest 的 `implementation_commit` 在 prepare 即与 HEAD 比对，窄扫单字段：过期则失败并指出哪侧过期，缺失或非 40-hex 则跳过（完整校验仍在 ship），**绝不重写该文件**——静默改正会销毁「本次审查针对另一份代码准备」的证据。预检不新增运行期 `base_commit` 比较，ship 记账提交移动 HEAD 不作废审查这一容忍保持。
 - 治理哈希由 `review-binding governance` 输出，调用门禁自己的函数而非重抄，并**按门禁的 `--git-common-dir` 规则解析 `_index.md`**：CLI 惯用的 `--show-toplevel` 在 linked worktree 中指向 worktree 根，两份 `_index.md` 会分叉，那正是该子命令要防的错哈希。
 - Fullstack delivery orchestration remains a PACE specialization; Capability Manifest reads are runtime-only and read-only.
+- AC 标识只从合同结构提取：design/packet 的 AC 集一律经 `acceptanceSections`（found/items 两态）取自验收小节，成对反引号 span 与围栏代码不参与 `\bAC\d+\b` 匹配（`stripInlineCode` 单实现供 design ids / packet ids / mapping labels 三消费点）。验收标题在全名三别名外增加严边界短别名 `AC`/`验收`（仅行尾或冒号后随），常量与报错文案同源（`acceptanceHeadHint` 单一来源），零小节与零条目是两条不同诊断。TDD 证据九字段合同不变，失败按「空文件 / 未解析出记录 / 第 N 条缺哪些字段 / 时间序三实际值」分层。三端消息逐字同源，Pi 由函数文本相等断言（`PiSameSourceParity`）机械钉住；切片 3 的 gate 全文件字节钉随本切片合法改 gate 而移除。
