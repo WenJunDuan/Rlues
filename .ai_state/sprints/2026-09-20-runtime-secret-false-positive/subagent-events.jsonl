@@ -2,3 +2,4 @@
 {"schema_version":1,"event":"SubagentStop","agent_id":"ac0629f1625be8846","agent_type":"generator","sprint_slug":"2026-09-20-runtime-secret-false-positive","timestamp":"2026-09-20T11:50:16.156Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"a90ea58f2326a1407","agent_type":"polish-worker","sprint_slug":"2026-09-20-runtime-secret-false-positive","timestamp":"2026-09-20T12:07:12.968Z"}
 {"schema_version":1,"event":"SubagentStop","agent_id":"a90ea58f2326a1407","agent_type":"polish-worker","sprint_slug":"2026-09-20-runtime-secret-false-positive","timestamp":"2026-09-20T12:15:45.807Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"a4f8aa277f2b765ff","agent_type":"reviewer","sprint_slug":"2026-09-20-runtime-secret-false-positive","timestamp":"2026-09-20T12:18:09.271Z"}
