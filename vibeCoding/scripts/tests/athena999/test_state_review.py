@@ -505,10 +505,10 @@ class InputBindingBehavior(unittest.TestCase):
         subprocess.run(['git', '-C', str(self.root), 'add', 'app.py'], check=True)
         subprocess.run(['git', '-C', str(self.root), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'base'], check=True)
 
-    def review_command(self, platform, action, *args):
+    def review_command(self, platform, action, *args, cwd=None):
         directory, suffix, runner = (CX,'.py',sys.executable) if platform == 'cx' else (CC,'.cjs','node')
         cli=directory.parent/'skills/pace/scripts'/('review-binding'+suffix)
-        return subprocess.run([runner,str(cli),action,'--cwd',str(self.root),*args],text=True,capture_output=True)
+        return subprocess.run([runner,str(cli),action,'--cwd',str(cwd or self.root),*args],text=True,capture_output=True)
 
     def seed_review_packet(self):
         design=(self.sprint/'design.md').read_bytes()
@@ -950,6 +950,71 @@ class InputBindingBehavior(unittest.TestCase):
                     run=self.review_command(platform,'prepare')
                     self.assertEqual(run.returncode,0,run.stderr)
                     self.assertEqual(self.review_command(platform,'supersede','--run',json.loads(run.stdout)['review_run_id']).returncode,0)
+
+    def test_governance_matches_gate_and_is_equal_across_platforms(self):
+        index=self.root/'.ai_state/_index.md'
+        index.write_text('---\nversion: "9.9.9"\npath: "System"\ncurrent_sprint_slug: "test"\nskip_polish: false\nskip_runtime_verify: false\nskip_architecture_check: false\nskip_impl_subagent_check: false\nplan_critique_disabled: false\nplan_critique_min_rounds: 0\n---\n')
+        before={p:hashlib.sha256(p.read_bytes()).hexdigest() for p in self.root.rglob('*') if p.is_file() and '.git' not in p.parts}
+        outputs=[]
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                run=self.review_command(platform,'governance')
+                self.assertEqual(run.returncode,0,run.stderr)
+                outputs.append(run.stdout)
+                body=json.loads(run.stdout)
+                if platform=='cx':
+                    gate=py_module('delivery-gate')
+                    fm=gate.parse_frontmatter(index.read_text())
+                    self.assertEqual(body['index_governance_sha256'],gate.index_governance_sha256(fm))
+                    self.assertEqual(body['fields'],{key:fm.get(key,'') for key in sorted(gate.INDEX_GOVERNANCE_FIELDS)})
+                else:
+                    code=('const fs=require("fs"),m=require(process.argv[1]),fm=m.parseFrontmatter(fs.readFileSync(process.argv[2],"utf8")),fields={};'
+                          'for (const key of [...m.INDEX_GOVERNANCE_FIELDS].sort()) fields[key]=String(fm[key]||"");'
+                          'process.stdout.write(JSON.stringify({index_governance_sha256:m.indexGovernanceSha256(fm),fields}));')
+                    cc=subprocess.run(['node','-e',code,str(CC/'delivery-gate.cjs'),str(index)],text=True,capture_output=True)
+                    self.assertEqual(cc.returncode,0,cc.stderr)
+                    self.assertEqual(body,json.loads(cc.stdout))
+        self.assertEqual(len(outputs),2)
+        self.assertEqual(outputs[0],outputs[1])
+        after={p:hashlib.sha256(p.read_bytes()).hexdigest() for p in self.root.rglob('*') if p.is_file() and '.git' not in p.parts}
+        self.assertEqual(before,after)
+
+    def test_governance_uses_main_repo_index_from_linked_worktree(self):
+        main_index='---\nversion: "9.9.9"\npath: "System"\ncurrent_sprint_slug: "main-sprint"\n---\n'
+        wt_index='---\nversion: "9.9.9"\npath: "Feature"\ncurrent_sprint_slug: "worktree-sprint"\n---\n'
+        (self.root/'.ai_state/_index.md').write_text(main_index)
+        wt_home=Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: shutil.rmtree(wt_home,ignore_errors=True))
+        wt=wt_home/'linked'
+        subprocess.run(['git','-C',str(self.root),'worktree','add','-q',str(wt),'HEAD'],check=True)
+        self.addCleanup(lambda: subprocess.run(['git','-C',str(self.root),'worktree','remove','--force',str(wt)],capture_output=True))
+        (wt/'.ai_state').mkdir(parents=True)
+        (wt/'.ai_state/_index.md').write_text(wt_index)
+        gate=py_module('delivery-gate')
+        expected=gate.index_governance_sha256(gate.parse_frontmatter(main_index))
+        wrong=gate.index_governance_sha256(gate.parse_frontmatter(wt_index))
+        self.assertNotEqual(expected,wrong)
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                run=self.review_command(platform,'governance',cwd=wt)
+                self.assertEqual(run.returncode,0,run.stderr)
+                body=json.loads(run.stdout)
+                self.assertEqual(body['index_governance_sha256'],expected)
+                self.assertNotEqual(body['index_governance_sha256'],wrong)
+
+    def test_governance_works_without_sprint_and_fails_without_index(self):
+        (self.root/'.ai_state/_index.md').write_text('---\nversion: "9.9.9"\npath: "System"\nstage: "ship"\n---\n')
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform,case='no-sprint'):
+                run=self.review_command(platform,'governance')
+                self.assertEqual(run.returncode,0,run.stderr)
+                self.assertIn('index_governance_sha256',run.stdout)
+        (self.root/'.ai_state/_index.md').unlink()
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform,case='missing'):
+                run=self.review_command(platform,'governance')
+                self.assertNotEqual(run.returncode,0)
+                self.assertIn('_index.md',run.stderr)
 
     def test_assert_live_degrades_without_input_hashes(self):
         self.seed_review_packet()

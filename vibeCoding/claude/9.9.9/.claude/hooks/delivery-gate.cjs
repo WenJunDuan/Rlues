@@ -1431,7 +1431,7 @@ function main() {
   }
 }
 
-module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateReviewBinding, validateEvidence, validateVmPendingPromises, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract };
+module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateReviewBinding, validateEvidence, validateVmPendingPromises, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract, indexGovernanceSha256, INDEX_GOVERNANCE_FIELDS };
 if (require.main === module) {
   main();
 }

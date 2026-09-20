@@ -1,6 +1,7 @@
 'use strict';
 // One native review/receipt binding in session-log.md; no second task state store.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
+const {execFileSync} = require('child_process');
 const input = require('./_input-binding.cjs'), io = require('./_index-io.cjs');
 const NATIVE_BINDINGS = {review_run_id:'review_run_id',mode:'mode',base_commit:'base_commit',packet_sha256:'packet_sha256',
   reviewed_packet_sha256:'packet_sha256',input_manifest_sha256:'input_manifest_sha256',reviewed_diff_sha256:'reviewed_diff_sha256'};
@@ -256,9 +257,40 @@ function validateCurrent(root,sprint,review) {
   if (target!==bound[0].reviewer_target || target!==row.reviewer_target || !['completed','complete','succeeded'].includes(status)) throw new Error('native result identity/status mismatch');
   validateNativeMetadata(output,prepared,root);
 }
+function gateRepoRoot(cwd) {
+  const run = args => {
+    try { return execFileSync('git', args, {cwd, encoding:'utf8', stdio:['ignore','pipe','ignore'], timeout:15000}).trim(); }
+    catch (_) { return ''; }
+  };
+  const commonDir = run(['rev-parse','--path-format=absolute','--git-common-dir']);
+  if (commonDir && path.basename(commonDir)==='.git') return path.dirname(commonDir);
+  return run(['rev-parse','--show-toplevel']) || '';
+}
+function gateAiState(start) {
+  if (!start) return '';
+  let current = path.resolve(start);
+  for (let depth=0; depth<8; depth+=1) {
+    const candidate = path.join(current,'.ai_state');
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+    if (fs.existsSync(path.join(current,'.git'))) return '';
+    const parent = path.dirname(current);
+    if (parent===current) break;
+    current = parent;
+  }
+  return '';
+}
+function governance(cwd) {
+  const gate = require('./delivery-gate.cjs');
+  const root = gateRepoRoot(cwd), aiState = gateAiState(root) || gateAiState(cwd);
+  const index = aiState ? path.join(aiState,'_index.md') : '';
+  if (!index || !fs.existsSync(index)) throw new Error('_index.md is absent');
+  const fm = gate.parseFrontmatter(fs.readFileSync(index,'utf8')), fields = {};
+  for (const key of [...gate.INDEX_GOVERNANCE_FIELDS].sort()) fields[key] = String(fm[key] || '');
+  return {index_governance_sha256:gate.indexGovernanceSha256(fm),fields};
+}
 function main(argv=process.argv.slice(2)) {
   if (argv.includes('--help') || !argv.length) {
-    process.stdout.write('Usage: review-binding.cjs prepare|bind|accept|supersede [--cwd ABS_WORKTREE] [--mode design|implementation] [--input REL_DOC ...] [--run PREPARED_ID] [--receipt NATIVE_TOOL_RESULT.json]\nPrepare generates run/base/packet/input/evidence hashes from actual files. Bind and accept read saved native tool results, never a guessed target. Accept requires completed status and an explicit verdict; negative results are retained for rework, only PASS is deliverable. Supersede only after the old request ended or was invalidated.\n'); return 0;
+    process.stdout.write('Usage: review-binding.cjs prepare|bind|accept|supersede|governance [--cwd ABS_WORKTREE] [--mode design|implementation] [--input REL_DOC ...] [--run PREPARED_ID] [--receipt NATIVE_TOOL_RESULT.json]\nPrepare generates run/base/packet/input/evidence hashes from actual files. Bind and accept read saved native tool results, never a guessed target. Accept requires completed status and an explicit verdict; negative results are retained for rework, only PASS is deliverable. Supersede only after the old request ended or was invalidated. Governance prints the gate governance hash of the _index.md the gate reads and writes nothing.\n'); return 0;
   }
   const action=argv[0], args={cwd:process.cwd(),mode:'implementation',input:[]};
   try {
@@ -268,7 +300,8 @@ function main(argv=process.argv.slice(2)) {
       if (key==='input') args.input.push(argv[i+1]); else args[key]=argv[i+1];
     }
     let result;
-    if (action==='prepare') result=prepare(args.cwd,args.mode,args.input);
+    if (action==='governance') result=governance(args.cwd);
+    else if (action==='prepare') result=prepare(args.cwd,args.mode,args.input);
     else if (!args.run) throw new Error('--run required');
     else if (action==='supersede') { const [,sprint]=input.context(args.cwd); current(sprint,args.run); result=append(sprint,{event:'superseded',review_run_id:args.run}); }
     else if (!args.receipt) throw new Error('--receipt required');

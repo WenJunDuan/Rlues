@@ -349,9 +349,20 @@ def validate_current(root: Path, sprint: Path, review: Path) -> None:
         raise ValueError('native result identity/status mismatch')
     validate_native_metadata(output,prepared,root)
 
+def governance(cwd: Path) -> dict:
+    gate = delivery_gate()
+    root = gate.git_root(cwd)
+    ai_state = gate.find_ai_state(root) or gate.find_ai_state(cwd)
+    index = (ai_state / '_index.md') if ai_state is not None else None
+    if index is None or not index.is_file():
+        raise ValueError('_index.md is absent')
+    fm = gate.parse_frontmatter(index.read_text(encoding='utf-8'))
+    fields = {key: fm.get(key, '') for key in sorted(gate.INDEX_GOVERNANCE_FIELDS)}
+    return {'index_governance_sha256': gate.index_governance_sha256(fm), 'fields': fields}
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description='Prepare, bind and accept one native review using real saved tool-result JSON. Completed negative verdicts are retained for rework; only PASS is deliverable. No model or platform dispatch is invented.')
-    parser.add_argument('action',choices=['prepare','bind','accept','supersede'])
+    parser = argparse.ArgumentParser(description='Prepare, bind and accept one native review using real saved tool-result JSON. Completed negative verdicts are retained for rework; only PASS is deliverable. Governance prints the gate governance hash of the _index.md the gate reads and writes nothing. No model or platform dispatch is invented.')
+    parser.add_argument('action',choices=['prepare','bind','accept','supersede','governance'])
     parser.add_argument('--cwd',type=Path,default=Path.cwd(),help='Actual Git worktree; current sprint comes from _index.md')
     parser.add_argument('--mode',choices=['design','implementation'],default='implementation')
     parser.add_argument('--input',action='append',default=[],help='Additional reviewed document relative to worktree; repeat as needed')
@@ -359,7 +370,8 @@ def main() -> int:
     parser.add_argument('--receipt',type=Path,help='Verbatim native tool result JSON with actual target and, for accept, completed output')
     args = parser.parse_args()
     try:
-        if args.action == 'prepare': result = prepare(args.cwd,args.mode,args.input)
+        if args.action == 'governance': result = governance(args.cwd)
+        elif args.action == 'prepare': result = prepare(args.cwd,args.mode,args.input)
         elif not args.run: raise ValueError('--run required')
         elif args.action == 'supersede':
             _,sprint = context(args.cwd); current(sprint,args.run)
