@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 mode: "design"
-review_run_id: "9929ee26-f80f-47e4-bff2-e8683b53ab71"
-reviewer_target: "ac68650c220cd5d48"
-packet_sha256: "00fcdf05fde9e3e0a57ab9d5f880d8a95298939a7525ed79011fb029d7013d9d"
-input_manifest_sha256: "64982c6fb1518c6d5f38d81e4e903033561f270d53cbdda676399b93510231c4"
-native_output_ref: "reviews/_native/9929ee26-f80f-47e4-bff2-e8683b53ab71-result.json"
+review_run_id: "08279803-7d6d-4742-96bc-dbff95142490"
+reviewer_target: "a4a4f0dabce901e10"
+packet_sha256: "475fe4ae9dc1d4f5b73ebcbfb0e4acbe46ed6e40f01ab8c03c1907ba4fc37019"
+input_manifest_sha256: "e2c210db113189f1834bbd68450dd92df1751996221b1e956ffa205f338c2917"
+native_output_ref: "reviews/_native/08279803-7d6d-4742-96bc-dbff95142490-result.json"
 verdict: "REWORK"
 ---
 
@@ -14,20 +14,17 @@ verdict: "REWORK"
 ---
 schema_version: 1
 mode: design
-packet_sha256: "00fcdf05fde9e3e0a57ab9d5f880d8a95298939a7525ed79011fb029d7013d9d"
-review_run_id: "9929ee26-f80f-47e4-bff2-e8683b53ab71"
+packet_sha256: "475fe4ae9dc1d4f5b73ebcbfb0e4acbe46ed6e40f01ab8c03c1907ba4fc37019"
+review_run_id: "08279803-7d6d-4742-96bc-dbff95142490"
 verdict: REWORK
-finding_counts: {P0: 2, P1: 1, P2: 3}
+finding_counts: {P0: 2, P1: 2, P2: 3}
 dimensions: [spec, correctness, security, tests, overengineering]
 ---
 
-核心断言一半成立：8 个对抗首行实测安全（$V 展开/重定向/声明后参数/管道/双声明拒/分号多命令/续行次行声明/同行命令不掩）。失效点唯一：第 3 条只约束字符集，不证明 << 处于重定向位置。
-
-P0-1（同因第四次）算术上下文逃逸：(( 1 << 'a' )) / $[ 1 << 'a' ] / if (( … )) / 数组下标 [1<<'i'] 四形态满足窄形全部条件、定界符名取引号内字面、后文存在同名物理行 → 掩真实执行行。排除性反证：let/declare -i 的 << 仍是重定向，掩码正确=有界集。修法有界：第 3 条黑名单加 ( 与 [（保守版），五反例入 AC3 先红。
-P0-2 unquoted 豁免非单调实测证伪：正文英文撇号（don't）留在主扫描流 → findSubstitutions 进入永不闭合单引号态 → 今日 BLOCK 的 $(rm -rf /) 变 ALLOW。底层奇数引号遮蔽为既存缺陷，但本切片把今日拦的输入变放行=计 fail-open。修法有界：正文以独立字符串从干净词法态单独扫替换再并入，严格单调。
-P1-1 窄形正向用例三缺口（<<- 只剥 tab 不剥空格/终止行尾随空格不闭合/首行同行内容永不掩）需 AC 钉。
-P2-1 定界符 token 终点写死（名=引号内字面，右引号后残留破坏窄形）。P2-2 悬空承诺清点补 roadmap.md:73 与 items.yaml:60。P2-3 通过项：$VAR 许可正确、裸定界符歧义全落 over-block、双射 7/7、等价矩阵覆盖前四轮档案完整。
-
-合同处置：与前三次 P0 同根因（guard 对 shell 词法自信地错、错处即掩码吞真实执行），同因第四次，不得自动进 rev 6，交还用户。决策信息：本轮修复面有界且不回全文法路线；建议 rev 6 把安全论证改为正向枚举（窄形成立 ⇒ << 必在重定向位置）。证据脚本 /tmp/hdadv/ 可复跑。
+正向枚举前提句被实测证伪（同因第五次）：<< 还有第二类非重定向义——${…} 展开体内为纯字面（${v:-<<'a' } 窄形全条件成立、bash 不开 heredoc、次行真执行、今日拦 rev6 放）；且 ${var:offset} 子串偏移是第五种算术入口（不需 ( 也不需 [）。判别边界实测：无操作符 $v/${v} 的 << 仍是真 heredoc（rev5 的 8 对抗只测到此类）；let/declare 排除性反证成立。
+P1-1 AC2 撇号钉基线不符：撇号在替换之前时今日已放行，「今日拦」写不出先红；须钉死顺序或改述「不引入新放行」。并集单调性本身成立。
+P1-2 六个活体样本原文未落盘：AC1 不可复现、过拦代价零损失结论无据。要求样本原文（或规范化最小复现）落 evidence。
+P2：AC3 计数 17≠18 口径修正（矩阵覆盖对照四轮档案完整）；「shell 分隔字符」集合须写死（建议 bash metachar）；rev5 findings 闭合核对全 CLOSED。
+合同处置：同因第五次，不得自动进 rev 7。选项：a) 黑名单再加 {/} 有界续命+先落样本重测代价；b) 白名单正则窄形（失败方向恒为过拦，复核者倾向）；c) 放弃掩码。复现脚本 /tmp/hd6/。
 
 VERDICT: REWORK

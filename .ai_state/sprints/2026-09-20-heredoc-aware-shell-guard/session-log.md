@@ -43,3 +43,6 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/08279803-7d6d-4742-96bc-dbff95142490-dispatch.json","dispatch_receipt_sha256":"af99e2801994091c0160d13fa8c8b9212f71fa238851b040403ce8b75eed19f7","event":"bound","recorded_at":"2026-09-20T12:25:47.763Z","review_run_id":"08279803-7d6d-4742-96bc-dbff95142490","reviewer_target":"a4a4f0dabce901e10"} -->
 - 2026-09-20：用户批准 rev 6（有界修复）。黑名单加 (/[ + 正向枚举论证 + unquoted 并集结构（主流不变+独立扫描）。复核 run `08279803` 派发绑定，核心挑战=枚举第五种算术入口。
+- 2026-09-20：rev 6 复核 REWORK 同因第五次（run `08279803`）：${…} 展开体内 << 为字面（{ 不在黑名单）+ ${var:offset} 第五算术入口。黑名单路线三次被加字符续命三次被攻破；复核者倾向白名单窄形（失败恒过拦）。另 P1-2：六活体样本原文未落盘须补。交还用户。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/08279803-7d6d-4742-96bc-dbff95142490-result.json","native_output_sha256":"725498635958e81d06bb21b5aefadcf2a140184fbabe87e04307d9d3d3cfd46e","output_ref":"reviews/design-review.md","output_sha256":"e2a90229347e6e9e4bb6550d450918b440b1be1a3e09f09783874955e52e06ac","recorded_at":"2026-09-20T12:33:09.339Z","review_run_id":"08279803-7d6d-4742-96bc-dbff95142490","reviewer_target":"a4a4f0dabce901e10","verdict":"REWORK"} -->

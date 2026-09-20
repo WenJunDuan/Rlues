@@ -7,7 +7,7 @@ version: "9.9.9"
 path: "System"
 stage: "review"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-20-runtime-secret-false-positive"
+current_sprint_slug: "2026-09-20-heredoc-aware-shell-guard"
 current_roadmap_slug: "q12-batch2-production-gaps"
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
