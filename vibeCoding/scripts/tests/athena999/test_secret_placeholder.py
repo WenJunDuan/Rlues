@@ -48,6 +48,17 @@ REAL_SECRETS = (
     b'token: ghp_A1b2C3d4E5f6G7h8I9j0',
     b'key: sk-A1b2C3d4E5f6G7h8I9j0K',
     b'-----BEGIN RSA PRIVATE KEY-----',
+    # Reference shape wrapping a real key body: the entropy veto runs before the branch.
+    b'api_key = "${A1b2C3d4E5f6G7h8I9j0}"',
+    # Bracketed but over the 48-byte cap, with no placeholder word and no >= 16 run:
+    # the narrow intersection where only the length cap keeps the value a secret.
+    b'password = "<a1b2c3d4-e5f6g7h8-i9j0k1l2-m3n4o5p6-q7r8s9t0-u1v2w3x4>"',
+)
+# Filler bodies are shorter than the 12-byte quoted-branch floor, so the runner never
+# reaches its predicate at all; the C hooks keep their own reachable filler branch.
+FILLER_BODIES = (
+    b'password = "TBD"',
+    b'api_key: "TODO"',
 )
 # Placeholder and real secret in one file, one line, or nested inside a released span.
 MIXED_SECRETS = (
@@ -69,6 +80,18 @@ ENV_CREDENTIAL_LINES = (
     'runtime: token=A1b2C3d4E5f6G7h8I9j0',
     'version: password: X9kQ2mL7vR4nZ8wP1cD',
     'image: https://user:pw@example.invalid/img',
+    # Same-line ordering: a low-entropy credential followed by a placeholder key must not
+    # be released by the trailing placeholder, and the reverse order must keep throwing.
+    'recipe: password: Tr0ub4dor3-xkcd token: YOUR_TOKEN',
+    'recipe: token: YOUR_TOKEN password: Tr0ub4dor3-xkcd',
+    'recipe: token: ghp_A1b2C3d4E5f6G7h8I9j0 api_key: YOUR_KEY',
+    # Reference shape carrying a real key body: entropy veto precedes the reference branch.
+    'runtime: api_key: ${A1b2C3d4E5f6G7h8I9j0}',
+)
+# Documented residual (design "量化残余"): every alnum run is < 16 and a bordered
+# placeholder word trails the value, so the conservative predicate still releases it.
+ENV_RESIDUAL_LINES = (
+    'recipe: password: P@ssw0rd!2024 (example)',
 )
 ENV_MIXED_LINES = (
     'recipe: token: ${TOK} password: A1b2C3d4E5f6G7h8I9j0',
@@ -116,6 +139,13 @@ class PredicateMatrix(unittest.TestCase):
                 with self.subTest(runner=name, fixture=fixture):
                     self.assertTrue(runtime.secret_present(fixture))
 
+    def test_filler_bodies_are_out_of_reach_of_the_runner_predicate(self):
+        for name, runtime in RUNTIMES:
+            for fixture in FILLER_BODIES:
+                with self.subTest(runner=name, fixture=fixture):
+                    self.assertFalse(runtime.secret_present(fixture))
+                    self.assertFalse(hasattr(runtime, 'FILLER'))
+
     def test_redaction_behaviour_is_unchanged(self):
         for name, runtime in RUNTIMES:
             for fixture in PLACEHOLDERS + REAL_SECRETS:
@@ -142,6 +172,8 @@ class ConsumptionPoints(unittest.TestCase):
         self.env = dict(os.environ, HOME=str(self.home), PYTHONDONTWRITEBYTECODE='1')
 
     def cli(self, *args):
+        # One runner drives the end-to-end path; the other is covered by the byte-equality
+        # assertion in test_runtime_runner_is_byte_identical_on_cc_and_cx.
         return subprocess.run([sys.executable, str(RUNTIME_CX), *map(str, args)],
                               capture_output=True, text=True, env=self.env)
 
@@ -241,14 +273,14 @@ class ConsumptionPoints(unittest.TestCase):
         repo = self.repo(b'api_key = "YOUR_API_KEY_HERE"\n')
         bundle = self.base / 'input.tar.gz'
         self.assertEqual(self.cli('snapshot', '--repo', repo, '--output', bundle).returncode, 0)
-        runtime = RUNTIMES[0][1]
-        runtime.inspect_bundle(bundle.read_bytes())
-        for fixture in REAL_SECRETS + MIXED_SECRETS:
-            with self.subTest(fixture=fixture):
-                tampered = self.tamper(bundle, 'source/config.yaml', fixture)
-                with self.assertRaises(ValueError) as caught:
-                    runtime.inspect_bundle(tampered.read_bytes())
-                self.assertEqual(str(caught.exception), 'secret pattern in transferred input')
+        for name, runtime in RUNTIMES:
+            runtime.inspect_bundle(bundle.read_bytes())
+            for fixture in REAL_SECRETS + MIXED_SECRETS:
+                with self.subTest(runner=name, fixture=fixture):
+                    tampered = self.tamper(bundle, 'source/config.yaml', fixture)
+                    with self.assertRaises(ValueError) as caught:
+                        runtime.inspect_bundle(tampered.read_bytes())
+                    self.assertEqual(str(caught.exception), 'secret pattern in transferred input')
 
 
 class EnvironmentCredentialSyntax(unittest.TestCase):
@@ -277,7 +309,7 @@ class EnvironmentCredentialSyntax(unittest.TestCase):
             return None, str(error)
 
     def test_placeholder_environment_values_are_accepted_on_both_natives(self):
-        for line in ENV_PLACEHOLDER_LINES:
+        for line in ENV_PLACEHOLDER_LINES + ENV_RESIDUAL_LINES:
             with self.subTest(line=line):
                 self.write(line)
                 run = self.cc()
