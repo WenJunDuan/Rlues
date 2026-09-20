@@ -69,9 +69,11 @@ def secret_body(match):
 def secret_present(data):
     """True when data holds any match that is not a recognized placeholder.
 
-    Every match must clear the predicate, and a released body is rescanned so a prefixed
-    key nested inside a reference-shaped value still blocks. Bodies shrink on each hop,
-    so the recursion terminates.
+    Every match must clear the predicate. A released match is rescanned through its value
+    body, so a prefixed key nested inside a reference-shaped value still blocks; the rest
+    of a span is the fixed key name or prefix literal and cannot host a nested credential,
+    and scanning the body avoids re-matching the span that just released. Bodies shrink on
+    every hop, so the recursion terminates.
     """
     for match in SECRET.finditer(data):
         body = secret_body(match)
