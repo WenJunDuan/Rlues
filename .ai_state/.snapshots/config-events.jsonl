@@ -254,3 +254,7 @@
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"doc-style.md","timestamp":"2026-09-20T10:19:23.776Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-09-20T10:19:23.776Z"}
 {"schema_version":1,"event":"ConfigChange","source":"skills","file_name":"gate-contracts.md","timestamp":"2026-09-20T10:35:51.600Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"CLAUDE.md","timestamp":"2026-09-20T10:43:46.482Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-09-20T10:43:46.482Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"CLAUDE.md","timestamp":"2026-09-20T10:43:50.139Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-09-20T10:43:50.140Z"}
