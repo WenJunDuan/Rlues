@@ -5,7 +5,7 @@ description: 跨 sprint 经验沉淀到 compound/。learning / trick / decision 
 
 # /compound — 复利知识沉淀
 
-一事一档, ≤100 行。电宝体: 教训一句话。模板 `templates/{learning,trick,decision,explore}.md`。
+一事一档, ≤100 行。电报体: 教训一句话。模板 `templates/{learning,trick,decision,explore}.md`。
 
 ## 四类
 

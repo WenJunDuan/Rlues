@@ -7,7 +7,7 @@ polish_worker: ""              # 谁做的: 主 agent | polish_worker subagent
 
 # Cleanup Pass — {sprint_slug}
 
-> Refactor / System 强制. 电宝体: 五项各一行结论。VERDICT 须含 PASS/completed/完成。
+> Refactor / System 强制. 电报体: 五项各一行结论。VERDICT 须含 PASS/completed/完成。
 
 ## 5 检查项 (借 polish skill)
 

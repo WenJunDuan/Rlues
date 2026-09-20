@@ -7,7 +7,7 @@ last_updated: ""
 
 # Design — {sprint_slug}
 
-> 电宝体。门禁标题勿改。背景≤5行。AC 一句一条。
+> 电报体。门禁标题勿改。背景≤5行。AC 一句一条。
 
 ## 背景 (context)
 

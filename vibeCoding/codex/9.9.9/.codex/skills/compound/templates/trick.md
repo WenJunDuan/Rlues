@@ -9,7 +9,7 @@ domain: ""                     # 领域: caching | concurrency | api-design | ..
 
 # Trick: {slug}
 
-> 电宝体。场景一句。≤100 行。
+> 电报体。场景一句。≤100 行。
 
 ## 场景 (when to use)
 

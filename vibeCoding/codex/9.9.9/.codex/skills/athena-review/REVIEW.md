@@ -1,7 +1,7 @@
 # Athena REVIEW.md (stable, review-only)
 
 Do not load sprint narrative. Use `review-packet.md` + diff.
-电宝体: findings 骨架句; P2/INFO ≤5。frontmatter 字段名不改。
+电报体: findings 骨架句; P2/INFO ≤5。frontmatter 字段名不改。
 
 Dimensions (one pass): Spec coverage, Correctness, Security, Test risk, Over-engineering. Refactor/System also Evidence.
 

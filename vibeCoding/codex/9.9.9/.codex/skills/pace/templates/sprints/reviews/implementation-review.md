@@ -14,7 +14,7 @@ dimensions: [spec, correctness, security, tests, overengineering]
 
 ## Findings
 
-[电宝体。无结果不得填通过]
+[电报体。无结果不得填通过]
 
 [实际 findings；无 findings 时说明审查范围与未验证项]
 

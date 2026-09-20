@@ -49,7 +49,7 @@ dimensions: [spec, correctness, security, tests, overengineering]
 ---
 ```
 
-Markdown 只写 findings, 电宝体。最后一行 `VERDICT: PASS|CONCERNS|REWORK|FAIL`。P2/INFO ≤ 5。
+Markdown 只写 findings, 电报体。最后一行 `VERDICT: PASS|CONCERNS|REWORK|FAIL`。P2/INFO ≤ 5。
 
 同因新 P0 第二次目标复核仍出现 → 停止，交还用户。
 

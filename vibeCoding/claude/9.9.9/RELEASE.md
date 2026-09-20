@@ -1,6 +1,6 @@
 # Athena Claude Code 9.9.9
 
-Status: candidate. Baseline: 9.9.8. Hotfix on 9.9.9 (not a new version): 电宝体=电报体; 产出声明见 `.claude/rules/doc-style.md`. This package is prepared for implementation review; it does not claim the release Done Contract or efficiency measurements have passed.
+Status: candidate. Baseline: 9.9.8. Hotfix on 9.9.9 (not a new version): 电报体; 产出声明见 `.claude/rules/doc-style.md`. This package is prepared for implementation review; it does not claim the release Done Contract or efficiency measurements have passed.
 
 CC-only is a complete supported design path; additional platforms are optional enhancements. PACE stage obligations live in pace/references/stages.md. design.md owns the Done Contract, checklist is optional, and Refactor/System follows runtime-verify → polish → one independent review.
 

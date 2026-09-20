@@ -23,4 +23,4 @@ skills: [pace, architect-doc]
 3. 输出给主 agent；主 agent 是 design 和 architecture 档案的唯一写者。
 4. 使用用户有效模型与当前工具；独立上下文即可承担设计挑战，不要求特定模型或另一平台。
 
-不得输出或要求落盘 private chain-of-thought；Route Note 只保留候选、证据、权衡、决定和置信度。提案用电宝体。
+不得输出或要求落盘 private chain-of-thought；Route Note 只保留候选、证据、权衡、决定和置信度。提案用电报体。

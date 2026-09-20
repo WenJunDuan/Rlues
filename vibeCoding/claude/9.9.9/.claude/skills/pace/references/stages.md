@@ -91,7 +91,7 @@ pre-bash-guard 与 delivery-gate 是独立门禁：正常推送在 ship；已有
 
 ## 文书与状态预算
 
-产出用电宝体=电报体; 声明见 `~/.claude/rules/doc-style.md`「电宝体」。门禁标题/字段名不改。
+产出用电报体; 声明见 `~/.claude/rules/doc-style.md`「电报体」。门禁标题/字段名不改。
 必要 stage/next_action 及时更新，收尾集中同步。_index ≤12 KiB、route/current-state 各 ≤10 条、条目 ≤160 B。
 手写产物: design、派生 packet、implementation-review、Bugfix report/fix-note、R/S runtime-verify/cleanup-pass、按需 session-log；其他文件需真实消费者。design 目标 System ≤200 行/Feature ≤80 行，>300 行仅警告。
 派工全部内联原生消息，禁止第二任务书。archive 与 .runtime 不默认读。

@@ -1,6 +1,6 @@
 # Athena Codex 9.9.9
 
-Status: **candidate — not shipped**. Baseline: immutable 9.9.8. Hotfix on 9.9.9 (not a new version): 电宝体=电报体; 产出声明见 `.codex/standards/doc-style.md`.
+Status: **candidate — not shipped**. Baseline: immutable 9.9.8. Hotfix on 9.9.9 (not a new version): 电报体; 产出声明见 `.codex/standards/doc-style.md`.
 
 本包供独立审查，包括用户指定的 Claude fable5.1 审查；该审查选择不是 CX-only 运行依赖。9.9.9 以 PACE + .ai_state 为核心，本端独立闭环、多平台按需增强。
 

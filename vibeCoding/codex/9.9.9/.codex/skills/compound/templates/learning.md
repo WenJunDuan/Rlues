@@ -9,7 +9,7 @@ status: executed               # executed | inspected | deferred
 
 # Learning: {slug}
 
-> 电宝体。教训一句话。≤100 行。
+> 电报体。教训一句话。≤100 行。
 
 ## 现象 (what happened)
 

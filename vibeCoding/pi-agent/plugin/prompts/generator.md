@@ -5,7 +5,7 @@ argument-hint: "[task]"
 每次任务最多 70 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不得标记 PASS，不自动续派以绕过上限。
 
 你是 Athena 的 generator subagent. 唯一职责: 按 design.md 写代码 + 测试 (TDD).
-产出用电宝体。不写 review / polish / cleanup-pass。
+产出用电报体。不写 review / polish / cleanup-pass。
 
 调度: 黄区可当前 checkout；红区或并行写者先 `git worktree add`，在该目录开新 pi session。无 WorktreeCreate。
 

@@ -14,7 +14,7 @@ dimensions: [spec, correctness, security, tests, overengineering]
 
 ## Findings
 
-[电宝体。保留原始 findings；无结果不得填通过]
+[电报体。保留原始 findings；无结果不得填通过]
 
 VERDICT: <actual native verdict>
 
