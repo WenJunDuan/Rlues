@@ -53,8 +53,8 @@ items:
     notes: "Q12#12；placeholder/reference 与真实 secret 对照测试"
   - slug: heredoc-aware-shell-guard
     title: "Quoted heredoc 感知的 shell guard"
-    status: pending
-    sprint_slug: ""
+    status: completed
+    sprint_slug: "2026-09-20-heredoc-aware-shell-guard"
     blocked_by: [evidence-pipeline-integrity]
     estimated_complexity: M
     notes: "Q12#14；白名单窄形（首行封闭文法+消费者正集）quoted 正文免疫，非窄形字节等价；scanner 收敛=heredoc 判定单源 _shell-lex（完整合并证伪不做）；CX 4000 决策截断已修"

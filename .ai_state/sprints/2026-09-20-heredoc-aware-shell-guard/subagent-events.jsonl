@@ -24,3 +24,4 @@
 {"schema_version":1,"event":"SubagentStart","agent_id":"af904acfc253010e0","agent_type":"polish-worker","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T14:10:21.616Z"}
 {"schema_version":1,"event":"SubagentStop","agent_id":"af904acfc253010e0","agent_type":"polish-worker","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T14:16:57.766Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"a1f829c778862041a","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T14:19:16.156Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a1f829c778862041a","agent_type":"reviewer","sprint_slug":"2026-09-20-heredoc-aware-shell-guard","timestamp":"2026-09-20T14:29:52.983Z"}

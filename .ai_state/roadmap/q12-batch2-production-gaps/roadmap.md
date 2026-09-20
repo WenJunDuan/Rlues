@@ -103,6 +103,12 @@ implementation_authorized: true
 - CC/CX pre-bash-guard 危险清单既有差异：CX 多 mariadb（DB_CLIENTS）、dash/ksh（SHELLS）与 fork-bomb 检测（`pre-bash-guard.py:37-38,282`），CC 无。三端判定面统一由切片 9 发行一致性裁量。
 - `scan()` 语义面微扩（窄形 quoted 正文并入 segment 后 classify_validation 可能在解释器源码文本命中验证模式）：方向多记不少记，POLICY_MATRIX 零变化，观察项。
 
+## 切片 8 review P2 记账（2026-09-20，归切片 9）
+
+- 测试卫生三件：消费者去重断言改引号无关；`test_heredoc_guard.py` 死导入 `importlib.util` 删除；`assertNotIn('<<', guard_text)` 对未来注释的误伤面。
+- 规模基线豁免补记：guard 两端文件 401/406 行（基线 370 已越 coding-standards 300 线）、analyze() 57 行——随切片 9 或后续拆分裁量，本切片 Non-goals 明文不做合并。
+- design 文法文本 `SP+` 应写 `BLANK`（实现 `[ \t]+` 为 bash blank，非放宽）。
+
 ## 切片 7 记账（2026-09-20，AC6，归切片 9）
 
 - Pi `plugin/skills/athena-runtime-verify/references/playbook.md:13-14` 悬空引用：指向 Pi 包内不存在的 `athena-vm/scripts/runtime-run.py`。切片 7 不修不造（Pi 无该机制，不伪造对称）；切片 9 发行一致性时处置。
