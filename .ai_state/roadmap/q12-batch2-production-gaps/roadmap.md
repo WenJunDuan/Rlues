@@ -103,6 +103,11 @@ implementation_authorized: true
 - Pi `plugin/skills/athena-runtime-verify/references/playbook.md:13-14` 悬空引用：指向 Pi 包内不存在的 `athena-vm/scripts/runtime-run.py`。切片 7 不修不造（Pi 无该机制，不伪造对称）；切片 9 发行一致性时处置。
 - CX `evidence-collector.py:32-42` 同族脱敏正则（仅脱敏非阻断，CX 独有）未纳入占位符谓词，切片 9 裁量。
 
+## 新发现缺陷（2026-09-20 切片 7 返工期根因定位，独立条目待排期）
+
+- `codex/9.9.9/.codex/skills/athena-init/scripts/init-platforms.py:100` 用 `'.claude' in script.parts` 判端：路径含 `.claude/worktrees/` 的 CX 脚本被误判为 CC 去找不存在的 commit-index.cjs → worktree 内跑安装类测试恒 8 FAIL（本会话多次目击的幽灵失败根因）。对照实验证实纯路径诱发。归切片 9 或单开 Bugfix。
+- 切片 7 impl review P2-3 余项：test_secret_placeholder.py:145 端到端 cli 单 runner（已注明由字节相等覆盖）。
+
 ## 切片 4 遗留观察（2026-09-20，implementation review P2 记录，非阻塞）
 
 - bullet 形态纯反引号包裹的 AC 标签（`- \`ACn\`: …`）会从强制集静默剔除且无诊断（表格形态不受影响）；属可选补强（span 恰为 ACn 时不置空或显式报错），归切片 9 发行收口时裁量。

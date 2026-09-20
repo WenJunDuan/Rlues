@@ -30,3 +30,4 @@
 
 <!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/62352b88-5830-4f21-a1e1-7305809bb3ed-result.json","native_output_sha256":"7efa1a6f3ede054d2a2cc5a6651b6594f703cff94e5201618beb8a3f643dc553","output_ref":"reviews/implementation-review.md","output_sha256":"3a1b788b3829639f6380a0d1823739351a92088cfc1dd7b4870b8df3014a5778","recorded_at":"2026-09-20T12:28:59.464Z","review_run_id":"62352b88-5830-4f21-a1e1-7305809bb3ed","reviewer_target":"a4f8aa277f2b765ff","verdict":"CONCERNS"} -->
 - 2026-09-20：implementation review run `62352b88` CONCERNS 已 accept：P1-1 C 侧行尾取值的顺序绕过（低熵真口令+同行后随占位词=释放，AC7 C 侧证伪）；判断题裁定值体复扫论证成立。design 两子句修正（值截到下一凭据键、引用形态熵否决前置），派返工 generator。
+- 2026-09-20：返工 generator 交付（2 commit）：P1-1 值截断（先红复现顺序绕过）、P2-2 引用形态熵否决前置、P2-1 删 FILLER 死分支、P2-3/4 测试补强。残余钉桩偏差（P@ssw0rd!2024 (example) 属 design 量化残余，generator 拒自行收紧）交定向复核裁定。合入 main 后全套 138/138；幽灵 8 FAIL 根因=init-platforms 路径判端缺陷，已记 roadmap。
