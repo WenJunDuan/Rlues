@@ -36,7 +36,7 @@ items:
     sprint_slug: ""
     blocked_by: [contract-parser-diagnostics]
     estimated_complexity: L
-    notes: "Q12#1/#2/#16；共享 delivery gate，串行实施。另接切片 3 遗留：删除 sprint 范围的门禁字节断言、导出 tryRepoRoot/findAiState 并消除 governance 的解析复写"
+    notes: "Q12#1/#2/#16；共享 delivery gate，串行实施。另接切片 3 遗留：导出 tryRepoRoot/findAiState 并消除 governance 的解析复写（字节断言已由切片 4 AC6 删除）"
   - slug: ship-session-and-architecture-binding
     title: "Ship 会话退出与 Architecture 已审范围绑定"
     status: pending

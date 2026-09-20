@@ -94,6 +94,12 @@ implementation_authorized: true
 
 ## 切片 3 遗留，指名切片 5 承接 (2026-09-20)
 
-- **移除 sprint 范围的门禁字节断言**：`test_review_binding_gate_export_diff_is_sprint_scoped_and_pi_matches_cc` 硬编码 `0ca066c`，用来把切片 3 对 `delivery-gate` 的改动面钉死为「仅两个导出名」。切片 5 合法改门禁的那一刻它必然失败，**由切片 5 删除**。该义务此前只写在测试注释与 design 里，未进 roadmap（implementation review P2-4 指出），现补记。
+- **移除 sprint 范围的门禁字节断言**：`test_review_binding_gate_export_diff_is_sprint_scoped_and_pi_matches_cc` 硬编码 `0ca066c`，用来把切片 3 对 `delivery-gate` 的改动面钉死为「仅两个导出名」。切片 5 合法改门禁的那一刻它必然失败，原计划由切片 5 删除。**2026-09-20 更正：实施顺序令切片 4 先合法改 gate，该断言已由切片 4（AC6）删除并以 Pi 同源函数文本相等断言（PiSameSourceParity）+ 独立的 Pi `_review-binding`==CC 测试承接**。该义务此前只写在测试注释与 design 里，未进 roadmap（切片 3 implementation review P2-4 指出），现按切片 4 review P1-1 落实更正。
 - **消除 `governance` 的路径解析复写**：CC 端 `gateRepoRoot`/`gateAiState`（`_review-binding.cjs:275,284`）是门禁 `tryRepoRoot`/`findAiState` 的 20 行副本，因切片 3 只获准导出两个名字而无法 import；CX 端已是 import。副本经两轮逐行核实为忠实，但其中最易漂移的 `.git` 边界停止那行**无测试覆盖**。切片 5 既然要动门禁，顺带导出这两个 helper 并删除副本，与 CX 对齐。
 - 另记两条已知非阻塞差异，切片 5 动门禁时留意：两端 `findAiState` 的 `.git` 边界语义不同；两端 `parseFrontmatter` 对畸形行一个跳过一个抛错。
+
+## 切片 4 遗留观察（2026-09-20，implementation review P2 记录，非阻塞）
+
+- bullet 形态纯反引号包裹的 AC 标签（`- \`ACn\`: …`）会从强制集静默剔除且无诊断（表格形态不受影响）；属可选补强（span 恰为 ACn 时不置空或显式报错），归切片 9 发行收口时裁量。
+- packet「有小节但 0 条有效条目」仍落 AC set mismatch，与 design 侧两层诊断不对称；可选补强，同归切片 9 裁量。
+- TDD/mismatch 类报错含可变数据，Stop 断路器 reason_sha1 计数对同根因可能永不升级（先例既有，方向少升级非放行）；归切片 6（ship 会话语义）顺带评估。

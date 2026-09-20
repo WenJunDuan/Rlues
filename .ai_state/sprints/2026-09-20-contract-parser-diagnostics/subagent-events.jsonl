@@ -7,3 +7,4 @@
 {"schema_version":1,"event":"SubagentStart","agent_id":"a9a5a182f0734ee79","agent_type":"polish-worker","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T09:48:03.890Z"}
 {"schema_version":1,"event":"SubagentStop","agent_id":"a9a5a182f0734ee79","agent_type":"polish-worker","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T09:56:55.503Z"}
 {"schema_version":1,"event":"SubagentStart","agent_id":"a02ce5bc53878a665","agent_type":"reviewer","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T10:00:07.603Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a02ce5bc53878a665","agent_type":"reviewer","sprint_slug":"2026-09-20-contract-parser-diagnostics","timestamp":"2026-09-20T10:13:58.886Z"}

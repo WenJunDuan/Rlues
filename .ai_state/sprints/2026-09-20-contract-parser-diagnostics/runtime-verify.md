@@ -25,4 +25,4 @@ result: PASS
 
 - 主仓合入后全套：test_contract_parsers 15/15 + test_state_review 52/52（主 agent 复跑）。
 - generator 活体回归：baseline vs 新 gate 对 15 份现存 design/packet 跑 acceptance_criteria 集合零差异。
-- 既有 8 条 discover 失败（vm_install/claude_rework 安装探针类）与本切片无因果，基线即红，未纳入判定。
+- ~~既有 8 条 discover 失败~~ 更正（review P2-2）：reviewer 以 `discover -p 'test_*.py'` 实测 123 tests 全 OK，generator 报告的 8 条基线失败未在主仓复现（疑为其 worktree 环境或 discover 参数差异），该豁免声明作废；当前判定基于全绿，无被掩盖的失败。

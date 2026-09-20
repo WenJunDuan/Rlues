@@ -31,3 +31,7 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/ba19b5a4-74c2-45e9-bf43-f74c05f2f219-dispatch.json","dispatch_receipt_sha256":"eeb4f09352eef58e495cd993b9172fde7d0ae597e1fce22bf3305940fa195282","event":"bound","recorded_at":"2026-09-20T10:00:25.851Z","review_run_id":"ba19b5a4-74c2-45e9-bf43-f74c05f2f219","reviewer_target":"a02ce5bc53878a665"} -->
 - 2026-09-20：implementation review run `ba19b5a4` 已 prepare（base `6858ec8`，输入=design/packet/runtime-verify/cleanup-pass/ARCHITECTURE）并 bind 只读 reviewer。简报明示实现由 generator+一次 polish 完成，要求自行复算 reviewed_diff_sha256 用门禁函数（上切片构造错误已写入提示）。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/ba19b5a4-74c2-45e9-bf43-f74c05f2f219-result.json","native_output_sha256":"72fd24d47dddd21214de649419dd9e65f16e5c7ca1743ef15bf63287c7a000bc","output_ref":"reviews/implementation-review.md","output_sha256":"8ce7807148278e4801c556b8c4ef4a9c69f9deb18b7299561f857c132a24eaf7","recorded_at":"2026-09-20T10:15:28.529Z","review_run_id":"ba19b5a4-74c2-45e9-bf43-f74c05f2f219","reviewer_target":"a02ce5bc53878a665","verdict":"CONCERNS"} -->
+- 2026-09-20：implementation review run `ba19b5a4` CONCERNS（P0=0 P1=1 P2=4）已 accept。P1-1 属主 agent 记账遗漏（AC6 第三分句 roadmap 承接清单未更正），已两处落实；P2-2 runtime-verify 豁免声明不复现，已作废更正（discover 实测 123 全绿）；P2-1/P2-4 可选补强记 roadmap 归切片 9、P2-3 归切片 6 评估。代码面 P0/P1 为零，通过项含活体零回归 31/31、Pi 调用点逐字同、fail-closed 无回退。
+- 2026-09-20：更正（review 通过项指出）：红测先行提交在 rebase 后哈希为 `bcecbfa`（非本 log 此前引用的 61123a5 派单序列），红→绿链经 git 历史独立核实成立。
