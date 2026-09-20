@@ -1016,30 +1016,11 @@ class InputBindingBehavior(unittest.TestCase):
                 self.assertNotEqual(run.returncode,0)
                 self.assertIn('_index.md',run.stderr)
 
-    def test_review_binding_gate_export_diff_is_sprint_scoped_and_pi_matches_cc(self):
-        # Sprint-scoped blast-radius pin for this slice: delivery-gate may only gain
-        # indexGovernanceSha256 and INDEX_GOVERNANCE_FIELDS on module.exports.
-        # Slice 5 removes this assertion when it begins editing the gate for real.
-        for rel in (
-            'vibeCoding/claude/9.9.9/.claude/hooks/delivery-gate.cjs',
-            'vibeCoding/pi-agent/plugin/extensions/cc-core/delivery-gate.cjs',
-        ):
-            with self.subTest(rel=rel):
-                base=subprocess.run(['git','show','0ca066c:'+rel],cwd=REPO,check=True,capture_output=True,text=True).stdout.splitlines()
-                current=(REPO/rel).read_text().splitlines()
-                self.assertEqual(len(base),len(current),rel)
-                diffs=[(i+1,old,new) for i,(old,new) in enumerate(zip(base,current)) if old!=new]
-                self.assertEqual(len(diffs),1,rel+' '+repr(diffs))
-                _, old, new = diffs[0]
-                self.assertTrue(old.startswith('module.exports = {'),rel)
-                self.assertTrue(new.startswith('module.exports = {'),rel)
-                self.assertIn('indexGovernanceSha256',new)
-                self.assertIn('INDEX_GOVERNANCE_FIELDS',new)
-                self.assertNotIn('indexGovernanceSha256',old)
-                self.assertNotIn('INDEX_GOVERNANCE_FIELDS',old)
-        py_rel='vibeCoding/codex/9.9.9/.codex/hooks/delivery-gate.py'
-        base_py=subprocess.run(['git','show','0ca066c:'+py_rel],cwd=REPO,check=True,capture_output=True,text=True).stdout
-        self.assertEqual((REPO/py_rel).read_text(),base_py)
+    def test_pi_review_binding_matches_cc(self):
+        # 切片 4 (contract-parser-diagnostics) 起 delivery-gate 合法变更, 原先钉死三端
+        # gate 字节/单行差的断言随之移除; gate 的机械判据改由
+        # test_contract_parsers.PiSameSourceParity (同源函数与常量行文本相等) 承接。
+        # _review-binding 仍是纯复制关系, 这条不变量独立保留。
         self.assertEqual((CC/'_review-binding.cjs').read_bytes(),(PI/'_review-binding.cjs').read_bytes())
 
     def test_assert_live_degrades_without_input_hashes(self):
