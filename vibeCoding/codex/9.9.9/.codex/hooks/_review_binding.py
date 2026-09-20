@@ -148,18 +148,35 @@ def live_input(root: Path, sprint: Path, prepared: dict) -> dict:
             'evidence_ids':evidence_ids(sprint),
             'evidence_docs':file_refs(root,list(prepared.get('evidence_docs',{})))}
 
+AGGREGATE_AXES = {'packet_sha256','design_sha256','source_sha256','environment_sha256'}
+RECOVER = 'restore the input or re-run prepare for a new run'
+
+def format_entry(key: str, expected: str, live: str) -> str:
+    pair = key+' expected='+expected+' live='+live
+    return pair+' (aggregate digest; no per-file attribution)' if key in AGGREGATE_AXES else pair
+
+def map_diffs(expected: dict, live: dict) -> list[str]:
+    diffs = []
+    for key in sorted(set(expected) | set(live)):
+        if (expected.get(key) or '') != (live.get(key) or ''):
+            diffs.append(format_entry(key, expected.get(key) or '', live.get(key) or ''))
+    return diffs
+
 def assert_live(root: Path, sprint: Path, prepared: dict) -> None:
     live = live_input(root,sprint,prepared)
     # base_commit is recorded, not compared: ship bookkeeping commits must not void a review.
-    for field in ('packet_sha256','input_manifest_sha256'):
-        if live[field] != prepared[field]:
-            raise ValueError('review input changed: '+field)
-    if live['evidence_docs'] != prepared.get('evidence_docs', {}):
-        raise ValueError('review input changed: evidence_docs')
-    prepared_ids = prepared.get('evidence_ids') or []
-    live_ids = set(live['evidence_ids'])
-    if any(ident not in live_ids for ident in prepared_ids):
-        raise ValueError('review input changed: evidence_ids')
+    if live['packet_sha256'] != prepared['packet_sha256']:
+        raise ValueError('review input changed: '+format_entry('packet_sha256',prepared['packet_sha256'],live['packet_sha256'])+'; '+RECOVER)
+    if live['input_manifest_sha256'] != prepared['input_manifest_sha256']:
+        if not prepared.get('input_hashes'):
+            raise ValueError('review input changed: input_manifest_sha256 (row prepared by older CLI; no per-entry attribution); '+RECOVER)
+        raise ValueError('review input changed: '+'; '.join(map_diffs(prepared['input_hashes'], live['input_hashes']))+'; '+RECOVER)
+    docs = map_diffs(prepared.get('evidence_docs') or {}, live['evidence_docs'])
+    if docs:
+        raise ValueError('review input changed: evidence_docs '+'; '.join(docs)+'; '+RECOVER)
+    missing = [ident for ident in (prepared.get('evidence_ids') or []) if ident not in live['evidence_ids']]
+    if missing:
+        raise ValueError('review input changed: evidence_ids missing '+', '.join(missing)+'; '+RECOVER)
 
 def explicit_verdict(output: str) -> str:
     lines = output.lstrip('\ufeff\r\n').splitlines()

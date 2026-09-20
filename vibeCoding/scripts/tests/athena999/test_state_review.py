@@ -824,6 +824,122 @@ class InputBindingBehavior(unittest.TestCase):
                 self.assertEqual(prepared['input_paths'],[])
                 self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
 
+    def bind_should_fail(self, platform, run_id, target):
+        dispatch=self.sprint/'dispatch.json'
+        dispatch.write_text(json.dumps({'task_name':target}))
+        run=self.review_command(platform,'bind','--run',run_id,'--receipt',str(dispatch))
+        self.assertEqual(run.returncode,2,run.stdout)
+        self.assertIn('restore the input or re-run prepare',run.stderr)
+        return run.stderr
+
+    def rewrite_prepared_row(self, mutate):
+        log=self.sprint/'session-log.md'
+        def repl(match):
+            row=json.loads(match.group(1))
+            if row.get('event')=='prepared':
+                mutate(row)
+            return '<!-- athena-review:'+json.dumps(row,separators=(',',':'))+' -->'
+        log.write_text(re.sub(r'<!-- athena-review:(.*?) -->',repl,log.read_text()))
+
+    def test_assert_live_names_drifted_declared_path(self):
+        self.seed_review_packet()
+        notes=self.sprint/'notes.md'
+        notes.write_text('v1\n')
+        rel='.ai_state/sprints/test/notes.md'
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                run=self.review_command(platform,'prepare','--input',rel)
+                self.assertEqual(run.returncode,0,run.stderr)
+                prepared=json.loads(run.stdout)
+                expected=prepared['input_hashes'][rel]
+                notes.write_text('v2\n')
+                live=hashlib.sha256(b'v2\n').hexdigest()
+                stderr=self.bind_should_fail(platform,prepared['review_run_id'],'/root/path-'+platform)
+                self.assertIn(rel,stderr)
+                self.assertIn('expected='+expected,stderr)
+                self.assertIn('live='+live,stderr)
+                self.assertNotIn('source_sha256',stderr)
+                notes.write_text('v1\n')
+                self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
+
+    def test_assert_live_names_aggregate_axis_without_file_claim(self):
+        self.seed_review_packet()
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform,axis='source'):
+                run=self.review_command(platform,'prepare')
+                self.assertEqual(run.returncode,0,run.stderr)
+                prepared=json.loads(run.stdout)
+                expected=prepared['input_hashes']['source_sha256']
+                (self.root/'app.py').write_text('print(2)\n')
+                stderr=self.bind_should_fail(platform,prepared['review_run_id'],'/root/axis-source-'+platform)
+                self.assertIn('source_sha256',stderr)
+                self.assertIn('expected='+expected,stderr)
+                self.assertIn('aggregate digest; no per-file attribution',stderr)
+                self.assertNotIn('app.py',stderr)
+                (self.root/'app.py').write_text('print(1)\n')
+                self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
+            with self.subTest(platform=platform,axis='packet'):
+                run=self.review_command(platform,'prepare')
+                self.assertEqual(run.returncode,0,run.stderr)
+                prepared=json.loads(run.stdout)
+                (self.sprint/'review-packet.md').write_text('changed packet\n')
+                stderr=self.bind_should_fail(platform,prepared['review_run_id'],'/root/axis-packet-'+platform)
+                self.assertIn('packet_sha256',stderr)
+                self.assertIn('expected='+prepared['packet_sha256'],stderr)
+                self.assertIn('aggregate digest; no per-file attribution',stderr)
+                self.assertNotIn('review-packet.md',stderr)
+                self.seed_review_packet()
+                self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
+
+    def test_assert_live_names_specific_evidence_doc_and_missing_id(self):
+        self.seed_review_packet()
+        manifest=self.sprint/'review-manifest.yaml'
+        manifest.write_text('schema_version: 1\n')
+        rel='.ai_state/sprints/test/review-manifest.yaml'
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform,kind='docs'):
+                run=self.review_command(platform,'prepare')
+                self.assertEqual(run.returncode,0,run.stderr)
+                prepared=json.loads(run.stdout)
+                expected=prepared['evidence_docs'][rel]
+                manifest.write_text('schema_version: 1\n# drifted\n')
+                live=hashlib.sha256(manifest.read_bytes()).hexdigest()
+                stderr=self.bind_should_fail(platform,prepared['review_run_id'],'/root/doc-'+platform)
+                self.assertIn('evidence_docs',stderr)
+                self.assertIn(rel,stderr)
+                self.assertIn('expected='+expected,stderr)
+                self.assertIn('live='+live,stderr)
+                manifest.write_text('schema_version: 1\n')
+                self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
+            with self.subTest(platform=platform,kind='ids'):
+                (self.sprint/'evidence.yaml').write_text('collected_evidence:\n  - tool_use_id: keep-me\n    result: pass\n')
+                run=self.review_command(platform,'prepare')
+                self.assertEqual(run.returncode,0,run.stderr)
+                prepared=json.loads(run.stdout)
+                (self.sprint/'evidence.yaml').write_text('collected_evidence: []\n')
+                stderr=self.bind_should_fail(platform,prepared['review_run_id'],'/root/ids-'+platform)
+                self.assertIn('evidence_ids',stderr)
+                self.assertIn('keep-me',stderr)
+                (self.sprint/'evidence.yaml').write_text('collected_evidence:\n  - tool_use_id: keep-me\n    result: pass\n')
+                self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
+
+    def test_assert_live_degrades_without_input_hashes(self):
+        self.seed_review_packet()
+        (self.root/'notes.md').write_text('v1\n')
+        for platform in ('cx','cc'):
+            with self.subTest(platform=platform):
+                run=self.review_command(platform,'prepare','--input','notes.md')
+                self.assertEqual(run.returncode,0,run.stderr)
+                prepared=json.loads(run.stdout)
+                self.rewrite_prepared_row(lambda row: row.pop('input_hashes',None))
+                (self.root/'notes.md').write_text('v2\n')
+                stderr=self.bind_should_fail(platform,prepared['review_run_id'],'/root/legacy-'+platform)
+                self.assertIn('review input changed: input_manifest_sha256',stderr)
+                self.assertIn('older CLI',stderr)
+                self.assertNotIn('notes.md expected=',stderr)
+                (self.root/'notes.md').write_text('v1\n')
+                self.assertEqual(self.review_command(platform,'supersede','--run',prepared['review_run_id']).returncode,0)
+
     def run_hook_chain(self, platform, ident, command, *, success=True, stdout='validated'):
         directory, suffix, runner = (CX,'.py',sys.executable) if platform == 'cx' else (CC,'.cjs','node')
         payload={'cwd':str(self.root),'tool_use_id':ident,'tool_name':'Bash','hook_event_name':'PreToolUse','tool_input':{'command':command}}

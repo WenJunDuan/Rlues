@@ -95,14 +95,31 @@ function liveInput(root,sprint,prepared) {
     input_manifest_sha256:input.digest(input.canonical(inputs)),input_hashes:inputs,evidence_ids:evidenceIds(sprint),
     evidence_docs:fileRefs(root,Object.keys(prepared.evidence_docs || {}))};
 }
+const AGGREGATE_AXES = new Set(['packet_sha256','design_sha256','source_sha256','environment_sha256']);
+const RECOVER = 'restore the input or re-run prepare for a new run';
+function formatEntry(key,expected,live) {
+  const pair = key+' expected='+expected+' live='+live;
+  return AGGREGATE_AXES.has(key) ? pair+' (aggregate digest; no per-file attribution)' : pair;
+}
+function mapDiffs(expected,live) {
+  const diffs=[];
+  for (const key of [...new Set([...Object.keys(expected||{}),...Object.keys(live||{})])].sort()) {
+    if ((expected[key]||'')!==(live[key]||'')) diffs.push(formatEntry(key,expected[key]||'',live[key]||''));
+  }
+  return diffs;
+}
 function assertLive(root,sprint,prepared) {
   const live = liveInput(root,sprint,prepared);
   // base_commit is recorded, not compared: ship bookkeeping commits must not void a review.
-  if (live.packet_sha256!==prepared.packet_sha256) throw new Error('review input changed: packet_sha256');
-  if (live.input_manifest_sha256!==prepared.input_manifest_sha256) throw new Error('review input changed: input_manifest_sha256');
-  if (input.canonical(live.evidence_docs)!==input.canonical(prepared.evidence_docs || {})) throw new Error('review input changed: evidence_docs');
-  const preparedIds = prepared.evidence_ids || [];
-  if (!preparedIds.every(id => live.evidence_ids.includes(id))) throw new Error('review input changed: evidence_ids');
+  if (live.packet_sha256!==prepared.packet_sha256) throw new Error('review input changed: '+formatEntry('packet_sha256',prepared.packet_sha256,live.packet_sha256)+'; '+RECOVER);
+  if (live.input_manifest_sha256!==prepared.input_manifest_sha256) {
+    if (!prepared.input_hashes) throw new Error('review input changed: input_manifest_sha256 (row prepared by older CLI; no per-entry attribution); '+RECOVER);
+    throw new Error('review input changed: '+mapDiffs(prepared.input_hashes,live.input_hashes).join('; ')+'; '+RECOVER);
+  }
+  const docs = mapDiffs(prepared.evidence_docs || {}, live.evidence_docs);
+  if (docs.length) throw new Error('review input changed: evidence_docs '+docs.join('; ')+'; '+RECOVER);
+  const missing = (prepared.evidence_ids || []).filter(id => !live.evidence_ids.includes(id));
+  if (missing.length) throw new Error('review input changed: evidence_ids missing '+missing.join(', ')+'; '+RECOVER);
 }
 function explicitVerdict(output) {
   const lines=output.replace(/^[\ufeff\r\n]+/,'').split(/\r?\n/);
