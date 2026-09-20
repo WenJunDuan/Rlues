@@ -355,7 +355,7 @@ function validateReviewPacket(sprintDir) {
     // 引用别的 sprint 的 ACn 不再变成 extra。标题没认出来时单独报, 不伪装成集合不匹配。
     const packetSection = acceptanceSections(packet);
     if (!packetSection.found) {
-      throw new GateError(`review-packet 未识别到验收小节; 可接受标题: ${acceptanceHeadList()} (AC / 验收 两个短别名必须后随行尾或冒号)`);
+      throw new GateError(`review-packet ${acceptanceHeadHint()}`);
     }
     const packetIds = extractAcIds(packetSection.items.join("\n"));
     const missing = designIds.filter((id) => !packetIds.includes(id));
@@ -784,7 +784,7 @@ function validateCriticRounds(sprintDir, fm) {
 // criteria") are also recognized.
 // Q12#8: 短别名 AC / 验收 的边界严于全名 —— 只认后随行尾或冒号, 否则 "## AC 覆盖表"、
 // "## 验收流程说明"、"### AC 标识..." 这类散文小标题会被当成合同小节。报错文本与这里
-// 同源 (acceptanceHeadList), 作者照报错改一定能改对。
+// 同源 (acceptanceHeadHint), 作者照报错改一定能改对。
 const ACCEPTANCE_HEAD_ALIASES = ["Done Contract", "Acceptance Criteria", "验收标准", "AC", "验收"];
 const ACCEPTANCE_HEAD = /^#{1,6}\s*\**\s*(?:\d+[.)]\s*)?(?:(?:done contract|acceptance criteria|验收标准)(?=$|[\s*:：()（）[\]【】·—-])|(?:AC|验收)(?=$|[:：]))/i;
 const PLACEHOLDER_PREFIXES = ["todo", "tbd", "fixme", "wip", "placeholder", "待定", "待补", "占位", "暂定"];
@@ -810,7 +810,7 @@ function acceptanceSections(text) {
   let found = false;
   let inSec = false;
   let inFence = false;
-  for (const raw of String(text).split(/\r?\n/)) {
+  for (const raw of text.split(/\r?\n/)) {
     if (fence.test(raw)) { inFence = !inFence; continue; }
     if (inFence) continue;
     if (ACCEPTANCE_HEAD.test(raw.trim())) { found = true; inSec = true; continue; }
@@ -833,8 +833,9 @@ function acceptanceCriteria(text) {
   return acceptanceSections(text).items;
 }
 
-function acceptanceHeadList() {
-  return ACCEPTANCE_HEAD_ALIASES.map(alias => `## ${alias}`).join(" / ");
+// spec-gate 与 review-packet 的 "未识别" 报错共用同一句提示 —— 只在这里写一次, 两处措辞不会漂移。
+function acceptanceHeadHint() {
+  return `未识别到验收小节; 可接受标题: ${ACCEPTANCE_HEAD_ALIASES.map(alias => `## ${alias}`).join(" / ")} (AC / 验收 两个短别名必须后随行尾或冒号)`;
 }
 
 // design §4.5 escape policy: the exception must name the current sprint AND carry
@@ -958,7 +959,7 @@ function validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException }
   if (!resolved.items.length) {
     // 两层报错: 标题没认出来 vs 认出来了但没有条目 —— 作者改对的路径完全不同。
     if (!resolved.found) {
-      throw new GateError(`spec-gate: design.md (或其显式链接的 requirements 档) 未识别到验收小节; 可接受标题: ${acceptanceHeadList()} (AC / 验收 两个短别名必须后随行尾或冒号)`);
+      throw new GateError(`spec-gate: design.md (或其显式链接的 requirements 档) ${acceptanceHeadHint()}`);
     }
     throw new GateError("spec-gate: 验收小节已识别, 但 0 条有效条目; 需 ≥1 条可观测的 checkbox/编号/列表项或 | ACn | ... | 表行; 占位符/TODO/泛化陈述与围栏内示例不算");
   }

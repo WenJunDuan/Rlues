@@ -24,7 +24,7 @@ PACKET_TEMPLATES = (
 # AC7 同源集合: Pi 的这些函数与常量行必须与 CC 逐字相等 (新增同源函数须同步入集)。
 SAME_SOURCE_FUNCTIONS = (
     'stripInlineCode', 'extractAcIds', 'acceptanceSections', 'acceptanceCriteria',
-    'acceptanceHeadList', 'validateTddEvidence',
+    'acceptanceHeadHint', 'validateTddEvidence',
 )
 SAME_SOURCE_CONSTANTS = ('ACCEPTANCE_HEAD', 'ACCEPTANCE_HEAD_ALIASES', 'TDD_RECORD_FIELDS')
 TDD_FIELDS = (
@@ -36,8 +36,7 @@ CC_HARNESS = r'''
 const fs = require('fs'), path = require('path'), Module = require('module');
 const gate = process.argv[1], fn = process.argv[2], args = JSON.parse(process.argv[3]);
 const names = ['stripInlineCode', 'extractAcIds', 'acceptanceSections', 'acceptanceCriteria',
-  'validateTddEvidence', 'validateSpecGate', 'validateReviewPacket', 'validateAcMapping',
-  'ACCEPTANCE_HEAD_ALIASES'];
+  'validateTddEvidence', 'validateSpecGate', 'validateReviewPacket', 'validateAcMapping'];
 const tail = '\nmodule.exports.__t={' +
   names.map(n => n + ':typeof ' + n + '!=="undefined"?' + n + ':undefined').join(',') + '};\n';
 const mod = new Module(gate, null);
@@ -50,7 +49,7 @@ if (probe[fn] === undefined) {
   process.exit(0);
 }
 try {
-  const value = typeof probe[fn] === 'function' ? probe[fn](...args) : probe[fn];
+  const value = probe[fn](...args);
   process.stdout.write(JSON.stringify({ok: true, value: value === undefined ? null : value}));
 } catch (error) {
   process.stdout.write(JSON.stringify({ok: false, error: String((error && error.message) || error)}));

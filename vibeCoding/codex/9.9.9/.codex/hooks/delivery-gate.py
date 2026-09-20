@@ -395,7 +395,7 @@ def validate_worktree_violations(sprint_dir: Path) -> None:
 # P0-3 对齐 CC: 标题匹配用显式边界 lookahead (兼容中文标题与编号前缀), 不依赖 \\b.
 # Q12#8: 短别名 AC / 验收 的边界严于全名 —— 只认后随行尾或冒号, 否则 "## AC 覆盖表"、
 # "## 验收流程说明"、"### AC 标识..." 这类散文小标题会被当成合同小节。报错文本与这里
-# 同源 (acceptance_head_list), 作者照报错改一定能改对。
+# 同源 (acceptance_head_hint), 作者照报错改一定能改对。
 ACCEPTANCE_HEAD_ALIASES = ("Done Contract", "Acceptance Criteria", "验收标准", "AC", "验收")
 ACCEPTANCE_HEAD = re.compile(
     r"^#{1,6}\s*\**\s*(?:\d+[.)]\s*)?"
@@ -463,8 +463,10 @@ def acceptance_criteria(text: str) -> list[str]:
     return acceptance_sections(text)["items"]
 
 
-def acceptance_head_list() -> str:
-    return " / ".join(f"## {alias}" for alias in ACCEPTANCE_HEAD_ALIASES)
+# spec-gate 与 review-packet 的 "未识别" 报错共用同一句提示 —— 只在这里写一次, 两处措辞不会漂移。
+def acceptance_head_hint() -> str:
+    heads = " / ".join(f"## {alias}" for alias in ACCEPTANCE_HEAD_ALIASES)
+    return f"未识别到验收小节; 可接受标题: {heads} (AC / 验收 两个短别名必须后随行尾或冒号)"
 
 
 def parse_utc_timestamp(value: str, label: str) -> dt.datetime:
@@ -626,8 +628,7 @@ def validate_spec_gate(
         # 两层报错: 标题没认出来 vs 认出来了但没有条目 —— 作者改对的路径完全不同。
         if not resolved["found"]:
             raise GateError(
-                "spec-gate: design.md (或其显式链接的 requirements 档) 未识别到验收小节; "
-                f"可接受标题: {acceptance_head_list()} (AC / 验收 两个短别名必须后随行尾或冒号)"
+                f"spec-gate: design.md (或其显式链接的 requirements 档) {acceptance_head_hint()}"
             )
         raise GateError(
             "spec-gate: 验收小节已识别, 但 0 条有效条目; 需 ≥1 条可观测的 checkbox/编号/列表项"
@@ -1040,10 +1041,7 @@ def validate_review_packet(sprint_dir: Path) -> None:
         # 引用别的 sprint 的 ACn 不再变成 extra。标题没认出来时单独报, 不伪装成集合不匹配。
         packet_section = acceptance_sections(packet)
         if not packet_section["found"]:
-            raise GateError(
-                "review-packet 未识别到验收小节; "
-                f"可接受标题: {acceptance_head_list()} (AC / 验收 两个短别名必须后随行尾或冒号)"
-            )
+            raise GateError(f"review-packet {acceptance_head_hint()}")
         packet_ids = extract_ac_ids("\n".join(packet_section["items"]))
         missing = [i for i in design_ids if i not in packet_ids]
         extra = [i for i in packet_ids if i not in design_ids]
