@@ -393,8 +393,14 @@ def validate_worktree_violations(sprint_dir: Path) -> None:
 
 
 # P0-3 对齐 CC: 标题匹配用显式边界 lookahead (兼容中文标题与编号前缀), 不依赖 \\b.
+# Q12#8: 短别名 AC / 验收 的边界严于全名 —— 只认后随行尾或冒号, 否则 "## AC 覆盖表"、
+# "## 验收流程说明"、"### AC 标识..." 这类散文小标题会被当成合同小节。报错文本与这里
+# 同源 (acceptance_head_list), 作者照报错改一定能改对。
+ACCEPTANCE_HEAD_ALIASES = ("Done Contract", "Acceptance Criteria", "验收标准", "AC", "验收")
 ACCEPTANCE_HEAD = re.compile(
-    r"^#{1,6}\s*\**\s*(?:\d+[.)]\s*)?(?:done contract|acceptance criteria|验收标准)(?=$|[\s*:：()（）\[\]【】·—-])",
+    r"^#{1,6}\s*\**\s*(?:\d+[.)]\s*)?"
+    r"(?:(?:done contract|acceptance criteria|验收标准)(?=$|[\s*:：()（）\[\]【】·—-])"
+    r"|(?:AC|验收)(?=$|[:：]))",
     re.I,
 )
 PLACEHOLDER_PREFIXES = ("todo", "tbd", "fixme", "wip", "placeholder", "待定", "待补", "占位", "暂定")
@@ -412,13 +418,25 @@ def is_placeholder_criterion(text: str) -> bool:
     return any(t == phrase or phrase in t for phrase in PLACEHOLDER_PHRASES)
 
 
-def acceptance_criteria(text: str) -> list[str]:
+def acceptance_sections(text: str) -> dict[str, Any]:
+    """Q12#8: 分层诊断需要区分 "没有验收小节" 与 "小节在但一条有效条目都没有",
+    所以扫描返回 {found, items}; acceptance_criteria 只取 items (导出面不变)。
+    Q12#7: 围栏内的行是示例代码, 不是条目 (围栏状态全局跟踪)。"""
     item = re.compile(r"^\s*(?:[-*]|\d+[.)]|\[[ xX]\])\s+\S")
     nexthead = re.compile(r"^#{1,6}\s")
-    found: list[str] = []
+    fence = re.compile(r"^\s{0,3}```")
+    items: list[str] = []
+    found = False
     in_sec = False
+    in_fence = False
     for raw in text.splitlines():
+        if fence.match(raw):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         if ACCEPTANCE_HEAD.match(raw.strip()):
+            found = True
             in_sec = True
             continue
         if not in_sec:
@@ -431,14 +449,22 @@ def acceptance_criteria(text: str) -> list[str]:
             if cells and re.fullmatch(r"AC\d+", cells[0], re.I):
                 t = " | ".join(cells)
                 if len(cells) > 1 and not is_placeholder_criterion(" ".join(cells[1:])):
-                    found.append(t)
+                    items.append(t)
             continue
         if item.match(raw):
             t = re.sub(r"^\s*(?:[-*]|\d+[.)])\s+", "", raw)
             t = re.sub(r"^\[[ xX]\]\s+", "", t).strip()
             if t and not is_placeholder_criterion(t):
-                found.append(t)
-    return found
+                items.append(t)
+    return {"found": found, "items": items}
+
+
+def acceptance_criteria(text: str) -> list[str]:
+    return acceptance_sections(text)["items"]
+
+
+def acceptance_head_list() -> str:
+    return " / ".join(f"## {alias}" for alias in ACCEPTANCE_HEAD_ALIASES)
 
 
 def parse_utc_timestamp(value: str, label: str) -> dt.datetime:
@@ -559,24 +585,27 @@ def spec_gate_exception_active(
     return True
 
 
-def resolve_acceptance_criteria(sprint_dir: Path, ai_state: Path) -> list[str]:
+def resolve_acceptance_criteria(sprint_dir: Path, ai_state: Path) -> dict[str, Any]:
     """design §4.2/§4.3: 标准必须来自本 sprint design.md, 或 design 显式链接的
-    requirements 档 — 不接受任意 requirements/*.md."""
+    requirements 档 — 不接受任意 requirements/*.md.
+    返回 {found, items}: found 表示至少有一处认出了验收小节标题, 供 spec-gate 分层报错 (Q12#8)。"""
     design = sprint_dir / "design.md"
     if not design.is_file():
-        return []
+        return {"found": False, "items": []}
     design_text = design.read_text(encoding="utf-8", errors="replace")
-    own = acceptance_criteria(design_text)
-    if own:
+    own = acceptance_sections(design_text)
+    if own["items"]:
         return own
+    found = own["found"]
     for match in re.finditer(r"requirements/([A-Za-z0-9][A-Za-z0-9._-]*\.md)", design_text):
         linked = ai_state / "requirements" / match.group(1)
         if not linked.is_file():
             continue
-        from_linked = acceptance_criteria(linked.read_text(encoding="utf-8", errors="replace"))
-        if from_linked:
+        from_linked = acceptance_sections(linked.read_text(encoding="utf-8", errors="replace"))
+        if from_linked["items"]:
             return from_linked
-    return []
+        found = found or from_linked["found"]
+    return {"found": found, "items": []}
 
 
 def validate_spec_gate(
@@ -592,13 +621,19 @@ def validate_spec_gate(
         if allow_exception:
             return []
         raise GateError("active Feature+ spec_gate_exception must be removed before ship")
-    criteria = resolve_acceptance_criteria(sprint_dir, ai_state)
-    if not criteria:
+    resolved = resolve_acceptance_criteria(sprint_dir, ai_state)
+    if not resolved["items"]:
+        # 两层报错: 标题没认出来 vs 认出来了但没有条目 —— 作者改对的路径完全不同。
+        if not resolved["found"]:
+            raise GateError(
+                "spec-gate: design.md (或其显式链接的 requirements 档) 未识别到验收小节; "
+                f"可接受标题: {acceptance_head_list()} (AC / 验收 两个短别名必须后随行尾或冒号)"
+            )
         raise GateError(
-            "spec-gate: design.md (或其显式链接的 requirements 档) 缺机器可识别的验收标准段 "
-            "(## Acceptance Criteria / ## 验收标准 + ≥1 条可观测项); 占位符/TODO/泛化陈述不算"
+            "spec-gate: 验收小节已识别, 但 0 条有效条目; 需 ≥1 条可观测的 checkbox/编号/列表项"
+            "或 | ACn | ... | 表行; 占位符/TODO/泛化陈述与围栏内示例不算"
         )
-    return criteria
+    return resolved["items"]
 
 
 def evidence_field(block: str, key: str) -> str:
@@ -687,7 +722,8 @@ def validate_ac_mapping(
     """Require one admissible explicit PASS record per labeled AC."""
     labels: set[str] = set()
     for criterion in criteria:
-        for match in AC_LABEL.finditer(criterion):
+        # Q12#7: 条目里反引号引用的测试名/历史 AC 不是本 sprint 要覆盖的标号 (同 extract_ac_ids 规则)。
+        for match in AC_LABEL.finditer(strip_inline_code(criterion)):
             labels.add(match.group(1).upper())
     if not labels:
         return
@@ -920,8 +956,15 @@ def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def strip_inline_code(text: str) -> str:
+    """Q12#7: 合同解析只吃散文语义。成对反引号 span 里的 ACn 是引用 (测试名、历史切片的
+    AC), 不是本 sprint 的约束 —— 置空为等长空格, 保持偏移不变。落单反引号不构成 span,
+    原样保留 (span 不越行, 免得一个孤立反引号吞掉后面真实的 AC)。"""
+    return re.sub(r"`[^`\n]*`", lambda span: " " * len(span.group(0)), str(text))
+
+
 def extract_ac_ids(text: str) -> list[str]:
-    return sorted(set(re.findall(r"\bAC[0-9]+\b", text)))
+    return sorted(set(re.findall(r"\bAC[0-9]+\b", strip_inline_code(text))))
 
 
 def parse_doc_frontmatter(content: str) -> dict[str, str]:
@@ -993,8 +1036,17 @@ def validate_review_packet(sprint_dir: Path) -> None:
         design_ids = extract_ac_ids("\n".join(acceptance_criteria(design_path.read_text(encoding="utf-8"))))
         if not design_ids:
             raise GateError("design Done Contract has no AC identifiers")
-        missing = [i for i in design_ids if i not in extract_ac_ids(packet)]
-        extra = [i for i in extract_ac_ids(packet) if i not in design_ids]
+        # Q12#7: packet 的 AC 集与 design 侧同构 —— 只来自它自己的验收小节, packet 正文里
+        # 引用别的 sprint 的 ACn 不再变成 extra。标题没认出来时单独报, 不伪装成集合不匹配。
+        packet_section = acceptance_sections(packet)
+        if not packet_section["found"]:
+            raise GateError(
+                "review-packet 未识别到验收小节; "
+                f"可接受标题: {acceptance_head_list()} (AC / 验收 两个短别名必须后随行尾或冒号)"
+            )
+        packet_ids = extract_ac_ids("\n".join(packet_section["items"]))
+        missing = [i for i in design_ids if i not in packet_ids]
+        extra = [i for i in packet_ids if i not in design_ids]
         if missing or extra:
             raise GateError(f"review-packet AC set mismatch missing={missing} extra={extra}")
 
@@ -1269,20 +1321,34 @@ def validate_review_binding(
     return reviewed_commit
 
 
+# 记录形状与报错文本同源: 字段清单只在这里写一次。
+TDD_RECORD_FIELDS = (
+    "red_command", "red_summary", "red_observed_at", "implementation_files",
+    "implementation_observed_at", "green_command", "green_summary", "green_observed_at",
+)
+
+
 def validate_tdd_evidence(path: Path) -> None:
+    """Q12#5: 诊断按证据可得性分层 —— 门禁知道哪一层坏了就必须说出来, 否则作者只能猜。
+    九字段合同本身不变。"""
     content = require_file(path, "tdd-evidence.yaml")
     records = list(re.finditer(r"(?m)^\s*-\s+test_file\s*:\s*([^#\n]+)", content))
     if not records:
-        raise GateError("tdd-evidence.yaml contains no red-to-green records")
+        meaningful = [line for line in content.splitlines() if line.strip() and not line.strip().startswith("#")]
+        if not meaningful:
+            raise GateError("tdd-evidence.yaml 无任何 red→green 记录: 全文仅空白/注释")
+        raise GateError(
+            f"tdd-evidence.yaml 有 {len(meaningful)} 行非空内容但未解析出任何记录 (键名或缩进不对?); "
+            f'每条记录首键必须是 "- test_file:", 其后为缩进字段: {", ".join(TDD_RECORD_FIELDS)}'
+        )
     for index, item in enumerate(records):
         end = records[index + 1].start() if index + 1 < len(records) else len(content)
         block = content[item.start():end]
-        values = {key: evidence_field(block, key) for key in (
-            "red_command", "red_summary", "red_observed_at", "implementation_files",
-            "implementation_observed_at", "green_command", "green_summary", "green_observed_at",
-        )}
-        if any(not value for value in values.values()):
-            raise GateError("tdd-evidence record is missing red/implementation/green fields")
+        label = f"record #{index + 1} (test_file: {yaml_scalar(item.group(1))})"
+        values = {key: evidence_field(block, key) for key in TDD_RECORD_FIELDS}
+        missing = [key for key in TDD_RECORD_FIELDS if not values[key]]
+        if missing:
+            raise GateError(f'tdd-evidence {label} 缺字段: {", ".join(missing)}')
         red = parse_utc_timestamp(values["red_observed_at"], "tdd red_observed_at")
         implementation = parse_utc_timestamp(
             values["implementation_observed_at"], "tdd implementation_observed_at"
@@ -1290,7 +1356,9 @@ def validate_tdd_evidence(path: Path) -> None:
         green = parse_utc_timestamp(values["green_observed_at"], "tdd green_observed_at")
         if not red < implementation < green:
             raise GateError(
-                "tdd-evidence timestamps must satisfy red < implementation < green"
+                f"tdd-evidence {label} 时间序必须满足 red < implementation < green; "
+                f'实际 red={values["red_observed_at"]} implementation={values["implementation_observed_at"]} '
+                f'green={values["green_observed_at"]}'
             )
 
 

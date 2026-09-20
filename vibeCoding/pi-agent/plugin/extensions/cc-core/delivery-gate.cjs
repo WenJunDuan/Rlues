@@ -274,8 +274,15 @@ function fileSha256(filePath) {
   return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
 }
 
+// Q12#7: 合同解析只吃散文语义。成对反引号 span 里的 ACn 是引用 (测试名、历史切片的
+// AC), 不是本 sprint 的约束 —— 置空为等长空格, 保持偏移不变。落单反引号不构成 span,
+// 原样保留 (跨行不配对: span 不越行, 免得一个孤立反引号吞掉后面真实的 AC)。
+function stripInlineCode(text) {
+  return String(text).replace(/`[^`\n]*`/g, (span) => " ".repeat(span.length));
+}
+
 function extractAcIds(text) {
-  return [...new Set([...String(text).matchAll(/\bAC[0-9]+\b/g)].map((m) => m[0]))].sort();
+  return [...new Set([...stripInlineCode(text).matchAll(/\bAC[0-9]+\b/g)].map((m) => m[0]))].sort();
 }
 
 function parseDocFrontmatter(content) {
@@ -344,7 +351,13 @@ function validateReviewPacket(sprintDir) {
   if (fs.existsSync(designPath)) {
     const designIds = extractAcIds(acceptanceCriteria(fs.readFileSync(designPath, "utf8")).join("\n"));
     if (!designIds.length) throw new GateError("design Done Contract has no AC identifiers");
-    const packetIds = extractAcIds(packet);
+    // Q12#7: packet 的 AC 集与 design 侧同构 —— 只来自它自己的验收小节, packet 正文里
+    // 引用别的 sprint 的 ACn 不再变成 extra。标题没认出来时单独报, 不伪装成集合不匹配。
+    const packetSection = acceptanceSections(packet);
+    if (!packetSection.found) {
+      throw new GateError(`review-packet 未识别到验收小节; 可接受标题: ${acceptanceHeadList()} (AC / 验收 两个短别名必须后随行尾或冒号)`);
+    }
+    const packetIds = extractAcIds(packetSection.items.join("\n"));
     const missing = designIds.filter((id) => !packetIds.includes(id));
     const extra = packetIds.filter((id) => !designIds.includes(id));
     if (missing.length || extra.length) {
@@ -609,23 +622,34 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
   return reviewedCommit;
 }
 
+// 记录形状与报错文本同源: 字段清单只在这里写一次。
+const TDD_RECORD_FIELDS = ["red_command", "red_summary", "red_observed_at", "implementation_files", "implementation_observed_at", "green_command", "green_summary", "green_observed_at"];
+
+// Q12#5: 诊断按证据可得性分层 —— 门禁知道哪一层坏了就必须说出来, 否则作者只能猜。
+// 九字段合同本身不变。
 function validateTddEvidence(filePath) {
   const content = requireFile(filePath, "tdd-evidence.yaml");
   const records = [...content.matchAll(/^\s*-\s+test_file\s*:\s*([^#\n]+)/gm)];
-  if (!records.length) throw new GateError("tdd-evidence.yaml contains no red-to-green records");
+  if (!records.length) {
+    const meaningful = content.split(/\r?\n/).filter(line => line.trim() && !line.trim().startsWith("#"));
+    if (!meaningful.length) {
+      throw new GateError("tdd-evidence.yaml 无任何 red→green 记录: 全文仅空白/注释");
+    }
+    throw new GateError(`tdd-evidence.yaml 有 ${meaningful.length} 行非空内容但未解析出任何记录 (键名或缩进不对?); 每条记录首键必须是 "- test_file:", 其后为缩进字段: ${TDD_RECORD_FIELDS.join(", ")}`);
+  }
   records.forEach((record, index) => {
     const end = index + 1 < records.length ? records[index + 1].index : content.length;
     const block = content.slice(record.index, end);
+    const label = `record #${index + 1} (test_file: ${scalar(record[1])})`;
     const values = {};
-    for (const key of ["red_command", "red_summary", "red_observed_at", "implementation_files", "implementation_observed_at", "green_command", "green_summary", "green_observed_at"]) {
-      values[key] = evidenceField(block, key);
-    }
-    if (Object.values(values).some(value => !value)) throw new GateError("tdd-evidence record is missing red/implementation/green fields");
+    for (const key of TDD_RECORD_FIELDS) values[key] = evidenceField(block, key);
+    const missing = TDD_RECORD_FIELDS.filter(key => !values[key]);
+    if (missing.length) throw new GateError(`tdd-evidence ${label} 缺字段: ${missing.join(", ")}`);
     const red = parseUtcTimestamp(values.red_observed_at, "tdd red_observed_at");
     const implementation = parseUtcTimestamp(values.implementation_observed_at, "tdd implementation_observed_at");
     const green = parseUtcTimestamp(values.green_observed_at, "tdd green_observed_at");
     if (!(red < implementation && implementation < green)) {
-      throw new GateError("tdd-evidence timestamps must satisfy red < implementation < green");
+      throw new GateError(`tdd-evidence ${label} 时间序必须满足 red < implementation < green; 实际 red=${values.red_observed_at} implementation=${values.implementation_observed_at} green=${values.green_observed_at}`);
     }
   });
 }
@@ -758,7 +782,11 @@ function validateCriticRounds(sprintDir, fm) {
 // while the packaged design template emits exactly that heading. Use an explicit
 // boundary lookahead instead; numbered section prefixes ("## 9. Acceptance
 // criteria") are also recognized.
-const ACCEPTANCE_HEAD = /^#{1,6}\s*\**\s*(?:\d+[.)]\s*)?(?:done contract|acceptance criteria|验收标准)(?=$|[\s*:：()（）[\]【】·—-])/i;
+// Q12#8: 短别名 AC / 验收 的边界严于全名 —— 只认后随行尾或冒号, 否则 "## AC 覆盖表"、
+// "## 验收流程说明"、"### AC 标识..." 这类散文小标题会被当成合同小节。报错文本与这里
+// 同源 (acceptanceHeadList), 作者照报错改一定能改对。
+const ACCEPTANCE_HEAD_ALIASES = ["Done Contract", "Acceptance Criteria", "验收标准", "AC", "验收"];
+const ACCEPTANCE_HEAD = /^#{1,6}\s*\**\s*(?:\d+[.)]\s*)?(?:(?:done contract|acceptance criteria|验收标准)(?=$|[\s*:：()（）[\]【】·—-])|(?:AC|验收)(?=$|[:：]))/i;
 const PLACEHOLDER_PREFIXES = ["todo", "tbd", "fixme", "wip", "placeholder", "待定", "待补", "占位", "暂定"];
 const PLACEHOLDER_PHRASES = ["works correctly", "works as expected", "功能正常", "正常工作", "n/a"];
 
@@ -771,26 +799,42 @@ function isPlaceholderCriterion(text) {
   return PLACEHOLDER_PHRASES.some(phrase => t === phrase || t.includes(phrase));
 }
 
-function acceptanceCriteria(text) {
+// Q12#8: 分层诊断需要区分 "没有验收小节" 与 "小节在但一条有效条目都没有", 所以扫描返回
+// {found, items}; acceptanceCriteria 只是取 items 的薄壳 (导出面不变)。
+// Q12#7: 围栏内的行是示例代码, 不是条目 —— 围栏状态全局跟踪 (markdown 的围栏本就跨节)。
+function acceptanceSections(text) {
   const item = /^\s*(?:[-*]|\d+[.)]|\[[ xX]\])\s+\S/;
   const nextHead = /^#{1,6}\s/;
-  const found = [];
+  const fence = /^\s{0,3}```/;
+  const items = [];
+  let found = false;
   let inSec = false;
-  for (const raw of text.split(/\r?\n/)) {
-    if (ACCEPTANCE_HEAD.test(raw.trim())) { inSec = true; continue; }
+  let inFence = false;
+  for (const raw of String(text).split(/\r?\n/)) {
+    if (fence.test(raw)) { inFence = !inFence; continue; }
+    if (inFence) continue;
+    if (ACCEPTANCE_HEAD.test(raw.trim())) { found = true; inSec = true; continue; }
     if (!inSec) continue;
     if (nextHead.test(raw)) { inSec = false; continue; }
     if (raw.trim().startsWith("|")) {
       const cells = raw.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim().replace(/^[*`]+|[*`]+$/g, ""));
-      if (/^AC\d+$/i.test(cells[0]) && cells.length > 1 && !isPlaceholderCriterion(cells.slice(1).join(" "))) found.push(cells.join(" | "));
+      if (/^AC\d+$/i.test(cells[0]) && cells.length > 1 && !isPlaceholderCriterion(cells.slice(1).join(" "))) items.push(cells.join(" | "));
       continue;
     }
     if (item.test(raw)) {
       const t = raw.replace(/^\s*(?:[-*]|\d+[.)])\s+/, "").replace(/^\[[ xX]\]\s+/, "").trim();
-      if (t && !isPlaceholderCriterion(t)) found.push(t);
+      if (t && !isPlaceholderCriterion(t)) items.push(t);
     }
   }
-  return found;
+  return { found, items };
+}
+
+function acceptanceCriteria(text) {
+  return acceptanceSections(text).items;
+}
+
+function acceptanceHeadList() {
+  return ACCEPTANCE_HEAD_ALIASES.map(alias => `## ${alias}`).join(" / ");
 }
 
 // design §4.5 escape policy: the exception must name the current sprint AND carry
@@ -885,19 +929,23 @@ function specGateExceptionActive(fm, sprintSlug, pathType, sprintDir) {
 // design §4.2/§4.3: criteria must come from the sprint's own design.md, or from a
 // requirements artifact explicitly linked in that design — not any random file
 // under .ai_state/requirements/.
+// 返回 {found, items}: found 表示至少有一处 (design 或其链接的 requirements 档) 认出了
+// 验收小节标题, 供 spec-gate 分层报错用 (Q12#8)。
 function resolveAcceptanceCriteria(sprintDir, aiState) {
   const designPath = path.join(sprintDir, "design.md");
-  if (!fs.existsSync(designPath)) return [];
+  if (!fs.existsSync(designPath)) return { found: false, items: [] };
   const designText = fs.readFileSync(designPath, "utf8");
-  const own = acceptanceCriteria(designText);
-  if (own.length) return own;
+  const own = acceptanceSections(designText);
+  if (own.items.length) return own;
+  let found = own.found;
   for (const match of designText.matchAll(/requirements\/([A-Za-z0-9][A-Za-z0-9._-]*\.md)/g)) {
     const linked = path.join(aiState, "requirements", match[1]);
     if (!fs.existsSync(linked)) continue;
-    const fromLinked = acceptanceCriteria(fs.readFileSync(linked, "utf8"));
-    if (fromLinked.length) return fromLinked;
+    const fromLinked = acceptanceSections(fs.readFileSync(linked, "utf8"));
+    if (fromLinked.items.length) return fromLinked;
+    found = found || fromLinked.found;
   }
-  return [];
+  return { found, items: [] };
 }
 
 // spec-gate 主门禁在 impl 入口 (design §4.2); ship 处复核 (design §4.4).
@@ -906,11 +954,15 @@ function validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException }
     if (allowException) return [];
     throw new GateError("active Feature+ spec_gate_exception must be removed before ship");
   }
-  const criteria = resolveAcceptanceCriteria(sprintDir, aiState);
-  if (!criteria.length) {
-    throw new GateError("spec-gate: design.md (或其显式链接的 requirements 档) 缺机器可识别的验收标准段 (## Acceptance Criteria / ## 验收标准 + ≥1 条可观测 checkbox/编号/列表项); 占位符/TODO/泛化陈述不算");
+  const resolved = resolveAcceptanceCriteria(sprintDir, aiState);
+  if (!resolved.items.length) {
+    // 两层报错: 标题没认出来 vs 认出来了但没有条目 —— 作者改对的路径完全不同。
+    if (!resolved.found) {
+      throw new GateError(`spec-gate: design.md (或其显式链接的 requirements 档) 未识别到验收小节; 可接受标题: ${acceptanceHeadList()} (AC / 验收 两个短别名必须后随行尾或冒号)`);
+    }
+    throw new GateError("spec-gate: 验收小节已识别, 但 0 条有效条目; 需 ≥1 条可观测的 checkbox/编号/列表项或 | ACn | ... | 表行; 占位符/TODO/泛化陈述与围栏内示例不算");
   }
-  return criteria;
+  return resolved.items;
 }
 
 // design §4.4(2): labeled criteria (ACn) must each map to checklist/evidence;
@@ -964,7 +1016,8 @@ function reviewExplicitlyAccepts(reviewContent, label) {
 function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewContent, reviewedCommit) {
   const labels = new Set();
   for (const criterion of criteria) {
-    for (const match of criterion.matchAll(/(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])/g)) labels.add(match[1].toUpperCase());
+    // Q12#7: 条目里反引号引用的测试名/历史 AC 不是本 sprint 要覆盖的标号 (同 extractAcIds 规则)。
+    for (const match of stripInlineCode(criterion).matchAll(/(?:^|[^A-Za-z0-9])(AC\d+)(?![0-9])/g)) labels.add(match[1].toUpperCase());
   }
   if (!labels.size) return;
   // hotfix2 AC5 (2026-07-29, W38): 保留标号 AC11/12 静默豁免移除 (compound learning

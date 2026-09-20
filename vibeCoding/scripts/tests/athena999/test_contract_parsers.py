@@ -288,9 +288,10 @@ class TddEvidenceDiagnostics(unittest.TestCase):
     def test_four_failures_are_four_distinct_messages(self):
         comments_only = self.messages('# 本切片还没记\n# 待补\n')
         unparsable = self.messages('records:\n  test_file: tests/test_a.py\n  red_command: pytest\n')
+        complete = self.RECORD % ('2026-09-20T10:00:00Z', '2026-09-20T11:00:00Z', '2026-09-20T12:00:00Z')
         missing_fields = self.messages(
-            self.RECORD % ('2026-09-20T10:00:00Z', '2026-09-20T11:00:00Z', '2026-09-20T12:00:00Z')
-            .replace('    green_summary: 1 passed\n', '').replace('    green_observed_at: 2026-09-20T12:00:00Z\n', ''))
+            complete.replace('    green_summary: 1 passed\n', '')
+            .replace('    green_observed_at: 2026-09-20T12:00:00Z\n', ''))
         out_of_order = self.messages(
             self.RECORD % ('2026-09-20T10:00:00Z', '2026-09-20T09:00:00Z', '2026-09-20T11:00:00Z'))
         self.assertEqual(len({comments_only, unparsable, missing_fields, out_of_order}), 4)

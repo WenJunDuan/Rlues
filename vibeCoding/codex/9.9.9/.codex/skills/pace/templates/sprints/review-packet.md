@@ -10,7 +10,7 @@ source_design_sha256: ""
 
 Derived from design.md. Reviewer uses this table, not a second essay.
 
-## Contract
+## 验收标准
 
 | ID | Must hold | Anchor |
 |---|---|---|
