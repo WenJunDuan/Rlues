@@ -62,3 +62,4 @@
 
 <!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/135ab562-b7a4-49a7-9186-33c0d34fb78a-result.json","native_output_sha256":"6634cd670e12da9e894dddc1434a2601d34c86ae8b1b7dd477b69e388c40b4c3","output_ref":"reviews/design-review.md","output_sha256":"2c563be2b2201427bbc47bdb91890dafc9a8f78d4def5b83a44101d00e2ae18f","recorded_at":"2026-09-20T13:26:43.238Z","review_run_id":"135ab562-b7a4-49a7-9186-33c0d34fb78a","reviewer_target":"a749ee2cd32cdd7c4","verdict":"CONCERNS"} -->
 - 2026-09-20：rev 8 复核 **CONCERNS P0=0**（run `135ab562`）：语义层裁定成立（python/node/tee/cat 通道零有意防线实证、正集边界保守性实测、rev7 全 CLOSED）。四子句照抄落实（闭合后后续行双钉、成员矩阵、风险节语义层、cat|bash 点名）；accept 先于编辑的顺序这次也踩了一脚（恢复输入后重 accept）。八轮设计收口，进 impl。
+- 2026-09-20：generator 撞 90 轮上限未交报告；主 agent 实查 worktree（红测+实现两提交在案、CX 两文件未提交），按恢复流程续派同一 agent 收尾（报告优先指令）。
