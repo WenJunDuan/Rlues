@@ -2,58 +2,66 @@
 sprint_slug: "2026-09-20-heredoc-aware-shell-guard"
 path: "System"
 stage: "design"
-author: "cc-main (rev 4: eeed0a10 同因二次后用户批准全规则收口)"
+author: "cc-main (rev 5: 同因三次后用户批准改窄核方案)"
 base_commit: "a385d2e"
 ---
 
-# Heredoc 感知 shell guard（Q12#14 + 切片 2 遗留两项）
+# Heredoc 感知 shell guard —— 窄核方案（Q12#14 + 切片 2 遗留两项）
 
-## WHY（勘查已核，本会话两次活体复现）
+## WHY
 
-**现存放行漏洞（review P0-2 发现）**：analyze 先跑 stripComments，而 heredoc 正文无注释语义——unquoted 正文中行首 # 的危险命令替换 bash 真执行（实测），今日 guard 却整段剥掉 → **放行**。本切片必须修。
-**pre-bash-guard 无 heredoc 语义**（CC `.cjs` == Pi 字节同；CX `.py` 同构）：`findSubstitutions`（CC:56-94）对整条命令做引号感知 `$(`/反引号扫描，heredoc 正文被当普通字符流。正文奇数反引号或未闭合 `$(` → `end:-1` → `analyze` 抛「unparsable command substitution」（本会话两次误拦实录）；`<<'EOF'` 引号定界正文按 bash 规范不展开，但正文里举例的 `$(rm -rf /)` 仍被递归分析成「recursive force removal」误拦（勘查实测复现）。分段器（`tokenize`/`commandSegments` CC:118-163）同样不识别 `<<`。
-**证据侧同病**：`_shell-lex` 头注明写 no heredocs——heredoc 正文里的 `|`/`&&` 会被当控制符误分段，影响 validationStatusPolicy 判定。
-**切片 2 遗留①**：两个引号感知扫描器并存（_shell-lex 只服务证据；guard 分段器独立），收敛指名本切片。
-**切片 2 遗留②**：CX `evidence-collector.py:117` 在 `classify_evidence`/`validation_status_policy` 之前把 command 截到 4000 字符，长命令的 `| tail -8` 被截掉 → 掩盖管道误记 pass；CC 已修模式=决策吃全文、仅落盘截 500（`.cjs:97-124` 注释明言）。
-**交叉项**：切片 2 的 `test_ac5_guards_unchanged_pi_parity_and_gate_blocks_without_shell_lex` 断言①三端 guard 字节不变——本切片合法改 guard 必红，承接调整（同切片 4 承接切片 3 字节钉的先例）。
+**误拦（原始痛点）**：pre-bash-guard 无 heredoc 语义（`findSubstitutions` CC:56-94），正文奇数反引号/未闭 `$(` → unparsable 拦截；`<<'EOF'` 正文举例的危险命令文本被当真命令拦。本会话累计 **6 次活体误拦**，全部形态为「首行单声明 + quoted 定界符」。
+**现存放行洞（rev 2 复核发现）**：`analyze` 先跑 `stripComments`，unquoted 正文行首 `#` 后的命令替换 bash 真执行、guard 却剥掉 → 放行。
+**方案史（4 轮审查、同因 P0×3，全档案在 reviews/）**：全规则路线每轮收口一层 bash 词法就再露一层（行续、注释行、双引号内反斜杠、跨行引号、终止行匹配层）。根因：掩码区间端点依赖对 bash 命令行词法的完整建模，「自信地错」即 fail-open。用户裁决改**窄核**：只在词法平凡到可machineProve的形态上生效，其余一切保持今日行为——安全论证从「枚举文法」变为「非窄形=字节等价于今日」，封闭。
+**切片 2 遗留②**：CX `evidence-collector.py:117` 决策前 4000 字符预截断（CC 已修模式=决策全文、落盘截 500）。
+**交叉项**：切片 2 字节钉测试（`test_state_review.py:1210`）钉三端 guard 字节，本切片合法改 guard 必红，承接调整。
 
 ## HOW
 
-- **heredoc 识别单一来源**：`_shell-lex` 新增 `heredocSpans(command)`（CX `heredoc_spans`），识别层规范化规则（rev 4，用户批准后收口）：
-  - **R1 逻辑行语义**：声明扫描在**逻辑行**上进行——未处于引号/转义中的行尾反斜杠续行合并后才是声明所在命令行；bodyStart = 该逻辑行**最后一个物理行**的行尾换行之后；逻辑行内除 heredoc 声明 token 本身外的全部内容（含续行上的管道与连接命令）**永不进掩码**（复核反例：声明行续行携带危险命令，bash 实测真执行，必须照拦）。
-  - **R2 命令位置成立原则（默认不触发）**：`<<` 声明仅在**已证明为真实命令位置**时成立——扫描自带注释上下文（词首 `#` 起至行尾为注释，注释内不成立声明）与**跨行维持的引号状态**（单/双引号内不成立）；herestring（三个 `<`）、算术上下文（`$((…))` 内）不成立。任何无法证明的位置=不成立声明=不掩码，未枚举形态一律落 over-block 侧。
-  - **R3 单遍推进与正文不可见**：按逻辑行序单遍收集声明；一条声明成立后其正文行区间对后续声明扫描**不可见**（正文内嵌字面 heredoc 声明是纯文本，不得错配 span 边界）；同一逻辑行多声明按出现序依次占用后续行。
-  - 定界符带**任意**引用或转义（单引/双引/反斜杠/部分引用）⇒ quoted（bash 不展开）；纯裸 ⇒ unquoted。
-  - **`<<-` 与终止行匹配**：`<<-` 的终止行允许并剥离前导 tab（仅 tab），`<<` 不剥；定界符名从 `-` 之后取。终止行允许尾随空白与 CRLF 的 `\r` 视为闭合——**尾随空白一条是有意偏离 bash**（bash 实测不闭合、继续吞后文），取 over-block 方向（提前结束掩码），AC3 夹具注明该前提。
-  - 未闭合（无合法终止定界符行）⇒ 哨兵 → guard **新增** fail-closed 拦截（基线实测今日不拦；bash 侧即语法错误）。
-  - **哨兵消费语义**：unquoted 正文内的未闭合替换（奇数反引号/未闭 `$(`）按畸形 span → 整条命令跳过掩码=今日行为；证据侧 `scan` 拿到未闭合哨兵时不摘除任何区间。两条均入 AC4。
-- **guard 消费（函数内惰性 require + 回退今日行为）**：掩码作用于**原始 command、先于 stripComments**（review P0-2 定序：偏移在原始串上一次性成立，unquoted 正文区间内禁注释剥离）；掩码原语=**等长空白置换、保留换行**（不改长度不改分段）。quoted 正文整体掩空；unquoted 正文仅保留命令替换 span（含反引号）供替换分析，其余文本掩空。递归层（analyze depth>0）同样掩码。heredocSpans 载入失败**或运行期异常/畸形 span**：同一 try 内跳过掩码=今日保守行为（over-block 方向），guard 内不得出现任何新的 fail-open 分支；顶层不加 require（ARCHITECTURE 惰性载入决策）。
-- **证据侧**：`_shell-lex.scan` 用同一 spans 把 heredoc 正文从控制符扫描中摘除（quoted 与 unquoted 正文中的 `|`/`&&` 都不是控制符——它们是 stdin 文本）。
-- **收敛边界（明示给 review 挑战）**：heredoc 逻辑单源于 _shell-lex；guard 既有引号扫描（stripComments/findSubstitutions）保留为回退层不删——它是安全关键 hook 在 lexer 缺失时的唯一屏障（切片 2 遗留的 REQUIRED_ASSETS 缺口归切片 9）。完整大合并不做。
-- **CX 截断修复**：`evidence-collector.py` 决策路径吃未截断 command（对齐 CC 已修模式），仅 `:153` 落盘截 500；删 `:117` 的 4000 预截。
-- **字节钉承接与记账（review P1-3/P2-4）**：删「guard 字节不变」断言，CC==Pi parity 与 gate-sans-lexer fail-closed 独立保留；roadmap:87 与 ARCHITECTURE:85 的「收敛到同一模块」措辞同步修订为「heredoc 逻辑单源 _shell-lex，guard 引号扫描保留为 lexer 缺失回退层（安全关键可用性），完整合并不做」；CC/CX 危险清单既有差异（mariadb/dash/ksh/fork-bomb）实写进 roadmap 切片 9 notes。
+### 窄形判定 `simpleHeredoc(command)`（单源 `_shell-lex`，CX `simple_heredoc`）
+
+窄形 = 以下**全部**成立，任何一条不成立 ⇒ 不适用 ⇒ guard 与证据侧行为与今日**逐字节相同**：
+
+1. 声明在**第一物理行**（首行必然是命令位置——之前不存在任何可延续的引号/注释/续行状态，端点起点无需建模）。
+2. 首行恰含一个 `<<`（或 `<<-`），非 `<<<` 的一部分；定界符紧随（可 `'D'`/`"D"`/裸 `D`，名=去引号后的字面）。
+3. 首行除定界符自身引号外**无**任何引号字符、无反斜杠、无 `#`、无反引号、无 `$(`（`$VAR` 允许——不影响行词法边界）。
+4. 终止行 = **物理行**与定界符名全等（`<<-` 额外允许并剥离前导 tab；允许尾随 `\r`）；存在于命令内。未闭合 ⇒ 不适用（今日行为，不新增拦截）。
+5. 正文 = 首行行尾换行之后至终止行前一行。终止行之后的所有行 = 命令上下文，照常分析。
+
+### 窄形生效语义
+
+- **quoted 定界符**：正文整体等长空白掩码（保留换行），先于 `stripComments` 作用于原始 command；正文不进替换扫描与危险模式（bash 不展开，纯 stdin 文本）。
+- **裸定界符（unquoted）**：正文**不掩码**（文本照今日保守扫描，over-block 侧），但正文行**豁免 stripComments**（封现存放行洞：行首 `#` 后的 `$(…)` bash 真执行，必须进入替换分析）。
+- 递归层（`analyze` depth>0 的子命令）同规则。
+- guard 消费：函数内惰性 require；载入失败/运行期异常 ⇒ 跳过（今日行为）；guard 内不得新增任何 fail-open 分支；顶层不加 require（ARCHITECTURE 惰性载入决策）。
+- 证据侧：`_shell-lex.scan` 对窄形 quoted 正文豁免控制符分段；非窄形不变。
+
+### 其余交付（与前版相同）
+
+- **CX 截断修复**：`evidence-collector.py` 分类/策略吃未截断 command，仅落盘截 500；删 `:117` 4000 预截。
+- **字节钉承接与记账**：删「guard 字节不变」断言，CC==Pi parity 与 gate-sans-lexer fail-closed 独立保留；roadmap:87 与 ARCHITECTURE:85 措辞修订为「heredoc 窄核单源 `_shell-lex`（词法平凡形态），guard 自有扫描保留，全文法建模经 4 轮审查证伪后放弃」；CC/CX 危险清单差异实写切片 9 notes。
 
 ## 允许写集
 
 `vibeCoding/claude/9.9.9/.claude/hooks/{_shell-lex.cjs,pre-bash-guard.cjs}` + Pi `plugin/extensions/cc-core/` 同名两件（字节同改）；`vibeCoding/codex/9.9.9/.codex/hooks/{_shell_lex.py,pre-bash-guard.py,evidence-collector.py}`；`vibeCoding/scripts/tests/athena999/`：新建 `test_heredoc_guard.py`、`test_state_review.py` 仅改字节钉断言。`.ai_state/` 记账。
-Non-goals：不统一 CC/CX 危险清单既有差异（mariadb/dash/ksh/fork-bomb → 记切片 9）；不做扫描器完整合并；不动 delivery-gate；不动 CC/Pi evidence-collector.cjs（已修）。
+Non-goals：不建模 bash 完整命令行词法（4 轮审查证伪）；不统一 CC/CX 危险清单差异（切片 9）；不做扫描器完整合并；不动 delivery-gate 与 CC/Pi evidence-collector.cjs；未闭合 heredoc 不新增拦截。
 
 ## 验收标准
 
 | AC | 判据 |
 |---|---|
-| AC1 | quoted heredoc 正文免疫：奇数反引号、未闭合 `$(`、危险命令举例文本均不再拦（真实 hook 进程端到端，含本会话两个活体样本原文重放） |
-| AC2 | unquoted 正文替换分析：命令替换与反引号照拦，**含正文行以 `#` 开头的形态**（今日被注释剥离放行，先红后拦）；纯文本命令字样不拦；算术嵌套既有缺口明示排除（不隐含展开语义完备） |
-| AC3 | 命令位置 fail-closed：定界符同行危险命令照拦（先红）；**行续 `\` 逻辑行上的危险命令照拦**（先红，复核反例）；注释行伪声明不掩正文（先红）；跨行引号内伪声明不成立；正文内嵌字面声明不错配边界；多 heredoc 声明序；未闭合新增拦截；herestring/算术/引号内/转义定界负向；`<<-` tab 剥离、终止行尾随空白（有意偏离前提注明）、CRLF 三形态不误拦；既有危险模式全回归 |
-| AC4 | heredoc 单源 + 惰性载入 + 缺失回退用例；证据侧不误分段且未闭合哨兵不摘区间（一例钉住）；unquoted 正文未闭合替换按畸形 span 跳过掩码=今日行为（一例钉住） |
+| AC1 | 窄形 quoted 正文免疫：本会话 6 个活体误拦样本原文重放全部放行（先红）；正文含奇数反引号/未闭 `$(`/危险命令文本均不拦（真实 hook 进程） |
+| AC2 | 窄形 unquoted 正文豁免注释剥离：行首 `#` 后危险替换今日放行、改后拦（先红）；正文其余文本仍按今日保守扫描 |
+| AC3 | 非窄形字节等价：4 轮审查全部对抗反例（行续、双引号内反斜杠、跨行引号、注释行伪声明、正文内嵌声明、多 heredoc、`<<<`、算术左移、引号内字面、转义定界 `<<\EOF`、声明行带引号参数、非首行声明、未闭合）逐一断言新旧 guard `analyze` 输出**完全相等**（机械矩阵，非语义推演） |
+| AC4 | 窄形判定单源 `_shell-lex` + 函数内惰性载入 + 载入失败/运行期异常回退今日行为（缺失≠放行用例）；证据侧窄形豁免与非窄形不变各一例 |
 | AC5 | CX 决策截断修复：>4000 字符被掩盖管道回归用例 CX 记 unknown 与 CC 同判；分类/策略吃全文仅落盘截 500 |
-| AC6 | 字节钉承接 + 记账三件：断言调整如 HOW；roadmap:87 与 ARCHITECTURE:85 收敛措辞修订；危险清单差异实写切片 9 notes |
-| AC7 | 三端一致：guard 与 _shell-lex 的 CC==Pi 字节相等；CX 行为同夹具判定与 CC 一致 |
+| AC6 | 字节钉承接 + 记账：断言调整如 HOW；roadmap:87 与 ARCHITECTURE:85 措辞修订（窄核+证伪记录）；危险清单差异实写切片 9 notes |
+| AC7 | 三端一致：guard 与 `_shell-lex` 的 CC==Pi 字节相等；CX 行为同夹具判定与 CC 一致 |
 
 ## 测试场景
 
-1. 活体样本重放（含本轮返工脚本再次被拦的第 5 例，先红）；2. quoted/unquoted 矩阵含 # 行首正文先红；3. 同行命令/行续逻辑行/注释行伪声明/跨行引号伪声明/正文内嵌声明/多 heredoc/未闭合/herestring/算术/引号内/转义定界/`<<-` 三形态负向全套；4. lexer 缺失与运行期异常回退各一例（缺失≠放行）；5. 证据侧 heredoc 分段矩阵；6. CX 长命令截断先红；7. 字节钉调整后全套绿。
+1. 活体样本 ×6 原文重放（先红）；2. unquoted `#` 行首洞先红后拦；3. **非窄形等价矩阵**（≥13 形态，新旧输出逐一相等）；4. lexer 缺失/异常回退；5. 证据侧窄形/非窄形各一例；6. CX 长命令截断先红；7. 字节钉调整后全套绿。
 
 ## 风险
 
-guard 是唯一危险命令屏障——掩码方向只许放行「正文文本」，定界符行与命令位置一律照旧；review 重点挑战 unquoted 展开语义与回退路径。
+窄形判定本身出错的两个方向：误判窄（漏掩）=维持今日误拦，无安全损失；误判宽（多掩）由第 1/3 条的首行+无引号残留约束封死——首行不存在前置词法状态，是本方案唯一需要 machineProve 的断言，review 重点挑战之。
