@@ -81,7 +81,7 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "rework_impl"
+next_action: "await-review-result"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []
