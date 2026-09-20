@@ -12,3 +12,6 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/95299306-6fb4-456d-895c-dcc0ae7ca9c1-dispatch.json","dispatch_receipt_sha256":"2977de53c81e71edbf48488154527a2fa7485f4f183bac5cb5ed0377a27c6425","event":"bound","recorded_at":"2026-09-20T11:08:27.184Z","review_run_id":"95299306-6fb4-456d-895c-dcc0ae7ca9c1","reviewer_target":"ab79e9936f003df16"} -->
 - 2026-09-20：双 REWORK（7: P0 首匹配绕过+P1 词表 fail-open 0.144%；8: P0 bodyStart 吞同行+P0 现存 stripComments 放行洞）全落实为 rev 2；定向复核 run7b `95299306` / run8b `3ed18ae6` 已派发绑定。返工脚本自身再遭 guard heredoc 误拦一次（第 5 例活体，入切片 8 夹具）。
+
+<!-- athena-review:{"event":"accepted","native_output_ref":"reviews/_native/95299306-6fb4-456d-895c-dcc0ae7ca9c1-result.json","native_output_sha256":"78a2834787df34a143470eb66b929cbf9d73a43ff75a14b027bf7e8b2319b162","output_ref":"reviews/design-review.md","output_sha256":"8c416af709931d828ea90eb6743fdad3a95f1cb021ffb89cffbaef0b8a9b5d17","recorded_at":"2026-09-20T11:13:25.774Z","review_run_id":"95299306-6fb4-456d-895c-dcc0ae7ca9c1","reviewer_target":"ab79e9936f003df16","verdict":"PASS"} -->
+- 2026-09-20：复核 run `95299306` PASS（3×P2 子句）已 accept；P2 三条照抄落实（非高熵判据钉死、span 复扫、C 取值到行尾、风险节量化）。stage→impl，generator 派发。

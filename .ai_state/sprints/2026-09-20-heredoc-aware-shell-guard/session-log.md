@@ -12,3 +12,5 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/3ed18ae6-c4e6-4fa7-8baa-5b389231d623-dispatch.json","dispatch_receipt_sha256":"68618987e23bf8751ddee4659dfd24fba5994d2035bfc1cfa9eeb3fad1149d37","event":"bound","recorded_at":"2026-09-20T11:08:27.108Z","review_run_id":"3ed18ae6-c4e6-4fa7-8baa-5b389231d623","reviewer_target":"a8c7152a0c36bf6e1"} -->
 - 2026-09-20：REWORK 全落实 rev 2（bodyStart 行界、掩码先于注释剥离、herestring/算术/转义定界收口、未闭合改称新增、AC6 三件记账）；定向复核 run `3ed18ae6` 在飞。P0-2 系现存放行漏洞（正文 # 行首危险替换今日放行），实装后即封。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/3ed18ae6-c4e6-4fa7-8baa-5b389231d623-result.json","native_output_sha256":"3578d296d2d9284ab375660ff3b6e3dea0c9896efa1d0d93c1ad88d1c86791c4","output_ref":"reviews/design-review.md","output_sha256":"c4e17cebf9d482f7a3523e61bbf238c721cd6ba96e6bea0a8bda06c791ad9e92","recorded_at":"2026-09-20T11:12:03.050Z","review_run_id":"3ed18ae6-c4e6-4fa7-8baa-5b389231d623","reviewer_target":"a8c7152a0c36bf6e1","verdict":"REWORK"} -->
