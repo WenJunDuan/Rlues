@@ -1,6 +1,7 @@
 'use strict';
 // One native review/receipt binding in session-log.md; no second task state store.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
+const {execFileSync} = require('child_process');
 const input = require('./_input-binding.cjs'), io = require('./_index-io.cjs');
 const NATIVE_BINDINGS = {review_run_id:'review_run_id',mode:'mode',base_commit:'base_commit',packet_sha256:'packet_sha256',
   reviewed_packet_sha256:'packet_sha256',input_manifest_sha256:'input_manifest_sha256',reviewed_diff_sha256:'reviewed_diff_sha256'};
@@ -71,22 +72,55 @@ function evidenceIds(sprint) {
     .map(match => match[1].trim().replace(/^["']|["']$/g,''))
     .filter(id => id && !['[]','null','~'].includes(id)))].sort();
 }
+function resolvePath(p) {
+  try { return fs.realpathSync(p); } catch (e) { if (e.code !== 'ENOENT') throw e; return path.resolve(p); }
+}
+function partitionInputs(root,sprint,mode,inputs) {
+  const written = [
+    path.join(sprint,'session-log.md'),
+    path.join(sprint,'reviews',mode+'-review.md'),
+    path.join(root,'.ai_state','_index.md'),
+  ].map(resolvePath);
+  const kept=[], excluded=[];
+  for (const name of [...new Set(inputs)].sort()) {
+    if (written.includes(resolvePath(path.resolve(root,name)))) excluded.push(name);
+    else kept.push(name);
+  }
+  return [kept,excluded];
+}
 function liveInput(root,sprint,prepared) {
   const inputs = fileRefs(root,prepared.input_paths || []);
   if (prepared.mode==='implementation') Object.assign(inputs,input.snapshot(root,sprint));
   else inputs.design_sha256 = input.digest(fs.readFileSync(path.join(sprint,'design.md')));
   return {base_commit:input.git(root,'rev-parse','HEAD').toString().trim(),packet_sha256:input.digest(fs.readFileSync(path.join(sprint,'review-packet.md'))),
-    input_manifest_sha256:input.digest(input.canonical(inputs)),evidence_ids:evidenceIds(sprint),
+    input_manifest_sha256:input.digest(input.canonical(inputs)),input_hashes:inputs,evidence_ids:evidenceIds(sprint),
     evidence_docs:fileRefs(root,Object.keys(prepared.evidence_docs || {}))};
+}
+const AGGREGATE_AXES = new Set(['packet_sha256','design_sha256','source_sha256','environment_sha256']);
+const RECOVER = 'restore the input or re-run prepare for a new run';
+function formatEntry(key,expected,live) {
+  const pair = key+' expected='+expected+' live='+live;
+  return AGGREGATE_AXES.has(key) ? pair+' (aggregate digest; no per-file attribution)' : pair;
+}
+function mapDiffs(expected,live) {
+  const diffs=[];
+  for (const key of [...new Set([...Object.keys(expected||{}),...Object.keys(live||{})])].sort()) {
+    if ((expected[key]||'')!==(live[key]||'')) diffs.push(formatEntry(key,expected[key]||'',live[key]||''));
+  }
+  return diffs;
 }
 function assertLive(root,sprint,prepared) {
   const live = liveInput(root,sprint,prepared);
   // base_commit is recorded, not compared: ship bookkeeping commits must not void a review.
-  if (live.packet_sha256!==prepared.packet_sha256) throw new Error('review input changed: packet_sha256');
-  if (live.input_manifest_sha256!==prepared.input_manifest_sha256) throw new Error('review input changed: input_manifest_sha256');
-  if (input.canonical(live.evidence_docs)!==input.canonical(prepared.evidence_docs || {})) throw new Error('review input changed: evidence_docs');
-  const preparedIds = prepared.evidence_ids || [];
-  if (!preparedIds.every(id => live.evidence_ids.includes(id))) throw new Error('review input changed: evidence_ids');
+  if (live.packet_sha256!==prepared.packet_sha256) throw new Error('review input changed: '+formatEntry('packet_sha256',prepared.packet_sha256,live.packet_sha256)+'; '+RECOVER);
+  if (live.input_manifest_sha256!==prepared.input_manifest_sha256) {
+    if (!prepared.input_hashes) throw new Error('review input changed: input_manifest_sha256 (row prepared by older CLI; no per-entry attribution); '+RECOVER);
+    throw new Error('review input changed: '+mapDiffs(prepared.input_hashes,live.input_hashes).join('; ')+'; '+RECOVER);
+  }
+  const docs = mapDiffs(prepared.evidence_docs || {}, live.evidence_docs);
+  if (docs.length) throw new Error('review input changed: evidence_docs '+docs.join('; ')+'; '+RECOVER);
+  const missing = (prepared.evidence_ids || []).filter(id => !live.evidence_ids.includes(id));
+  if (missing.length) throw new Error('review input changed: evidence_ids missing '+missing.join(', ')+'; '+RECOVER);
 }
 function explicitVerdict(output) {
   const lines=output.replace(/^[\ufeff\r\n]+/,'').split(/\r?\n/);
@@ -104,19 +138,39 @@ function explicitVerdict(output) {
   if (verdicts.length!==1) throw new Error('native result has conflicting verdicts');
   return verdicts[0];
 }
+function manifestCommit(sprint) {
+  const file = path.join(sprint,'review-manifest.yaml');
+  if (!fs.existsSync(file)) return '';
+  for (const raw of fs.readFileSync(file,'utf8').split(/\r?\n/)) {
+    if (/^\s/.test(raw) || !raw.trim() || raw.trimStart().startsWith('#')) continue;
+    const match = raw.match(/^implementation_commit\s*:\s*(.*?)\s*$/);
+    if (!match) continue;
+    let value = match[1].trim();
+    if (value.includes(' #')) value = value.split(' #',1)[0].trim();
+    if (value.length>=2 && value[0]===value.at(-1) && ['"',"'"].includes(value[0])) value = value.slice(1,-1);
+    return /^[0-9a-f]{40}$/.test(value) ? value : '';
+  }
+  return '';
+}
 function prepare(cwd,mode,inputs) {
   const [root,sprint] = input.context(cwd);
   if (!['design','implementation'].includes(mode)) throw new Error('mode must be design or implementation');
   const rows = events(sprint), latest = rows.filter(r=>r.event==='prepared').at(-1);
   if (latest && !rows.some(r=>r.review_run_id===latest.review_run_id && ['accepted','received','superseded'].includes(r.event))) throw new Error('review already pending; recover its receipt or explicitly supersede');
   require('./delivery-gate.cjs').validateReviewPacket(sprint);
+  if (mode==='implementation') {
+    const recorded = manifestCommit(sprint), head = input.git(root,'rev-parse','HEAD').toString().trim();
+    if (recorded && recorded!==head) throw new Error('review-manifest implementation_commit is stale: manifest='+recorded+' HEAD='+head);
+  }
   let docs = [];
   if (mode==='implementation') {
     if (!fs.existsSync(path.join(sprint,'evidence.yaml'))) throw new Error('implementation review requires evidence.yaml');
     docs = ['runtime-verify.md','cleanup-pass.md','review-manifest.yaml'].filter(n=>fs.existsSync(path.join(sprint,n))).map(n=>path.relative(root,path.join(sprint,n)).split(path.sep).join('/'));
   }
+  const [kept,excluded] = partitionInputs(root,sprint,mode,inputs);
+  if (inputs.length && !kept.length) throw new Error('review inputs empty after excluding CLI-written paths');
   const row = {event:'prepared',schema_version:1,review_run_id:crypto.randomUUID(),mode,author_target:process.env.CODEX_THREAD_ID || process.env.CLAUDE_SESSION_ID || '',
-    input_paths:[...new Set(inputs)].sort(),evidence_docs:Object.fromEntries(docs.map(n=>[n,'']))};
+    input_paths:kept,excluded_inputs:excluded,evidence_docs:Object.fromEntries(docs.map(n=>[n,'']))};
   Object.assign(row,liveInput(root,sprint,row));
   return append(sprint,row);
 }
@@ -162,7 +216,7 @@ function accept(cwd,run,receipt) {
   if (events(sprint).some(r=>r.review_run_id===run && ['accepted','received'].includes(r.event))) throw new Error('review result already accepted');
   const bound = events(sprint).filter(r=>r.event==='bound' && r.review_run_id===run);
   if (bound.length!==1) throw new Error('review requires exactly one persisted native dispatch binding');
-  const [target,status,output] = nativeReceipt(receipt,bound[0].reviewer_target);
+  let [target,status,output] = nativeReceipt(receipt,bound[0].reviewer_target);
   if (target!==bound[0].reviewer_target || !['completed','complete','succeeded'].includes(status) || !output.trim()) throw new Error('wrong target, unknown/incomplete native result, or missing output');
   assertLive(root,sprint,prepared);
   validateNativeMetadata(output,prepared,root);
@@ -172,7 +226,10 @@ function accept(cwd,run,receipt) {
     input_manifest_sha256:prepared.input_manifest_sha256,native_output_ref:ref,verdict};
   let header = '---\n'+Object.entries(fm).map(([k,v])=>k+': '+JSON.stringify(v)+'\n').join('')+'---\n\n';
   const manifest = path.join(sprint,'review-manifest.yaml');
-  if (prepared.mode==='implementation' && fs.existsSync(manifest)) header+='Reviewed design sha256: '+input.digest(fs.readFileSync(path.join(sprint,'design.md')))+'\nReviewed implementation commit: '+prepared.base_commit+'\nReviewed state manifest sha256: '+input.digest(fs.readFileSync(manifest))+'\n\n';
+  if (prepared.mode==='implementation' && fs.existsSync(manifest)) {
+    output=output.replace(/^[ \t]*Reviewed (?:design sha256|implementation commit|state manifest sha256):.*(?:\r?\n|$)/gm,'');
+    header+='Reviewed design sha256: '+input.digest(fs.readFileSync(path.join(sprint,'design.md')))+'\nReviewed implementation commit: '+prepared.base_commit+'\nReviewed state manifest sha256: '+input.digest(fs.readFileSync(manifest))+'\n\n';
+  }
   io.writeAtomic(doc,header+'## Native review output\n\n'+output);
   const row = append(sprint,{event:verdict==='PASS' ? 'accepted':'received',verdict,review_run_id:run,reviewer_target:target,native_output_ref:ref,native_output_sha256:sha,
     output_ref:path.relative(sprint,doc).split(path.sep).join('/'),output_sha256:input.digest(fs.readFileSync(doc))});
@@ -200,9 +257,40 @@ function validateCurrent(root,sprint,review) {
   if (target!==bound[0].reviewer_target || target!==row.reviewer_target || !['completed','complete','succeeded'].includes(status)) throw new Error('native result identity/status mismatch');
   validateNativeMetadata(output,prepared,root);
 }
+function gateRepoRoot(cwd) {
+  const run = args => {
+    try { return execFileSync('git', args, {cwd, encoding:'utf8', stdio:['ignore','pipe','ignore'], timeout:15000}).trim(); }
+    catch (_) { return ''; }
+  };
+  const commonDir = run(['rev-parse','--path-format=absolute','--git-common-dir']);
+  if (commonDir && path.basename(commonDir)==='.git') return path.dirname(commonDir);
+  return run(['rev-parse','--show-toplevel']) || '';
+}
+function gateAiState(start) {
+  if (!start) return '';
+  let current = path.resolve(start);
+  for (let depth=0; depth<8; depth+=1) {
+    const candidate = path.join(current,'.ai_state');
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+    if (fs.existsSync(path.join(current,'.git'))) return '';
+    const parent = path.dirname(current);
+    if (parent===current) break;
+    current = parent;
+  }
+  return '';
+}
+function governance(cwd) {
+  const gate = require('./delivery-gate.cjs');
+  const root = gateRepoRoot(cwd), aiState = gateAiState(root) || gateAiState(cwd);
+  const index = aiState ? path.join(aiState,'_index.md') : '';
+  if (!index || !fs.existsSync(index)) throw new Error('_index.md is absent');
+  const fm = gate.parseFrontmatter(fs.readFileSync(index,'utf8')), fields = {};
+  for (const key of [...gate.INDEX_GOVERNANCE_FIELDS].sort()) fields[key] = String(fm[key] || '');
+  return {index_governance_sha256:gate.indexGovernanceSha256(fm),fields};
+}
 function main(argv=process.argv.slice(2)) {
   if (argv.includes('--help') || !argv.length) {
-    process.stdout.write('Usage: review-binding.cjs prepare|bind|accept|supersede [--cwd ABS_WORKTREE] [--mode design|implementation] [--input REL_DOC ...] [--run PREPARED_ID] [--receipt NATIVE_TOOL_RESULT.json]\nPrepare generates run/base/packet/input/evidence hashes from actual files. Bind and accept read saved native tool results, never a guessed target. Accept requires completed status and an explicit verdict; negative results are retained for rework, only PASS is deliverable. Supersede only after the old request ended or was invalidated.\n'); return 0;
+    process.stdout.write('Usage: review-binding.cjs prepare|bind|accept|supersede|governance [--cwd ABS_WORKTREE] [--mode design|implementation] [--input REL_DOC ...] [--run PREPARED_ID] [--receipt NATIVE_TOOL_RESULT.json]\nPrepare generates run/base/packet/input/evidence hashes from actual files. Bind and accept read saved native tool results, never a guessed target. Accept requires completed status and an explicit verdict; negative results are retained for rework, only PASS is deliverable. Supersede only after the old request ended or was invalidated. Governance prints the gate governance hash of the _index.md the gate reads and writes nothing.\n'); return 0;
   }
   const action=argv[0], args={cwd:process.cwd(),mode:'implementation',input:[]};
   try {
@@ -212,7 +300,8 @@ function main(argv=process.argv.slice(2)) {
       if (key==='input') args.input.push(argv[i+1]); else args[key]=argv[i+1];
     }
     let result;
-    if (action==='prepare') result=prepare(args.cwd,args.mode,args.input);
+    if (action==='governance') result=governance(args.cwd);
+    else if (action==='prepare') result=prepare(args.cwd,args.mode,args.input);
     else if (!args.run) throw new Error('--run required');
     else if (action==='supersede') { const [,sprint]=input.context(args.cwd); current(sprint,args.run); result=append(sprint,{event:'superseded',review_run_id:args.run}); }
     else if (!args.receipt) throw new Error('--receipt required');
