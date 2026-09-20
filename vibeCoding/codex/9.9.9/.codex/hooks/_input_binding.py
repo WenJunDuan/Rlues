@@ -156,3 +156,110 @@ def current_record(record: dict, root: Path, sprint: Path, live: dict | None = N
         return all(record.get(k) == current[k] for k in FIELDS) and digest(target.read_bytes()) == record.get('artifact_sha256')
     except (OSError, ValueError, KeyError, subprocess.SubprocessError):
         return False
+
+def _words(text: str) -> list[str]:
+    out: list[str] = []
+    buf: list[str] = []
+    quote = ''
+    escaped = False
+    def flush() -> None:
+        if buf:
+            out.append(''.join(buf))
+            buf.clear()
+    for ch in text:
+        if escaped:
+            buf.append(ch)
+            escaped = False
+            continue
+        if ch == '\\' and quote != "'":
+            escaped = True
+            continue
+        if quote:
+            if ch == quote:
+                quote = ''
+            else:
+                buf.append(ch)
+            continue
+        if ch in "'\"":
+            quote = ch
+            continue
+        if ch.isspace():
+            flush()
+            continue
+        buf.append(ch)
+    flush()
+    return out
+
+def _set_pipefail_delta(text: str) -> bool | None:
+    toks = _words(text)
+    i = 0
+    while i < len(toks) and re.match(r'^[A-Za-z_][A-Za-z0-9_]*=', toks[i]):
+        i += 1
+    if i >= len(toks) or toks[i].rsplit('/', 1)[-1] != 'set':
+        return None
+    i += 1
+    mentioned: bool | None = None
+    while i < len(toks):
+        arg = toks[i]
+        i += 1
+        if arg in ('-o', '+o'):
+            if i < len(toks) and toks[i] == 'pipefail':
+                mentioned = arg == '-o'
+                i += 1
+            continue
+        if arg.startswith(('-', '+')) and not arg.startswith('--'):
+            flags = arg[1:]
+            o_at = flags.find('o')
+            if o_at < 0:
+                continue
+            attached = flags[o_at + 1:]
+            if attached:
+                if attached == 'pipefail':
+                    mentioned = arg[0] == '-'
+            elif i < len(toks) and toks[i] == 'pipefail':
+                mentioned = arg[0] == '-'
+                i += 1
+    return mentioned
+
+def _pipefail_before(segments: list[dict[str, str]], v_index: int) -> bool:
+    on = False
+    for segment in segments[:v_index]:
+        delta = _set_pipefail_delta(segment['text'])
+        if delta is True:
+            on = True
+        elif delta is False:
+            on = False
+    return on
+
+def _pipeline_end(segments: list[dict[str, str]], v_index: int) -> int:
+    end = v_index
+    while end < len(segments) and segments[end]['op'] in ('|', '|&'):
+        end += 1
+    return end
+
+def _operators_after_pipeline(segments: list[dict[str, str]], end: int) -> list[str]:
+    ops: list[str] = []
+    for segment in segments[end:]:
+        op = ';' if segment['op'] == '\n' else segment['op']
+        if op and op not in ('|', '|&'):
+            ops.append(op)
+    return ops
+
+def validation_status_policy(command: str) -> dict:
+    try:
+        from _shell_lex import scan
+    except Exception:
+        return {'provable': False, 'reason': 'validation_status_not_reported'}
+    segments = scan(command)
+    validations = [i for i, segment in enumerate(segments) if classify_validation(segment['text'])]
+    if not validations:
+        return {'provable': True, 'reason': None}
+    if segments[-1]['op'] == '&':
+        return {'provable': False, 'reason': 'validation_backgrounded'}
+    for vi in validations:
+        end = _pipeline_end(segments, vi)
+        if any(op != '&&' for op in _operators_after_pipeline(segments, end)):
+            return {'provable': False, 'reason': 'validation_status_not_reported'}
+        if vi != end and not _pipefail_before(segments, vi):
+            return {'provable': False, 'reason': 'pipeline_without_pipefail'}
+    return {'provable': True, 'reason': None}

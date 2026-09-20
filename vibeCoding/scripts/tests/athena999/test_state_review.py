@@ -14,8 +14,38 @@ import unittest
 sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[4]
 CX = ROOT / 'codex/9.9.9/.codex/hooks'
 CC = ROOT / 'claude/9.9.9/.claude/hooks'
+PI = ROOT / 'pi-agent/plugin/extensions/cc-core'
+GUARD_PATHS = (
+    'vibeCoding/claude/9.9.9/.claude/hooks/pre-bash-guard.cjs',
+    'vibeCoding/codex/9.9.9/.codex/hooks/pre-bash-guard.py',
+    'vibeCoding/pi-agent/plugin/extensions/cc-core/pre-bash-guard.cjs',
+)
+POLICY_MATRIX = (
+    ('npm test', True, None),
+    ('npm run lint && npm test', True, None),
+    ('npm test && echo ok', True, None),
+    ('set -o pipefail; npm test 2>&1 | tail -8', True, None),
+    ('set -o pipefail; set -e; npm test | tail -8', True, None),
+    ('set -euo pipefail; npm test | tee test.log', True, None),
+    ("go test -run 'A|B' ./...", True, None),
+    ('pytest -k "a|b"', True, None),
+    ('npm test | tail -8', False, 'pipeline_without_pipefail'),
+    ('set -o pipefail; set +o pipefail; npm test | tail -8', False, 'pipeline_without_pipefail'),
+    ('npm test || true', False, 'validation_status_not_reported'),
+    ('npm test; echo done', False, 'validation_status_not_reported'),
+    ('npm test | tail -8 || echo done', False, 'validation_status_not_reported'),
+    ('npm test &', False, 'validation_backgrounded'),
+)
+POLICY_EXTRAS = (
+    ('npm test &> out.log', True, None),
+    ('npm test &>> out.log', True, None),
+    ('set -o pipefail; npm test |& tee test.log', True, None),
+    ('npm test |& tee test.log', False, 'pipeline_without_pipefail'),
+    ('npm test\necho done', False, 'validation_status_not_reported'),
+)
 
 
 def py_module(name):
@@ -726,6 +756,212 @@ class InputBindingBehavior(unittest.TestCase):
                     with self.assertRaises(gate.GateError): gate.validate_review(self.sprint/'reviews/implementation-review.md',self.root,self.sprint)
                 command('accept','--run',ident,'--receipt',str(result),ok=False)
 
+    def run_hook_chain(self, platform, ident, command, *, success=True, stdout='validated'):
+        directory, suffix, runner = (CX,'.py',sys.executable) if platform == 'cx' else (CC,'.cjs','node')
+        payload={'cwd':str(self.root),'tool_use_id':ident,'tool_name':'Bash','hook_event_name':'PreToolUse','tool_input':{'command':command}}
+        run=subprocess.run([runner,str(directory/('pre-bash-guard'+suffix))],input=json.dumps(payload),text=True,capture_output=True)
+        self.assertEqual(run.returncode,0,run.stderr)
+        if platform == 'cc':
+            if success:
+                payload.update(hook_event_name='PostToolUse',tool_response={'stdout':stdout,'stderr':'','interrupted':False})
+            else:
+                payload.update(hook_event_name='PostToolUseFailure',tool_response={'stdout':stdout,'stderr':'failed','interrupted':False})
+        else:
+            payload.update(hook_event_name='PostToolUse',tool_response={'exit_code':0 if success else 1,'stdout':stdout})
+        run=subprocess.run([runner,str(directory/('evidence-collector'+suffix))],input=json.dumps(payload),text=True,capture_output=True)
+        self.assertEqual(run.returncode,0,run.stderr)
+        return payload
+
+    def evidence_record(self, ident):
+        evidence=self.sprint/'evidence.yaml'
+        records=py_module('delivery-gate').parse_evidence_records(evidence)
+        matching=[r for r in records if r['tool_use_id']==ident]
+        self.assertEqual(len(matching),1,ident)
+        return matching[0], evidence.read_text()
+
+    def test_ac1_pipefail_pipelines_record_pass_and_fail_through_real_chain(self):
+        commands=(
+            'set -o pipefail; npm test 2>&1 | tail -8',
+            'set -euo pipefail; npm test | tee test.log',
+        )
+        for platform in ('cx','cc'):
+            for index,command in enumerate(commands):
+                with self.subTest(platform=platform,command=command,outcome='pass'):
+                    ident=f'{platform}-ac1-pass-{index}'
+                    self.run_hook_chain(platform,ident,command,success=True,stdout='Tests: 1 passed')
+                    record, raw=self.evidence_record(ident)
+                    self.assertEqual(record['result'],'pass',raw)
+                    self.assertEqual(record['binding_status'],'current',raw)
+                    self.assertNotIn('result_reason:', raw.split(ident,1)[-1].split('\n  - ',1)[0])
+                    if platform=='cx':
+                        self.assertIn('\n    kind: "test"\n', raw.split(ident,1)[-1].split('\n  - ',1)[0])
+                with self.subTest(platform=platform,command=command,outcome='fail'):
+                    ident=f'{platform}-ac1-fail-{index}'
+                    self.run_hook_chain(platform,ident,command,success=False,stdout='Tests: 1 failed')
+                    record, raw=self.evidence_record(ident)
+                    self.assertEqual(record['result'],'fail',raw)
+                    self.assertNotIn('result_reason:', raw.split(ident,1)[-1].split('\n  - ',1)[0])
+
+    def test_ac2_masked_validation_records_unknown_reason_and_keeps_fail(self):
+        masked=(
+            ('npm test | tail -8','pipeline_without_pipefail'),
+            ('npm test || true','validation_status_not_reported'),
+            ('npm test; echo done','validation_status_not_reported'),
+            ('npm test &','validation_backgrounded'),
+            ('npm test | tail -8 || echo done','validation_status_not_reported'),
+        )
+        for platform in ('cx','cc'):
+            for index,(command,reason) in enumerate(masked):
+                with self.subTest(platform=platform,command=command,outcome='success'):
+                    ident=f'{platform}-ac2-unknown-{index}'
+                    self.run_hook_chain(platform,ident,command,success=True)
+                    record, raw=self.evidence_record(ident)
+                    block=raw.split(ident,1)[-1].split('\n  - ',1)[0]
+                    self.assertEqual(record['result'],'unknown',block)
+                    self.assertIn(f'result_reason: "{reason}"', block)
+                    self.assertEqual(record['binding_status'],'current',block)
+                with self.subTest(platform=platform,command=command,outcome='fail'):
+                    ident=f'{platform}-ac2-fail-{index}'
+                    self.run_hook_chain(platform,ident,command,success=False)
+                    record, raw=self.evidence_record(ident)
+                    block=raw.split(ident,1)[-1].split('\n  - ',1)[0]
+                    self.assertEqual(record['result'],'fail',block)
+                    self.assertNotIn('result_reason:', block)
+
+    def test_ac4_cc_shaped_response_and_redaction_tail(self):
+        ident='cc-ac4-long'
+        summary='\nTests: 42 passed, 42 total\n'
+        self.run_hook_chain('cc',ident,'npm test',success=True,stdout='token=fixture-secret '+('x'*1700)+summary)
+        record, raw=self.evidence_record(ident)
+        self.assertEqual(record['result'],'pass',raw)
+        artifact=(self.sprint/record['output_artifact']).read_text()
+        self.assertIn('Tests: 42 passed, 42 total',artifact)
+        self.assertIn('…[truncated ',artifact)
+        self.assertIn('token=[REDACTED]',artifact)
+        self.assertNotIn('fixture-secret',artifact)
+        fail_id='cc-ac4-fail'
+        self.run_hook_chain('cc',fail_id,'npm test',success=False,stdout='boom')
+        fail_record, fail_raw=self.evidence_record(fail_id)
+        self.assertEqual(fail_record['result'],'fail',fail_raw)
+        collector=(CC/'evidence-collector.cjs').read_text()
+        self.assertEqual(collector.count('function redact('),1)
+        self.assertEqual(len(list(CC.glob('evidence-collector*'))),1)
+        self.assertEqual(len(list(CX.glob('evidence-collector*'))),1)
+
+
+class EvidencePipelineIntegrity(unittest.TestCase):
+    def cc_policy(self, command):
+        code=('const m=require(process.argv[1]);'
+              'process.stdout.write(JSON.stringify(m.validationStatusPolicy(process.argv[2])));')
+        return subprocess.run(['node','-e',code,str(CC/'_input-binding.cjs'),command],text=True,capture_output=True)
+
+    def cx_policy(self, command):
+        return py_module('_input_binding').validation_status_policy(command)
+
+    def assert_policy(self, command, provable, reason):
+        cx=self.cx_policy(command)
+        self.assertEqual(bool(cx['provable']),provable,command)
+        self.assertEqual(cx.get('reason'),reason,command)
+        run=self.cc_policy(command)
+        self.assertEqual(run.returncode,0,run.stderr)
+        cc=json.loads(run.stdout)
+        self.assertEqual(bool(cc['provable']),provable,command)
+        self.assertEqual(cc.get('reason'),reason,command)
+        self.assertEqual(cc.get('reason'),cx.get('reason'),command)
+
+    def test_ac3_policy_matrix_identical_on_cc_and_cx(self):
+        for command,provable,reason in POLICY_MATRIX + POLICY_EXTRAS:
+            with self.subTest(command=command):
+                self.assert_policy(command,provable,reason)
+        long_command='set -o pipefail; '+('true && '*20)+'npm test 2>&1 | tail -8'
+        self.assertGreater(len(long_command),120)
+        self.assertLess(len(long_command),500)
+        self.assert_policy(long_command,True,None)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            subprocess.run(['git','init','-q',str(root)],check=True)
+            sprint=root/'.ai_state/sprints/test'
+            sprint.mkdir(parents=True)
+            (root/'.ai_state/_index.md').write_text('---\nversion: "9.9.9"\ncurrent_sprint_slug: "test"\n---\n')
+            (sprint/'design.md').write_text('## Done Contract\n- AC1: returns exact bytes\n')
+            (root/'app.py').write_text('print(1)\n')
+            subprocess.run(['git','-C',str(root),'add','app.py'],check=True)
+            subprocess.run(['git','-C',str(root),'-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','base'],check=True)
+            ident='cx-ac3-bound'
+            payload={'cwd':str(root),'tool_use_id':ident,'tool_name':'Bash','hook_event_name':'PreToolUse','tool_input':{'command':long_command}}
+            run=subprocess.run([sys.executable,str(CX/'pre-bash-guard.py')],input=json.dumps(payload),text=True,capture_output=True)
+            self.assertEqual(run.returncode,0,run.stderr)
+            payload.update(hook_event_name='PostToolUse',tool_response={'exit_code':0,'stdout':'ok'})
+            run=subprocess.run([sys.executable,str(CX/'evidence-collector.py')],input=json.dumps(payload),text=True,capture_output=True)
+            self.assertEqual(run.returncode,0,run.stderr)
+            raw=(sprint/'evidence.yaml').read_text()
+            self.assertIn('| tail -8',raw)
+            match=re.search(r'command: ("(?:\\.|[^"\\])*")', raw)
+            self.assertIsNotNone(match,raw)
+            persisted=json.loads(match.group(1))
+            self.assertLessEqual(len(persisted),500)
+            self.assertGreater(len(persisted),120)
+
+    def test_ac5_guards_unchanged_pi_parity_and_gate_blocks_without_shell_lex(self):
+        diff=subprocess.run(['git','diff','--exit-code','52ff57eb','--',*GUARD_PATHS],cwd=REPO,text=True,capture_output=True)
+        self.assertEqual(diff.returncode,0,diff.stdout+diff.stderr)
+        for name in ('_shell-lex.cjs','_input-binding.cjs','pre-bash-guard.cjs'):
+            self.assertEqual((CC/name).read_bytes(),(PI/name).read_bytes(),name)
+        evidence_body='collected_evidence:\n  - tool_use_id: x\n    result: unknown\n'
+        hidden=[]
+        try:
+            for path in (CC/'_shell-lex.cjs', CX/'_shell_lex.py'):
+                if path.exists():
+                    dest=path.with_name(path.name+'.hidden')
+                    path.rename(dest)
+                    hidden.append((path,dest))
+            with tempfile.TemporaryDirectory() as tmp:
+                evidence=Path(tmp)/'evidence.yaml'
+                evidence.write_text(evidence_body)
+                cx_code=('import sys,importlib.util\nfrom pathlib import Path\n'
+                         'sys.path.insert(0, str(Path(sys.argv[1]).parent))\n'
+                         'spec=importlib.util.spec_from_file_location("delivery_gate", sys.argv[1])\n'
+                         'mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\n'
+                         'try:\n'
+                         '    mod.validate_evidence(Path(sys.argv[2]))\n'
+                         '    sys.exit(0)\n'
+                         'except mod.GateError as exc:\n'
+                         '    sys.stderr.write(str(exc))\n'
+                         '    sys.exit(2)\n')
+                cx=subprocess.run([sys.executable,'-c',cx_code,str(CX/'delivery-gate.py'),str(evidence)],text=True,capture_output=True)
+                self.assertEqual(cx.returncode,2,cx.stdout+cx.stderr)
+                self.assertIn('insufficient',cx.stderr)
+                self.assertIn('unknown',cx.stderr.lower())
+                cc_code=('try{require(process.argv[1]).validateEvidence(process.argv[2]);process.exit(0)}'
+                         'catch(e){process.stderr.write(String(e.message||e));process.exit(2)}')
+                cc=subprocess.run(['node','-e',cc_code,str(CC/'delivery-gate.cjs'),str(evidence)],text=True,capture_output=True)
+                self.assertEqual(cc.returncode,2,cc.stdout+cc.stderr)
+                self.assertIn('insufficient',cc.stderr)
+                self.assertIn('unknown',cc.stderr.lower())
+        finally:
+            for path,dest in hidden:
+                if dest.exists() and not path.exists():
+                    dest.rename(path)
+
+    def test_ac6_gate_contracts_document_admissible_evidence(self):
+        paths=(
+            CC.parent/'skills/pace/references/gate-contracts.md',
+            CX.parent/'skills/pace/references/gate-contracts.md',
+            ROOT/'pi-agent/plugin/skills/pace/references/gate-contracts.md',
+        )
+        required=(
+            'set -o pipefail; npm test 2>&1 | tail -8',
+            'unprotected pipeline',
+            'not admissible evidence',
+        )
+        for path in paths:
+            text=path.read_text()
+            for needle in required:
+                with self.subTest(path=str(path),needle=needle):
+                    self.assertIn(needle,text)
+            self.assertTrue(re.search(r'masked validation|backgrounded', text), path)
+
 
 if __name__ == '__main__':
     unittest.main()
+
