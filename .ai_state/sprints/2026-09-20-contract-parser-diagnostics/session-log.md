@@ -21,3 +21,6 @@
 - 2026-09-20：定向复核 run `86be1284` CONCERNS 已 accept：首轮 REWORK 三阻断项全部实测闭合；新出 2×P1（AC7 同源集合补 acceptanceSections+两常量、AC1 夹具字面量内联去归档路径耦合）+ 3×P2（空格冒号/粗体负向显式化、gate-contracts 注明别名不约束 roadmap、措辞对齐）全部照抄落实为 rev 3。复核明示不开第三轮，进 impl。
 - 2026-09-20：stage design→impl。红区（System）：generator subagent + isolation: worktree；tracker redirectToMainRepo 已核实（安装态=仓库 9.9.9），账本落主 sprint。
 - 2026-09-20：generator 派发（isolation: worktree，基线 `9844e48`）。握手完成：assignment 落主账本（task_name=q12_contract_parser_diagnostics, role=generator），BOUND 消息已送达 writer；唯一 writer，主 agent 唯一整合者。允许写集=design 允许写集机械展开（3 gate + 3 模板 + 2 测试 + 3 文档），禁碰 .ai_state。
+- 2026-09-20：generator 交付（4 commit / 92 tool 轮 / 15 新测试红→绿）。主 agent 核验：改动面=写集 11 文件；15/15+52/52 复跑绿；Pi 既有分叉 55 行原样；三端 exports 未动。rebase 到 main 后 ff 合入 `fd9d1d0`，主仓复跑 67/67 绿，worktree 与临时分支按 2026-09-07 裁定即时清理。
+- 2026-09-20：runtime-verify PASS：受控 git 夹具实跑真实 hook 进程 6 场景（别名放行/两层零条目报错/packet 污染消除/零小节独立报错/TDD 四层诊断），CC/CX 消息逐字一致；S5 因导出面合同用发行文件进程级探针，已在档案中如实注明。generator 报告的 CC/CX 既有文案分叉（requireFile 空文件消息、mismatch 拼接格式）记为非本切片目标，留 roadmap 切片 9 发行一致性核对时裁量。
+- 2026-09-20：tdd-evidence.yaml 未创建：门禁仅在 review-manifest 存在时校验之，本 sprint 无 manifest，无消费者不造文书（铁律[反过度工程]）。红→绿事实由 generator commit 序列（61123a5 红先行→aa49755 绿）与 evidence collector 记录佐证。

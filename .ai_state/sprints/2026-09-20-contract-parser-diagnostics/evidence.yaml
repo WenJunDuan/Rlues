@@ -1,0 +1,9 @@
+sprint_slug: "2026-09-20-contract-parser-diagnostics"
+collected_evidence:
+  - tool_use_id: "toolu_01HxooNjhoaq6JsceMvnZ69D"
+    tool: "Bash"
+    result: unknown
+    result_reason: "validation_status_not_reported"
+    command: "cd /Users/mi_manchi/workspace/Rlues && set -o pipefail\npython3 -m unittest vibeCoding.scripts.tests.athena999.test_contract_parsers vibeCoding.scripts.tests.athena999.test_state_review 2>&1 | tail -3\ngit worktree remove /Users/mi_manchi/workspace/Rlues/.claude/worktrees/agent-a9095c9a3b1d47964 --force && git branch -d worktree-agent-a9095c9a3b1d47964 && git worktree list | wc -l"
+    timestamp: "2026-09-20T09:39:20.094Z"
+    binding_status: "unverifiable"
