@@ -24,9 +24,9 @@ PACKET_TEMPLATES = (
 # AC7 同源集合: Pi 的这些函数与常量行必须与 CC 逐字相等 (新增同源函数须同步入集)。
 SAME_SOURCE_FUNCTIONS = (
     'stripInlineCode', 'extractAcIds', 'acceptanceSections', 'acceptanceCriteria',
-    'validateTddEvidence',
+    'acceptanceHeadList', 'validateTddEvidence',
 )
-SAME_SOURCE_CONSTANTS = ('ACCEPTANCE_HEAD', 'ACCEPTANCE_HEAD_ALIASES')
+SAME_SOURCE_CONSTANTS = ('ACCEPTANCE_HEAD', 'ACCEPTANCE_HEAD_ALIASES', 'TDD_RECORD_FIELDS')
 TDD_FIELDS = (
     'red_command', 'red_summary', 'red_observed_at', 'implementation_files',
     'implementation_observed_at', 'green_command', 'green_summary', 'green_observed_at',

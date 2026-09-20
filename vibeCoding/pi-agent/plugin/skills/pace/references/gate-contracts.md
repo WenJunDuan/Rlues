@@ -9,8 +9,8 @@
 | 时机 / 适用范围 | 文件与精确判据 |
 |---|---|
 | 所有入口 | `.ai_state/_index.md` 的 `path`、`stage`、`current_sprint_slug`；关联切片读 `current_roadmap_slug`。不得临时改路径或 skip 字段绕门禁。 |
-| impl-entry · Feature+ | `S/design.md` 的 `## 验收标准` / `## Acceptance Criteria` / `## Done Contract` 下至少一条可观察验收；用 `- AC1: …` 或首列为 AC ID 的表格，拒绝 TODO/占位语句。spec 解析支持显式链接的 requirements，但 packet 仍要求 design 验收段含 AC ID。 |
-| impl-entry · Feature+ packet | `S/review-packet.md` ≤80行；frontmatter `source_design_sha256` = design 文件 SHA-256；packet 的 AC ID 集合与 design 验收段相同，无遗漏/新增。按 AC 一一派生；源码按集合比较，不验证重复次数或语义等价，作者仍须保证语义。 |
+| impl-entry · Feature+ | `S/design.md` 的 `## 验收标准` / `## Acceptance Criteria` / `## Done Contract` / `## AC` / `## 验收` 下至少一条可观察验收（`AC`、`验收` 两个短别名边界更严：必须后随行尾或冒号，`## AC 覆盖表`、`## AC-1`、`## AC(草案)`、`## **AC**`、`## 验收 流程`、`## 验收流程说明` 一律不识别；别名只约束 design/packet 的验收小节，roadmap 等文档里的 `## 验收` 标题不受影响）；用 `- AC1: …` 或首列为 AC ID 的表格，拒绝 TODO/占位语句；小节内三反引号围栏里的行是示例，不计条目。零条目按两层报错：标题未识别 → 逐条列全五个可接受标题；小节已识别但 0 条有效条目 → 另一条独立消息。spec 解析支持显式链接的 requirements，但 packet 仍要求 design 验收段含 AC ID。 |
+| impl-entry · Feature+ packet | `S/review-packet.md` ≤80行；frontmatter `source_design_sha256` = design 文件 SHA-256；packet 的 AC ID 只从它自己的验收小节结构提取（小节外正文引用别的切片的 AC 不进集合；条目里成对反引号包裹的 AC 标识按引用处理，不进必须覆盖集，落单反引号原样保留），集合与 design 验收段相同，无遗漏/新增；packet 未识别到验收小节时单独报错并列全可接受标题，不再伪装成 AC set mismatch（发行模板已改用 `## 验收标准`）。按 AC 一一派生；源码按集合比较，不验证重复次数或语义等价，作者仍须保证语义。 |
 | ship · 通用前置 | `design_changed_after_impl` 不为 true；design 与 implementation-review 均存在时，design mtime 不得更新于 review；工作树违规账本不得有未解除项。轻门禁是否适用由实际 diff 判定（≤60行且限允许类型），不能按“纯文档”自行豁免。 |
 | ship · Feature+ 正常分支 | `S/subagent-events.jsonl` + `S/subagent-assignments.jsonl` 真实 generator 链（适用绿区 `skip_impl_subagent_check` 例外）；`S/checklist.yaml` 存在才验，每个 `- id` 对应 `status: completed`，不是 done/PASS；必须有 evidence 与当前 implementation review。 |
 | ship · evidence | `S/evidence.yaml` 的 `collected_evidence` / `- tool_use_id` / `result: pass`；9.9.9 当前 sprint 还核对 `binding_status: current`、`source_sha256`、`design_sha256`、`environment_sha256`、`output_artifact`、`artifact_sha256`。至少一个可核验当前 PASS，无当前 FAIL；旧证据/unknown 不算通过。由采集器记录，主 agent 只补 `covers: [AC1, AC2]` 映射。可复制的可采信验证命令：`set -o pipefail; npm test 2>&1 | tail -8`。An unprotected pipeline、masked validation（`\|\| true` / `;`）或 backgrounded（行尾 `&`）command is not admissible evidence；采集器记 `result: unknown` 加 `result_reason`。 |
@@ -40,6 +40,8 @@ manifest 链的 review 正文还须有唯一的 `Reviewed design sha256:`、`Rev
 ```
 
 九字段均非空；时间带 `Z` 或 `+00:00`，严格 `red < implementation < green`。先有真实观测再填，不按当前时间倒造顺序。
+
+解析失败按层报错，照报错改即可：全文仅空白/注释 → 「无任何 red→green 记录」；有内容但没有 `- test_file:` 开头的记录 → 报非空行数并给出记录形状与八个字段名（多半是键名或缩进写错）；字段缺失 → `record #N (test_file: …) 缺字段: <确切字段名>`；时间序违例 → 同时报出 red/implementation/green 三个实际值。三端消息逐字相同。
 
 ## writer · Start → assignment → Stop
 
