@@ -49,3 +49,7 @@
 - 2026-09-20：implementation review run `cdfb7313-3b66-4914-a1a3-9d81353dc08f` 已 bind 到只读 reviewer `ad2b07493d2c787aa`。简报明示实现由外部执行器所写、仅经一次 polish，并把路径解析复写这条判断题原样交它定级（要求自行复算忠实性，不接受转述）。
 
 <!-- athena-review:{"event":"accepted","native_output_ref":"reviews/_native/cdfb7313-3b66-4914-a1a3-9d81353dc08f-result.json","native_output_sha256":"72bec515f380441655e8a5c26682594f9c83574fb1ea046bb297c04b754a2543","output_ref":"reviews/implementation-review.md","output_sha256":"bba5068aa54405d837c0d1a81f79b0364028df95c70cc5c941e223df5877d432","recorded_at":"2026-09-20T07:28:53.872Z","review_run_id":"cdfb7313-3b66-4914-a1a3-9d81353dc08f","reviewer_target":"ad2b07493d2c787aa","verdict":"PASS"} -->
+- 2026-09-20：implementation review run `cdfb7313` **PASS**（P0=0 P1=0 P2=5）已 accept。reviewer 自行复算判定路径解析副本忠实（含 `.git` 边界停止），接受本切片保留，但记为原则性 P2 并指名切片 5 消除。
+- 2026-09-20：按 reviewer P2-4 补记 roadmap——AC5 那条 sprint 范围的门禁字节断言，其「由切片 5 移除」义务此前只在测试注释与 design 里，未进 roadmap，现已连同解析复写一并写入切片 5 承接项。
+- 2026-09-20：反向同步三份 `stages.md`（CC/CX 从安装态拷回，Pi 手工套用），移除「产出用电宝体=电报体」。安装态在此项上先于仓库。
+- 2026-09-20：切片 3 交付完成，commit `d2f1887`（实现+反向同步）、`4a0b962`（记账）。stage 转 ship 以执行用户授权的推送与安装态同步。

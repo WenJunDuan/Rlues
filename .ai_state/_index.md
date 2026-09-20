@@ -5,7 +5,7 @@ version: "9.9.9"
 
 # === PACE 路由状态 ===
 path: "System"
-stage: "review"
+stage: "ship"
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
 current_sprint_slug: "2026-09-20-review-binding-preflight"
 current_roadmap_slug: "q12-batch2-production-gaps"
@@ -59,7 +59,7 @@ counts:
   refactors_count: 0
   systems_count: 5
   requirements_count: 1
-  reviews_count: 15
+  reviews_count: 20
   cleanup_count: 4
   compound:
     learning: 6
@@ -70,7 +70,7 @@ counts:
 # === Pointers (指向最新相关文件) ===
 pointers:
   latest_design: "sprints/2026-09-20-review-binding-preflight/design.md"
-  latest_review: "sprints/2026-09-20-evidence-pipeline-integrity/reviews/implementation-review.md"
+  latest_review: "sprints/2026-09-20-review-binding-preflight/reviews/implementation-review.md"
   latest_cleanup: "sprints/2026-09-20-review-binding-preflight/cleanup-pass.md"
   latest_brainstorm: "sprints/2026-09-06-athena-next-version/brainstorm.md"
   latest_decisions: ["compound/2026-08-27-decision-retire-local-telemetry-collection.md", "compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
@@ -81,7 +81,7 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: ""
+next_action: "安装态同步 (用户授权)"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []
