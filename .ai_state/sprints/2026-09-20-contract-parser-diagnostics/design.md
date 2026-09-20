@@ -2,7 +2,7 @@
 sprint_slug: "2026-09-20-contract-parser-diagnostics"
 path: "System"
 stage: "design"
-author: "cc-main (revised after design review 563309c0 REWORK)"
+author: "cc-main (rev 3: 563309c0 REWORK + 86be1284 CONCERNS 全落实)"
 base_commit: "4b0ba98"
 ---
 
@@ -34,7 +34,7 @@ base_commit: "4b0ba98"
 
 ### 标题别名 + 分层零条目诊断（#8）
 
-- `ACCEPTANCE_HEAD` 增加 `AC`、`验收` 两个别名。**别名边界严于全名**（P1-1）：`AC`/`验收` 仅在后随行尾或冒号（`:`/`：`）时成立——`## AC`、`## 验收:` 识别；`## AC 覆盖表`、`## 验收 流程`、`## AC-1`、`## AC(草案)`、本 design 自己的 `### AC 标识一律…` 小标题全部不识别（负向夹具，含本 design.md 实档）。全名三别名沿用现边界 lookahead 不变。
+- `ACCEPTANCE_HEAD` 增加 `AC`、`验收` 两个别名。**别名边界严于全名**（P1-1）：`AC`/`验收` 仅在后随行尾或冒号（`:`/`：`）时成立——`## AC`、`## 验收:` 识别；`## AC 覆盖表`、`## 验收 流程`、`## AC-1`、`## AC(草案)`、本 design 的 HOW 小标题文本全部不识别（负向夹具字面量内联，不耦合归档路径）。全名三别名沿用现边界 lookahead 不变。
 - 别名清单提为常量 `ACCEPTANCE_HEAD_ALIASES`（正则与报错文本同源），spec-gate 零条目报错分两层：
   - 未找到小节 → 列全五个可接受标题；
   - 小节存在但条目全为占位/空 → 明说「小节已识别、0 条有效条目」。
@@ -51,7 +51,7 @@ base_commit: "4b0ba98"
 
 ### 字节断言接管（交叉项）
 
-删除 `test_…_export_diff_is_sprint_scoped_and_pi_matches_cc` 中钉死 gate 文件的三段（CC/Pi 单行差、CX 字节等于 `0ca066c`）；其中仍然成立的不变量「Pi `_review-binding.cjs` == CC」独立成 `test_pi_review_binding_matches_cc` 保留。Pi gate 的机械判据由 AC7 的函数文本相等断言承接（P1-2），不再立全文件字节钉。切片 5 承接项中仅字节钉一条转归本切片，helper 导出与 governance 复写消除仍归切片 5。
+删除 `test_…_export_diff_is_sprint_scoped_and_pi_matches_cc` 中钉死 gate 文件的三段（CC/Pi 单行差、CX 字节等于 `0ca066c`）；其中仍然成立的不变量「Pi `_review-binding.cjs` == CC」独立成 `test_pi_review_binding_matches_cc` 保留。Pi gate 的机械判据由 AC7 的同源集合文本相等断言承接（复核 P1-1：集合含 acceptanceSections 与两常量，防 acceptanceCriteria 委托层文本不变而下层漂移），不再立全文件字节钉。切片 5 承接项中仅字节钉一条转归本切片，helper 导出与 governance 复写消除仍归切片 5。
 
 ### 安装态同步时点（P2-4）
 
@@ -67,7 +67,7 @@ base_commit: "4b0ba98"
 | `vibeCoding/{claude/9.9.9/.claude,codex/9.9.9/.codex,pi-agent/plugin}/skills/pace/templates/sprints/review-packet.md` | `## Contract` → `## 验收标准`（P0-1） |
 | `vibeCoding/scripts/tests/athena999/test_contract_parsers.py` | 新增，AC1-AC5、AC7 红→绿行为测试与函数文本相等断言 |
 | `vibeCoding/scripts/tests/athena999/test_state_review.py` | 仅删字节断言测试并保留 Pi==CC `_review-binding` 不变量 |
-| `vibeCoding/{claude,codex}/9.9.9/**/skills/pace/references/gate-contracts.md` + Pi 对应 | 文档：别名清单与诊断分层 |
+| `vibeCoding/{claude,codex}/9.9.9/**/skills/pace/references/gate-contracts.md` + Pi 对应 | 文档：别名清单与诊断分层；注明别名仅约束 design/packet，roadmap 文档不受此约束 |
 | `.ai_state/`（sprint 档案、roadmap 记账） | 常规 |
 
 Non-goals：不重造模板/schema；不动 gate helper 导出（切片 5）；不改 covers 语义；不消除 Pi gate 的既有分叉；不改 `_review-binding` 系；不在本切片同步安装态（ship 收口单列）。
@@ -76,18 +76,18 @@ Non-goals：不重造模板/schema；不动 gate helper 导出（切片 5）；�
 
 | AC | Roadmap | 可观察判据 |
 |---|---|---|
-| AC1 | #8 | `## AC`、`## 验收:`（行尾或冒号边界）在三端被识别；`## AC 覆盖表`、`## 验收 流程`、`## AC-1`、`## AC(草案)`、`## ACL 配置`、`## 验收流程说明` 均不识别；本 design.md 实档作夹具时其 HOW 小标题不产生验收小节 |
+| AC1 | #8 | `## AC`、`## 验收:`、`## 验收：` 识别；`## AC 覆盖表`、`## 验收 流程`、`## 验收 :`（空格+冒号）、`## **AC**`（粗体包裹）、`## AC-1`、`## AC(草案)`、`## ACL 配置`、`## 验收流程说明` 均不识别；负向夹具以字面量内联（含首轮活体命中行「### AC 标识一律从合同结构提取（#7）」），不读活 .ai_state 路径 |
 | AC2 | #8 | 无小节时报错逐字列全五个可接受标题；小节存在但 0 条有效条目时为另一条明确消息（两条不同消息，负向测试钉死） |
 | AC3 | #7 | packet 的 AC 集只来自其验收小节结构；小节外合同外标识不再产生 extra/missing；packet 零小节报独立错误并列全标题；design 侧仍限定在验收小节 |
 | AC4 | #7 | 验收条目内成对反引号 span 中的 AC 标识不进入必须覆盖集，落单反引号原样保留（负向夹具）；小节内围栏行不产生条目；design/packet/mapping 三消费点同规则 |
 | AC5 | #5 | TDD 三类失败各自可区分：空文件 vs 未解析出记录（含期望形状）；缺字段报 record 序号+test_file+确切字段名；时间序报三个实际值。CC/CX 消息逐字相同 |
 | AC6 | 交叉项 | 字节断言测试删除；Pi `_review-binding` == CC 不变量独立保留且全绿；roadmap 切片 5 承接清单同步更正 |
-| AC7 | 平行性 | AC1-AC5 每个行为在 CC 与 CX 上用同一夹具驱动，判定与消息一致；Pi 的四个同源解析函数（extractAcIds / acceptanceCriteria 及标题常量 / validateTddEvidence / stripInlineCode）与 CC 文本相等，由测试机械断言 |
+| AC7 | 平行性 | AC1-AC5 每个行为在 CC 与 CX 上用同一夹具驱动，判定与消息一致；Pi 同源集合 {stripInlineCode, extractAcIds, acceptanceSections, acceptanceCriteria, validateTddEvidence} 及 ACCEPTANCE_HEAD / ACCEPTANCE_HEAD_ALIASES 常量行与 CC 逐一文本相等，由测试机械断言；实现中新增同源函数须同步入集 |
 | AC8 | P0-1 | 三端 packet 模板含可识别验收小节标题；按发行模板新建的 packet 经 `validateReviewPacket` 不因标题落入 AC set mismatch |
 
 ## 测试场景（红→绿计划）
 
-1. 别名标题正/负向 ×CC/CX + 本 design 实档夹具（AC1）；2. 零条目两层消息 ×2 端（AC2）；3. packet 正文合同外标识不再 extra + 零小节独立报错（AC3，先红）；4. 条目成对反引号引用不进覆盖集 + 落单反引号保留 + 围栏伪条目不收集（AC4，先红）；5. TDD 空文件/坏缩进/缺字段/时间序四夹具消息断言 ×2 端（AC5）；6. 删字节断言后全套仍绿 + Pi `_review-binding`==CC 独立测试（AC6）；7. Pi 四函数文本相等断言（AC7）；8. 模板渲染的 packet 过 `validateReviewPacket`（AC8）。
+1. 别名标题正/负向 ×CC/CX，负向含字面量内联的活体命中行与空格冒号/粗体变体（AC1）；2. 零条目两层消息 ×2 端（AC2）；3. packet 正文合同外标识不再 extra + 零小节独立报错（AC3，先红）；4. 条目成对反引号引用不进覆盖集 + 落单反引号保留 + 围栏伪条目不收集（AC4，先红）；5. TDD 空文件/坏缩进/缺字段/时间序四夹具消息断言 ×2 端（AC5）；6. 删字节断言后全套仍绿 + Pi `_review-binding`==CC 独立测试（AC6）；7. Pi 四函数文本相等断言（AC7）；8. 模板渲染的 packet 过 `validateReviewPacket`（AC8）。
 
 ## 风险
 

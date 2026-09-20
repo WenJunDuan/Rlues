@@ -1,12 +1,12 @@
 ---
 schema_version: 1
 mode: "design"
-review_run_id: "563309c0-0509-4594-84bb-132784e2401e"
-reviewer_target: "a1b28c6f0c9281684"
-packet_sha256: "855150a6a8467f6aef5bf4efa298733b1df1a01c5bf93d6bebee278665ae7733"
-input_manifest_sha256: "17392788e5ca80b80b129195fde845dd1b84daa28798d322700d002a07f66f16"
-native_output_ref: "reviews/_native/563309c0-0509-4594-84bb-132784e2401e-result.json"
-verdict: "REWORK"
+review_run_id: "86be1284-c9ab-4d37-af5a-b88c3a8ff4b2"
+reviewer_target: "a9b127a6bb4606253"
+packet_sha256: "ac5adb8d42e0db39e836571bdbc358a957d1bc2fd3d75bc020bf49c021729cff"
+input_manifest_sha256: "93247cdfcad8e8aeefe87ceb9bab0e50bf987e4889eaee326c23edf672fc8f13"
+native_output_ref: "reviews/_native/86be1284-c9ab-4d37-af5a-b88c3a8ff4b2-result.json"
+verdict: "CONCERNS"
 ---
 
 ## Native review output
@@ -14,39 +14,41 @@ verdict: "REWORK"
 ---
 schema_version: 1
 mode: design
-packet_sha256: "855150a6a8467f6aef5bf4efa298733b1df1a01c5bf93d6bebee278665ae7733"
-review_run_id: "563309c0-0509-4594-84bb-132784e2401e"
-verdict: REWORK
-finding_counts: {P0: 1, P1: 2, P2: 5}
+packet_sha256: "ac5adb8d42e0db39e836571bdbc358a957d1bc2fd3d75bc020bf49c021729cff"
+review_run_id: "86be1284-c9ab-4d37-af5a-b88c3a8ff4b2"
+verdict: CONCERNS
+finding_counts: {P0: 0, P1: 2, P2: 3}
 dimensions: [spec, correctness, security, tests, overengineering]
 ---
 
-被审: design.md (sha256 a8ec4014… = packet source_design_sha256) + review-packet.md。基线 4b0ba98 = 当前 HEAD。
+被审: design.md rev 2 (c48cb9ea… = packet source_design_sha256) + review-packet.md rev 2。基线 4b0ba98，HEAD a243f91。定向复核。
 
-## P0-1 · packet 收窄与本仓自带 review-packet 模板不自洽，后续每个 sprint 必然假阳性 block
+## 首轮 findings 闭合核验（全部实测）
 
-HOW 第一条把 packet ids 改为 acceptanceCriteria(packet)。实测三端自带模板 `## Contract`（templates/sprints/review-packet.md:13）与切片 2/3 packet 的 `## Acceptance mapping` 均不被（含别名的）ACCEPTANCE_HEAD 识别 → packetIds=[] → delivery-gate.cjs:347-352 抛 AC set mismatch，报错不提标题未识别。roadmap 切片 5-9 全走此路。design 风险节漏发行模板；写集不含三端模板；无 AC 覆盖「packet 验收小节标题合同」。出路二选一并新增 AC：(a) 别名加 contract/acceptance mapping；(b) 改三端模板 + packet 零小节独立报错。
+P0-1 闭合：写集三模板路径全存在（:13 均 ## Contract）；(b) 路线正当，代价仅在飞旧 packet 改标题，零小节独立报错给出路。
+P1-1 闭合：窄规则 (?:AC|验收)(?=$|[:：]) 复跑全仓 3410 md：首轮 6 条活体命中全不识别，宽边界另 26 条命中全排除；正向 ## AC、## 验收:、## 验收： 识别。全仓窄规则剩 2 条命中均非门禁输入（resolveAcceptanceCriteria 只读 design 与显式链接 requirements）。
+P1-2 闭合：Pi↔CC 四同源函数逐字相等实测（extractAcIds 277/277、acceptanceCriteria 778/774、validateTddEvidence 616/612、ACCEPTANCE_HEAD 765/761），整体 55 行分叉不冲突，按函数取范围今天即可写绿。
+P2×5 闭合：行号实测无误；AC3 矛盾消除；成对 span 定死；安装态时点=ship 收口；字节钉由 AC7 承接。
+AC 双射：design/packet 三种口径（现装解析、全文、未来窄规则）均恰好 AC1-AC8；本 sprint 自身 ship 不被新旧规则任一卡住。现存测试无断言 AC set mismatch 文本。
 
-## P1-1 · AC/验收 别名边界过宽，`AC <任意文字>` 全中，本仓已有 4 处活体命中（含本 design 自身 HOW 小标题）
+## P1-1 · AC7 函数枚举漏掉新引入的 acceptanceSections，替代判据覆盖面小于删掉的字节钉
 
-现有 lookahead 下实测：`## AC 覆盖表`、`## 验收 流程`、`## AC-1`、`## AC(草案)`、本 design `### AC 标识一律从合同结构提取（#7）` 全部 MATCH。本 design 打别名后 acceptanceCriteria() 会把 HOW 四条 bullet 当验收条目。要求边界收窄到 $|[:：]，负向集补空格/连字符变体，并把本 design 自身作为夹具。
+Pi 的 acceptanceSections 与 ACCEPTANCE_HEAD_ALIASES 漂移时 acceptanceCriteria 文本仍相等，断言全绿而行为分叉。改法：AC7 同源集合 = {stripInlineCode, extractAcIds, acceptanceSections, acceptanceCriteria, validateTddEvidence} + ACCEPTANCE_HEAD/ACCEPTANCE_HEAD_ALIASES 常量行，逐一文本相等；新增同源函数同步入集。
 
-## P1-2 · 删字节钉后 Pi 端零自动化证据，AC7 的 Pi 判据不可执行
+## P1-2 · 「本 design.md 实档作夹具」路径耦合，ship 归档即断
 
-CC↔Pi gate 已有 65 行既有分叉，design 测试计划全是 ×2 端（CC/CX），Pi 无夹具无断言。Pi gate 是 node 且四个同源函数与 CC 逐字相同（:277/774/612/964），并入夹具矩阵或文本相等断言成本极低。AC7 应改为可执行判据。
+sprint 归档移路径 → FileNotFound；design 改字即变夹具输入。现有测试套一律临时树造夹具。改法二选一写进 AC1：命中行字面量内联，或 git show <base_commit>:<path> 不可变快照。
 
 ## P2 / INFO
 
-1. 行号 off-by-one 两处：spec-gate 报错 :915（非 916）；mapping label 提取 :988-989（非 989-990）。其余全部属实。
-2. AC3「design 侧行为回归不变」与 AC4「三消费点同规则」矛盾（stripInlineCode 改变 design 侧提取）。AC3 应改「design 侧仍限定在验收小节」。
-3. stripInlineCode 未闭合反引号语义未定死。建议：只置空成对 span，落单反引号原样保留，补负向夹具。
-4. 安装态未入写集：~/.claude/hooks/delivery-gate.cjs 与仓库副本字节相同（c3ee1db5…）。design 应显式声明同步时点。
-5. 字节断言接管正当性成立（注释条件=真正开始改 gate，实施顺序 4 先于 5 且 5 依赖 4）；保留 Pi _review-binding == CC 正确；配合 P1-2 应至少保留一条 Pi 同源函数机械断言。
+1. AC1 正向集未覆盖 ## 验收 :（空格+冒号）与 ## **AC** 粗体——窄 lookahead 均不识别，AC1 应显式声明。
+2. roadmap 模板 ## 验收 (…) 新规则下不识别，无功能影响；gate-contracts.md 别名节写明「别名仅用于 design/packet，roadmap 不受约束」。
+3. packet 审查焦点「四处活体命中」与 design 实列 6 条（2 条合成）不符，措辞级。
 
 ## 其余维度
 
-Over-engineering 无红线越界（acceptanceSections 最小改造、stripInlineCode 单实现三消费点、无第二套 schema）。Security 无新攻击面，唯一负向是 P1-1 门禁强度回退；收窄导致误 block 而非误 pass。Spec coverage：AC1-AC7 与 roadmap 双射成立，缺口即 P0-1/P1-2。Test risk：现有测试零断言待改消息，删钉不冲突 :1233 的 guards parity。
+Security fail-closed 保持（误 block 非误 pass）。Over-engineering 无越界（三个新符号均有当下消费者）。Spec coverage AC1-AC8 无 MISSING/EXTRA。Test risk：删钉划分与实文件一致；roadmap :97「由切片 5 删除」待按 AC6 改口。
 
-阻断项: P0-1 与 P1-1 须在 design 内解决后再进 impl；P1-2 补可执行 Pi 判据。
+两条 P1 均为 AC 措辞级修订，不推翻 rev 2 方案；改完可直接进 impl，无需第三轮全面审查。
 
-VERDICT: REWORK
+VERDICT: CONCERNS
