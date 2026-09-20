@@ -59,3 +59,6 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/135ab562-b7a4-49a7-9186-33c0d34fb78a-dispatch.json","dispatch_receipt_sha256":"875ab4138d70d50d91e9d1eae141fb46374be21de6c368a08fd409ccf6360128","event":"bound","recorded_at":"2026-09-20T13:19:18.259Z","review_run_id":"135ab562-b7a4-49a7-9186-33c0d34fb78a","reviewer_target":"a749ee2cd32cdd7c4"} -->
 - 2026-09-20：切片 7 已 ship（`bcd8538` 推送、门禁预跑 PASS）。用户批准 rev 8（第五裁）：词法白名单 + 语义层消费者正集 {python3,python,node,tee,cat}，shell/包装器默认不适用；live-samples 重做为实测复现的最小等价样本。误账 run f50e0e37 已 supersede（同类事故第二次，多 sprint 单指针痛点再记减脂提案）。复核 run `135ab562` 派发绑定。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/135ab562-b7a4-49a7-9186-33c0d34fb78a-result.json","native_output_sha256":"6634cd670e12da9e894dddc1434a2601d34c86ae8b1b7dd477b69e388c40b4c3","output_ref":"reviews/design-review.md","output_sha256":"2c563be2b2201427bbc47bdb91890dafc9a8f78d4def5b83a44101d00e2ae18f","recorded_at":"2026-09-20T13:26:43.238Z","review_run_id":"135ab562-b7a4-49a7-9186-33c0d34fb78a","reviewer_target":"a749ee2cd32cdd7c4","verdict":"CONCERNS"} -->
+- 2026-09-20：rev 8 复核 **CONCERNS P0=0**（run `135ab562`）：语义层裁定成立（python/node/tee/cat 通道零有意防线实证、正集边界保守性实测、rev7 全 CLOSED）。四子句照抄落实（闭合后后续行双钉、成员矩阵、风险节语义层、cat|bash 点名）；accept 先于编辑的顺序这次也踩了一脚（恢复输入后重 accept）。八轮设计收口，进 impl。
