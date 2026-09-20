@@ -39,17 +39,25 @@ HIGH_ENTROPY = re.compile(rb'[A-Za-z0-9]{16,}')
 REFERENCE = re.compile(rb'\$\{[^{}]*\}|\{\{[^{}]*\}\}')
 BRACKETED = re.compile(rb'<[A-Za-z0-9_.-]*>')
 REPEATED = re.compile(rb'(.)\1{5,}')
-FILLER = re.compile(rb'TBD|TODO', re.I)
 
 
 def is_placeholder(value):
-    """Conservative allowlist over a credential value body; anything unclear stays a secret."""
-    if REFERENCE.fullmatch(value) or REPEATED.fullmatch(value) or FILLER.fullmatch(value):
+    """Conservative allowlist over a credential value body; anything unclear stays a secret.
+
+    No filler branch here: every body reaching this predicate is at least 12 bytes, so
+    TBD/TODO are unreachable. The C hooks keep their own filler branch, where bare
+    "password: TBD" fields do occur.
+    """
+    if REPEATED.fullmatch(value):
         return True
     # A placeholder word always carries non-alphanumeric borders, so it is its own short
     # alphanumeric run: vetoing the whole body equals vetoing "the rest of the body".
+    # The veto runs before the shape branches: ${A1b2C3d4E5f6G7h8I9j0} is a reference
+    # around a live key body, not a template reference to an absent one.
     if HIGH_ENTROPY.search(value):
         return False
+    if REFERENCE.fullmatch(value):
+        return True
     if BRACKETED.fullmatch(value) and len(value) <= 48:
         return True
     for match in PLACEHOLDER_WORD.finditer(value):

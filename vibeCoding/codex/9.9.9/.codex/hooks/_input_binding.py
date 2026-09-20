@@ -30,12 +30,15 @@ def is_placeholder(value: str) -> bool:
     body = value.strip()
     if not body or re.fullmatch(r'none|null|empty|TBD|TODO', body, re.I):
         return True
-    if re.fullmatch(r'\$\{[^{}]*\}|\{\{[^{}]*\}\}', body) or re.fullmatch(r'(.)\1{5,}', body):
+    if re.fullmatch(r'(.)\1{5,}', body):
         return True
     # A placeholder word always has non-alphanumeric borders, so vetoing the whole body
-    # on a long alphanumeric run equals vetoing "the rest of the body".
+    # on a long alphanumeric run equals vetoing "the rest of the body". The veto runs before
+    # the shape branches: ${A1b2C3d4E5f6G7h8I9j0} wraps a live key body, not a template name.
     if HIGH_ENTROPY.search(body):
         return False
+    if re.fullmatch(r'\$\{[^{}]*\}|\{\{[^{}]*\}\}', body):
+        return True
     if re.fullmatch(r'<[A-Za-z0-9_.-]*>', body) and len(body) <= 48:
         return True
     for match in PLACEHOLDER_WORD.finditer(body):
@@ -46,8 +49,11 @@ def is_placeholder(value: str) -> bool:
 
 
 def credential_values(value: str) -> list:
-    """Each credential separator on the line owns the rest of the line; any non-placeholder raises."""
-    return [value[match.end():] for match in CREDENTIAL_KEY.finditer(value)]
+    """Each credential separator owns the text up to the next credential key, so a trailing
+    placeholder field cannot release the value in front of it; any non-placeholder raises."""
+    hits = list(CREDENTIAL_KEY.finditer(value))
+    return [value[hit.end():hits[i + 1].start() if i + 1 < len(hits) else len(value)]
+            for i, hit in enumerate(hits)]
 _COMMAND_PREFIX = r'(?:^|[;&|]\s*)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*(?:npx\s+)?'
 _VALIDATION_PATTERNS = [
     ('test', r'(?:python3?\s+-m\s+(?:pytest|unittest)|pytest|unittest|(?:npm|pnpm|yarn|bun)\s+(?:test|run\s+test)|cargo\s+test|go\s+test|mvn\s+(?:test|verify)|\./gradlew\s+test)'),

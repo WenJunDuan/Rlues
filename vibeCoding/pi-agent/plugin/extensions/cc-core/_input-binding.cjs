@@ -13,19 +13,24 @@ const ALNUM = /[A-Za-z0-9]/, HIGH_ENTROPY = /[A-Za-z0-9]{16,}/;
 // Unlike runtime-run.py, an empty body is a placeholder: a bare "password=" field holds no value.
 function isPlaceholder(value) {
   const body = value.trim();
-  if (!body || /^(?:none|null|empty|TBD|TODO)$/i.test(body)) return true;
-  if (/^\$\{[^{}]*\}$/.test(body) || /^\{\{[^{}]*\}\}$/.test(body) || /^(.)\1{5,}$/.test(body)) return true;
+  if (!body || /^(?:none|null|empty|TBD|TODO)$/i.test(body) || /^(.)\1{5,}$/.test(body)) return true;
   // A placeholder word always has non-alphanumeric borders, so vetoing the whole body
-  // on a long alphanumeric run equals vetoing "the rest of the body".
+  // on a long alphanumeric run equals vetoing "the rest of the body". The veto runs before
+  // the shape branches: ${A1b2C3d4E5f6G7h8I9j0} wraps a live key body, not a template name.
   if (HIGH_ENTROPY.test(body)) return false;
+  if (/^\$\{[^{}]*\}$/.test(body) || /^\{\{[^{}]*\}\}$/.test(body)) return true;
   if (/^<[A-Za-z0-9_.-]*>$/.test(body) && body.length <= 48) return true;
   for (const match of body.matchAll(PLACEHOLDER_WORD)) {
     if (!ALNUM.test(body[match.index-1]||'') && !ALNUM.test(body[match.index+match[0].length]||'')) return true;
   }
   return false;
 }
-// Each credential separator on the line owns the rest of the line; any non-placeholder throws.
-function credentialValues(value) { return [...value.matchAll(CREDENTIAL_KEY)].map(m=>value.slice(m.index+m[0].length)); }
+// Each credential separator owns the text up to the next credential key, so a trailing
+// placeholder field cannot release the value in front of it; any non-placeholder throws.
+function credentialValues(value) {
+  const hits = [...value.matchAll(CREDENTIAL_KEY)];
+  return hits.map((m,i)=>value.slice(m.index+m[0].length, i+1<hits.length ? hits[i+1].index : value.length));
+}
 const COMMAND_PREFIX = String.raw`(?:^|[;&|]\s*)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*(?:npx\s+)?`;
 const VALIDATION_PATTERNS = [
   ['test',String.raw`(?:python3?\s+-m\s+(?:pytest|unittest)|pytest|unittest|(?:npm|pnpm|yarn|bun)\s+(?:test|run\s+test)|cargo\s+test|go\s+test|mvn\s+(?:test|verify)|\./gradlew\s+test)`],
