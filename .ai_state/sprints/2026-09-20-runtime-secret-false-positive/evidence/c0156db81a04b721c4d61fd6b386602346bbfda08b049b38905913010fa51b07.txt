@@ -1,0 +1,1 @@
+{"stdout":"/Library/Frameworks/Python.framework/Versions/3.14/bin/python3: No module named pytest","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false}
