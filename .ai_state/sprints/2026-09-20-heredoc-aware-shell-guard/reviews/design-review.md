@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 mode: "design"
-review_run_id: "eeed0a10-64e0-4313-935d-f4b706b81741"
-reviewer_target: "a639b62532d78ac38"
-packet_sha256: "967607c0052b632ec202f729e580d183aa9ecea9e06c9e99964c80af8bfe611d"
-input_manifest_sha256: "bb56c6f1e79cbeaf39ee7a6147dc41e9d3299dc60f4d3350edce6738aad3f098"
-native_output_ref: "reviews/_native/eeed0a10-64e0-4313-935d-f4b706b81741-result.json"
+review_run_id: "fb828b78-f3f1-44d1-a350-fe1c2e40b5dd"
+reviewer_target: "ac121527cfbfb2310"
+packet_sha256: "8f2df27cfae5b4b0dfd56db6a181f2a528a0b2efa279edcfeae8a60a255a9542"
+input_manifest_sha256: "c49966797ff8dee1aac3ee864e44eec6038e3785be46fa3cc803398b63e76c7b"
+native_output_ref: "reviews/_native/fb828b78-f3f1-44d1-a350-fe1c2e40b5dd-result.json"
 verdict: "REWORK"
 ---
 
@@ -14,16 +14,21 @@ verdict: "REWORK"
 ---
 schema_version: 1
 mode: design
-packet_sha256: "967607c0052b632ec202f729e580d183aa9ecea9e06c9e99964c80af8bfe611d"
-review_run_id: "eeed0a10-64e0-4313-935d-f4b706b81741"
+packet_sha256: "8f2df27cfae5b4b0dfd56db6a181f2a528a0b2efa279edcfeae8a60a255a9542"
+review_run_id: "fb828b78-f3f1-44d1-a350-fe1c2e40b5dd"
 verdict: REWORK
-finding_counts: {P0: 1, P1: 0, P2: 3}
+finding_counts: {P0: 1, P1: 1, P2: 2}
 dimensions: [spec, correctness, security, tests, overengineering]
 ---
 
-P0-a' 识别上下文 fail-open **同因第二次**：rev 3 宣称的三条规则（注释感知/非正文行收集/单遍推进）在 design HOW 中零命中（grep 机械核对）——只把两个反例塞进 AC3，未立规则。枚举外新反例实测放行：行续反斜杠形态（heredoc 声明行以反斜杠续行、续行携带危险命令）bash 真执行续行命令，rev 3 的 bodyStart 物理行规则会把它掩进正文=放行（今日拦）。跨行引号伪声明同族（over-block 方向不计 P0）。要求三条规范化规则（含**逻辑行**语义）+ 默认不触发表述；**触发同因 P0 二次规则，停止自动返工，交还用户**（选项 a 规则收口后批准再审 / b 缩小方案面仅 quoted 单行声明掩码）。
-P2-a 终止行尾随空白与 bash 不符（bash 实测不闭合），rev 3 取 over-block 可接受但须标注有意偏离；<<- 剥 tab/定界符名/CRLF 三条与 bash 一致实测通过。
-P2-b 哨兵消费两条语义清晰但无 AC 绑定，要求入 AC4。
-P2-c packet/design AC4 不双射（packet 有哨兵句 design 无）。写集零改动，无过度工程。
+上轮全 CLOSED（行续/注释行/内嵌/跨行引号四反例按 R1-R3 推演均拦；P2 三条落实；双射 7/7；写集零变化）。
+
+P0-1 逻辑行终点只按行尾反斜杠定义 → bodyStart 过早 → 掩码吞真实执行行（**识别上下文类同因第三次**）。两个新反例 bash 实测真执行、今日拦、rev 4 推演放行：A=双引号内行尾反斜杠实为续行（R1 误判不合并）；G=未闭合引号跨物理行延长命令行（R1 无此形态）。根因：R2 默认不触发只覆盖「声明是否成立」，不覆盖「掩码区间端点」。要求：R1 改词法完整性定义（单引号内反斜杠不续行、双引号与裸均续行、任一引号未闭合则逻辑行继续）+ 新增 R4 区间方向性兜底（任一端点无法证明⇒整条跳过掩码=今日行为）+ A/G 入 AC3 先红。按合同不得自动进 rev 5，交还用户。
+
+P1-1 终止行匹配层未定义：bash 对 unquoted 正文做续行合并再比对、quoted 不合并；按逻辑行统一合并会在 quoted 侧吞执行行=fail-open。要求写死「终止行按物理行匹配，unquoted 侧偏离标注 over-block」+ AC3 一例。
+P2-1 引号/转义定界符的终止行比较基准未写（去引号去转义后的字面），否则永不闭合触发新误拦；AC3 负向各一例。
+P2-2 注释止于物理行行尾、不参与续行合并，一句钉死防两端实现分叉。
+
+证据：反例脚本 /tmp/{t1,b,b2,c,e,g}.sh 可复现；C 形态（替换内声明）按 R1-R3 推演正确无残余。
 
 VERDICT: REWORK

@@ -27,3 +27,6 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/fb828b78-f3f1-44d1-a350-fe1c2e40b5dd-dispatch.json","dispatch_receipt_sha256":"b78e10b0e1218ef30d9fd1e03d6affa06c8c29e1691faae9044012f1f966f156","event":"bound","recorded_at":"2026-09-20T11:48:25.373Z","review_run_id":"fb828b78-f3f1-44d1-a350-fe1c2e40b5dd","reviewer_target":"ac121527cfbfb2310"} -->
 - 2026-09-20：用户批准全规则收口路线。rev 4 出包（R1 逻辑行/R2 命令位置默认不触发/R3 单遍推进；带断言的替换脚本防再次静默丢失，顺带抓出 rev 3 的 AC4 替换也曾 no-op=复核 P2-c 根因）。复核 run `fb828b78` 派发绑定。
+- 2026-09-20：rev 4 复核 REWORK，识别类 fail-open **同因第三次**（run `fb828b78`；bodyStart 端点语义：引号跨行/双引号内续行）。复核给出收敛性修法（R1 词法完整性 + R4 区间方向兜底=端点不可证则整条跳过掩码），按合同交还用户，不自动进 rev 5。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/fb828b78-f3f1-44d1-a350-fe1c2e40b5dd-result.json","native_output_sha256":"43ba4538e6c0e6bb737ee430b2906a665dbd33183cbf64e9934e15a58dacc4ee","output_ref":"reviews/design-review.md","output_sha256":"bae2546fc150f85808e728088d99559be8008f97c5a5e53d5cd971faf00b5fb4","recorded_at":"2026-09-20T11:55:07.781Z","review_run_id":"fb828b78-f3f1-44d1-a350-fe1c2e40b5dd","reviewer_target":"ac121527cfbfb2310","verdict":"REWORK"} -->
