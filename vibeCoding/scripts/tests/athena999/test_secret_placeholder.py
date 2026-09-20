@@ -121,7 +121,7 @@ class PredicateMatrix(unittest.TestCase):
             for fixture in PLACEHOLDERS + REAL_SECRETS:
                 with self.subTest(runner=name, fixture=fixture):
                     self.assertEqual(runtime.redacted(fixture + b'\n'), '[REDACTED sensitive output]\n')
-            self.assertEqual(RUNTIMES[0][1].redacted(b'plain line\n'), 'plain line\n')
+            self.assertEqual(runtime.redacted(b'plain line\n'), 'plain line\n')
 
     def test_runtime_runner_is_byte_identical_on_cc_and_cx(self):
         self.assertEqual(RUNTIME_CC.read_bytes(), RUNTIME_CX.read_bytes())
