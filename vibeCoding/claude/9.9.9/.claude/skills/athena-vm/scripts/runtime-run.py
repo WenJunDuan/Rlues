@@ -44,8 +44,6 @@ FILLER = re.compile(rb'TBD|TODO', re.I)
 
 def is_placeholder(value):
     """Conservative allowlist over a credential value body; anything unclear stays a secret."""
-    if not value:
-        return False
     if REFERENCE.fullmatch(value) or REPEATED.fullmatch(value) or FILLER.fullmatch(value):
         return True
     # A placeholder word always carries non-alphanumeric borders, so it is its own short
