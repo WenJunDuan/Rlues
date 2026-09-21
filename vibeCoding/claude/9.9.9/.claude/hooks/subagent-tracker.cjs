@@ -27,11 +27,74 @@ function redirectToMainRepo(aiState, cwd) {
     const options = { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] };
     const gitDir = path.resolve(cwd, execFileSync("git", ["rev-parse", "--git-dir"], options).trim());
     const commonDir = path.resolve(cwd, execFileSync("git", ["rev-parse", "--git-common-dir"], options).trim());
-    if (gitDir === commonDir) return aiState;
+    if (gitDir === commonDir) return { aiState, failed: false };
     const main = path.join(path.dirname(commonDir), ".ai_state");
-    if (fs.existsSync(main) && fs.statSync(main).isDirectory()) return main;
-  } catch (_) {}
-  return aiState;
+    if (fs.existsSync(main) && fs.statSync(main).isDirectory()) return { aiState: main, failed: false };
+    return { aiState, failed: false };
+  } catch (_) {
+    return { aiState, failed: true };
+  }
+}
+
+function hitGitBoundary(cwd) {
+  let current = path.resolve(cwd);
+  for (let depth = 0; depth < 8; depth += 1) {
+    const candidate = path.join(current, ".ai_state");
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return false;
+    if (fs.existsSync(path.join(current, ".git"))) return true;
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return false;
+}
+
+function worktreeSlug(cwd, mainAiState) {
+  try {
+    const options = { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] };
+    const gitDir = path.resolve(cwd, execFileSync("git", ["rev-parse", "--git-dir"], options).trim());
+    const commonDir = path.resolve(cwd, execFileSync("git", ["rev-parse", "--git-common-dir"], options).trim());
+    if (gitDir === commonDir) return "";
+  } catch (_) {
+    return "";
+  }
+  const local = findAiState(cwd);
+  if (!local) return "";
+  const slug = currentSprint(local);
+  if (!slug) return "";
+  const sprintDir = path.join(mainAiState, "sprints", slug);
+  if (fs.existsSync(sprintDir) && fs.statSync(sprintDir).isDirectory()) return slug;
+  return "";
+}
+
+function assignmentSprint(mainAiState, agentId, candidates) {
+  const hits = [];
+  for (const slug of candidates) {
+    if (!slug) continue;
+    const rows = readJsonl(path.join(mainAiState, "sprints", slug, "subagent-assignments.jsonl"));
+    if (rows.some(row => row && row.agent_id === agentId)) hits.push(slug);
+  }
+  const unique = [...new Set(hits)];
+  return unique.length === 1 ? unique[0] : "";
+}
+
+function resolveStartSprint(cwd, mainAiState) {
+  const wt = worktreeSlug(cwd, mainAiState);
+  if (wt) return { slug: wt, source: "worktree-index" };
+  return { slug: currentSprint(mainAiState), source: "main-index" };
+}
+
+function resolveStopSprint(cwd, mainAiState, agentId) {
+  const mainSlug = currentSprint(mainAiState);
+  const wt = worktreeSlug(cwd, mainAiState);
+  const assigned = assignmentSprint(mainAiState, agentId, [mainSlug, wt]);
+  if (assigned) return { slug: assigned, source: "assignment" };
+  const locations = startLocations(mainAiState, agentId);
+  if (locations.length === 1) {
+    const slug = locations[0];
+    return { slug, source: slug === wt ? "worktree-index" : "main-index" };
+  }
+  return resolveStartSprint(cwd, mainAiState);
 }
 
 function currentSprint(aiState) {
@@ -100,7 +163,7 @@ function assign(args) {
   const cwd = path.resolve(values.cwd || process.cwd());
   let aiState = findAiState(cwd);
   if (!aiState) throw new Error("Athena .ai_state not found");
-  aiState = redirectToMainRepo(aiState, cwd);
+  aiState = redirectToMainRepo(aiState, cwd).aiState;
   const agentId = String(values["agent-id"] || "").trim();
   const taskName = String(values["task-name"] || "").trim();
   const role = String(values.role || "").trim();
@@ -132,31 +195,42 @@ function hook() {
   if (!["SubagentStart", "SubagentStop"].includes(eventName)) return;
   const cwd = path.resolve(payload.cwd || process.cwd());
   let aiState = findAiState(cwd);
-  if (!aiState) return;
-  aiState = redirectToMainRepo(aiState, cwd);
+  if (!aiState) {
+    if (hitGitBoundary(cwd)) {
+      process.stderr.write("[subagent-tracker] .git boundary; event not recorded\n");
+    }
+    return;
+  }
+  const redirected = redirectToMainRepo(aiState, cwd);
+  aiState = redirected.aiState;
   const agentId = String(payload.agent_id || "").trim();
   const agentType = String(payload.agent_type || "").trim();
   if (!agentId || !agentType) {
     process.stderr.write("[subagent-tracker] missing official agent_id or agent_type; event not recorded\n");
     return;
   }
-  let sprintSlug = currentSprint(aiState);
-  if (eventName === "SubagentStop") {
-    const locations = startLocations(aiState, agentId);
-    if (locations.length === 1) sprintSlug = locations[0];
-  }
+  const resolved = eventName === "SubagentStop"
+    ? resolveStopSprint(cwd, aiState, agentId)
+    : resolveStartSprint(cwd, aiState);
+  const sprintSlug = resolved.slug;
   if (!sprintSlug) {
     process.stderr.write("[subagent-tracker] no safe sprint slug; event not recorded\n");
     return;
   }
-  appendJsonl(path.join(aiState, "sprints", sprintSlug, "subagent-events.jsonl"), {
+  const row = {
     schema_version: 1,
     event: eventName,
     agent_id: agentId,
     agent_type: agentType,
     sprint_slug: sprintSlug,
     timestamp: new Date().toISOString(),
-  });
+    sprint_source: resolved.source,
+  };
+  if (redirected.failed) {
+    process.stderr.write("[subagent-tracker] redirect failed\n");
+    row.redirect = "failed";
+  }
+  appendJsonl(path.join(aiState, "sprints", sprintSlug, "subagent-events.jsonl"), row);
   appendHumanLog(aiState, sprintSlug, eventName, agentId, agentType, payload.last_assistant_message);
 }
 
