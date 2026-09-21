@@ -1257,5 +1257,68 @@ class EvidencePipelineIntegrity(unittest.TestCase):
             self.assertTrue(re.search(r'masked validation|backgrounded', text), path)
 
 
+class WriterProvenanceExports(unittest.TestCase):
+    """AC5 additions: export tryRepoRoot/findAiState and two-stage review-binding fallback."""
+
+    def test_gate_exports_try_repo_root_and_find_ai_state(self):
+        code = (
+            'const m=require(process.argv[1]);'
+            'process.stdout.write(JSON.stringify({root:typeof m.tryRepoRoot,state:typeof m.findAiState}));'
+        )
+        for gate in (CC / 'delivery-gate.cjs', PI / 'delivery-gate.cjs'):
+            run = subprocess.run(['node', '-e', code, str(gate)], text=True, capture_output=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertEqual(json.loads(run.stdout), {'root': 'function', 'state': 'function'}, gate)
+
+    def test_review_binding_two_stage_fallback_uses_gate_exports(self):
+        text = (CC / '_review-binding.cjs').read_text()
+        self.assertIn('const root = gate.tryRepoRoot(cwd) || \'\'', text)
+        self.assertIn('(root && gate.findAiState(root)) || gate.findAiState(cwd)', text)
+        self.assertNotIn('function gateRepoRoot', text)
+        self.assertNotIn('function gateAiState', text)
+
+    def test_find_ai_state_four_cases_no_repo_empty_root_nested_git_boundary(self):
+        code = (
+            'const m=require(process.argv[1]);'
+            'const v=m.findAiState(process.argv[2]);'
+            'process.stdout.write(v?String(v):"");'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = Path(tmp) / 'empty'
+            empty.mkdir()
+            run = subprocess.run(['node', '-e', code, str(CC / 'delivery-gate.cjs'), str(empty)],
+                                 text=True, capture_output=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertEqual(run.stdout, '')
+            (empty / '.ai_state').mkdir()
+            run = subprocess.run(['node', '-e', code, str(CC / 'delivery-gate.cjs'), str(empty)],
+                                 text=True, capture_output=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertTrue(run.stdout.endswith('.ai_state'), run.stdout)
+            repo = Path(tmp) / 'repo'
+            repo.mkdir()
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            nested = repo / 'pkg'
+            nested.mkdir()
+            (nested / '.ai_state').mkdir()
+            run = subprocess.run(['node', '-e', code, str(CC / 'delivery-gate.cjs'), str(repo)],
+                                 text=True, capture_output=True)
+            self.assertEqual(run.stdout, '', run.stderr)
+            run = subprocess.run(['node', '-e', code, str(CC / 'delivery-gate.cjs'), str(nested)],
+                                 text=True, capture_output=True)
+            self.assertTrue(run.stdout.endswith('.ai_state'), run.stdout)
+            parent = Path(tmp) / 'parent'
+            parent.mkdir()
+            (parent / '.ai_state').mkdir()
+            child = parent / 'child'
+            child.mkdir()
+            subprocess.run(['git', 'init', '-q', str(child)], check=True)
+            run = subprocess.run(['node', '-e', code, str(CC / 'delivery-gate.cjs'), str(child)],
+                                 text=True, capture_output=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertEqual(run.stdout, '')
+
+
 if __name__ == '__main__':
     unittest.main()
+
