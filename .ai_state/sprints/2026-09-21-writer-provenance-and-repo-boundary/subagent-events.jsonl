@@ -1,1 +1,3 @@
 {"schema_version":1,"event":"SubagentStart","agent_id":"a2c27e98e31b3c9c8","agent_type":"reviewer","sprint_slug":"2026-09-21-writer-provenance-and-repo-boundary","timestamp":"2026-09-21T01:07:06.790Z"}
+{"schema_version":1,"event":"SubagentStop","agent_id":"a2c27e98e31b3c9c8","agent_type":"reviewer","sprint_slug":"2026-09-21-writer-provenance-and-repo-boundary","timestamp":"2026-09-21T01:12:43.264Z"}
+{"schema_version":1,"event":"SubagentStart","agent_id":"abef65c7b08ea51d4","agent_type":"reviewer","sprint_slug":"2026-09-21-writer-provenance-and-repo-boundary","timestamp":"2026-09-21T01:16:22.221Z"}

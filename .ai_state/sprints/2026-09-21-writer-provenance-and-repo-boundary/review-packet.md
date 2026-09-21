@@ -1,30 +1,31 @@
 ---
-source_design_sha256: "0bf231d44718e3e383f31cffc1a8f0dff5c368886608ec718f55d8580b908e66"
+source_design_sha256: "a24cb0e322a672445790637e7ce2ea517a88876680049887a601d068a0c6aa1d"
 mode: "design"
 ---
 
-# Review Packet — writer provenance 与仓库边界
+# Review Packet — writer provenance 与仓库边界（rev 2）
 
 ## Decision
 
-外部写者从裸 skip flag 升级为 external-writer.json 严格回执（exact schema、ancestor 现场验、evidence 四轴绑定复用既有基元），R/S 下裸 flag 失效、绿区语义不变；containment 两检（ship 备份记录、跨 sprint stale flag）接入门禁；tracker 落账改取 worktree 自身 `_index`（spawn 时刻快照=事件真 sprint），redirect 失败与事件丢失显式可观察；gate 导出两 helper、_review-binding 复写消除（切片 3 承接闭合）。CX/Pi 只同构其实际拥有的机制。
+首轮两 P0 结构性落实：①`validateGeneratorChain` 拆「账本完整性（无条件）+ generator 证据（三态）」，call site 外层 flag 短路删除，flag 降级为状态③绿区例外申报——八格矩阵全定义（第 3 格账本校验不因回执失效、第 7 格断裂链 block 出口=续跑或重新集成、第 8 格=②）；②containment 加 `harness_target_outside_repo_sprint` 归属伴随字段，stale 判定机械化且不锁死 impl 期合法窗口。P1 六条全落：evidence 走 currentRecord 重算、备份判据改路径 existsSync、require 适配式保 `''` 契约、tracker 归属链改 assignment 优先 + `sprint_source` 审计（worktree `_index` 提交版残余如实声明）、#2 no-change 断言、自指双缓解。附录 A canonical 字段/消息表供 grok 逐字实现（P2-3）。
 
 ## 验收标准
 
 | AC | 判据 |
 |---|---|
-| AC1 | 回执全 schema 校验 + 负向矩阵；R/S 裸 flag block（先红）；绿区不变 |
-| AC2 | flag=true 无备份记录 ship block（先红）；stale flag 拦下一 sprint impl-entry（先红）；本 sprint ship 期合法 |
-| AC3 | worktree Start 取自身 `_index` slug（指针错位夹具先红）；redirect 失败带标记；丢弃有痕迹；CX/Pi 负向断言 |
-| AC4 | exports 两名 + 复写删除改 require + governance 续绿 + `.git` 边界直接用例 + CC==Pi 字节 |
-| AC5 | CC/CX 同夹具三态与 containment 判定一致 |
-| AC6 | roadmap 承接清单更正（切片 3 遗留②完成） |
-| AC7 | 全套回归绿 |
+| AC1 | 附录 A 逐字段负向矩阵 ≥9 + currentRecord 重算（伪造 sha 先红）+ 唯一命中 + required() 假 block |
+| AC2 | 八格三态×flag 矩阵逐格；R/S 裸 flag 先红；绿区不变；外层短路删除 |
+| AC3 | 伴随字段三分支（stale 先红）；备份路径 existsSync（历史两记法夹具）；仓外写入 no-change |
+| AC4 | Stop 走 assignment 归属（错位夹具先红）；Start 回退链 + `sprint_source`；可观察降级；CX/Pi 负向；主路径等价 |
+| AC5 | exports + 适配式复写删除 + governance 续绿 + 无仓/空根/`.git` 边界三用例 + CC==Pi 字节 |
+| AC6 | CC/CX 消息逐字矩阵 + Pi 同源文本断言 |
+| AC7 | 自指双缓解（主 agent 独立复算落 log + 先红经 review 核实）+ gate-contracts 三端（schema/免责/流程建议） |
+| AC8 | 全套回归绿 |
 
-## 审查焦点
+## 审查焦点（rev 2 定向）
 
-- 三态分派的完备性：assignments 有 generator 行 / 有回执 / 皆无 × path 的组合矩阵有无漏格（如 generator 行存在但 lifecycle 不完整时是否还能靠回执兜底——应否？）；「两者并存分别校验」对混合施工的语义。
-- 回执字段的可伪造面：全部字段由主 agent 手写，哪些校验是真机械（ancestor、evidence 命中、文件实存）哪些是纸面（executor 名）——与「不宣称密码学证明」声明的一致性。
-- tracker 改动对非 worktree 主路径的等价性；worktree `_index` 缺失时回退链。
-- containment 备份记录的机械判据（正则）会否过松/过紧。
-- 施工将由 grok 外部执行（用户指定），本切片 ship 时以自产 external-writer.json 自校验——该自指路径的循环依赖风险（新校验代码由它要校验的流程交付）。
+- P0-1 闭合：八格矩阵是否仍有漏格（尤其账本文件存在但为空/仅坏行、多 generator 行、role 大小写）；「回执不豁免账本结构」与「断裂链出口」的机械可执行性。
+- P0-2 闭合：伴随字段方案对 P9 死锁与空分支两个失败方向的免疫；字段本身被伪造（手改 slug）的面与既有 flag 同级——是否需入免责。
+- P1-4 残余声明的诚实性：`sprint_source` 审计是否真优于今日（错位仍发生但可判别）。
+- 附录 A 完备性：字段表与三态/containment 消息是否覆盖全部新 block 路径，无消息的 block 分支=漂移温床。
+- evidence currentRecord 重算在外部执行器场景的可行性（grok 施工期间 evidence 由主仓复跑生成——重算时点与 HEAD 移动的相容性）。
