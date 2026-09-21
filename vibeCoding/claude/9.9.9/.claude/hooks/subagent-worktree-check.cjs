@@ -101,12 +101,27 @@ function main() {
     // repo 外路径零隔离效果, 却无条件阻断唯一合法执行路径 — "要么违规、要么不做"。
     // 显式出口: _index.harness_target_outside_repo: true (可审计、可 grep、ship 后应
     // 移除)。豁免时提示备份纪律, 不静默。
-    if (String(idxFm.harness_target_outside_repo || '').trim().toLowerCase() === 'true') {
+    const outsideFlag = String(idxFm.harness_target_outside_repo || '').trim().toLowerCase() === 'true';
+    const companion = String(idxFm.harness_target_outside_repo_sprint || '').trim();
+    const slug = String(idxFm.current_sprint_slug || '').trim();
+    if (outsideFlag && companion && companion === slug) {
       process.stderr.write(
         `[subagent-worktree-check] EXEMPT: _index.harness_target_outside_repo=true — ` +
         `改动对象在 repo 外, worktree 无隔离效果, 跳过强制。纪律: 改前逐文件备份 + 单写者串行; ship 后移除该字段。\n`
       );
       process.exit(0);
+    }
+    if (outsideFlag && !companion) {
+      process.stderr.write(
+        `[subagent-worktree-check] BLOCKED: harness_target_outside_repo requires harness_target_outside_repo_sprint: ${slug}\n`
+      );
+      process.exit(2);
+    }
+    if (outsideFlag && companion !== slug) {
+      process.stderr.write(
+        `[subagent-worktree-check] BLOCKED: harness_target_outside_repo left over from sprint ${companion}; reset both fields before implementation writes\n`
+      );
+      process.exit(2);
     }
 
     const agentFile = path.join(process.env.HOME || '', '.claude/agents', `${subagentType}.md`);

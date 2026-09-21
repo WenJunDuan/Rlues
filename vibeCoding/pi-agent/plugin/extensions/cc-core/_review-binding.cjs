@@ -1,7 +1,6 @@
 'use strict';
 // One native review/receipt binding in session-log.md; no second task state store.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
-const {execFileSync} = require('child_process');
 const input = require('./_input-binding.cjs'), io = require('./_index-io.cjs');
 const NATIVE_BINDINGS = {review_run_id:'review_run_id',mode:'mode',base_commit:'base_commit',packet_sha256:'packet_sha256',
   reviewed_packet_sha256:'packet_sha256',input_manifest_sha256:'input_manifest_sha256',reviewed_diff_sha256:'reviewed_diff_sha256'};
@@ -269,34 +268,13 @@ function validateCurrent(root,sprint,review) {
 // governance must hash the _index.md the *gate* reads. Every other verb resolves through
 // input.context (git rev-parse --show-toplevel), which inside a linked worktree is the
 // worktree root, while the gate resolves via --git-common-dir to the main repository — two
-// different files with two different hashes. Mirrors delivery-gate.cjs tryRepoRoot (:434)
-// and findAiState (:28) including its git-boundary stop; copied rather than imported
-// because this slice may only add two names to that module.exports. Keep them in step.
-function gateRepoRoot(cwd) {
-  const run = args => {
-    try { return execFileSync('git', args, {cwd, encoding:'utf8', stdio:['ignore','pipe','ignore'], timeout:15000}).trim(); }
-    catch (_) { return ''; }
-  };
-  const commonDir = run(['rev-parse','--path-format=absolute','--git-common-dir']);
-  if (commonDir && path.basename(commonDir)==='.git') return path.dirname(commonDir);
-  return run(['rev-parse','--show-toplevel']) || '';
-}
-function gateAiState(start) {
-  if (!start) return '';
-  let current = path.resolve(start);
-  for (let depth=0; depth<8; depth+=1) {
-    const candidate = path.join(current,'.ai_state');
-    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
-    if (fs.existsSync(path.join(current,'.git'))) return '';
-    const parent = path.dirname(current);
-    if (parent===current) break;
-    current = parent;
-  }
-  return '';
-}
+// different files with two different hashes. Uses the two exported helpers from
+// delivery-gate.cjs; keep the two-stage fallback (root then cwd) and never pass empty
+// cwd into findAiState.
 function governance(cwd) {
   const gate = require('./delivery-gate.cjs');
-  const root = gateRepoRoot(cwd), aiState = gateAiState(root) || gateAiState(cwd);
+  const root = gate.tryRepoRoot(cwd) || '';
+  const aiState = (root && gate.findAiState(root)) || gate.findAiState(cwd) || '';
   const index = aiState ? path.join(aiState,'_index.md') : '';
   if (!index || !fs.existsSync(index)) throw new Error('_index.md is absent');
   const fm = gate.parseFrontmatter(fs.readFileSync(index,'utf8')), fields = {};

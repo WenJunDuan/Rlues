@@ -10,6 +10,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const crypto = require("crypto");
 const { execFileSync } = require("child_process");
 const inputBinding = require('./_input-binding.cjs');
@@ -114,13 +115,21 @@ function validateEvent(value, label, sprintSlug) {
     throw new GateError(`${label} must be a JSON object`);
   }
   const fields = ["schema_version", "event", "agent_id", "agent_type", "sprint_slug", "timestamp"];
+  if (Object.prototype.hasOwnProperty.call(value, "sprint_source")) fields.push("sprint_source");
+  if (Object.prototype.hasOwnProperty.call(value, "redirect")) fields.push("redirect");
   exactKeys(value, fields, label);
   if (value.schema_version !== 1) throw new GateError(`${label}.schema_version must be integer 1`);
-  for (const field of fields.slice(1)) nonEmptyString(value, field, label);
+  for (const field of ["event", "agent_id", "agent_type", "sprint_slug", "timestamp"]) nonEmptyString(value, field, label);
   if (!new Set(["SubagentStart", "SubagentStop"]).has(value.event)) {
     throw new GateError(`${label}.event must be SubagentStart or SubagentStop`);
   }
   if (value.sprint_slug !== sprintSlug) throw new GateError(`${label}.sprint_slug does not match ${sprintSlug}`);
+  if (value.sprint_source !== undefined && !new Set(["assignment", "worktree-index", "main-index"]).has(value.sprint_source)) {
+    throw new GateError(`subagent ledger row invalid in ${label}: sprint_source not in assignment|worktree-index|main-index`);
+  }
+  if (value.redirect !== undefined && value.redirect !== "failed") {
+    throw new GateError(`subagent ledger row invalid in ${label}: redirect must be failed`);
+  }
   return { ...value, parsedTimestamp: parseTimestamp(value.timestamp, label) };
 }
 
@@ -159,7 +168,7 @@ function validateGeneratorChain(sprintDir, sprintSlug) {
     if (assignmentMap.has(key)) throw new GateError(`ambiguous duplicate assignment for agent_id=${row.agent_id}`);
     assignmentMap.set(key, row);
   }
-  if (![...assignmentMap.values()].some(row => row.role === "generator")) {
+  if (![...assignmentMap.values()].some(row => isGeneratorRole(row.role))) {
     throw new GateError("no role=generator assignment found");
   }
   // generator-chain 只校验 generator 生命周期。events 由 hook 记录全部 subagent 类型, 而
@@ -167,7 +176,7 @@ function validateGeneratorChain(sprintDir, sprintSlug) {
   // 唯一可靠判据是 assign 握手写入的 role=generator。critic/reviewer/evaluator/spec-compliance
   // 无握手且多轮 Start/Stop, 不属于本校验范围, 按 role 过滤后跳过, 避免误报 unbound。
   const generatorKeys = new Set(
-    [...assignmentMap.values()].filter(row => row.role === "generator").map(lifecycleKey),
+    [...assignmentMap.values()].filter(row => isGeneratorRole(row.role)).map(lifecycleKey),
   );
   const eventMap = new Map();
   for (const row of events) {
@@ -177,7 +186,7 @@ function validateGeneratorChain(sprintDir, sprintSlug) {
     eventMap.get(key).push(row);
   }
   for (const [key, assignment] of assignmentMap.entries()) {
-    if (assignment.role !== "generator") continue;
+    if (!isGeneratorRole(assignment.role)) continue;
     // P2 fix (2026-07-25, .ai_state/proposals.md P2; 台账见 .ai_state/harness-patches.md):
     // "exactly one Start/Stop" made every legitimately resumed generator structurally
     // unshippable — an API blip plus SendMessage continuation appends a second
@@ -195,10 +204,8 @@ function validateGeneratorChain(sprintDir, sprintSlug) {
       .sort((a, b) => a.parsedTimestamp - b.parsedTimestamp || a.lineNumber - b.lineNumber);
     const starts = rows.filter(row => row.event === "SubagentStart");
     const stops = rows.filter(row => row.event === "SubagentStop");
-    if (starts.length < 1) throw new GateError(`agent_id=${assignment.agent_id} requires at least one SubagentStart`);
-    if (stops.length < 1) throw new GateError(`agent_id=${assignment.agent_id} requires at least one SubagentStop`);
-    if (rows.at(-1).event !== "SubagentStop") {
-      throw new GateError(`agent_id=${assignment.agent_id} must end with SubagentStop (work not settled)`);
+    if (starts.length < 1 || stops.length < 1 || rows.at(-1).event !== "SubagentStop") {
+      generatorIncomplete(assignment.agent_id);
     }
     // Stronger than the old first-Start-vs-first-Stop comparison and resume-safe: every
     // event recorded for this agent_id must agree on agent_type.
@@ -216,6 +223,160 @@ function validateGeneratorChain(sprintDir, sprintSlug) {
     if (lastStop.parsedTimestamp < assignment.parsedTimestamp) {
       throw new GateError(`SubagentStop precedes assignment handshake for agent_id=${assignment.agent_id}`);
     }
+  }
+}
+
+function isGeneratorRole(role) {
+  return String(role).toLowerCase() === "generator";
+}
+
+function generatorIncomplete(agentId) {
+  throw new GateError(
+    `generator lifecycle incomplete for agent_id=${agentId}; resume it to a real SubagentStop or reintegrate via external-writer.json with fresh evidence; ledger rows must not be edited`,
+  );
+}
+
+function validateLedgerIntegrity(sprintDir, sprintSlug) {
+  const files = [
+    ["subagent-assignments.jsonl", "subagent assignments", validateAssignment],
+    ["subagent-events.jsonl", "subagent events", validateEvent],
+  ];
+  for (const [name, label, validator] of files) {
+    const filePath = path.join(sprintDir, name);
+    if (!fs.existsSync(filePath)) continue;
+    try {
+      readJsonl(filePath, label, sprintSlug, validator);
+    } catch (error) {
+      const message = error instanceof GateError ? error.message : String(error);
+      if (message.includes("contains no records") || message.startsWith("subagent ledger row invalid in ")) throw error;
+      if (/\bis empty\b|^empty /.test(message)) throw new GateError(`${label} contains no records`);
+      throw new GateError(`subagent ledger row invalid in ${name}: ${message}`);
+    }
+  }
+}
+
+function writerPlaceholder(text) {
+  const value = String(text || "").trim();
+  if (!value) return true;
+  return /^(TODO|TBD|N\/A|NA|pending|xxx+|placeholder|<\w+>)$/i.test(value) || /placeholder/i.test(value);
+}
+
+function resolveWriterRef(sprintDir, field, raw) {
+  const rel = String(raw || "").trim();
+  const target = rel ? path.resolve(sprintDir, rel) : "";
+  let content = "";
+  try { content = fs.readFileSync(target, "utf8"); } catch (_) { content = ""; }
+  if (!rel || !content.trim()) {
+    throw new GateError(`external-writer ${field} missing or empty: ${target}; if this sprint had no external writer, delete external-writer.json`);
+  }
+}
+
+function assertWriterAncestor(cwd, sha) {
+  const hex = String(sha || "");
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", hex, "HEAD"], {
+      cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 15000,
+    });
+  } catch (_) {
+    throw new GateError(`external-writer integration_commit is not an ancestor of HEAD: ${hex}`);
+  }
+}
+
+function assertWriterEvidence(sprintDir, ident) {
+  if (!inputBinding.required(sprintDir)) {
+    throw new GateError(`external-writer evidence not uniquely bound and currently verifiable: ${ident}`);
+  }
+  const root = path.resolve(sprintDir, "../../..");
+  const live = inputBinding.snapshot(root, sprintDir);
+  const hits = parseEvidenceRecords(path.join(sprintDir, "evidence.yaml")).filter(row => row.tool_use_id === ident);
+  if (hits.length !== 1 || hits[0].result !== "pass" || !inputBinding.currentRecord(hits[0], root, sprintDir, live)) {
+    throw new GateError(`external-writer evidence not uniquely bound and currently verifiable: ${ident}`);
+  }
+}
+
+function validateExternalWriter(sprintDir, cwd) {
+  const file = path.join(sprintDir, "external-writer.json");
+  let spec;
+  try { spec = JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch (_) { throw new GateError("external-writer schema_version must be 1"); }
+  if (!spec || typeof spec !== "object" || spec.schema_version !== 1) {
+    throw new GateError("external-writer schema_version must be 1");
+  }
+  const tool = spec.executor && spec.executor.tool;
+  const model = spec.executor && spec.executor.model;
+  if (!String(tool || "").trim() || !String(model || "").trim()) {
+    throw new GateError("external-writer executor tool/model missing");
+  }
+  if (writerPlaceholder(spec.receipt_summary)) {
+    throw new GateError("external-writer receipt_summary is placeholder or empty");
+  }
+  const commits = spec.original_commits;
+  if (!Array.isArray(commits) || commits.some(row => !/^[0-9a-f]{40}$/.test(String(row)))) {
+    throw new GateError("external-writer original_commits entries must be 40-hex");
+  }
+  resolveWriterRef(sprintDir, "dispatch_ref", spec.dispatch_ref);
+  resolveWriterRef(sprintDir, "receipt_ref", spec.receipt_ref);
+  assertWriterAncestor(cwd, spec.integration_commit);
+  assertWriterEvidence(sprintDir, String(spec.evidence_tool_use_id || ""));
+}
+
+function readAssignmentsIfPresent(sprintDir, sprintSlug) {
+  const file = path.join(sprintDir, "subagent-assignments.jsonl");
+  if (!fs.existsSync(file)) return [];
+  return readJsonl(file, "subagent assignments", sprintSlug, validateAssignment);
+}
+
+function requireGeneratorEvidence(sprintDir, sprintSlug, fm) {
+  const assignments = readAssignmentsIfPresent(sprintDir, sprintSlug);
+  if (assignments.some(row => isGeneratorRole(row.role))) {
+    validateGeneratorChain(sprintDir, sprintSlug);
+    return;
+  }
+  if (fs.existsSync(path.join(sprintDir, "external-writer.json"))) return;
+  if (truthy(fm.skip_impl_subagent_check) && REFACTOR_SYSTEM.has(fm.path)) {
+    throw new GateError("red-zone sprint requires a complete generator chain or external-writer.json; skip_impl_subagent_check alone is not admissible");
+  }
+  if (truthy(fm.skip_impl_subagent_check)) return;
+  throw new GateError("no role=generator assignment found");
+}
+
+function validateWriterProvenance(sprintDir, sprintSlug, fm, cwd) {
+  if (fs.existsSync(path.join(sprintDir, "external-writer.json"))) validateExternalWriter(sprintDir, cwd);
+  validateLedgerIntegrity(sprintDir, sprintSlug);
+  requireGeneratorEvidence(sprintDir, sprintSlug, fm);
+}
+
+function validateContainment(fm) {
+  if (!truthy(fm.harness_target_outside_repo)) return;
+  const companion = String(fm.harness_target_outside_repo_sprint || "").trim();
+  const slug = String(fm.current_sprint_slug || "");
+  if (!companion) {
+    throw new GateError(`harness_target_outside_repo requires harness_target_outside_repo_sprint: ${slug}`);
+  }
+  if (companion !== slug) {
+    throw new GateError(`harness_target_outside_repo left over from sprint ${companion}; reset both fields before implementation writes`);
+  }
+}
+
+function expandBackupPath(raw) {
+  const text = String(raw || "").trim();
+  if (text === "~") return os.homedir();
+  if (text.startsWith("~/")) return path.join(os.homedir(), text.slice(2));
+  return text;
+}
+
+function validateOutsideRepoBackup(sprintDir, fm) {
+  if (!truthy(fm.harness_target_outside_repo)) return;
+  const logPath = path.join(sprintDir, "session-log.md");
+  const lines = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8").split(/\r?\n/) : [];
+  const match = lines.map(line => line.match(/^备份:\s+(.+)$/)).find(Boolean);
+  const expanded = match ? expandBackupPath(match[1]) : "";
+  let ok = false;
+  if (expanded && path.isAbsolute(expanded) && fs.existsSync(expanded) && fs.statSync(expanded).isDirectory()) {
+    ok = fs.readdirSync(expanded).length > 0;
+  }
+  if (!ok) {
+    throw new GateError("outside-repo sprint requires a backup record line (备份: <absolute-path>) whose path exists and is non-empty");
   }
 }
 
@@ -1150,6 +1311,7 @@ function validateImplEntry(aiState, fm) {
   const sprintSlug = fm.current_sprint_slug;
   if (!SAFE_SLUG.test(sprintSlug || "")) throw new GateError(`invalid current_sprint_slug ${sprintSlug || ""}`);
   const sprintDir = path.join(aiState, "sprints", sprintSlug);
+  validateContainment(fm);
   validateSpecGate(sprintDir, aiState, fm, sprintSlug, { allowException: true });
   if (fs.existsSync(path.join(sprintDir, "design.md"))) validateReviewPacket(sprintDir);
 }
@@ -1249,6 +1411,8 @@ function validateShip(aiState, fm, cwd) {
   const sprintSlug = fm.current_sprint_slug;
   if (!SAFE_SLUG.test(sprintSlug || "")) throw new GateError(`invalid current_sprint_slug ${sprintSlug || ""}`);
   const sprintDir = path.join(aiState, "sprints", sprintSlug);
+  validateContainment(fm);
+  validateOutsideRepoBackup(sprintDir, fm);
   validateVmPendingPromises(aiState, sprintDir, sprintSlug);
   // 9.9.6 P2 fix (see .ai_state/proposals.md): a light ship — small net diff vs upstream,
   // touching only docs/config/deps/state/tests (no source logic, no harness/hooks) — has no
@@ -1291,7 +1455,7 @@ function validateShip(aiState, fm, cwd) {
   if (roadmapSlug) validateRoadmap(aiState, roadmapSlug, sprintSlug);
   if (fm.path === "Bugfix") requireFile(path.join(sprintDir, "fix-note.md"), "fix-note.md");
   if (GENERATOR_PATHS.has(fm.path)) {
-    if (!truthy(fm.skip_impl_subagent_check)) validateGeneratorChain(sprintDir, sprintSlug);
+    validateWriterProvenance(sprintDir, sprintSlug, fm, cwd);
     // 2026-07-28 gate-descaling: checklist.yaml 可选 — done_contract 已并入 design.md
     // (spec-gate 验 AC), 双写清单只在超大 sprint 才立; 存在则照旧必须全绿。
     if (fs.existsSync(path.join(sprintDir, "checklist.yaml"))) {
@@ -1606,7 +1770,7 @@ function main() {
   }
 }
 
-module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateReviewBinding, validateEvidence, validateVmPendingPromises, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract, indexGovernanceSha256, INDEX_GOVERNANCE_FIELDS };
+module.exports = { sourceDiffSha256, fileSha256, extractAcIds, parseDocFrontmatter, parseFrontmatter, validateReviewPacket, acceptanceCriteria, validateReview, validateReviewBinding, validateEvidence, validateVmPendingPromises, GateError, shipChangeIsLight, isLightShipFile, validateDesignContract, indexGovernanceSha256, INDEX_GOVERNANCE_FIELDS, tryRepoRoot, findAiState };
 if (require.main === module) {
   main();
 }

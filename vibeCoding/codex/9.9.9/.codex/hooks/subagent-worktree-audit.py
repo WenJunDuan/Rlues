@@ -150,12 +150,28 @@ def main() -> int:
         # repo 之外时 (安装态 ~/.claude / ~/.codex harness), worktree 对 repo 外路径零隔离
         # 效果, 却无条件阻断唯一合法执行路径。显式出口: _index.harness_target_outside_repo:
         # true (可审计; ship 后应移除)。豁免时提示备份纪律, 不静默。
-        if index_field(ai_state / "_index.md", "harness_target_outside_repo").strip().lower() == "true":
+        idx = ai_state / "_index.md"
+        outside_flag = index_field(idx, "harness_target_outside_repo").strip().lower() == "true"
+        companion = index_field(idx, "harness_target_outside_repo_sprint").strip()
+        slug = index_field(idx, "current_sprint_slug").strip()
+        if outside_flag and companion and companion == slug:
             sys.stderr.write(
                 "[subagent-worktree-audit] EXEMPT: _index.harness_target_outside_repo=true — "
                 "repo 外改动, worktree 无隔离效果, 跳过强制。纪律: 改前逐文件备份 + 单写者串行; ship 后移除该字段。\n"
             )
             return EXIT_SUCCESS
+        if outside_flag and not companion:
+            sys.stderr.write(
+                "[subagent-worktree-audit] BLOCKED: harness_target_outside_repo requires "
+                f"harness_target_outside_repo_sprint: {slug}\n"
+            )
+            return 2
+        if outside_flag and companion != slug:
+            sys.stderr.write(
+                "[subagent-worktree-audit] BLOCKED: harness_target_outside_repo left over "
+                f"from sprint {companion}; reset both fields before implementation writes\n"
+            )
+            return 2
 
         path_type = index_field(ai_state / "_index.md", "path")
         task = pick(tool_input, TASK_KEYS) or pick(payload, TASK_KEYS)

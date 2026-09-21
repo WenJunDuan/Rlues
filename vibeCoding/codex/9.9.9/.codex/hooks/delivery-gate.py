@@ -300,7 +300,10 @@ def validate_event_record(value: Any, label: str, sprint_slug: str) -> dict[str,
     if not isinstance(value, dict):
         raise GateError(f"{label} must be a JSON object")
     expected = {"schema_version", "event", *EVENT_STRING_FIELDS}
-    if set(value) != expected:
+    optional = {"sprint_source", "redirect"}
+    extra = set(value) - expected - optional
+    missing = expected - set(value)
+    if extra or missing:
         raise GateError(f"{label} must use raw event schema v1 fields {sorted(expected)}")
     validate_schema_version(value, label)
     validate_string_fields(value, EVENT_STRING_FIELDS, label)
@@ -310,6 +313,13 @@ def validate_event_record(value: Any, label: str, sprint_slug: str) -> dict[str,
         raise GateError(
             f"{label}.sprint_slug={value['sprint_slug']!r} does not match {sprint_slug!r}"
         )
+    source = value.get("sprint_source")
+    if source is not None and source not in {"assignment", "worktree-index", "main-index"}:
+        raise GateError(
+            f"subagent ledger row invalid in {label}: sprint_source not in assignment|worktree-index|main-index"
+        )
+    if "redirect" in value and value["redirect"] != "failed":
+        raise GateError(f"subagent ledger row invalid in {label}: redirect must be failed")
     value = dict(value)
     value["_parsed_timestamp"] = parse_timestamp(value["timestamp"], label)
     return value
@@ -340,6 +350,203 @@ def read_jsonl(path: Path, label: str, sprint_slug: str, *, kind: str) -> list[d
 
 def join_key(record: dict[str, Any]) -> tuple[str, str]:
     return record["agent_id"], record["sprint_slug"]
+
+
+def is_generator_role(role: Any) -> bool:
+    return str(role).lower() == "generator"
+
+
+def generator_incomplete(agent_id: str) -> None:
+    raise GateError(
+        "generator lifecycle incomplete for agent_id="
+        f"{agent_id}; resume it to a real SubagentStop or reintegrate via "
+        "external-writer.json with fresh evidence; ledger rows must not be edited"
+    )
+
+
+def validate_ledger_integrity(sprint_dir: Path, sprint_slug: str) -> None:
+    files = (
+        ("subagent-assignments.jsonl", "subagent assignments", "assignment"),
+        ("subagent-events.jsonl", "subagent events", "event"),
+    )
+    for name, label, kind in files:
+        path = sprint_dir / name
+        if not path.exists():
+            continue
+        try:
+            read_jsonl(path, label, sprint_slug, kind=kind)
+        except GateError as exc:
+            message = str(exc)
+            if "contains no records" in message or message.startswith("subagent ledger row invalid in "):
+                raise
+            if re.search(r"\bis empty\b|^empty ", message):
+                raise GateError(f"{label} contains no records") from exc
+            raise GateError(f"subagent ledger row invalid in {name}: {message}") from exc
+
+
+def writer_placeholder(text: Any) -> bool:
+    value = str(text or "").strip()
+    if not value:
+        return True
+    return bool(
+        re.fullmatch(r"(TODO|TBD|N/A|NA|pending|xxx+|placeholder|<\w+>)", value, re.I)
+        or re.search(r"placeholder", value, re.I)
+    )
+
+
+def resolve_writer_ref(sprint_dir: Path, field: str, raw: Any) -> None:
+    rel = str(raw or "").strip()
+    target = str((sprint_dir / rel).resolve()) if rel else ""
+    content = ""
+    try:
+        content = Path(target).read_text(encoding="utf-8")
+    except OSError:
+        content = ""
+    if not rel or not content.strip():
+        raise GateError(
+            f"external-writer {field} missing or empty: {target}; "
+            "if this sprint had no external writer, delete external-writer.json"
+        )
+
+
+def assert_writer_ancestor(cwd: Path, sha: Any) -> None:
+    hex_sha = str(sha or "")
+    try:
+        subprocess.run(
+            ["git", "merge-base", "--is-ancestor", hex_sha, "HEAD"],
+            cwd=str(cwd), check=True, capture_output=True, timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError):
+        raise GateError(
+            f"external-writer integration_commit is not an ancestor of HEAD: {hex_sha}"
+        ) from None
+
+
+def assert_writer_evidence(sprint_dir: Path, ident: str) -> None:
+    if not input_binding.required(sprint_dir):
+        raise GateError(
+            f"external-writer evidence not uniquely bound and currently verifiable: {ident}"
+        )
+    root = sprint_dir.parents[2]
+    live = input_binding.snapshot(root, sprint_dir)
+    hits = [
+        row for row in parse_evidence_records(sprint_dir / "evidence.yaml")
+        if row["tool_use_id"] == ident
+    ]
+    if (
+        len(hits) != 1
+        or hits[0].get("result") != "pass"
+        or not input_binding.current_record(hits[0], root, sprint_dir, live)
+    ):
+        raise GateError(
+            f"external-writer evidence not uniquely bound and currently verifiable: {ident}"
+        )
+
+
+def validate_external_writer(sprint_dir: Path, cwd: Path) -> None:
+    try:
+        spec = json.loads((sprint_dir / "external-writer.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise GateError("external-writer schema_version must be 1") from exc
+    if not isinstance(spec, dict) or spec.get("schema_version") != 1:
+        raise GateError("external-writer schema_version must be 1")
+    executor = spec.get("executor") if isinstance(spec.get("executor"), dict) else {}
+    if not str(executor.get("tool") or "").strip() or not str(executor.get("model") or "").strip():
+        raise GateError("external-writer executor tool/model missing")
+    if writer_placeholder(spec.get("receipt_summary")):
+        raise GateError("external-writer receipt_summary is placeholder or empty")
+    commits = spec.get("original_commits")
+    if not isinstance(commits, list) or any(not re.fullmatch(r"[0-9a-f]{40}", str(row)) for row in commits):
+        raise GateError("external-writer original_commits entries must be 40-hex")
+    resolve_writer_ref(sprint_dir, "dispatch_ref", spec.get("dispatch_ref"))
+    resolve_writer_ref(sprint_dir, "receipt_ref", spec.get("receipt_ref"))
+    assert_writer_ancestor(cwd, spec.get("integration_commit"))
+    assert_writer_evidence(sprint_dir, str(spec.get("evidence_tool_use_id") or ""))
+
+
+def read_assignments_if_present(sprint_dir: Path, sprint_slug: str) -> list[dict[str, Any]]:
+    path = sprint_dir / "subagent-assignments.jsonl"
+    if not path.exists():
+        return []
+    return read_jsonl(path, "subagent assignments", sprint_slug, kind="assignment")
+
+
+def require_generator_evidence(sprint_dir: Path, sprint_slug: str, fm: dict[str, str]) -> None:
+    assignments = read_assignments_if_present(sprint_dir, sprint_slug)
+    if any(is_generator_role(row.get("role")) for row in assignments):
+        validate_generator_chain(sprint_dir, sprint_slug)
+        return
+    if (sprint_dir / "external-writer.json").exists():
+        return
+    if truthy(fm.get("skip_impl_subagent_check", "false")) and fm.get("path", "") in REFACTOR_SYSTEM:
+        raise GateError(
+            "red-zone sprint requires a complete generator chain or external-writer.json; "
+            "skip_impl_subagent_check alone is not admissible"
+        )
+    if truthy(fm.get("skip_impl_subagent_check", "false")):
+        return
+    raise GateError("no role=generator assignment found")
+
+
+def validate_writer_provenance(sprint_dir: Path, sprint_slug: str, fm: dict[str, str], cwd: Path) -> None:
+    if (sprint_dir / "external-writer.json").exists():
+        validate_external_writer(sprint_dir, cwd)
+    validate_ledger_integrity(sprint_dir, sprint_slug)
+    require_generator_evidence(sprint_dir, sprint_slug, fm)
+
+
+def validate_containment(fm: dict[str, str]) -> None:
+    if not truthy(fm.get("harness_target_outside_repo", "false")):
+        return
+    companion = str(fm.get("harness_target_outside_repo_sprint") or "").strip()
+    slug = str(fm.get("current_sprint_slug") or "")
+    if not companion:
+        raise GateError(
+            f"harness_target_outside_repo requires harness_target_outside_repo_sprint: {slug}"
+        )
+    if companion != slug:
+        raise GateError(
+            f"harness_target_outside_repo left over from sprint {companion}; "
+            "reset both fields before implementation writes"
+        )
+
+
+def expand_backup_path(raw: str) -> str:
+    text = str(raw or "").strip()
+    if text == "~":
+        return str(Path.home())
+    if text.startswith("~/"):
+        return str(Path.home() / text[2:])
+    return text
+
+
+def validate_outside_repo_backup(sprint_dir: Path, fm: dict[str, str]) -> None:
+    if not truthy(fm.get("harness_target_outside_repo", "false")):
+        return
+    log_path = sprint_dir / "session-log.md"
+    lines = log_path.read_text(encoding="utf-8").splitlines() if log_path.is_file() else []
+    match = next((re.match(r"^备份:\s+(.+)$", line) for line in lines if re.match(r"^备份:\s+(.+)$", line)), None)
+    expanded = expand_backup_path(match.group(1)) if match else ""
+    target = Path(expanded)
+    ok = expanded and target.is_absolute() and target.is_dir() and any(target.iterdir())
+    if not ok:
+        raise GateError(
+            "outside-repo sprint requires a backup record line "
+            "(备份: <absolute-path>) whose path exists and is non-empty"
+        )
+
+
+def validate_impl_entry(ai_state: Path, fm: dict[str, str]) -> None:
+    if fm.get("path", "") not in GENERATOR_PATHS:
+        return
+    sprint_slug = fm.get("current_sprint_slug", "")
+    if not sprint_slug:
+        raise GateError("implementation write requires current_sprint_slug for the spec gate")
+    validate_containment(fm)
+    sprint_dir = ai_state / "sprints" / sprint_slug
+    validate_spec_gate(sprint_dir, ai_state, fm, sprint_slug, allow_exception=True)
+    if (sprint_dir / "design.md").is_file():
+        validate_review_packet(sprint_dir)
 
 
 def validate_worktree_violations(sprint_dir: Path) -> None:
@@ -836,7 +1043,7 @@ def validate_generator_chain(sprint_dir: Path, sprint_slug: str) -> None:
     # role=generator。critic/reviewer/evaluator/spec-compliance 无握手且多轮 Start/Stop, 不属于
     # 本校验范围, 按 role 过滤后跳过, 避免误报 unbound / 多重生命周期。
     generator_keys = {
-        key for key, row in assignments_by_key.items() if row["role"] == "generator"
+        key for key, row in assignments_by_key.items() if is_generator_role(row["role"])
     }
     if not generator_keys:
         raise GateError("no role=generator assignment found")
@@ -849,27 +1056,23 @@ def validate_generator_chain(sprint_dir: Path, sprint_slug: str) -> None:
         events_by_key.setdefault(key, []).append(event)
 
     for key, assignment in assignments_by_key.items():
-        if assignment["role"] != "generator":
+        if not is_generator_role(assignment["role"]):
             continue
         matching = events_by_key.get(key, [])
         if not matching:
-            raise GateError(f"generator {key[0]!r} has no lifecycle events")
+            generator_incomplete(assignment["agent_id"])
         starts = [event for event in matching if event["event"] == "SubagentStart"]
         stops = [event for event in matching if event["event"] == "SubagentStop"]
         if len(starts) > 1:
             raise GateError(f"ambiguous SubagentStart events for agent_id={key[0]!r}")
-        if not starts:
-            raise GateError(f"isolated SubagentStop for agent_id={key[0]!r}; no matching Start")
-        if not stops:
-            raise GateError(f"agent_id={key[0]!r} has no SubagentStop")
+        if not starts or not stops:
+            generator_incomplete(assignment["agent_id"])
         agent_types = {event["agent_type"] for event in matching}
         if len(agent_types) != 1:
             raise GateError(f"inconsistent agent_type lifecycle for agent_id={key[0]!r}")
         latest_event = max(matching, key=lambda row: row["_parsed_timestamp"])
         if latest_event["event"] != "SubagentStop":
-            raise GateError(
-                f"agent_id={key[0]!r} latest lifecycle event is {latest_event['event']}, not SubagentStop"
-            )
+            generator_incomplete(assignment["agent_id"])
         if latest_event["_parsed_timestamp"] < starts[0]["_parsed_timestamp"]:
             raise GateError(f"agent_id={key[0]!r} Stop precedes Start")
         if latest_event["_parsed_timestamp"] < assignment["_parsed_timestamp"]:
@@ -1905,24 +2108,10 @@ def main() -> int:
         if stage not in VALID_STAGES:
             return block(f"unknown Athena stage {stage!r}")
         if is_implementation_write(payload) and stage in {"design", "impl"}:
-            path_type = fm.get("path", "")
-            if path_type in GENERATOR_PATHS:
-                sprint_slug = fm.get("current_sprint_slug", "")
-                if not sprint_slug:
-                    return block("implementation write requires current_sprint_slug for the spec gate")
-                try:
-                    sprint_dir = ai_state / "sprints" / sprint_slug
-                    validate_spec_gate(
-                        sprint_dir,
-                        ai_state,
-                        fm,
-                        sprint_slug,
-                        allow_exception=True,
-                    )
-                    if (sprint_dir / "design.md").is_file():
-                        validate_review_packet(sprint_dir)
-                except GateError as exc:
-                    return block(str(exc))
+            try:
+                validate_impl_entry(ai_state, fm)
+            except GateError as exc:
+                return block(str(exc))
         if stage == "impl":
             # State repairs and read-only triage must remain possible when the
             # previous sprint lacks a contract. Source writes and Stop still gate.
@@ -1935,16 +2124,7 @@ def main() -> int:
                 if not impl_sprint_slug:
                     return block("impl stage requires current_sprint_slug for the spec gate")
                 try:
-                    impl_dir = ai_state / "sprints" / impl_sprint_slug
-                    validate_spec_gate(
-                        impl_dir,
-                        ai_state,
-                        fm,
-                        impl_sprint_slug,
-                        allow_exception=True,
-                    )
-                    if (impl_dir / "design.md").is_file():
-                        validate_review_packet(impl_dir)
+                    validate_impl_entry(ai_state, fm)
                 except GateError as exc:
                     return stop_failure(
                         payload, str(exc), ai_state / "sprints" / impl_sprint_slug, stage, fm.get("path", "")
@@ -1987,6 +2167,8 @@ def main() -> int:
             path_type = fm.get("path", "")
             if path_type not in VALID_PATHS:
                 raise GateError(f"ship stage has unknown Athena path {path_type!r}")
+            validate_containment(fm)
+            validate_outside_repo_backup(sprint_dir, fm)
             validate_vm_pending_promises(ai_state, sprint_dir, sprint_slug)
             # 9.9.6 P2 fix (see .ai_state/proposals.md): a light ship -- small net diff vs
             # upstream, touching only docs/config/deps/state/tests (no source logic, no
@@ -2024,8 +2206,7 @@ def main() -> int:
             review_content = ""
             review_path: Path | None = None
             if path_type in GENERATOR_PATHS:
-                if not truthy(fm.get("skip_impl_subagent_check", "false")):
-                    validate_generator_chain(sprint_dir, sprint_slug)
+                validate_writer_provenance(sprint_dir, sprint_slug, fm, root)
                 # 2026-07-28 gate-descaling: checklist.yaml 可选 — done_contract 已并入
                 # design.md (spec-gate 验 AC); 存在则照旧必须全绿。
                 if (sprint_dir / "checklist.yaml").exists():
