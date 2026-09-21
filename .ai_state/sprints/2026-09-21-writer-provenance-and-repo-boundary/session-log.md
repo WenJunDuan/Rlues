@@ -19,3 +19,6 @@
 
 <!-- athena-review:{"dispatch_receipt_ref":"reviews/_native/38a8f5c6-4736-4b15-93e7-1c81c09309a4-dispatch.json","dispatch_receipt_sha256":"efa32ae901aae0f305470e083e9fbb1aa507334719665124aa838c00337deae9","event":"bound","recorded_at":"2026-09-21T01:25:33.292Z","review_run_id":"38a8f5c6-4736-4b15-93e7-1c81c09309a4","reviewer_target":"a4f9a9435159c5139"} -->
 - 2026-09-21：rev 2 REWORK（新 P0 状态①吞回执+7P1）全落实 rev 3：规则 0 叠加制、八格表入正文（G1-G8 编号权威）、附录 A 补 M8/M11-M13/R1、账本作用域定死、豁免消费者入写集、AC4 因果改述。复核 run `38a8f5c6` 派发（要求置信度重估，≥0.8 明示可进 impl）。
+
+<!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/38a8f5c6-4736-4b15-93e7-1c81c09309a4-result.json","native_output_sha256":"750a9e701190d35060fc6eb54d7a6ff5f54ddfb54ed7369b69223668f9927026","output_ref":"reviews/design-review.md","output_sha256":"3510175484d7d582397fd4310b08ebf9e6e70903346fae2ddc83d92b1072c3eb","recorded_at":"2026-09-21T01:33:38.994Z","review_run_id":"38a8f5c6-4736-4b15-93e7-1c81c09309a4","reviewer_target":"a4f9a9435159c5139","verdict":"REWORK"} -->
+- 2026-09-21：rev 3 复核 REWORK（新 P0 sprint_source×exact-key 互斥 + P1×2 + P2×3）全落实 rev 4：event schema 可选键扩展、规则 0 先于三态判定次序、收紧面 G9/G10 入表、R1 路径形态、AC6 点名清单、containment gate 落点。复核明示闭合三条后置信度 0.8、可直接派 impl 不再开复核轮——据此转 impl，grok 施工。

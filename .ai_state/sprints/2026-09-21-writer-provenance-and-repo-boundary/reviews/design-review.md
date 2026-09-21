@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 mode: "design"
-review_run_id: "1c83b68e-aae7-41b2-aa4d-2273891b0772"
-reviewer_target: "abef65c7b08ea51d4"
-packet_sha256: "de4528e2f1cfca1bbe2eba4e8c779e8fc1f03c46ad2b447c2f522a5399d6a98a"
-input_manifest_sha256: "ce8c23034be4b60f88dacc19af61b7bc562a2211fe7378a4a6ed0979e3ce1197"
-native_output_ref: "reviews/_native/1c83b68e-aae7-41b2-aa4d-2273891b0772-result.json"
+review_run_id: "38a8f5c6-4736-4b15-93e7-1c81c09309a4"
+reviewer_target: "a4f9a9435159c5139"
+packet_sha256: "5e4c19a6f6f564e8b2d793952cdb3bd3b16eaf7f1c9d98de23c9c7aa2fc82451"
+input_manifest_sha256: "c072ab1a9aa8b5ffe507b3518915f30ec2b60c92eb52b864c84e4f065e1f4adb"
+native_output_ref: "reviews/_native/38a8f5c6-4736-4b15-93e7-1c81c09309a4-result.json"
 verdict: "REWORK"
 ---
 
@@ -14,18 +14,21 @@ verdict: "REWORK"
 ---
 schema_version: 1
 mode: design
-packet_sha256: "de4528e2f1cfca1bbe2eba4e8c779e8fc1f03c46ad2b447c2f522a5399d6a98a"
-review_run_id: "1c83b68e-aae7-41b2-aa4d-2273891b0772"
+packet_sha256: "5e4c19a6f6f564e8b2d793952cdb3bd3b16eaf7f1c9d98de23c9c7aa2fc82451"
+review_run_id: "38a8f5c6-4736-4b15-93e7-1c81c09309a4"
+native_output_ref: "reviews/_native/38a8f5c6-4736-4b15-93e7-1c81c09309a4-result.json"
 verdict: REWORK
-finding_counts: {P0: 1, P1: 7, P2: 2}
+finding_counts: {P0: 1, P1: 2, P2: 3}
 dimensions: [spec, correctness, security, tests, overengineering, evidence]
 ---
 
-首轮两 P0 均闭合（八格推演成立、伴随字段免疫成立）；新 P0 属新因不触发交还。
+rev2 P0（状态①吞回执）闭合；P1×7 全闭合（适配式等价实证、附录 A 齐备、账本作用域、备份时序解死锁、FIELDS 不含 HEAD 属实、豁免走查无死锁、AC4 因果正确）；P2×2 闭合（AC8 复跑 Ran 160 OK）。
 
-P0-1(新) 状态①吞回执：互斥定义使 mixed writer（本 sprint 即首例）时 external-writer.json 永不校验，#1 原样重现且 AC7 自指缓解静默不执行。修法：回执存在即校验（叠加），三态只决定缺链时的替代。
-P1：①适配式删了 || findAiState(cwd) 回退（非 git 目录由可解析变 absent，既有测试抓不到）；②八格表未入正文（编号无源）+ 附录 A 缺 4 条新 block 消息（账本坏行/伴随字段缺失/断裂链出口/required=false）；③账本完整性作用域未定义（文件缺失/零行/单侧存在）且 lifecycle 现状仅 generator role、role 精确匹配可被大小写洗成状态③；④备份判据与两先例仍不匹配（同因第二次 P1 级）：一例无路径一例根不同，且用户有验后删备份惯例=existsSync 新死锁；需 canonical 记录行格式+时序声明；⑤evidence 重算时序未入正文（FIELDS 不含 HEAD=ancestor 正交应明文；施工时序=整合→冻结 design→主仓复跑）；⑥flag 真实豁免点 worktree-check（CC/CX）不在写集=stale 下空转死锁+双消费者分叉；⑦AC4 因果错配：assign 本用 startLocations 故 assignment 归属与其同解，事故根因在 Start 端指针，先红须改述 Start 端最小复现。
-P2：①containment 两字段不受治理哈希覆盖（显式入列或 Non-goal+免责）；②AC8 基线 160 补测量命令（实测和=160 核对通过）。
-grok 唯一实现置信度 0.5，闭合上述后再派。
+P0-1(新) sprint_source 与 validateEvent exact-key 互斥：新字段使 tracker 写出的每条事件在三端判坏行→全域 M12 block，而手写 fixture 测试仍全绿（测试绿系统砖）。需三端 event schema 新增该键 + 旧行缺键仍合法（in-flight 新旧混存）+ 值域枚举 + 入 AC2/AC6。
+P1-1 规则 0 与三态判定次序未定：回执坏+链断裂时 M1-M7 与 M8 冲突，AC6 逐字一致不可判定；明定规则 0 先行、G7「回执」列改「无/合法」。
+P1-2 状态①收紧面未入表未入 AC：链断裂+flag+Feature 今日放行改后 block（八格无此行）；账本无条件化对零行/坏行 sprint 由放行变 block。补行补 AC 或 Non-goal。
+P2：R1 路径形态（~ 展开/文件 vs 目录）欠定易误拦；AC6 Pi 同源函数需点名（validateShip 已有既存差异会误红）；containment 三分支缺 gate 落点行号。
+
+置信度 0.55→闭合 P0-1+P1-1+P1-2（约 5 行）后估 0.8，可直接派 impl 无需再开复核轮。
 
 VERDICT: REWORK

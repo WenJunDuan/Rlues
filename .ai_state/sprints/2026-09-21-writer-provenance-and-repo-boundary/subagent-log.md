@@ -22,3 +22,8 @@
 - Event: SubagentStart
 - Agent ID: a4f9a9435159c5139
 
+## 2026-09-21T01:32:29.205Z · reviewer
+- Event: SubagentStop
+- Agent ID: a4f9a9435159c5139
+- Last message: 已交付复核报告：VERDICT REWORK（P0×1 / P1×2 / P2×3），rev2 的 P0 与 P1×7、P2×2 全部闭合，新 P0 为 `sprint_source` 字段与三端账本 exact-key 校验互斥。
+

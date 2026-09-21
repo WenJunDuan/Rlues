@@ -1,0 +1,14 @@
+sprint_slug: "2026-09-21-writer-provenance-and-repo-boundary"
+collected_evidence:
+  - tool_use_id: "toolu_01H6kBEJG1Tn23n4hA163GXH"
+    tool: "Bash"
+    result: unknown
+    result_reason: "pipeline_without_pipefail"
+    command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999 2>&1 | tail -4"
+    timestamp: "2026-09-21T01:30:36.978Z"
+    source_sha256: "27a17917bebd4c2e9d3ea8cf75f5ebe868d19442a487046aa4a24a74a380316e"
+    design_sha256: "a6dcc60d514bbbb0772b46458bd10cc46f484e32462d6ad74048603d869c8111"
+    environment_sha256: "b06e6869f374328d9bbbba8280fac270d73abb8c46872aca97562b696eb3a0ad"
+    binding_status: "current"
+    output_artifact: "evidence/159d0e16f5c7f9039a61e73cb55ca0acbe1340003aa9623a096a31e5c085abcb.txt"
+    artifact_sha256: "b6e1644dc0c0472dc7afd628b2005d472f8b582b1ada6282978a9a51bb7bcf10"
