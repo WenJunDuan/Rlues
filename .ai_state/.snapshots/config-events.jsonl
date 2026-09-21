@@ -346,3 +346,5 @@
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"ui-guidelines.md","timestamp":"2026-09-20T14:19:20.343Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"git-conventions.md","timestamp":"2026-09-20T14:19:20.343Z"}
 {"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"doc-style.md","timestamp":"2026-09-20T14:19:20.343Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"CLAUDE.md","timestamp":"2026-09-21T00:48:18.330Z"}
+{"schema_version":1,"event":"InstructionsLoaded","source":"unknown","file_name":"_index.md","timestamp":"2026-09-21T00:48:18.331Z"}

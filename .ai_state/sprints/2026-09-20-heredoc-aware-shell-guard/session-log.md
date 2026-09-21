@@ -73,3 +73,4 @@
 
 <!-- athena-review:{"event":"accepted","native_output_ref":"reviews/_native/8ce16b6e-77c0-4874-9334-a37548f29151-result.json","native_output_sha256":"ab0b3552dc830db372ce795b4b7ebf7c3a7a4e0c6d82e3cdb902ce5da10c4b76","output_ref":"reviews/implementation-review.md","output_sha256":"590770d769b42079560dcd515f698fb5340b11b8412d5207cc407b92c11966f7","recorded_at":"2026-09-20T14:31:55.538Z","review_run_id":"8ce16b6e-77c0-4874-9334-a37548f29151","reviewer_target":"a1f829c778862041a","verdict":"PASS"} -->
 - 2026-09-20：implementation review run `8ce16b6e` **一轮 PASS**（P0=0 P1=0 P2=5）已 accept：文法实现不宽于设计逐字符核、19 条对抗双端同判、160/160。P2 五条记切片 9（测试卫生三件/规模豁免/文法口径）。roadmap completed，stage→ship。
+- 2026-09-21：安装态同步 9 文件完成（备份 install-sync-3）并双端实证：活体形态 1 误拦已消（exit 0）、bash 危险 heredoc 照拦（exit 2）、CC/CX hooks 加载自检 OK。上会话中断的收口记账补齐。切片 7+8 全链闭合。
