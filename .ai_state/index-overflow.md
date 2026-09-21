@@ -28,3 +28,6 @@ Full items moved off `_index.md` (AC9). Do not delete.
 
 ### archived-1
 2026-09-06 design: 用户授权生成CC/CX 9.9.9候选包；设计已复核，进入实现。
+
+### rh-spill-2026-09-21
+2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2

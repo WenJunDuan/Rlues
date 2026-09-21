@@ -33,7 +33,7 @@ items:
   - slug: writer-provenance-and-repo-boundary
     title: "外部写者 provenance、仓库边界与 worktree 归属"
     status: pending
-    sprint_slug: ""
+    sprint_slug: "2026-09-21-writer-provenance-and-repo-boundary"
     blocked_by: [contract-parser-diagnostics]
     estimated_complexity: L
     notes: "Q12#1/#2/#16；共享 delivery gate，串行实施。另接切片 3 遗留：导出 tryRepoRoot/findAiState 并消除 governance 的解析复写（字节断言已由切片 4 AC6 删除）"
