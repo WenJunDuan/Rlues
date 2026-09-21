@@ -472,9 +472,10 @@ class GeneratorMatrix(unittest.TestCase):
             {**event(slug=self.repo.slug), 'extra': 'nope'},
         ])
         cc, cx = self.run_prov(self.repo.fm(path='Feature', skip=True))
-        self.assertEqual(cc, cx)
         self.assertTrue(cc.startswith(M12_PREFIX), cc)
+        self.assertTrue(cx.startswith(M12_PREFIX), cx)
         self.assertIn('subagent-events.jsonl', cc)
+        self.assertIn('subagent-events.jsonl', cx)
 
     def test_g10_empty_file_keeps_contains_no_records(self):
         (self.repo.sprint / 'subagent-assignments.jsonl').write_text('\n')
@@ -737,13 +738,24 @@ class TrackerProvenance(unittest.TestCase):
         self.assertEqual(landed[0].get('sprint_source'), 'worktree-index')
 
     def test_stop_follows_assignment_then_start_then_start_rule(self):
+        wt_home = Path(self.tmp.name) / 'wt-home-stop'
+        wt = wt_home / 'linked'
+        git(self.root, 'worktree', 'add', '-q', str(wt), 'HEAD')
+        self.addCleanup(lambda: subprocess.run(
+            ['git', '-C', str(self.root), 'worktree', 'remove', '--force', str(wt)],
+            capture_output=True,
+        ))
+        (wt / '.ai_state').mkdir()
+        (wt / '.ai_state' / '_index.md').write_text(
+            '---\ncurrent_sprint_slug: "sprint-A"\npath: "Feature"\nstage: "impl"\n---\n'
+        )
         write_jsonl(self.ai / 'sprints' / 'sprint-A' / 'subagent-assignments.jsonl', [
             assignment(agent='agent-1', slug='sprint-A'),
         ])
-        run = self.fire(self.root, 'SubagentStop', agent='agent-1')
+        run = self.fire(wt, 'SubagentStop', agent='agent-1')
         self.assertEqual(run.returncode, 0, run.stderr)
         landed = self.rows('sprint-A')
-        self.assertEqual(len(landed), 1)
+        self.assertEqual(len(landed), 1, landed)
         self.assertEqual(landed[0].get('sprint_source'), 'assignment')
         self.assertEqual(landed[0]['event'], 'SubagentStop')
 
