@@ -22,3 +22,4 @@
 
 <!-- athena-review:{"event":"received","native_output_ref":"reviews/_native/38a8f5c6-4736-4b15-93e7-1c81c09309a4-result.json","native_output_sha256":"750a9e701190d35060fc6eb54d7a6ff5f54ddfb54ed7369b69223668f9927026","output_ref":"reviews/design-review.md","output_sha256":"3510175484d7d582397fd4310b08ebf9e6e70903346fae2ddc83d92b1072c3eb","recorded_at":"2026-09-21T01:33:38.994Z","review_run_id":"38a8f5c6-4736-4b15-93e7-1c81c09309a4","reviewer_target":"a4f9a9435159c5139","verdict":"REWORK"} -->
 - 2026-09-21：rev 3 复核 REWORK（新 P0 sprint_source×exact-key 互斥 + P1×2 + P2×3）全落实 rev 4：event schema 可选键扩展、规则 0 先于三态判定次序、收紧面 G9/G10 入表、R1 路径形态、AC6 点名清单、containment gate 落点。复核明示闭合三条后置信度 0.8、可直接派 impl 不再开复核轮——据此转 impl，grok 施工。
+- 2026-09-21：grok headless 启动（worktree Rlues-grok-writer-provenance，brief /tmp/grok-writer-provenance-brief.md，日志 /tmp/grok-writer-provenance.log）。上下文将满，交接锚点落 handoff.md，_index.next_action 指向它。
