@@ -67,6 +67,14 @@ raw schema 恰为 `schema_version,event,agent_id,agent_type,sprint_slug,timestam
 
 同步完成也按 bind→accept；只有真实异步请求设 `next_action: await-review-result`。等待中不重复 prepare；旧请求已结束/失效才 `supersede --cwd … --run …`，它不取消任务，复核使用新独立 target。receipt 原文不能加工补 ID/状态；接口不支持则保留原文并报告。完整恢复见 [execution-contracts.md](execution-contracts.md)。
 
+## Writer provenance · 仓库边界（9.9.9 slice 5）
+
+- Event schema: required keys remain `schema_version,event,agent_id,agent_type,sprint_slug,timestamp`. Optional keys: `sprint_source` (enum `assignment|worktree-index|main-index`; old rows that omit the key stay legal) and `redirect` (`failed` only). Invalid optional values are ledger-row errors.
+- `external-writer.json` is validated whenever it exists (superimposed on the generator chain). `integration_commit` is checked with `git merge-base --is-ancestor` against HEAD: that only proves the commit entered this repository history and **does not prove authorship**.
+- Evidence bound by `evidence_tool_use_id` is re-checked with `currentRecord` (FIELDS do not include HEAD). Construction order: integrate into the main repo → freeze `design.md` → re-run verification in the main repo → write the receipt. **external evidence must be re-collected in the main repo**; later `design.md` edits make collected evidence non-current.
+- Containment: `harness_target_outside_repo` plus companion `harness_target_outside_repo_sprint`. Neither field is in `INDEX_GOVERNANCE_FIELDS` (agent-writable, same forgery surface as the flag). Ship of an outside-repo sprint requires a session-log line `备份: <absolute-path>` whose path exists as a non-empty directory; **must not delete the backup before the ship gate passes**.
+- Process suggestion (not a code force): **commit `_index.md` before spawn** so a worktree index slug matches the main-repo sprint directory.
+
 ## 来源与维护边界
 
 本页按9.9.9执行代码核对；门禁实际报错优先，定位对应函数修复文档或实现。Feature 新切片是否适用按实际范围分诊，不能为了少跑门禁把进行中的 System 降级；用户显式授权的局部 Hotfix 单独记录。
