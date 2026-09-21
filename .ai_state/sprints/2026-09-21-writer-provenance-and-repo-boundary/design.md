@@ -2,95 +2,108 @@
 sprint_slug: "2026-09-21-writer-provenance-and-repo-boundary"
 path: "System"
 stage: "design"
-author: "cc-main (rev 2: e551a33f REWORK 全落实)"
+author: "cc-main (rev 3: 1c83b68e REWORK 全落实——回执叠加制、八格表入正文、附录 A 补全)"
 base_commit: "9784d8b"
 ---
 
 # Writer provenance 与仓库边界（Q12#1/#2/#16 + 切片 3 承接②）
 
-## WHY（勘查逐行核实，首轮复核确认全部属实）
+## WHY（两轮复核确认全部属实）
 
-**#1** 外部写者唯一出口 = 裸布尔 `skip_impl_subagent_check`（gate:1245/py:1859/pi:1208），零 provenance；`external-writer.json` 三端零命中。**#2** `harness_target_outside_repo` 仅 2 个 worktree-check 消费者，gate 不读、无 sprint 归属、「ship 后移除」无强制。**#16** tracker 落账依赖可变全局指针（`currentSprint:37`），redirect 吞异常（:33）、`.git` 边界丢事件（:17→:135）；本会话两次落错账实录。**承接** `tryRepoRoot:447`/`findAiState:28` 不在 exports:1488；`_review-binding:275-296` 20 行复写。
+**#1** 外部写者唯一出口 = 裸布尔 `skip_impl_subagent_check`（gate:1245/py:1859/pi:1208），零 provenance；`external-writer.json` 三端零命中。**#2** `harness_target_outside_repo` 仅 2 个 worktree 豁免消费者（CC `subagent-worktree-check.cjs:104`、CX `subagent-worktree-audit.py:151`），gate 不读、无 sprint 归属。**#16** tracker 落账依赖可变全局指针（`currentSprint:37`，Start 端是事故根因），redirect 吞异常（:33）、`.git` 边界丢事件（:17→:135）。**承接** `tryRepoRoot:447`/`findAiState:28` 不在 exports:1488；`_review-binding:275-296` 复写。
 
 ## HOW
 
-### 账本完整性与 generator 要求解耦（P0-1 落点）
+### 回执叠加制 + 账本/证据拆层（P0 两轮的合并落点）
 
-`validateGeneratorChain` 拆两层：
-- **validateLedgerIntegrity（无条件）**：`subagent-assignments.jsonl`/`subagent-events.jsonl` 只要存在，其中**每一行**都必须过 exact-key schema、时序与 lifecycle 一致性（现 `:147-220` 的结构校验全部保留，抽离「必须有 generator 行」判据）。任何状态下账本坏行都 block——回执不豁免账本结构（矩阵第 3 格闭合）。
-- **requireGeneratorEvidence（三态）**：
-  - ①assignments 含 `role=generator` 行 → 该链必须完整（Start→assignment→Stop）。**flag 在此状态无效**：链断裂即 block，出口消息=「续跑该 agent 至真实 SubagentStop，或按外部接管流程重新集成（新 external-writer.json + 新 evidence），不得删改账本行」（矩阵第 7 格闭合；proposals.md:47 类截断释放的合法出口由 flag 改为回执）。
-  - ②无 generator 行但 `external-writer.json` 存在 → `validateExternalWriter`。flag 在此状态**被忽略**（矩阵第 8 格=②）。
-  - ③两者皆无 → `skip_impl_subagent_check=true` 且 path ∉ {Refactor,System} 放行（绿区语义不变）；R/S 或 flag=false → block（消息含三条出口：补链/补回执/绿区改 flag）。
-- call site 重构：`:1245` 的外层 flag 短路**删除**，flag 判定下沉到状态③内部——flag 从「关掉校验的总开关」降级为「状态③绿区的例外申报」，这是「不能做成 skip flag」的机械落点。
+- **规则 0（叠加，rev 3 新 P0 落点）**：`external-writer.json` **存在即校验**（`validateExternalWriter`），与 generator 链检查相互独立叠加——mixed writer sprint（本 sprint 即首例）两者都必须过。三态只回答「缺 generator 链时什么可替代」。
+- **validateLedgerIntegrity（无条件，作用域定死）**：`subagent-assignments.jsonl` / `subagent-events.jsonl` 各自**存在时**逐行 exact-key schema 校验（缺失文件→沿用现状 `requireFile` 语义仅在需要该文件的状态触发；存在但零行→按现状抛；单侧存在→存在侧照验，缺失侧仅在状态①需要时抛）。**lifecycle 时序校验保持现状作用域=仅 `role` 为 generator 的链**（不推广到其他 role——7 个已 ship sprint 账本回归约束）。generator 判定按 `String(role).toLowerCase()==='generator'` 归一（防大小写洗态）；其他 role 值仅 schema 校验、不参与三态。
+- **requireGeneratorEvidence（三态，编号固定见下表）**：
+  - **状态①** assignments 含 generator 行 → 链必须完整；**flag 无效**；断裂 → block（消息 M8）。
+  - **状态②** 无 generator 行且回执存在 → 回执即链的替代（回执校验本身由规则 0 无条件执行）。
+  - **状态③** 无 generator 行且无回执 → flag=true 且 path ∉ {Refactor,System} 放行；否则 block（消息 M9）。
+- call site `:1245` 外层 flag 短路删除。
+
+**八格矩阵（正文权威，测试按此编号）**：
+
+| 格 | generator 行 | 回执 | flag | path | 判定 |
+|---|---|---|---|---|---|
+| G1 | 有·链完整 | 无 | 任意 | 任意 | ①通过（flag 无效不放大权限） |
+| G2 | 有·链完整 | 有 | 任意 | 任意 | ①通过 且 规则 0 校验回执（叠加） |
+| G3 | 仅非 generator 行 | 有 | 任意 | 任意 | ②，且账本存在行全部 schema 校验（不因回执失效） |
+| G4 | 无 | 无 | true | 绿区 | ③放行（既有语义） |
+| G5 | 无 | 无 | true | R/S | block M9（先红：今日放行） |
+| G6 | 无 | 无 | false | 任意 | block（既有 `no role=generator assignment found` 保持） |
+| G7 | 有·链断裂 | 任意 | true | R/S | block M8（flag 无效；出口=续跑至真实 Stop，或按外部接管重新集成——新回执+新 evidence；禁删改账本行） |
+| G8 | 无 | 有 | true | 任意 | ②（flag 被忽略） |
 
 ### validateExternalWriter（#1）
 
-`sprints/<slug>/external-writer.json`，canonical schema（附录 A 定死字段名与消息，grok 逐字实现）：`schema_version:1`、`executor{tool,model}`、`dispatch_ref`、`receipt_ref`、`receipt_summary`、`original_commits[]`、`integration_commit`、`evidence_tool_use_id`。校验分级（附录 A 表内标注机械/半机械/纸面）：
-- `integration_commit`：`git merge-base --is-ancestor <c> HEAD` 现场验（机械；仅证明进入本仓历史，不证明作者——免责句入 gate-contracts）。
-- `evidence_tool_use_id`：在 evidence.yaml 命中**恰好一条**（0 条或 ≥2 条均 block——P1-1 唯一性字面）且该条经 `inputBinding.currentRecord` **现场重算**为 current + `result=pass`（P1-1：走 `:245` 同款重算基元，禁用 `:1028` 的字符串读取路径）；`inputBinding.required(sprintDir)` 为假 → 回执一律 block（无严格绑定环境=不可证）。
-- `dispatch_ref`/`receipt_ref`：sprint 内相对路径、实存、非空（半机械）。
-- 其余字段非空非占位（纸面，如实分级）。
+`sprints/<slug>/external-writer.json`，字段与消息见附录 A。要点：
+- `integration_commit`：`git merge-base --is-ancestor` 现场验（机械；仅证明进入本仓历史，不证明作者——免责句入 gate-contracts）。
+- `evidence_tool_use_id`：evidence.yaml 恰一条命中（0/≥2 → block）且经 `inputBinding.currentRecord`（`:245` 同款）**现场重算** current+pass；`inputBinding.required(sprintDir)` 为假 → block（M7）。**FIELDS 不含 HEAD**（`_input-binding.cjs:128`：source/design/environment 三 sha）——ancestor 检查与 evidence 重算正交，ship 记账移动 HEAD 不失效 evidence（明文，防实现者误加 HEAD 绑定）。
+- **施工时序（明文合同）**：外部 worktree 内采集的 evidence 不可迁移；顺序=整合进主仓 → 冻结 design.md → 主仓复跑验证生成 evidence → 写回执。design.md 后续任何编辑使全部已采 evidence 变 non-current（这是机制而非缺陷）。
 
-### containment（#2，P0-2 落点）
+### containment（#2）
 
-- **新增伴随字段 `harness_target_outside_repo_sprint: "<slug>"`**（归属信号）。flag=true 必须伴随该字段：
-  - 字段 == 当前 `current_sprint_slug` → 合法（impl 与 ship 全程，恢复 flag 的真实使用窗口，不复刻 P9 死锁）；
-  - 字段 ≠ 当前 slug → **stale**：impl-entry 对实现写入 block，消息=「上一 sprint（<字段值>）的仓外授权未收口，复位两字段后重试」；
-  - flag=true 而伴随字段缺失 → block（消息指明补法）。
-- ship 时 flag=true → sprint session-log 须含**备份路径记录且该路径 existsSync 为非空目录**（P1-2：判据=从 session-log 提取 `~/.athena-backups/...` 或其他绝对路径样式的备份记录行并现场验存在性；正则匹配不再作为唯一判据）。历史两先例（install-sync-3 记法、.snapshots 记法）作测试夹具校准提取规则。
-- **no-change 断言（P1-5）**：drift 判定本体零改动——flag sprint 下仓外写入不产生 drift block（fixture 断言），`changedFileSet` 噪音仍归切片 9。
+- 伴随字段 `harness_target_outside_repo_sprint: "<slug>"`。三分支：匹配当前 slug=合法（impl+ship 全程）；不匹配=stale block（M10）；flag=true 而字段缺失=block（M11）。
+- **豁免消费者同步（rev 3）**：CC `subagent-worktree-check.cjs` 与 CX `subagent-worktree-audit.py` 的豁免判据同步改为「flag=true **且**伴随字段==当前 slug」——消除 stale 下「spawn 豁免、写入被拦」的空转死锁与双消费者分叉。两文件入写集。
+- ship 时 flag=true → session-log 须含 canonical 备份记录行（附录 A 格式 R1：`备份: <绝对路径>`）且该路径 existsSync 非空目录；**时序声明：ship 门禁通过前不得删除备份**（用户验后删惯例移到 ship 后）；判据依赖机器本地状态，如实注明。历史记法不受追溯（gate 只验当前 sprint）；夹具=新格式正例 + 缺记录/路径已删两负向。
+- no-change 断言：drift 判定本体零改动，flag sprint 下仓外写入不产生 drift block（fixture）。
+- 治理哈希：containment 两字段**不入** `INDEX_GOVERNANCE_FIELDS`（Non-goal——与 flag 同为 agent 可写，伪造面同级；免责句与 ancestor 同处 gate-contracts）。
 
-### tracker 落账归属（#16，仅 CC；P1-4 修正）
+### tracker 落账归属（#16，仅 CC；事故根因在 Start 端）
 
-sprint 归属解析链（写入位置仍是主仓账本）：
-1. **SubagentStop**：优先「该 agent_id 的 assignment 行所在 sprint」（在主指针 sprint 与 worktree `_index` slug 两个候选目录中查找 assignment；assignment 是握手时显式绑定，最强信号）；无 assignment → 沿用既有 `startLocations` 唯一匹配；再无 → 第 3 档。
-2. **SubagentStart** 与第 3 档：worktree `_index` 的 slug 且主仓 `sprints/<slug>/` 目录实存 → 用之；否则主仓指针。
-3. 每条事件行新增 `"sprint_source":"assignment"|"worktree-index"|"main-index"` 审计字段——**P1-4 残余（worktree `_index` 为分支提交版，未提交 spawn 时可携带旧 slug）经此可审计可纠正**，并在 gate-contracts/orchestration 记流程建议「spawn 前提交 `_index`」；不做代码强制。
+1. **SubagentStart（修复力所在）**：事件 cwd 为 linked worktree 时读 worktree `_index` 的 slug，且主仓 `sprints/<slug>/` 目录实存 → 用之；否则主仓指针。最小复现序列（AC4 先红）：主仓指针指向 sprint-B 时于 sprint-A 的 worktree 内触发 Start——今日落 B（错），改后落 A。
+2. **SubagentStop**：优先该 agent_id 的 assignment 行所在 sprint（候选=主指针 sprint 与 worktree slug 两目录）；无 → 既有 `startLocations` 唯一匹配；再无 → 同 Start 规则。（防御性排序，不宣称复现事故——rev 3 更正因果表述。）
+3. 每条事件行加 `"sprint_source":"assignment"|"worktree-index"|"main-index"` 审计字段。**残余如实声明**：worktree `_index` 是分支提交版，未提交 spawn 携带旧 slug 的错位不可根除，经审计字段可判别可纠正；「spawn 前提交 `_index`」为流程建议入 gate-contracts，不做代码强制。
 4. redirect 失败：stderr + 事件行 `"redirect":"failed"`；`.git` 边界丢事件：stderr 痕迹。CX/Pi 不改（负向断言）。
 
-### 导出与复写消除（承接，P1-3 修正）
+### 导出与复写消除（承接）
 
-exports 增 `tryRepoRoot`/`findAiState`；`_review-binding` 复写删除，替换用**适配式**：`const root = gate.tryRepoRoot(cwd) || ''; const aiState = root ? (gate.findAiState(root) || '') : '';`（保持原 `''` 契约与空值短路，`findAiState` 无空守卫不裸传）；AC4 加无仓/空根两用例 + `.git` 边界直接用例；CC==Pi 字节同改；CX 零改动。
+exports 增两名；`_review-binding` 复写删除，替换保持**两段式回退契约**：`const root = gate.tryRepoRoot(cwd) || ''; const aiState = (root && gate.findAiState(root)) || gate.findAiState(cwd) || '';`（rev 3：保留 `|| findAiState(cwd)` 回退，与原 `gateAiState(root) || gateAiState(cwd)` 及 gate `main():1455` 同形；`findAiState` 不裸传空值）；AC5 用例：无仓、root 为空、`.ai_state` 低于 repo root、`.git` 边界。CC==Pi 字节同改；CX 零改动。
 
-## 附录 A：canonical 字段与消息（grok 逐字实现，三端一致；P2-3）
+## 附录 A：canonical 字段与消息（grok 逐字实现，三端一致）
 
-| 字段 | 校验 | block 消息（CC/CX 逐字同） |
+| # | 触发 | block 消息（CC/CX 逐字同，英文） |
 |---|---|---|
-| schema_version | ==1 | `external-writer schema_version must be 1` |
-| executor.tool / executor.model | 非空字符串 | `external-writer executor tool/model missing` |
-| dispatch_ref / receipt_ref | sprint 内实存非空文件 | `external-writer <field> missing or empty: <path>` |
-| receipt_summary | 非空非占位 | `external-writer receipt_summary is placeholder or empty` |
-| original_commits | 数组（可空数组），元素 40-hex | `external-writer original_commits entries must be 40-hex` |
-| integration_commit | 40-hex 且 is-ancestor HEAD | `external-writer integration_commit is not an ancestor of HEAD: <sha>` |
-| evidence_tool_use_id | 恰一条命中且 currentRecord 重算 current+pass | `external-writer evidence not uniquely bound and currently verifiable: <id>` |
-| （三态③ R/S） | — | `red-zone sprint requires a complete generator chain or external-writer.json; skip_impl_subagent_check alone is not admissible` |
-| （stale flag） | — | `harness_target_outside_repo left over from sprint <slug>; reset both fields before implementation writes` |
+| M1 | schema_version ≠ 1 | `external-writer schema_version must be 1` |
+| M2 | executor.tool/model 空 | `external-writer executor tool/model missing` |
+| M3 | dispatch_ref/receipt_ref 缺失或空文件 | `external-writer <field> missing or empty: <path>` |
+| M4 | receipt_summary 空/占位 | `external-writer receipt_summary is placeholder or empty` |
+| M5 | original_commits 元素非 40-hex | `external-writer original_commits entries must be 40-hex` |
+| M6 | integration_commit 非 ancestor | `external-writer integration_commit is not an ancestor of HEAD: <sha>` |
+| M7 | evidence 非恰一条 current+pass 或 required()=false | `external-writer evidence not uniquely bound and currently verifiable: <id>` |
+| M8 | G7 断裂链 | `generator lifecycle incomplete for agent_id=<id>; resume it to a real SubagentStop or reintegrate via external-writer.json with fresh evidence; ledger rows must not be edited` |
+| M9 | G5 红区裸 flag | `red-zone sprint requires a complete generator chain or external-writer.json; skip_impl_subagent_check alone is not admissible` |
+| M10 | stale 伴随字段 | `harness_target_outside_repo left over from sprint <slug>; reset both fields before implementation writes` |
+| M11 | flag=true 无伴随字段 | `harness_target_outside_repo requires harness_target_outside_repo_sprint: <current slug>` |
+| M12 | 账本坏行 | `subagent ledger row invalid in <file>: <reason>` |
+| M13 | ship 备份记录缺失/路径不存在 | `outside-repo sprint requires a backup record line (备份: <absolute-path>) whose path exists and is non-empty` |
+| R1 | 备份记录行格式 | `备份: <绝对路径>`（session-log 独立一行） |
 
 ## 允许写集
 
-同 rev 1（三端 gate、`_review-binding` CC+Pi、`subagent-tracker.cjs` CC、`test_writer_provenance.py` 新建、`test_state_review.py` 仅增用例、三端 gate-contracts.md、`.ai_state` 记账）。**新增**：`_index` 伴随字段属状态 schema（文档于 gate-contracts，不新增代码文件）。
-Non-goals：不做密码学身份证明（ancestor 免责句显式落文档）；不改 drift 本体与 `changedFileSet`（切片 9）；不给 CX/Pi 造 tracker 对称物；不迁移历史 sprint；不做 spawn 前提交 `_index` 的代码强制（流程建议）。
+三端 gate（CC/Pi 同源函数同改 + CX 同构）；`_review-binding.cjs` CC+Pi；`subagent-tracker.cjs`（CC）；**`subagent-worktree-check.cjs`（CC）+ `subagent-worktree-audit.py`（CX）**（rev 3 增）；`test_writer_provenance.py` 新建 + `test_state_review.py` 仅增用例；三端 `gate-contracts.md`（schema/免责/流程建议/治理 Non-goal——AC7 对应）；`.ai_state` 记账。
+Non-goals：不做密码学身份证明；containment 字段不入治理哈希（免责代替）；不改 drift 本体与 `changedFileSet`；不给 CX/Pi 造 tracker；不迁移历史 sprint；lifecycle 校验不推广到非 generator role；不做 spawn 前提交 `_index` 的代码强制。
 
 ## 验收标准
 
 | AC | 判据 |
 |---|---|
-| AC1 | 回执全 schema 校验按附录 A 逐字段负向矩阵（≥9 条）+ 合法回执通过；evidence 走 currentRecord 重算（伪造 sha 的记录 block，先红）；重复 id block；required() 假 block |
-| AC2 | 三态×flag 八格矩阵逐格测试（含第 3 格账本结构校验不因回执失效、第 7 格断裂链+flag+R/S block、第 8 格=②）；R/S 裸 flag block（先红）；绿区裸 flag 不变；call site 外层短路删除 |
-| AC3 | containment：伴随字段三分支（匹配/不匹配/缺失）各一用例（stale 先红）；ship 备份路径 existsSync 判据（历史两记法夹具校准）；flag sprint 仓外写入 no-change 断言 |
-| AC4 | tracker：Stop 优先 assignment 归属（指针错位夹具先红，复现本会话事故）；Start 走 worktree `_index`+目录实存回退链；`sprint_source` 审计字段；redirect 失败/丢事件可观察；CX/Pi 负向断言；非 worktree 主路径等价 |
-| AC5 | exports 两名 + 复写删除按适配式 + governance 既有测试续绿 + 无仓/空根/`.git` 边界三用例 + CC==Pi 字节 |
-| AC6 | CC/CX 同夹具：三态、containment、回执消息逐字一致；Pi gate 同源函数文本相等断言（P2-1） |
-| AC7 | 自指缓解：首个真实回执的 ancestor 与 evidence 两项由主 agent 以基线工具独立复算落 session-log；负向矩阵先红提交经 review 核实（P1-6）。gate-contracts 三端含 schema/免责/流程建议（P2-2） |
-| AC8 | 全套回归绿（干净路径，基线 160 + 新增） |
+| AC1 | 附录 A M1-M7 逐字段负向矩阵 + 合法回执通过；伪造 sha 的 evidence 经 currentRecord 重算 block（先红）；重复 id block；required()=false block（M7）；**规则 0 叠加：G2 场景回执坏 → 即使链完整也 block（先红）** |
+| AC2 | 八格 G1-G8 逐格测试（G3 账本 schema 不因回执失效、G7 断裂+flag+R/S block、G8=②）；G5 先红；G4 绿区不变；call site 外层短路删除；role 大小写归一（`Generator` 不洗成 G4/G5 误判） |
+| AC3 | containment：伴随字段三分支（M10 先红）+ 两豁免消费者同判据（stale 下 spawn 即拦，无空转）；M13 备份判据（R1 正例 + 缺记录/已删两负向）；仓外写入 no-change 断言 |
+| AC4 | tracker Start 端最小复现序列先红（指针指 B、worktree A 内 Start 落 A）；Stop 归属链；`sprint_source` 字段；redirect 失败/丢事件可观察；CX/Pi 负向；非 worktree 主路径等价 |
+| AC5 | exports 两名 + 两段式回退适配 + governance 既有测试续绿 + 无仓/空根/`.ai_state` 低于 root/`.git` 边界四用例 + CC==Pi 字节 |
+| AC6 | CC/CX 同夹具：八格、containment、M1-M13 消息逐字一致；Pi gate 同源函数文本相等断言 |
+| AC7 | 自指双缓解（主 agent 基线工具独立复算 ancestor+evidence 落 log；负向矩阵先红提交经 review 核实）；gate-contracts 三端（schema/两免责/时序声明/流程建议） |
+| AC8 | 全套回归绿：基线 160（测量命令 `python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999`，2026-09-21 实测 Ran 160）+ 本切片新增 |
 
 ## 测试场景
 
-1. 附录 A 负向矩阵先红；2. 八格三态矩阵（第 3/7/8 格重点）；3. containment 三分支 + no-change；4. tracker 指针错位夹具先红 + 回退链 + 审计字段；5. 适配式三用例 + governance 等价；6. CC/CX 消息逐字矩阵；7. 主 agent 独立复算脚本可执行；8. 全套回归。
+1. M1-M7 负向先红；2. G1-G8 矩阵（G2 叠加先红、G5 先红、G7）；3. containment 三分支+豁免同判+M13+no-change；4. tracker Start 端先红+回退链+审计；5. 适配式四用例+governance 等价；6. CC/CX 消息逐字矩阵；7. 独立复算脚本；8. 全套回归。
 
 ## 风险
 
-- ship 主路径重构（call site 短路删除）：八格矩阵 + 本批 7 个已 ship sprint 账本形态回归抽验。
-- P1-4 残余如实声明：未提交 spawn 的旧 slug 错位不可根除，`sprint_source` 使其可审计（对比今日：静默且不可判别）。
-- 自指路径：AC7 双缓解 + 本切片 ship 的回执样本随档。
+ship 主路径重构：八格矩阵 + 本批 7 个已 ship sprint 账本形态回归抽验。P1-4 残余（worktree `_index` 提交版）如实声明经 `sprint_source` 可审计。自指路径 AC7 双缓解。备份判据依赖机器本地状态（明文）。

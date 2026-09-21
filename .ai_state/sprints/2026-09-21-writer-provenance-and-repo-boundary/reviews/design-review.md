@@ -1,11 +1,11 @@
 ---
 schema_version: 1
 mode: "design"
-review_run_id: "e551a33f-f52a-4cb0-8362-0520a1a6b392"
-reviewer_target: "a2c27e98e31b3c9c8"
-packet_sha256: "3d4e83c5632224baaef468b90a176ea991d0c3a6f8c23cf203923029a2d09fcb"
-input_manifest_sha256: "b2d8a1c40349f2db3c8934485c030580924e3f94e516d10b50778322935b7c14"
-native_output_ref: "reviews/_native/e551a33f-f52a-4cb0-8362-0520a1a6b392-result.json"
+review_run_id: "1c83b68e-aae7-41b2-aa4d-2273891b0772"
+reviewer_target: "abef65c7b08ea51d4"
+packet_sha256: "de4528e2f1cfca1bbe2eba4e8c779e8fc1f03c46ad2b447c2f522a5399d6a98a"
+input_manifest_sha256: "ce8c23034be4b60f88dacc19af61b7bc562a2211fe7378a4a6ed0979e3ce1197"
+native_output_ref: "reviews/_native/1c83b68e-aae7-41b2-aa4d-2273891b0772-result.json"
 verdict: "REWORK"
 ---
 
@@ -14,17 +14,18 @@ verdict: "REWORK"
 ---
 schema_version: 1
 mode: design
-packet_sha256: "3d4e83c5632224baaef468b90a176ea991d0c3a6f8c23cf203923029a2d09fcb"
-review_run_id: "e551a33f-f52a-4cb0-8362-0520a1a6b392"
-native_output_ref: "reviews/_native/e551a33f-f52a-4cb0-8362-0520a1a6b392-result.json"
+packet_sha256: "de4528e2f1cfca1bbe2eba4e8c779e8fc1f03c46ad2b447c2f522a5399d6a98a"
+review_run_id: "1c83b68e-aae7-41b2-aa4d-2273891b0772"
 verdict: REWORK
-finding_counts: {P0: 2, P1: 6, P2: 3}
+finding_counts: {P0: 1, P1: 7, P2: 2}
 dimensions: [spec, correctness, security, tests, overengineering, evidence]
 ---
 
-WHY 逐行核验全部属实。P0-1 三态×flag 交互未定义：状态①（有 generator 行）下 flag 语义无定义，R/S 断裂链+flag 的既有合法用法可绕开「不能做成 skip flag」；组合矩阵 8 格中第 3/7/8 格漏。P0-2 stale-flag 无 sprint 归属信号：flag 是全局布尔，按字面实现либо锁死 impl 期唯一合法窗口（复刻 P9 死锁）либо空分支；需 harness_target_outside_repo_sprint 归属字段。
-P1-1 evidence 须走 currentRecord 重算（:245）非字符串读取（:1028）；required() 假时回执一律 block；重复 id block。P1-2 备份正则与两个真实先例都不匹配（过紧）且六字即过（过松）；改路径+existsSync 非空。P1-3 require 适配不等价（tryRepoRoot 返 null vs ''；findAiState 无空守卫）；加无仓用例。P1-4 worktree _index 是分支提交版非 spawn 快照，未提交时携带旧 slug 反向复发；需回退链+可审计标记。P1-5 #2「仓外写入放行」无 no-change AC。P1-6 自指路径需缓解（主 agent 独立复算首个回执两项机械声明）。
-P2：Pi gate 无行为 AC；gate-contracts 无 AC；回执字段名与消息模板须 design 定死（acceptanceHeadHint 教训）供 grok 逐字实现。
-可伪造面分类：ancestor/evidence(重算前提)真机械；refs 半机械；executor/summary 纸面——与「不宣称密码学证明」声明一致诚实，建议 gate-contracts 落显式免责。
+首轮两 P0 均闭合（八格推演成立、伴随字段免疫成立）；新 P0 属新因不触发交还。
+
+P0-1(新) 状态①吞回执：互斥定义使 mixed writer（本 sprint 即首例）时 external-writer.json 永不校验，#1 原样重现且 AC7 自指缓解静默不执行。修法：回执存在即校验（叠加），三态只决定缺链时的替代。
+P1：①适配式删了 || findAiState(cwd) 回退（非 git 目录由可解析变 absent，既有测试抓不到）；②八格表未入正文（编号无源）+ 附录 A 缺 4 条新 block 消息（账本坏行/伴随字段缺失/断裂链出口/required=false）；③账本完整性作用域未定义（文件缺失/零行/单侧存在）且 lifecycle 现状仅 generator role、role 精确匹配可被大小写洗成状态③；④备份判据与两先例仍不匹配（同因第二次 P1 级）：一例无路径一例根不同，且用户有验后删备份惯例=existsSync 新死锁；需 canonical 记录行格式+时序声明；⑤evidence 重算时序未入正文（FIELDS 不含 HEAD=ancestor 正交应明文；施工时序=整合→冻结 design→主仓复跑）；⑥flag 真实豁免点 worktree-check（CC/CX）不在写集=stale 下空转死锁+双消费者分叉；⑦AC4 因果错配：assign 本用 startLocations 故 assignment 归属与其同解，事故根因在 Start 端指针，先红须改述 Start 端最小复现。
+P2：①containment 两字段不受治理哈希覆盖（显式入列或 Non-goal+免责）；②AC8 基线 160 补测量命令（实测和=160 核对通过）。
+grok 唯一实现置信度 0.5，闭合上述后再派。
 
 VERDICT: REWORK
