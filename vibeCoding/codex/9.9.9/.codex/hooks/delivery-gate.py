@@ -793,9 +793,16 @@ def validate_ac_mapping(
         if not admissible:
             missing.append(label)
     if missing:
+        notes = []
+        for index, record, reason in getattr(records, "filtered_out", ()):
+            covers = record.get("covers") or ()
+            if record.get("ac_id") in missing or any(label in missing for label in covers):
+                notes.append(f"{evidence_record_label(record, index)} {reason}")
+        detail = f"; filtered: {'; '.join(notes)}" if notes else ""
         raise GateError(
             f"spec-gate ship 复核: 验收标准 {', '.join(missing)} 缺 admissible per-AC PASS evidence "
             "(unknown/checklist-only/missing artifact/stale review do not count)"
+            + detail
         )
 
 
@@ -887,18 +894,82 @@ def validate_checklist(path: Path) -> None:
         raise GateError(f"checklist.yaml is incomplete: statuses={incomplete}")
 
 
+BINDING_PIECES = ("source_sha256", "design_sha256", "environment_sha256", "output_artifact", "artifact_sha256")
+
+
+def evidence_record_label(record: dict[str, Any], index: int) -> str:
+    ident = str(record.get("tool_use_id") or f"record #{index + 1}")
+    ac = str(record.get("ac_id") or "")
+    if not ac:
+        ac = ",".join(record.get("covers") or ())
+    return f"{ident} ({ac})" if ac else ident
+
+
+def binding_filter_reason(record: dict[str, Any], sprint: Path, live: dict[str, str]) -> str:
+    """Name why current_record rejected a row. Does not decide admissibility."""
+    missing = [key for key in BINDING_PIECES if not record.get(key)]
+    status = str(record.get("binding_status") or "")
+    if not status:
+        missing.append("binding_status:current")
+    elif status != "current":
+        missing.append(f"binding_status:current (实际 {status})")
+    if missing:
+        return "缺字段: " + ", ".join(missing)
+    try:
+        output = (sprint / str(record.get("output_artifact") or "")).resolve()
+        sprint_real = sprint.resolve()
+        if output == sprint_real or not str(output).startswith(str(sprint_real) + os.sep):
+            return "过滤原因: output_artifact 不在 sprint 目录内"
+        if not output.is_file():
+            return "过滤原因: output_artifact 不存在或不可读"
+        actual = hashlib.sha256(output.read_bytes()).hexdigest()
+    except OSError:
+        return "过滤原因: output_artifact 不存在或不可读"
+    if actual != record.get("artifact_sha256"):
+        return "过滤原因: artifact_sha256 与 output_artifact 不一致"
+    mismatched = [key for key in input_binding.FIELDS if record.get(key) != live.get(key)]
+    if mismatched:
+        return "过滤原因: 与当前绑定不一致: " + ", ".join(mismatched)
+    return "过滤原因: binding 未通过 current_record"
+
+
+def format_filtered_evidence(rows: list[tuple[int, dict[str, Any], str]]) -> str:
+    return "; ".join(f"{evidence_record_label(record, index)} {reason}" for index, record, reason in rows)
+
+
+class BoundEvidence(list):
+    """Records that passed current_record. filtered_out is diagnostic only."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.filtered_out: list[tuple[int, dict[str, Any], str]] = []
+
+
 def validate_evidence(path: Path) -> list[dict[str, Any]]:
     content = require_file(path, "evidence.yaml")
     if input_binding.required(path.parent):
+        sprint = path.parent
+        root = sprint.parents[2]
         try:
-            live = input_binding.snapshot(path.parent.parents[2],path.parent)
-            records = [r for r in parse_evidence_records(path) if input_binding.current_record(r,path.parent.parents[2],path.parent,live)]
-        except (ValueError,OSError,subprocess.SubprocessError) as exc:
-            raise GateError("evidence inputs unavailable: "+str(exc)) from exc
-        if any(r['result'] == 'fail' for r in records):
+            live = input_binding.snapshot(root, sprint)
+            parsed = parse_evidence_records(path)
+        except (ValueError, OSError, subprocess.SubprocessError) as exc:
+            raise GateError("evidence inputs unavailable: " + str(exc)) from exc
+        # 判定仍只认 current_record。filtered_out 只给 block 文案点名, 不把记录放回 admissible。
+        records = BoundEvidence()
+        for index, record in enumerate(parsed):
+            if input_binding.current_record(record, root, sprint, live):
+                records.append(record)
+            else:
+                records.filtered_out.append((index, record, binding_filter_reason(record, sprint, live)))
+        if any(record["result"] == "fail" for record in records):
             raise GateError("evidence.yaml contains current failing evidence")
-        if not any(r['result'] == 'pass' for r in records):
-            raise GateError("evidence.yaml has no current verifiable PASS bound to code/contract/environment/output")
+        if not any(record["result"] == "pass" for record in records):
+            detail = format_filtered_evidence(records.filtered_out)
+            message = "evidence.yaml has no current verifiable PASS bound to code/contract/environment/output"
+            if detail:
+                message += "; filtered: " + detail
+            raise GateError(message)
         return records
     if not re.search(r"(?m)^collected_evidence\s*:\s*(?:#.*)?$", content):
         raise GateError("evidence.yaml lacks collected_evidence list")

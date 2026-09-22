@@ -150,5 +150,153 @@ class ShipWriteOutsideRepo(unittest.TestCase):
             self.assert_blocked(stopped, label + " stop")
 
 
+CC_AC_HARNESS = r'''
+const fs = require("fs"), path = require("path"), Module = require("module");
+const gate = process.argv[1], evidence = process.argv[2], sprint = process.argv[3];
+const mod = new Module(gate, null);
+mod.filename = gate;
+mod.paths = Module._nodeModulePaths(path.dirname(gate));
+mod._compile(fs.readFileSync(gate, "utf8") + "\nmodule.exports.__t={validateEvidence,validateAcMapping};\n", gate);
+const records = mod.exports.__t.validateEvidence(evidence);
+try {
+  mod.exports.__t.validateAcMapping(sprint, ["AC1: kept", "AC2: dropped"], records, path.join(sprint, "reviews/implementation-review.md"), "VERDICT: PASS\n", "a".repeat(40));
+  process.stdout.write("PASS");
+} catch (error) {
+  process.stderr.write(String((error && error.message) || error));
+  process.exit(2);
+}
+'''
+GAP_FIELDS = (
+    "source_sha256", "design_sha256", "environment_sha256",
+    "binding_status", "output_artifact", "artifact_sha256", "缺字段",
+)
+
+
+class EvidenceFilterNames(unittest.TestCase):
+    """缺绑定字段仍整条过滤; block 文案点名 AC 与缺字段。齐套 current 记录仍通过。"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name).resolve()
+        git(self.root, "init", "-q")
+        self.sprint = self.root / ".ai_state/sprints/test"
+        self.sprint.mkdir(parents=True)
+        (self.root / ".ai_state/_index.md").write_text(
+            '---\nversion: "9.9.9"\npath: Feature\nstage: ship\n'
+            'current_sprint_slug: "test"\nskip_impl_subagent_check: "true"\n---\n',
+            encoding="utf-8",
+        )
+        (self.sprint / "design.md").write_text("## Done Contract\n- AC1: kept\n- AC2: dropped\n", encoding="utf-8")
+        (self.root / "app.py").write_text("print(1)\n", encoding="utf-8")
+        git(self.root, "add", "app.py")
+        git(self.root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "base")
+        self.gate = load_cx_gate()
+        spec = importlib.util.spec_from_file_location("input_binding_gatefix", CX / "_input_binding.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.live = module.snapshot(self.root, self.sprint)
+        probe = (
+            "const m=require(process.argv[1]);"
+            "process.stdout.write(JSON.stringify(m.snapshot(process.argv[2],process.argv[3])));"
+        )
+        run = subprocess.run(
+            ["node", "-e", probe, str(CC / "_input-binding.cjs"), str(self.root), str(self.sprint)],
+            text=True, capture_output=True,
+        )
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(json.loads(run.stdout), self.live)
+
+    def write_evidence(self, body):
+        (self.sprint / "evidence.yaml").write_text(body, encoding="utf-8")
+
+    def current_block(self, tool_id="current-ac1", ac="AC1", source=None):
+        out = self.sprint / "evidence" / "out.txt"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text("ok\n", encoding="utf-8")
+        digest = hashlib.sha256(out.read_bytes()).hexdigest()
+        source = self.live["source_sha256"] if source is None else source
+        return (
+            f"  - tool_use_id: {tool_id}\n    ac_id: {ac}\n    result: pass\n"
+            "    command: npm test\n    timestamp: 2026-09-22T00:00:00Z\n"
+            "    binding_status: current\n"
+            f"    source_sha256: {source}\n"
+            f"    design_sha256: {self.live['design_sha256']}\n"
+            f"    environment_sha256: {self.live['environment_sha256']}\n"
+            "    output_artifact: evidence/out.txt\n"
+            f"    artifact_sha256: {digest}\n"
+        )
+
+    def cc_validate(self):
+        code = (
+            "try{require(process.argv[1]).validateEvidence(process.argv[2]);process.exit(0)}"
+            "catch(e){process.stderr.write(String(e.message||e));process.exit(2)}"
+        )
+        return subprocess.run(
+            ["node", "-e", code, str(CC_GATE), str(self.sprint / "evidence.yaml")],
+            text=True, capture_output=True,
+        )
+
+    def assert_names(self, text, tool_id):
+        for field in GAP_FIELDS:
+            self.assertIn(field, text)
+        self.assertIn(tool_id, text)
+        self.assertIn("AC1", text)
+
+    def test_incomplete_stop_names_the_missing_fields(self):
+        self.write_evidence(
+            "collected_evidence:\n"
+            "  - tool_use_id: hand-ac1\n    ac_id: AC1\n    result: pass\n"
+            "    command: node test.js\n    timestamp: 2026-09-22T00:00:00Z\n"
+        )
+        with self.assertRaises(self.gate.GateError) as caught:
+            self.gate.validate_evidence(self.sprint / "evidence.yaml")
+        self.assert_names(str(caught.exception), "hand-ac1")
+        cc = self.cc_validate()
+        self.assertEqual(cc.returncode, 2, cc.stderr)
+        self.assert_names(cc.stderr, "hand-ac1")
+        payload = json.dumps({"hook_event_name": "Stop", "cwd": str(self.root), "session_id": "s", "tool_name": ""})
+        for runner, script, label in (("node", CC_GATE, "cc"), (sys.executable, CX_GATE, "cx")):
+            run = subprocess.run([runner, str(script)], input=payload, text=True, capture_output=True)
+            self.assertEqual(run.returncode, 0, label + "\n" + run.stderr)
+            self.assertIn("decision", run.stdout, label)
+            self.assert_names(run.stdout, "hand-ac1")
+
+    def test_current_record_stays_and_filtered_ac_is_named(self):
+        self.write_evidence(
+            "collected_evidence:\n" + self.current_block()
+            + "  - tool_use_id: hand-ac2\n    ac_id: AC2\n    result: pass\n"
+            "    command: node test.js\n    timestamp: 2026-09-22T00:00:00Z\n"
+        )
+        records = self.gate.validate_evidence(self.sprint / "evidence.yaml")
+        self.assertEqual([row["tool_use_id"] for row in records], ["current-ac1"])
+        with self.assertRaises(self.gate.GateError) as caught:
+            self.gate.validate_ac_mapping(
+                self.sprint, ["AC1: kept", "AC2: dropped"], records,
+                self.sprint / "reviews/implementation-review.md", "VERDICT: PASS\n", "a" * 40,
+            )
+        self.assertIn("hand-ac2", str(caught.exception))
+        self.assertIn("AC2", str(caught.exception))
+        self.assertIn("缺字段", str(caught.exception))
+        self.assertNotIn("current-ac1", str(caught.exception))
+        cc = subprocess.run(
+            ["node", "-e", CC_AC_HARNESS, str(CC_GATE), str(self.sprint / "evidence.yaml"), str(self.sprint)],
+            text=True, capture_output=True,
+        )
+        self.assertEqual(cc.returncode, 2, cc.stderr)
+        self.assertIn("hand-ac2", cc.stderr)
+        self.assertIn("缺字段", cc.stderr)
+        self.assertNotIn("current-ac1", cc.stderr)
+        self.write_evidence("collected_evidence:\n" + self.current_block(source="0" * 64, tool_id="stale-ac1"))
+        with self.assertRaises(self.gate.GateError) as stale:
+            self.gate.validate_evidence(self.sprint / "evidence.yaml")
+        self.assertIn("过滤原因", str(stale.exception))
+        self.assertIn("source_sha256", str(stale.exception))
+        cc = self.cc_validate()
+        self.assertEqual(cc.returncode, 2, cc.stderr)
+        self.assertIn("过滤原因", cc.stderr)
+        self.assertIn("source_sha256", cc.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

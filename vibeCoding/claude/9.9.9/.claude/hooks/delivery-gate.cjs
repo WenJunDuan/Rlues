@@ -237,16 +237,59 @@ function validateChecklist(filePath) {
   if (statuses.some(status => status !== "completed")) throw new GateError(`checklist.yaml is incomplete: ${statuses.join(",")}`);
 }
 
+const BINDING_PIECES = ["source_sha256", "design_sha256", "environment_sha256", "output_artifact", "artifact_sha256"];
+
+function evidenceRecordLabel(record, index) {
+  const id = record.tool_use_id || `record #${index + 1}`;
+  const ac = record.ac_id || (record.covers && record.covers.length ? record.covers.join(",") : "");
+  return ac ? `${id} (${ac})` : id;
+}
+
+function bindingFilterReason(record, sprint, live) {
+  const missing = BINDING_PIECES.filter((key) => !record[key]);
+  if (!record.binding_status) missing.push("binding_status:current");
+  else if (record.binding_status !== "current") missing.push(`binding_status:current (实际 ${record.binding_status})`);
+  if (missing.length) return `缺字段: ${missing.join(", ")}`;
+  try {
+    const output = fs.realpathSync(path.resolve(sprint, record.output_artifact));
+    const sprintReal = fs.realpathSync(sprint);
+    if (!output.startsWith(`${sprintReal}${path.sep}`)) return "过滤原因: output_artifact 不在 sprint 目录内";
+    const actual = crypto.createHash("sha256").update(fs.readFileSync(output)).digest("hex");
+    if (actual !== record.artifact_sha256) return "过滤原因: artifact_sha256 与 output_artifact 不一致";
+    const mismatched = inputBinding.FIELDS.filter((key) => record[key] !== live[key]);
+    if (mismatched.length) return `过滤原因: 与当前绑定不一致: ${mismatched.join(", ")}`;
+  } catch (_) {
+    return "过滤原因: output_artifact 不存在或不可读";
+  }
+  return "过滤原因: binding 未通过 currentRecord";
+}
+
+function formatFilteredEvidence(rows) {
+  return rows.map(([index, record, reason]) => `${evidenceRecordLabel(record, index)} ${reason}`).join("; ");
+}
+
 function validateEvidence(filePath) {
   const content = requireFile(filePath, "evidence.yaml");
   if (inputBinding.required(path.dirname(filePath))) {
     try {
-      const sprint = path.dirname(filePath), root=path.resolve(sprint,'../../..'), live=inputBinding.snapshot(root,sprint);
-      const records=parseEvidenceRecords(filePath).filter(r=>inputBinding.currentRecord(r,root,sprint,live));
-      if (records.some(r=>r.result==='fail')) throw new Error('current failing evidence');
-      if (!records.some(r=>r.result==='pass')) throw new Error('no current verifiable PASS bound to code/contract/environment/output');
+      const sprint = path.dirname(filePath);
+      const root = path.resolve(sprint, "../../..");
+      const live = inputBinding.snapshot(root, sprint);
+      // 判定仍只认 currentRecord。filteredOut 只给 block 文案点名, 不把记录放回 admissible。
+      const records = [];
+      const filtered = [];
+      parseEvidenceRecords(filePath).forEach((record, index) => {
+        if (inputBinding.currentRecord(record, root, sprint, live)) records.push(record);
+        else filtered.push([index, record, bindingFilterReason(record, sprint, live)]);
+      });
+      Object.defineProperty(records, "filteredOut", { value: filtered, enumerable: false });
+      if (records.some((record) => record.result === "fail")) throw new Error("current failing evidence");
+      if (!records.some((record) => record.result === "pass")) {
+        const detail = formatFilteredEvidence(filtered);
+        throw new Error("no current verifiable PASS bound to code/contract/environment/output" + (detail ? `; filtered: ${detail}` : ""));
+      }
       return records;
-    } catch (e) { throw new GateError('evidence inputs: '+e.message); }
+    } catch (e) { throw new GateError("evidence inputs: " + e.message); }
   }
   if (!/^collected_evidence\s*:\s*(?:#.*)?$/m.test(content)) {
     throw new GateError("evidence.yaml lacks collected_evidence list");
@@ -1090,7 +1133,11 @@ function validateAcMapping(sprintDir, criteria, records, reviewPath, reviewConte
     return false;
   }));
   if (missing.length) {
-    throw new GateError(`spec-gate ship 复核: 验收标准 ${missing.join(", ")} 缺 admissible per-AC PASS evidence (unknown/checklist-only/missing artifact/stale review do not count)`);
+    const notes = (records.filteredOut || [])
+      .filter(([, record]) => missing.some((label) => record.ac_id === label || (record.covers || []).includes(label)))
+      .map(([index, record, reason]) => `${evidenceRecordLabel(record, index)} ${reason}`);
+    const suffix = notes.length ? `; filtered: ${notes.join("; ")}` : "";
+    throw new GateError(`spec-gate ship 复核: 验收标准 ${missing.join(", ")} 缺 admissible per-AC PASS evidence (unknown/checklist-only/missing artifact/stale review do not count)${suffix}`);
   }
 }
 
