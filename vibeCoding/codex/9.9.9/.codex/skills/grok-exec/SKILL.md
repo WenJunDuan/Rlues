@@ -1,9 +1,11 @@
 ---
 name: grok-exec
-description: 用 grok CLI（grok-4.6 xhigh）headless 派施工或只读核实任务：独立 worktree、自动批准、拒读凭据、拒 push、nohup 后台。用户点名让 grok 施工/核实/审查时触发。
+description: 用 grok CLI（最新模型 xhigh，现为 grok-4.7）headless 派施工或只读核实任务：独立 worktree、自动批准、拒读凭据、拒 push、nohup 后台。用户点名让 grok 施工/核实/审查时触发。
 ---
 
-# grok-exec · grok 4.6 headless 派工
+# grok-exec · grok headless 派工（模型一律用最新版）
+
+> **模型名单一维护点**：`-m` 一律填当前最新模型，**现为 `grok-4.7`**（2026-09-22 用户确认）。有新版先核（`grok --help` 模型列表或问用户）再更新本行与下方命令，勿沿用过期硬编码。
 
 ## 何时用
 - 用户点名 grok 做施工（Bugfix/Quick 级，合同已写好）或只读核实/审查。
@@ -15,7 +17,7 @@ description: 用 grok CLI（grok-4.6 xhigh）headless 派施工或只读核实�
 2. 简报写到 job tmp（不进仓库）：`$CLAUDE_JOB_DIR/tmp/grok-<slug>-brief.md`。内容：合同（AC 原文）、纪律（不读凭据、不 push、不改哪些文件）、记账要求（tdd-evidence.yaml 真实时刻、session-log）、提交粒度、最终回复行数上限、「不输出推理过程」。
 3. 启动（必须 `nohup` + `< /dev/null` + `&`；Bash 工具前台 10 分钟上限会杀掉长任务）：
    ```
-   nohup grok --cwd <worktree 绝对路径> --prompt-file <brief> -m grok-4.6 --reasoning-effort xhigh --no-plan --always-approve \
+   nohup grok --cwd <worktree 绝对路径> --prompt-file <brief> -m grok-4.7 --reasoning-effort xhigh --no-plan --always-approve \
      --deny "Read(**/config.json)" --deny "Read(**/*.env)" --deny "Read(**/data/credentials/**)" --deny "Bash(git push:*)" \
      --disable-web-search --output-format json --max-turns 400 < /dev/null > <log> 2>&1 &
    ```
