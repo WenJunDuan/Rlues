@@ -1678,6 +1678,97 @@ def validate_existing_policy(
     pass  # K1 (W31): Cross-Check 段存在性不再 gate 验, 判定由 VERDICT 承载。
 
 
+_WRITE_TOOLS = {"edit", "write", "multiedit", "apply_patch"}
+
+
+def _expand_tmpdir(raw: str) -> str:
+    """Expand a literal $TMPDIR prefix. Q12 批二③: scratch paths sit outside the repo."""
+    tmp = (os.environ.get("TMPDIR") or os.environ.get("TMP") or "/tmp").rstrip("/")
+    text = raw.strip()
+    if text == "$TMPDIR" or text.startswith("$TMPDIR/"):
+        return tmp + text[len("$TMPDIR"):]
+    if text.startswith("${TMPDIR}"):
+        return tmp + text[len("${TMPDIR}"):]
+    return text
+
+
+def _realpath_existing(candidate: Path) -> Path:
+    current = candidate
+    suffix: list[str] = []
+    while True:
+        try:
+            return Path(os.path.realpath(current)).joinpath(*reversed(suffix))
+        except OSError:
+            if current.parent == current:
+                return candidate
+            suffix.append(current.name)
+            current = current.parent
+
+
+def _extract_write_targets(payload: dict[str, Any]) -> list[str]:
+    tool_input = payload.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return []
+    explicit = [str(tool_input[key]).strip() for key in ("file_path", "path") if str(tool_input.get(key) or "").strip()]
+    if explicit:
+        return explicit
+    patch = str(tool_input.get("patch") or "")
+    if not patch:
+        return []
+    return [item.strip() for item in re.findall(r"(?m)^\*\*\* (?:Update|Add) File: ([^\n]+)", patch) if item.strip()]
+
+
+def _repo_roots(repo_root: Path, cwd: Path) -> list[Path]:
+    roots: list[Path] = []
+    if repo_root:
+        roots.append(Path(repo_root).resolve())
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=str(cwd), capture_output=True, text=True, timeout=15, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return roots
+    top = result.stdout.strip() if result.returncode == 0 else ""
+    if top:
+        resolved = Path(top).resolve()
+        if resolved not in roots:
+            roots.append(resolved)
+    return roots
+
+
+def _path_inside(file: str, root: Path, cwd: Path) -> bool:
+    expanded = _expand_tmpdir(file)
+    if not expanded:
+        return True
+    candidate = Path(expanded)
+    if not candidate.is_absolute():
+        candidate = cwd / expanded
+    target = _realpath_existing(candidate)
+    try:
+        root_real = Path(os.path.realpath(root))
+    except OSError:
+        return True
+    try:
+        target.relative_to(root_real)
+    except ValueError:
+        return False
+    return True
+
+
+def write_targets_outside_repo(payload: dict[str, Any], repo_root: Path, cwd: Path) -> bool:
+    """Q12 批二③: True only when every Write/Edit target is outside every repo root."""
+    if payload.get("hook_event_name") != "PreToolUse":
+        return False
+    if str(payload.get("tool_name", "")).lower() not in _WRITE_TOOLS:
+        return False
+    targets = _extract_write_targets(payload)
+    roots = _repo_roots(repo_root, cwd)
+    if not targets or not roots:
+        return False
+    return all(not any(_path_inside(file, root, cwd) for root in roots) for file in targets)
+
+
 def is_implementation_write(payload: dict[str, Any]) -> bool:
     if payload.get("hook_event_name") != "PreToolUse":
         return False
@@ -1797,6 +1888,10 @@ def main() -> int:
                     )
             return EXIT_SUCCESS
         if stage != "ship":
+            return EXIT_SUCCESS
+
+        # Q12 批二③: 仓库外（/tmp、$TMPDIR、任何非项目根前缀）直接放行；仓库内仍 fail-closed。
+        if payload.get("hook_event_name") == "PreToolUse" and write_targets_outside_repo(payload, root, cwd):
             return EXIT_SUCCESS
 
         sprint_slug = fm.get("current_sprint_slug", "")

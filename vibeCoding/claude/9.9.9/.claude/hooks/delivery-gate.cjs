@@ -1284,6 +1284,76 @@ function validateShip(aiState, fm, cwd) {
   }
 }
 
+// Q12 批二③: stage=ship 的 Write/Edit 拦截只作用于仓库内路径。
+function expandTmpDir(file) {
+  const tmp = (process.env.TMPDIR || process.env.TMP || "/tmp").replace(/\/+$/, "");
+  const text = String(file || "").trim();
+  if (text === "$TMPDIR" || text.startsWith("$TMPDIR/")) return tmp + text.slice("$TMPDIR".length);
+  if (text.startsWith("${TMPDIR}")) return tmp + text.slice("${TMPDIR}".length);
+  return text;
+}
+
+function realpathExisting(absPath) {
+  const suffix = [];
+  let current = path.resolve(absPath);
+  for (;;) {
+    try {
+      return path.join(fs.realpathSync(current), ...suffix.reverse());
+    } catch (_) {
+      const parent = path.dirname(current);
+      if (parent === current) return path.resolve(absPath);
+      suffix.push(path.basename(current));
+      current = parent;
+    }
+  }
+}
+
+function extractWriteTargets(payload) {
+  const input = payload.tool_input && typeof payload.tool_input === "object" ? payload.tool_input : {};
+  const explicit = [input.file_path, input.path].filter(Boolean).map((file) => String(file).trim()).filter(Boolean);
+  if (explicit.length) return explicit;
+  const patch = input.patch ? String(input.patch) : "";
+  if (!patch) return [];
+  return [...patch.matchAll(/^\*\*\* (?:Update|Add) File: ([^\n]+)/gm)].map((match) => match[1].trim()).filter(Boolean);
+}
+
+function collectRepoRoots(repoRoot, cwd) {
+  const roots = [];
+  const add = (value) => {
+    if (!value) return;
+    const resolved = path.resolve(String(value));
+    if (!roots.includes(resolved)) roots.push(resolved);
+  };
+  add(repoRoot);
+  try {
+    add(execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 15000,
+    }).trim());
+  } catch (_) { /* 仓库根未知时不放行 */ }
+  return roots;
+}
+
+function pathInsideRoot(file, root, cwd) {
+  const expanded = expandTmpDir(file);
+  if (!expanded) return true;
+  const abs = path.isAbsolute(expanded) ? path.resolve(expanded) : path.resolve(cwd, expanded);
+  const target = realpathExisting(abs);
+  let rootReal;
+  try { rootReal = fs.realpathSync(root); } catch (_) { return true; }
+  const rel = path.relative(rootReal, target);
+  return rel === "" || (rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
+}
+
+function writeTargetsOutsideRepo(payload, repoRoot, cwd) {
+  if (payload.hook_event_name !== "PreToolUse") return false;
+  const tool = String(payload.tool_name || "").toLowerCase();
+  if (!["edit", "write", "multiedit", "apply_patch"].includes(tool)) return false;
+  const targets = extractWriteTargets(payload);
+  const roots = collectRepoRoots(repoRoot, cwd);
+  if (!targets.length || !roots.length) return false;
+  return targets.every((file) => !roots.some((root) => pathInsideRoot(file, root, cwd)));
+}
+
 function isImplementationWrite(payload) {
   if (payload.hook_event_name !== "PreToolUse") return false;
   const tool = String(payload.tool_name || "").toLowerCase();
@@ -1478,6 +1548,8 @@ function main() {
     // every write re-runs the failing check). Implementation writes and the Stop
     // final gate still validate in full.
     // Keep state repairs possible in impl too; source writes and Stop still validate.
+    // Q12 批二③: 仓库外（/tmp、$TMPDIR、任何非项目根前缀）直接放行；仓库内仍 fail-closed。
+    if (fm.stage === "ship" && writeTargetsOutsideRepo(payload, root || cwd, cwd)) return;
     const mustValidate = payload.hook_event_name !== "PreToolUse" || isImplementationWrite(payload);
     if (fm.stage === "ship" && mustValidate) validateShip(aiState, fm, root || cwd);
     else if (fm.stage === "impl" && mustValidate) validateImplEntry(aiState, fm);

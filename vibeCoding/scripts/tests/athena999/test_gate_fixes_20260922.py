@@ -91,5 +91,64 @@ class RoadmapAllowlist(unittest.TestCase):
             self.assertIn(".ai_state/roadmap-evil.md", run.stderr)
 
 
+class ShipWriteOutsideRepo(unittest.TestCase):
+    """Q12 批二③: stage=ship 的 Write/Edit 只拦仓库内路径。"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name).resolve()
+        git(self.root, "init", "-q")
+        sprint = self.root / ".ai_state/sprints/gatefix"
+        sprint.mkdir(parents=True)
+        (self.root / ".ai_state/_index.md").write_text(
+            '---\nversion: "9.9.9"\npath: Feature\nstage: ship\n'
+            'current_sprint_slug: gatefix\nskip_impl_subagent_check: "true"\n---\n',
+            encoding="utf-8",
+        )
+        (sprint / "design.md").write_text("## Done Contract\n- AC1: ships\n", encoding="utf-8")
+
+    def hook(self, runner, script, tool_input, tool="Write", event="PreToolUse", env=None):
+        payload = {
+            "hook_event_name": event,
+            "cwd": str(self.root),
+            "tool_name": tool,
+            "tool_input": tool_input,
+        }
+        return subprocess.run(
+            [runner, str(script)], input=json.dumps(payload), text=True, capture_output=True, env=env
+        )
+
+    def assert_allowed(self, run, label):
+        self.assertEqual(run.returncode, 0, label + "\n" + run.stderr)
+        self.assertNotIn("decision", run.stdout, label + "\n" + run.stdout)
+
+    def assert_blocked(self, run, label):
+        self.assertEqual(run.returncode, 0, label + "\n" + run.stderr)
+        self.assertIn("block", run.stdout, label + "\n" + run.stdout + run.stderr)
+        self.assertIn("decision", run.stdout, label + "\n" + run.stdout)
+
+    def test_outside_write_allowed_inside_still_blocks(self):
+        env = os.environ.copy()
+        env["TMPDIR"] = env.get("TMPDIR") or "/tmp"
+        for runner, script, label in (("node", CC_GATE, "cc"), (sys.executable, CX_GATE, "cx")):
+            self.assert_blocked(self.hook(runner, script, {"file_path": str(self.root / "inside.js")}), label + " inside")
+            self.assert_blocked(self.hook(runner, script, {"file_path": "inside.js"}, tool="Edit"), label + " relative")
+            self.assert_allowed(self.hook(runner, script, {"file_path": "/tmp/athena-gatefix-msg.txt"}, tool="Edit"), label + " /tmp")
+            self.assert_allowed(
+                self.hook(runner, script, {"file_path": "$TMPDIR/athena-gatefix-msg.txt"}, env=env), label + " TMPDIR"
+            )
+            self.assert_allowed(
+                self.hook(runner, script, {"file_path": str(self.root) + "-out/file.txt"}), label + " sibling prefix"
+            )
+            self.assert_allowed(self.hook(runner, script, {"file_path": "../athena-gatefix-outside.txt"}), label + " parent")
+            patch_out = self.hook(runner, script, {"patch": "*** Add File: /tmp/athena-gatefix-patch.txt\n+hello\n"}, tool="apply_patch")
+            self.assert_allowed(patch_out, label + " patch /tmp")
+            patch_in = self.hook(runner, script, {"patch": "*** Add File: inside.js\n+hello\n"}, tool="apply_patch")
+            self.assert_blocked(patch_in, label + " patch inside")
+            stopped = self.hook(runner, script, {}, tool="", event="Stop")
+            self.assert_blocked(stopped, label + " stop")
+
+
 if __name__ == "__main__":
     unittest.main()
