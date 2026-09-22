@@ -614,6 +614,7 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
     // harness-patches.md 依然强制走全契约 (isLightShipFile 分支未动)。
     ".ai_state/harness-patches.md", ".ai_state/proposals.md",
   ]);
+  // ship 后把 roadmap/<slug>/items.yaml 标 completed 是账面义务, 与 vm-pending 同属过程台账, 不是被审对象。
   const stateDrift = [...changed].filter(file => file.startsWith(".ai_state/")
     && !allowedExact.has(file)
     && !file.startsWith(`${sprintRel}/reviews/`)
@@ -621,7 +622,8 @@ function validateReviewBinding(reviewContent, reviewPath, sprintDir, aiState, cw
     && !file.startsWith(`${sprintRel}/runs/`)
     && !file.startsWith(`${sprintRel}/user-authorizations/`)
     && !file.startsWith(".ai_state/docs/")
-    && !file.startsWith(".ai_state/compound/")).sort();
+    && !file.startsWith(".ai_state/compound/")
+    && !file.startsWith(".ai_state/roadmap/")).sort();
   if (stateDrift.length) throw new GateError(`unreviewed .ai_state drift outside post-review allowlist: ${stateDrift.slice(0, 8).join(", ")}`);
   return reviewedCommit;
 }

@@ -1303,6 +1303,7 @@ def validate_review_binding(
         ".ai_state/harness-patches.md",
         ".ai_state/proposals.md",
     }
+    # ship 后把 roadmap/<slug>/items.yaml 标 completed 是账面义务, 与 vm-pending 同属过程台账, 不是被审对象。
     state_drift = sorted(
         file for file in changed
         if file.startswith(".ai_state/")
@@ -1313,6 +1314,7 @@ def validate_review_binding(
         and not file.startswith(f"{sprint_rel}/user-authorizations/")
         and not file.startswith(".ai_state/docs/")
         and not file.startswith(".ai_state/compound/")
+        and not file.startswith(".ai_state/roadmap/")
     )
     if state_drift:
         raise GateError("unreviewed .ai_state drift outside post-review allowlist: " + ", ".join(state_drift[:8]))
