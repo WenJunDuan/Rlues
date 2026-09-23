@@ -79,3 +79,50 @@
 1. 先修门禁点名文件（#1）与两条恒误报（#13/#15），同批带 #14 计数——都是 fail-closed 门禁误伤，每次现场复位都在消耗信任。
 2. 再改 grok-exec 简报模板（#4/#5/#6/#7/#8）一次落齐，外部写者接回链才不靠人记。
 3. 措辞类（#2/#3/#9/#10/#11/#12/#16/#17）周末批量，一次改 stages/orchestration/athena-review/reviewer 四处；只记类（#18–#21）不动文件。
+
+## 状态档案梳理 + 全组件升级实测（2026-09-23 quantum-agent 第十三会话，纳入 9.10 / 10.1）
+
+来源：quantum-agent sprint `2026-09-23-quick-deps-upgrade`（ship f8e06aeb，review PASS 0/0/2）与 `2026-09-23-quick-ai-state-tidy`（13 commit，review 进行中）。上节「状态档案减脂」#3 自动归档在此有实测数据。
+
+### 现状（梳理前 → 后）
+
+| 对象 | 前 | 后 | 腐化机制 |
+|---|---|---|---|
+| 现行待办 | handoff 单档 339 行 / 107 KiB，历史与现行混杂 | 顶层 `queue.md` 85 行八节，handoff 进 archive | 每会话往同一档追加收官段，从不收敛 |
+| sprints/ | 68 | 11 | ship 不归档 |
+| docs/ 顶层 | 11 目录 | 6 | 批次/勘察完结不归档 |
+| roadmap/ | 6 | 3 | 全 completed 不归档；铁规则只写在 roadmap.md 里 |
+| vm-pending | 34 行（待验 0） | 1 行待验 | 清账只改状态列，不移出 |
+| compound | 6 档被推翻未标注、同主题 4 档分散 | 标注齐、4→1、8 档归档 | 新决策不回标旧档 |
+| `_index` | 当前状态段过期 + 死锚 `#st-0` | 三行、8.4 KiB、13 pointers 全存在 | pointer / 锚点无存在性校验 |
+| 断链 | — | 顺手修 24 行（archive 可达）；另有目标已不存在的记 deferred | 归档不留重定向 |
+
+### 维护提案（候选机制，9.10 设计时裁量）
+
+| # | 提案 | 落点建议 | 级别 |
+|---|---|---|---|
+| 1 | **单一现行队列**：项目顶层 `queue.md`（无日期文件名）为唯一待办入口；handoff 只写会话增量，收官时把现行项并入 queue、历史进 archive | `pace/references/state-contract.md`；athena-checkpoint 收官清单 | 提示词措辞 |
+| 2 | **ship 自动归档带保留窗**：热层只留当前 + 暂停 + 最近一会话 ship 的 sprint，其余随下次 ship 移 `archive/sprints/`（即上节 #3 默认化） | ship 收口脚本 / index-updater | 门禁修复 |
+| 3 | **归档前运行时读取检查**：`git grep` src/tests/deploy 对 `.ai_state/` 路径的读取，命中即先改读取路径；验证比对 test skip 数不增（实测：`agent-empty-surface.test.ts:87` 读 sprint design，缺失即静默 skip） | 归档脚本前置步；state-contract | 门禁修复 |
+| 4 | **gitignored 证据随归档**：`.gitignore` 忽略 `sprints/*/evidence.yaml` 致 `git mv` 带不走、worktree 里也不存在 → 归档须主仓整目录 `mv` + `git add -f`；或改忽略规则只作用热层 | 模板 `.gitignore` + 归档脚本 | 门禁修复 |
+| 5 | **台账清账即移出**：vm-pending / proposals 已结行按批次快照进 archive，主档只留规则 + 未结项 | athena-vm skill 清账步；proposals 模板 | 提示词措辞 |
+| 6 | **取代双向标注**：新 decision 声明取代旧档时，旧档必须加「被取代 → 新档」行；校验单向声明 | compound skill；可选 hook | 提示词措辞 |
+| 7 | **pointer / 锚点存在性校验**：`_index` pointers、`index-overflow` 锚点、queue 链接在 Stop 或 ship 前轻扫，死链点名 | index-updater 或 delivery-gate 轻检 | 门禁修复 |
+| 8 | **梳理触发阈值**：热层 sprints > 15、queue/handoff > 150 行、`_index` > 12 KiB、compound 同主题 ≥3 档任一命中，提示开 tidy Quick；另每个 roadmap 完成时一次 | session-start 提示 | 提示词措辞 |
+| 9 | **counts 口径**：index-updater 只扫 `sprints/`，归档后 counts 回落（关联上节 #14、Q12 #20）→ 扫 `sprints/`+`archive/sprints/` 或改名 `active_*` | `hooks/index-updater` | 门禁修复 |
+| 10 | **历史不批量 sed**：归档档内含 review 绑定 sha 与回执，改路径即破审计链；只改活引用 + `archive/README.md` 重定向 | state-contract 归档条款 | 只记 |
+
+### 全组件升级实测教训
+
+| # | 坑 | 提案 | 级别 |
+|---|---|---|---|
+| 11 | 会话开头版本检测需先出「组件 / 现 / 最新 / 差距」表再裁定；本次覆盖 Node / npm 双树 / Python 锁 / 镜像基座与 apt / CLI / VM Docker / 网关 | deps-check skill 加「全组件」清单模板（含镜像基座 digest 漂移、VM、外部网关） | 技能简报 |
+| 12 | design 把自钉的 optionalDependency（sandbox-runtime）误判成传递依赖，AC1 施工中才暴露 | deps-check 输出标注依赖来源（dependencies / optional / 传递） | 技能简报 |
+| 13 | 大版本升级打断工具面：TS 7 npm 包无 JS 编译器 API（测试用 `ts.createSourceFile` 崩），官方过渡包 `@typescript/typescript6` | 升级 design 模板加「工具 API 面」风险行 | 只记 |
+| 14 | SDK 升级必做私有契约复核（压缩名/`sdk.d.ts` 行号漂移），generator 逐项对原文，reviewer 抽查 | 已在项目 M6 口径；可提为 SDK 升级 checklist | 只记 |
+| 15 | nvm 卸 Node 时当前会话进程与 `node ~/.claude/hooks/*.cjs` 仍指向旧版本路径，卸即门禁全失效 | 规程：卸当前会话所用 Node 放会话末，之后重启会话；hook 命令可考虑经 `command -v node` 解析 | 提示词措辞 |
+| 16 | `!` 前缀无 TTY，`sudo` 读不到密码 | 需 sudo 的命令让用户在自有终端跑，或 `open <pkg>` 走图形安装器 | 只记 |
+| 17 | 厂商 apt 源优先级（NVIDIA DGX 600 > Docker 500）使 `--only-upgrade` 落不到官方最新 | athena-vm doctor 报出 `apt-cache policy` 来源与候选版本 | 技能简报 |
+| 18 | 用户铁令：本机 Node / Python 只留单一版本，升新即卸旧（全局 CLI 随迁） | 版本检测清单末步「迁全局包 → 卸旧」 | 提示词措辞 |
+
+优先级建议：#2/#3/#4 同批（归档自动化的三个前提），#7/#9 随门禁批；#1/#5/#6/#8 措辞类周末批量；#11/#12/#17 进 deps-check 与 athena-vm skill。
