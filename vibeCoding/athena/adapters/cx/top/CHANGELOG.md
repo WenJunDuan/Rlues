@@ -1,3 +1,9 @@
+# Athena CHANGELOG — 10.1
+
+10.1 变更全文见 `~/.athena/10.1/CHANGELOG.md`（源：`vibeCoding/athena/adapters/core/top/CHANGELOG.md`）。
+
+---
+
 # Athena CHANGELOG — 9.9.9 “PACE + ai_state reliable execution”
 
 Status: **candidate, not shipped**. Baseline: 9.9.8. 以下为当前候选变更；后续历史章节保留当时版本描述，不作为 9.9.9 执行义务。

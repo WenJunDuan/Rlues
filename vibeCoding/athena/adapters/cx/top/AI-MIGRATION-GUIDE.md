@@ -1,3 +1,9 @@
+# 升级到 Athena 10.1
+
+10.1 的安装与项目 `.ai_state` 迁移见 `~/.athena/10.1/AI-MIGRATION-GUIDE.md`（源：`vibeCoding/athena/adapters/core/top/AI-MIGRATION-GUIDE.md`）；变更见同目录 CHANGELOG.md。以下为 9.9.9 历史说明，仅供回看。
+
+---
+
 # Athena 9.9.9 — CX candidate migration guide
 
 Upgrade baseline: 9.9.8. Candidate only; prepare a preview and reviewable diff before applying. Preserve user auth, provider/base URL, model/effort, permissions, plugins, third-party hooks/skills and project `.ai_state`. Never copy credentials from release assets.

@@ -113,7 +113,8 @@ items:
     notes: "design §12；explore #10；R999 AC13；D7 预算"
   - slug: s9-release-and-tidy
     title: "发布 10.1、安装、Rlues .ai_state 整理、清理分支、推送、quantum 迁移"
-    status: pending
+    status: done
+    notes_done: "合并 main、Rlues .ai_state 迁移、CHANGELOG + AI 迁移指南、推送已完成；真实安装、quantum 迁移、清理 grok worktree 由用户执行"
     sprint_slug: ""
     blocked_by: [s3-review-cli, s4-state-v2, s6-install-doctor, s7-platform-ahead, s8-evals]
     depends_on: [s3-review-cli, s4-state-v2, s6-install-doctor, s7-platform-ahead, s8-evals]

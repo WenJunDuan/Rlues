@@ -44,10 +44,10 @@ DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/
 # per platform); the per-file checks for that layer live in test_prompts.py.
 S5 = {
     'claude': {'removed': ['.claude/rules/', '.claude/skills/', '.claude/agents/'],
-               'changed': ['.claude/CLAUDE.md', '.claude/rules/', '.claude/skills/', '.claude/agents/'],
+               'changed': ['.claude/CLAUDE.md', '.claude/rules/', '.claude/skills/', '.claude/agents/', 'AI-MIGRATION-GUIDE.md'],
                'added': ['.claude/rules/', '.claude/skills/']},
     'codex': {'removed': ['.codex/standards/', '.codex/skills/', '.codex/agents/'],
-              'changed': ['.codex/AGENTS.md', '.codex/standards/', '.codex/skills/', '.codex/agents/', '.codex/config.toml'],
+              'changed': ['.codex/AGENTS.md', '.codex/standards/', '.codex/skills/', '.codex/agents/', '.codex/config.toml', 'AI-MIGRATION-GUIDE.md', 'CHANGELOG.md'],
               'added': ['.codex/standards/', '.codex/skills/']},
     'pi': {'removed': ['config/rules/', 'plugin/skills/'],
            'changed': ['plugin/core/IRON.md', 'config/AGENTS.md', 'config/rules/', 'plugin/skills/', 'plugin/prompts/'],

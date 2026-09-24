@@ -83,7 +83,7 @@ class Distribution(unittest.TestCase):
     def test_core_dist_and_pi_vendor_are_byte_identical_to_gate(self):
         core = self.files('athena')
         gate = {p.relative_to(GATE).as_posix(): p for p in GATE.rglob('*') if p.is_file()}
-        self.assertEqual(set(gate), set(core) - {'GENERATED.md', 'manifest.json', 'contracts.json'})
+        self.assertEqual(set(gate), set(core) - {'GENERATED.md', 'manifest.json', 'contracts.json', 'CHANGELOG.md', 'AI-MIGRATION-GUIDE.md'})
         pi = {k[len('plugin/core/gate/'):]: v for k, v in self.files('pi').items() if k.startswith('plugin/core/gate/')}
         self.assertEqual(set(pi), set(gate))
         for rel in gate:
