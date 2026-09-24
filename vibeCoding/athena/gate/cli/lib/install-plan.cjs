@@ -83,10 +83,14 @@ function mergeSettings(currentText, proposedText, version) {
   const proposed = JSON.parse(proposedText);
   const out = { ...current };
   for (const [key, value] of Object.entries(proposed)) if (!(key in out) && key !== 'hooks') out[key] = value;
-  out.env = { ...(current.env || {}), VIBECODING_ATHENA_VERSION: version };
+  // Package env fills gaps only; every key the user already set wins (the version is always Athena's).
+  out.env = { ...(proposed.env || {}), ...(current.env || {}), VIBECODING_ATHENA_VERSION: version };
   out.hooks = mergeHooks(current.hooks, proposed.hooks);
-  const deny = new Set([...((current.permissions && current.permissions.deny) || []), ...((proposed.permissions && proposed.permissions.deny) || [])]);
-  if (deny.size) out.permissions = { ...(current.permissions || {}), deny: [...deny] };
+  // Safety lists are unions: install never removes a user rule and always adds Athena's.
+  for (const list of ['deny', 'ask']) {
+    const merged = new Set([...((current.permissions && current.permissions[list]) || []), ...((proposed.permissions && proposed.permissions[list]) || [])]);
+    if (merged.size) out.permissions = { ...(out.permissions || {}), [list]: [...merged] };
+  }
   if (proposed.enabledPlugins) out.enabledPlugins = { ...proposed.enabledPlugins, ...(current.enabledPlugins || {}) };
   return `${JSON.stringify(out, null, 2)}\n`;
 }

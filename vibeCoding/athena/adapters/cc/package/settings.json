@@ -11,12 +11,7 @@
   },
   "env": {
     "VIBECODING_ATHENA_VERSION": "{{athena:ATHENA_VERSION}}",
-    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
-    "DISABLE_INSTALLATION_CHECKS": "1",
-    "API_TIMEOUT_MS": "600000"
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
   "permissions": {
     "defaultMode": "default",
@@ -67,6 +62,15 @@
       "Bash(prettier --check*)",
       "Bash(tsc --noEmit*)"
     ],
+    "ask": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(npm publish*)",
+      "Bash(pnpm publish*)",
+      "Bash(yarn publish*)",
+      "Bash(docker push*)"
+    ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
@@ -75,17 +79,26 @@
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
       "Read(~/.config/gcloud/**)",
+      "Read(~/.kube/config)",
       "Read(**/*.pem)",
       "Read(**/*.key)",
       "Read(**/credentials.json)",
+      "Read(**/secrets/**)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Edit(~/.ssh/**)",
+      "Edit(~/.aws/**)",
+      "Edit(~/.config/gcloud/**)",
+      "Edit(~/.kube/config)",
+      "Edit(**/*.pem)",
+      "Edit(**/*.key)",
+      "Edit(**/credentials.json)",
+      "Edit(**/secrets/**)",
       "Bash(rm -rf /)",
       "Bash(rm -rf ~)",
-      "Bash(rm -rf $HOME*)",
-      "Bash(npm publish*)",
-      "Bash(pnpm publish*)",
-      "Agent(critic)",
-      "Agent(evaluator)",
-      "Agent(spec-compliance)"
+      "Bash(rm -rf $HOME*)"
     ]
   },
   "hooks": {
@@ -199,12 +212,6 @@
     ]
   },
   "extraKnownMarketplaces": {
-    "superpowers-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "obra/superpowers-marketplace"
-      }
-    },
     "openai-codex": {
       "source": {
         "source": "github",
@@ -213,13 +220,12 @@
     }
   },
   "enabledPlugins": {
-    "superpowers@anthropic-official": false,
-    "code-review@anthropic-official": true,
-    "feature-dev@anthropic-official": false,
-    "commit@anthropic-official": true,
-    "playwright-skill@anthropic-official": true,
-    "context7@anthropic-official": true,
-    "codex-plugin-cc@third-party-marketplace": false,
-    "ECC-AgentShield@third-party-marketplace": true
+    "code-review@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": false,
+    "superpowers@claude-plugins-official": false,
+    "codex@openai-codex": false
   }
 }

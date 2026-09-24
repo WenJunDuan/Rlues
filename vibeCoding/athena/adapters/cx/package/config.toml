@@ -1,30 +1,30 @@
-# VibeCoding Athena 10.1 · Codex Configuration
+# VibeCoding Athena · Codex Configuration
 # 位置: ~/.codex/config.toml
+# 仅首装生效：已有 ~/.codex/config.toml 时安装器保留用户文件，只改写 VIBECODING_VERSION。
+# 原生 schema: https://learn.chatgpt.com/docs/config-file/config-reference
 
 project_root_markers = [".git", ".hg", ".sl"]
 project_doc_max_bytes = 65536
 
-# 首装示例；迁移保留用户 provider/model/effort/权限与插件选择。
-# 原生 schema: https://learn.chatgpt.com/docs/config-file/config-reference
 model_provider = "openai"
-model = "gpt-5.6-sol"
+model = "gpt-6-sol"
 model_reasoning_effort = "high"
 plan_mode_reasoning_effort = "xhigh"
-windows_wsl_setup_acknowledged = true
 web_search = "live"
-
 suppress_unstable_features_warning = true
 
-approval_policy = "never"
-sandbox_mode = "danger-full-access"
-
-personality = "pragmatic"
+# 官方默认：可写工作区 + 需要时询问。完全放开（never + danger-full-access）官方标注 not recommended，
+# 需要时在个人 ~/.codex/config.toml 或单次 `codex --yolo` 中自行开启。
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
 
 [sandbox_workspace_write]
+# 官方默认关；Athena 需要装依赖 / 拉文档，开启。仅在 workspace-write 下生效。
 network_access = true
 
 [features]
 memories = true
+prevent_idle_sleep = true
 
 [memories]
 generate_memories = true
@@ -43,6 +43,7 @@ inherit = "core"
 [shell_environment_policy.set]
 VIBECODING_VERSION = "{{athena:ATHENA_VERSION}}"
 
+# Codex 桌面端内置插件（ID 来自 Codex 应用，官方文档未列出；CLI 无此插件时忽略）
 [plugins."browser@openai-bundled"]
 enabled = true
 
@@ -60,9 +61,3 @@ enabled = true
 
 [plugins."presentations@openai-primary-runtime"]
 enabled = true
-
-[desktop]
-preventSleepWhileRunning = true
-show-context-window-usage = true
-composerEnterBehavior = "cmdIfMultiline"
-git-show-sidebar-pr-icons = true
