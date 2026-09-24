@@ -67,3 +67,4 @@
 | sprints/archive/2026/2026-07-29-athena-9-9-6-hotfix2 | archive/sprints/2026-07/2026-07-29-athena-9-9-6-hotfix2 |
 | index-overflow.md | archive/legacy/index-overflow.md |
 | harness-patches.md | archive/legacy/harness-patches.md |
+| archive/sprints/2026-07/ | archive/2026-07.tar.zst |

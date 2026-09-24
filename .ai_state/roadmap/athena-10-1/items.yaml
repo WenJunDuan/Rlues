@@ -113,8 +113,8 @@ items:
     notes: "design §12；explore #10；R999 AC13；D7 预算"
   - slug: s9-release-and-tidy
     title: "发布 10.1、安装、Rlues .ai_state 整理、清理分支、推送、quantum 迁移"
-    status: active
-    progress: "2026-09-24 已完成：合入 main（cfc76aa）、Rlues .ai_state v2 实迁（406105a）、CHANGELOG + AI 迁移指南（9f9e291）、版本号单源（VERSION→settings.json/config.toml）、6 处技能/playbook v1 残留修正、旧 Grok worktree/分支与已合并 athena-10.1 分支清理、quantum v1 已完成 sprint 收尾与 current pointer 清空。VERSION 定为 10.1.0。未完成：AC1 tag、AC2 正式安装+doctor、AC5 推送（本地 main 领先 origin 20+）、AC6 quantum 实迁。更正：此前 notes_done 写『推送已完成』与事实不符。"
+    status: done
+    done: {release: "VERSION 10.1.0；tag v10.1.0", install: "CC+CX 保留会话安装；doctor no drift", state: "Rlues 与 quantum 均实迁 athena-state/2；tidy 无待处理", cleanup: "旧 Grok/athena 分支与 worktree、无效 hook/runtime 缓存已清理", push: "Rlues main/pre-athena-10.1-state 与 quantum main/pre-athena-10.1-state 已推送；v10.1.0 随本提交推送"}
     release_gate: "已裁定（.ai_state/decisions/2026-09-24-decision-athena-10-1-release-gate.md）：仅豁免行为评测；fixtures 156/156、真机 install --dry-run、quantum migrate --dry-run（Blockers 0）均通过，可进入正式 install/doctor/tag"
     sprint_slug: ""
     blocked_by: [s3-review-cli, s4-state-v2, s6-install-doctor]
@@ -123,4 +123,4 @@ items:
     est_days: 1
     write_set: ["main", ".ai_state/**", "~/.athena", "~/.claude", "~/.codex", "~/.agents", "~/.pi"]
     ac: ["AC1 合入 main + tag v10.1.0", "AC2 安装 + doctor 零漂移", "AC3 Rlues .ai_state v2 实迁", "AC4 分支/worktree 清理", "AC5 推送", "AC6 quantum 迁移（真实 Feature 仅 major 条件，见 release-gate decision）"]
-    notes: "正式安装、推送、删 .runtime 大包均需用户授权"
+    notes: "2026-09-24 用户已授权安装、清理、合并与推送；行为评测豁免见 release-gate decision，债务 D-014 归 10.2"
