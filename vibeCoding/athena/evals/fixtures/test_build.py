@@ -133,6 +133,16 @@ class BuildBaseline(unittest.TestCase):
                 with self.subTest(platform=platform, file=rel):
                     self.assertEqual(bool(built.stat().st_mode & 0o111), source_exec)
 
+    def test_version_single_source(self):
+        """Every version string the installer reads comes from VERSION (no hardcoded release in adapters)."""
+        version = (ATHENA / 'VERSION').read_text(encoding='utf-8').strip()
+        settings = json.loads((self.dist('claude') / '.claude/settings.json').read_text(encoding='utf-8'))
+        self.assertEqual(settings['env']['VIBECODING_ATHENA_VERSION'], version)
+        self.assertIn(f'VIBECODING_VERSION = "{version}"', (self.dist('codex') / '.codex/config.toml').read_text(encoding='utf-8'))
+        for platform in (*BASELINES, *NEW_DISTS):
+            with self.subTest(platform=platform):
+                self.assertEqual(json.loads((self.dist(platform) / 'manifest.json').read_text(encoding='utf-8'))['version'], version)
+
     def test_ac5_manifest_matches_files(self):
         for platform in (*BASELINES, *NEW_DISTS):
             root = self.dist(platform)

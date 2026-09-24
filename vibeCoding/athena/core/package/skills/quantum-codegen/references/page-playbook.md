@@ -54,7 +54,7 @@ Convention Pack；运行命令只从 `runtime-env` 读取。
 - design stage：消费页面验收标准、效果图和冻结 API 契约。
 - impl stage：生成页面与 mock demo。
 - runtime-verify stage：实跑 FE demo、保存截图和探活证据。
-- review stage：由 一次独立 review 核对需求、契约和生成文件是否一致。
+- review stage：由一次独立 review 核对需求、契约和生成文件是否一致。
 
 ## References
 

@@ -7,8 +7,8 @@ does not implement code, own a parallel state machine, or guess project-specific
 
 - `_index.md` remains the only durable workflow state.
 - `roadmap/items.yaml` owns item status and dependency ordering.
-- Sprint artifacts own evidence: `design.md`, `runtime-verify.md`, `review.json`,
-  `checkpoints.yaml`, and `delivery-report.md`; existing native usage artifacts are optional.
+- Sprint artifacts own decisions and summaries: `design.md`, `log.md`, `review.json`,
+  `checkpoints.yaml`, and `delivery-report.md`; raw runtime evidence lives under `.ai_state/.runtime/`.
 - Rework uses PACE next actions (`rework_impl`, `runtime-verify`, `review`, `ship`) and checkpoint
   `fail_target`; it never rolls all the way back unless the checkpoint says so.
 
@@ -34,7 +34,7 @@ does not implement code, own a parallel state machine, or guess project-specific
 ## Evidence Rules
 
 - Command evidence must include command, cwd, exit code, summary, and artifact path when available.
-- Runtime-env warnings go into both `runtime-verify.md` and `delivery-report.md`.
+- Runtime-env warnings go into the sprint `log.md` runtime summary and `delivery-report.md`; raw output stays under `.ai_state/.runtime/`.
 - Token usage reads available native usage records (legacy `token-usage.yaml` remains readable); unknown totals stay `null`, status is `unavailable`. Missing usage never blocks functional delivery.
 - Capability reads must cite the manifest and the read-only capability name.
 - Dynamic E2E/security gaps are `blocked_dynamic_cases`, not silently passed tests.

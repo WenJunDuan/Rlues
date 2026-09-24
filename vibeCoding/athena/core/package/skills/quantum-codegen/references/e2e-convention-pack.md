@@ -27,7 +27,7 @@ backend convention pack:
 - Backend conventions must define menu/component alignment and security gates so E2E tests can map
   visible pages to real permission codes.
 - Playwright traces, screenshots, videos, and HTML reports are evidence artifacts, not optional
-  decorations. Record paths in `runtime-verify.md` or the delivery report.
+  decorations. Store them under `.ai_state/.runtime/` and record paths in the sprint `log.md` runtime summary or delivery report.
 
 ## Generation Flow
 

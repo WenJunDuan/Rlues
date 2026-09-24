@@ -477,6 +477,8 @@ athena doctor  → 逐文件 sha 对 manifest，报漂移/缺失；node 路径�
 
 **10.1 发布门**：fixture 三端全绿；行为评测对 9.9.9 不退化；Rlues 与 quantum-agent 迁移 dry-run 通过且 Rlues 实迁完成；安装/回滚演练一次；quantum-agent 在 10.1 上完成 ≥1 个真实 Feature sprint（major 条件）。
 
+> 2026-09-24 修订：行为评测一项豁免，见 [发布门 decision](../../decisions/2026-09-24-decision-athena-10-1-release-gate.md)。
+
 ## 13. 超前设计（flag）
 
 | flag | 内容 | 默认 | 开启条件 |

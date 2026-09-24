@@ -39,7 +39,10 @@
 - **绝不**在生成代码里自建认证/权限——沿用目标框架的权限注解与数据权限约定。
 - 生成后**必须**跑一遍校验命令，未通过不算完成。
 
-## 与 aether/pace 集成
+## PACE 集成
 
-本目录即一个标准 Agent Skill，直接放进 aether/pace 的 skills 目录、与 vm 叠加即可。
+- plan/design：从需求与 Convention Pack 冻结模块边界、权限点和验收标准。
+- impl：按模板生成代码，使用 `athena run --covers ACn -- <校验命令>` 留证据。
+- runtime-verify/review：需要真实服务时按 runtime-env 实跑，再由一次独立 review 核对需求、产物与证据。
+
 各脚手架的 Convention Pack 由各脚手架仓库自带（quantum-backend 见 `docs/ai/convention-pack/`）。

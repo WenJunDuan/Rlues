@@ -165,7 +165,9 @@ function assemble(src, platform, version) {
   const config = readJson(path.join(src, "adapters", platform, "platform.json"), `adapters/${platform}/platform.json`);
   const dir = config.dist_dir || platform;
   if (!PLATFORM_RE.test(dir)) throw new BuildError(`adapters/${platform}/platform.json: invalid dist_dir ${dir}`);
-  const vars = config.vars || {};
+  // ATHENA_VERSION comes from VERSION only (single source); a platform.json var of that name is an error.
+  if (config.vars && Object.prototype.hasOwnProperty.call(config.vars, "ATHENA_VERSION")) throw new BuildError(`adapters/${platform}/platform.json: vars.ATHENA_VERSION is reserved (set VERSION instead)`);
+  const vars = { ...(config.vars || {}), ATHENA_VERSION: version };
   const root = config.package_root || "";
   if (root && (path.isAbsolute(root) || root.split(/[\\/]/).includes(".."))) {
     throw new BuildError(`adapters/${platform}/platform.json: invalid package_root ${root}`);

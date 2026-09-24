@@ -15,3 +15,4 @@
 | D-011 | debt | — | P15 · `_index-bounds` 溢出搬运不在锁内, spill 全文曾静默丢失 (2026-08-27, tidy 复核实测) | proposals.md:123 | 10.1 重写后消解（9.9.9 delivery-gate / critic / _index-bounds 机制已退役）；原文 archive/legacy/proposals.md | dropped |
 | D-012 | debt | — | P16 · `_index-bounds.flush()` 零溢出也无条件写, idle 态在 .ai_state 根反复重建空 stub (2026-08-27, tidy 复核实测) | proposals.md:130 | 10.1 重写后消解（9.9.9 delivery-gate / critic / _index-bounds 机制已退役）；原文 archive/legacy/proposals.md | dropped |
 | D-013 | debt | — | P17 · ship 的 architecture 检查看不见已提交在默认分支上的改动, 且把别的 sprint 的遗留算作本次变更集 (2026-09-20, slice 2 ship 实测撞上) | proposals.md:135 | 10.1 重写后消解（9.9.9 delivery-gate / critic / _index-bounds 机制已退役）；原文 archive/legacy/proposals.md | dropped |
+| D-014 | debt | P2 | 10.1.0 发布门豁免行为评测（S8 dropped），无 9.9.9 对比基线 | decisions/2026-09-24-decision-athena-10-1-release-gate.md | 10.2 发布门恢复；先在 quantum 真实 sprint 中收集 | open |

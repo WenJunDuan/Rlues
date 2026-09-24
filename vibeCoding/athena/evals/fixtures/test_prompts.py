@@ -167,6 +167,16 @@ class Prompts(unittest.TestCase):
         self.assertIn('order_note', (ATHENA / 'core/pace/stages.yaml').read_text(encoding='utf-8'))
         self.assertIn('- AC1:', read('pace/SKILL.md') + (ATHENA / 'core/package/skills/pace/references').joinpath('gates.md').read_text(encoding='utf-8'))
 
+    def test_playbooks_match_state_v2(self):
+        skills = ATHENA / 'core/package/skills'
+        module = (skills / 'quantum-codegen/references/module-playbook.md').read_text(encoding='utf-8')
+        page = (skills / 'quantum-codegen/references/page-playbook.md').read_text(encoding='utf-8')
+        for playbook in sorted(skills.rglob('*.md')):
+            with self.subTest(playbook=playbook.relative_to(skills).as_posix()):
+                self.assertNotIn('runtime-verify.md', playbook.read_text(encoding='utf-8'))
+        self.assertNotIn('aether/pace', module)
+        self.assertNotIn('由 一次独立 review', page)
+
 
 if __name__ == '__main__':
     unittest.main()

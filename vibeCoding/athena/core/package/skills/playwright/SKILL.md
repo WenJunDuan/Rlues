@@ -45,7 +45,7 @@ Official references:
 
 5. Record evidence:
    - Include exact command, exit code, and the important pass/fail output.
-   - For `athena-runtime-verify`, write a row in `runtime-verify.md` with scenario, type, command, actual output, and verdict.
+   - For `athena-runtime-verify`, keep raw artifacts under `.ai_state/.runtime/` and append one `runtime-verify:` summary line to the sprint `log.md` with scenario, command, result, and artifact path.
    - If a test first fails and then passes after a fix, record both the failing symptom and the passing rerun.
 
 ## Athena Integration
