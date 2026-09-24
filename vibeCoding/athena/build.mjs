@@ -196,6 +196,14 @@ function assemble(src, platform, version) {
   }
   layers.push({ dir: path.join(src, "adapters", platform, "package"), prefix: root, label: `adapters/${platform}/package` });
   layers.push({ dir: path.join(src, "adapters", platform, "top"), prefix: "", label: `adapters/${platform}/top` });
+  // Root docs (INSTALL / MIGRATION / RELEASE) are single-source at vibeCoding/athena/ and ship at the top of the
+  // platforms that list them in platform.json "root_docs".
+  const rootDocs = config.root_docs || [];
+  if (!Array.isArray(rootDocs) || rootDocs.some(n => typeof n !== "string" || !/^[A-Z][A-Z0-9_-]*\.md$/.test(n))) {
+    throw new BuildError(`adapters/${platform}/platform.json: root_docs must list top-level *.md names`);
+  }
+  for (const name of rootDocs) if (!fs.existsSync(path.join(src, name))) throw new BuildError(`adapters/${platform}/platform.json: root_docs ${name} not found`);
+  if (rootDocs.length) layers.push({ dir: src, prefix: "", label: "athena", files: rootDocs });
   const outputs = new Map();
   const keys = new Map();
   const claim = (rel, source) => {
@@ -206,7 +214,8 @@ function assemble(src, platform, version) {
   for (const name of GENERATED_FILES) claim(name, "build.mjs");
   const stages = contracts(src, version);
   for (const layer of layers) {
-    const entries = walk(layer.dir).map(file => ({ rel: posix(path.relative(layer.dir, file)), read: () => fs.readFileSync(file),
+    const files = layer.files ? layer.files.map(name => path.join(layer.dir, name)) : walk(layer.dir);
+    const entries = files.map(file => ({ rel: posix(path.relative(layer.dir, file)), read: () => fs.readFileSync(file),
       mode: fs.statSync(file).mode & 0o111 ? 0o755 : 0o644 }));
     if (layer.table) {
       entries.push({ rel: "skills/pace/references/stages.md", read: () => Buffer.from(stagesMd(stages.data, version), "utf8"), mode: 0o644, generated: true });

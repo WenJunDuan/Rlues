@@ -3,5 +3,10 @@
   "package_root": "",
   "core": false,
   "gate_root": "",
-  "vars": {}
+  "vars": {},
+  "root_docs": [
+    "INSTALL.md",
+    "MIGRATION.md",
+    "RELEASE.md"
+  ]
 }

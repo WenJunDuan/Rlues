@@ -3,7 +3,7 @@
 Command samples are migrated from the 9.9.9 suites (test_heredoc_guard: live forms, consumer
 matrix, 32 review counterexamples, unquoted union; test_gate_fixes_20260924: 34 push-target
 cases, git/gh data consumers). Verdicts are additionally compared with the frozen 9.9.9 CC
-guard (vibeCoding/claude/9.9.9) so a migrated sample cannot silently change its outcome;
+guard (vibeCoding/old/04-athena-8.9-9.9.9/claude/9.9.9) so a migrated sample cannot silently change its outcome;
 the only allowed differences are the declared additions below.
 Run: python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -t vibeCoding/athena/evals/fixtures
 """
@@ -14,7 +14,7 @@ import unittest
 
 from gate_harness import ENV, PLATFORMS, VIBE, GATE, call, git, project, tmpdir
 
-FROZEN_GUARD = VIBE / 'claude/9.9.9/.claude/hooks/pre-bash-guard.cjs'
+FROZEN_GUARD = VIBE / 'old/04-athena-8.9-9.9.9/claude/9.9.9/.claude/hooks/pre-bash-guard.cjs'
 ANALYZE = ("const g=require(process.argv[1]);const cs=JSON.parse(require('fs').readFileSync(0,'utf8'));"
            "process.stdout.write(JSON.stringify(cs.map(c=>g.analyze(c))));")
 

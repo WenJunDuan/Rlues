@@ -12,8 +12,8 @@ import tempfile
 import unittest
 
 sys.dont_write_bytecode = True
-ROOT = Path(__file__).resolve().parents[4]
-RANK = ROOT / "vibeCoding/claude/9.9.9/.claude/skills/llm-as-a-verifier/scripts/rank.py"
+ROOT = Path(__file__).resolve().parents[6]
+RANK = ROOT / "vibeCoding/old/04-athena-8.9-9.9.9/claude/9.9.9/.claude/skills/llm-as-a-verifier/scripts/rank.py"
 
 
 def load_rank():

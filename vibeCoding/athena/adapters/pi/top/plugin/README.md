@@ -6,7 +6,7 @@ Pi package：PACE + `.ai_state` 合同 + 门禁 + 核心 prompt。
 `.ai_state/` 在**每个项目仓库**，本包不携带 sprint。
 
 ```bash
-pi install /绝对路径/vibeCoding/pi-agent/plugin
+pi install /绝对路径/vibeCoding/dist/pi/10.1/plugin
 ```
 
 ## 装进去什么

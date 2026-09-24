@@ -23,7 +23,7 @@
 - 9 条编号铁律（改由门禁机械强制）、「INTJ 风格」、「CC 无原生 /goal」。
 
 ### 破坏性变更
-- 项目 `.ai_state` 需迁移：`athena migrate --to 10.1`（见 AI-MIGRATION-GUIDE.md）。
+- 项目 `.ai_state` 需迁移：`athena migrate --to 10.1`（见 MIGRATION.md；安装见 INSTALL.md，发布声明见 RELEASE.md）。
 - CX 规范目录仍为 `~/.codex/standards/`，文件名改为 coding / security / ui / docs / git / shell。
 - 证据只认 `athena run` 的记录；手写证据文件不再被读取。
 

@@ -83,7 +83,7 @@ class Prompts(unittest.TestCase):
             base = self.out(platform)
             for f in sorted(base.rglob('*')):
                 rel = f.relative_to(base).as_posix()
-                if not f.is_file() or f.suffix not in {'.md', '.toml', '.yaml'} or rel.startswith(('RELEASE', 'CHANGELOG', 'AI-MIGRATION', 'README', 'GENERATED')) \
+                if not f.is_file() or f.suffix not in {'.md', '.toml', '.yaml'} or rel.startswith(('RELEASE', 'CHANGELOG', 'AI-MIGRATION', 'INSTALL', 'MIGRATION', 'README', 'GENERATED')) \
                         or '/core/gate/' in f'/{rel}' or rel.startswith(('templates/', 'plugin/core/gate/')):
                     continue
                 with self.subTest(file=f'{platform}/{rel}'):

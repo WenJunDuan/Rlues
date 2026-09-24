@@ -16,8 +16,8 @@ import unittest
 
 sys.dont_write_bytecode = True
 
-REPO = Path(__file__).resolve().parents[4]
-VIBE = REPO / 'vibeCoding'
+REPO = Path(__file__).resolve().parents[6]
+VIBE = REPO / 'vibeCoding/old/04-athena-8.9-9.9.9'
 RUNTIME_CC = VIBE / 'claude/9.9.9/.claude/skills/athena-vm/scripts/runtime-run.py'
 RUNTIME_CX = VIBE / 'codex/9.9.9/.codex/skills/athena-vm/scripts/runtime-run.py'
 CC_HOOKS = VIBE / 'claude/9.9.9/.claude/hooks'

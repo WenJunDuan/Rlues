@@ -12,8 +12,8 @@ import tempfile
 import unittest
 
 sys.dont_write_bytecode = True
-ROOT = Path(__file__).resolve().parents[4]
-PACKAGES = [ROOT / f"vibeCoding/{vendor}/9.9.9/.{platform}" for vendor, platform in (("claude", "claude"), ("codex", "codex"))]
+ROOT = Path(__file__).resolve().parents[6]
+PACKAGES = [ROOT / f"vibeCoding/old/04-athena-8.9-9.9.9/{vendor}/9.9.9/.{platform}" for vendor, platform in (("claude", "claude"), ("codex", "codex"))]
 
 
 def load(path: Path):

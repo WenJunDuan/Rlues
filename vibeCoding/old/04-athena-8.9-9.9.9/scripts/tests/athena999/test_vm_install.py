@@ -10,9 +10,9 @@ import tempfile
 import time
 import unittest
 
-ROOT = Path(__file__).resolve().parents[4]
-CX = ROOT / 'vibeCoding/codex/9.9.9/.codex/skills'
-CC = ROOT / 'vibeCoding/claude/9.9.9/.claude/skills'
+ROOT = Path(__file__).resolve().parents[6]
+CX = ROOT / 'vibeCoding/old/04-athena-8.9-9.9.9/codex/9.9.9/.codex/skills'
+CC = ROOT / 'vibeCoding/old/04-athena-8.9-9.9.9/claude/9.9.9/.claude/skills'
 RUNTIME = CX / 'athena-vm/scripts/runtime-run.py'
 SETUP = CX / 'athena-setup/scripts/setup-athena.py'
 INIT = CX / 'athena-init/scripts/init-platforms.py'

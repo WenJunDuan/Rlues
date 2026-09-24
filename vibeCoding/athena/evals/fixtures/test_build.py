@@ -20,9 +20,9 @@ BUILD = ATHENA / 'build.mjs'
 IGNORED = {'__pycache__', '.DS_Store'}
 GENERATED_EXTRAS = {'manifest.json', 'GENERATED.md', 'contracts.json'}
 BASELINES = {
-    'claude': VIBE / 'claude/9.9.9',
-    'codex': VIBE / 'codex/9.9.9',
-    'pi': VIBE / 'pi-agent',
+    'claude': VIBE / 'old/04-athena-8.9-9.9.9/claude/9.9.9',
+    'codex': VIBE / 'old/04-athena-8.9-9.9.9/codex/9.9.9',
+    'pi': VIBE / 'old/04-athena-8.9-9.9.9/pi-agent',
 }
 # Every difference from the 9.9.9 baseline must be declared here (prefixes end with "/").
 DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/" are prefixes)
@@ -37,7 +37,7 @@ DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/
                           '.codex/skills/athena-setup/SKILL.md', 'RELEASE.md'], 'added': []},
     'pi': {'removed': ['plugin/extensions/cc-core/', 'plugin/skills/pace/scripts/review-binding.cjs', 'plugin/skills/athena-review/REVIEW.md'],
            'added': ['plugin/core/gate/'],
-           'changed': ['plugin/README.md', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts',
+           'changed': ['README.md', 'config/README.md', 'plugin/README.md', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts',
                        'plugin/prompts/reviewer.md', 'plugin/skills/athena-review/SKILL.md']},
 }
 # S5 prompts-v2 rewrites constitution, rules, skills and agents wholesale (one core source, generated
@@ -64,9 +64,9 @@ def declared(rel, entries):
 
 
 STAGE_DOCS = (
-    VIBE / 'claude/9.9.9/.claude/skills/pace/references/stages.md',
-    VIBE / 'codex/9.9.9/.codex/skills/pace/references/stages.md',
-    VIBE / 'pi-agent/plugin/skills/pace/references/stages.md',
+    VIBE / 'old/04-athena-8.9-9.9.9/claude/9.9.9/.claude/skills/pace/references/stages.md',
+    VIBE / 'old/04-athena-8.9-9.9.9/codex/9.9.9/.codex/skills/pace/references/stages.md',
+    VIBE / 'old/04-athena-8.9-9.9.9/pi-agent/plugin/skills/pace/references/stages.md',
 )
 
 
@@ -132,6 +132,13 @@ class BuildBaseline(unittest.TestCase):
                 source_exec = bool((baseline / rel).stat().st_mode & 0o111)
                 with self.subTest(platform=platform, file=rel):
                     self.assertEqual(bool(built.stat().st_mode & 0o111), source_exec)
+
+    def test_root_docs_ship_in_core_dist(self):
+        """INSTALL / MIGRATION / RELEASE are single-source at vibeCoding/athena/ and land at ~/.athena/<ver>/."""
+        for name in ('INSTALL.md', 'MIGRATION.md', 'RELEASE.md'):
+            with self.subTest(doc=name):
+                self.assertEqual((self.dist('athena') / name).read_bytes(), (ATHENA / name).read_bytes())
+        self.assertFalse((self.dist('athena') / 'AI-MIGRATION-GUIDE.md').exists())
 
     def test_version_single_source(self):
         """Every version string the installer reads comes from VERSION (no hardcoded release in adapters)."""

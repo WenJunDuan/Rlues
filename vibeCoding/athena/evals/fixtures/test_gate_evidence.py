@@ -10,8 +10,8 @@ import unittest
 
 from gate_harness import green, red, ENV, GATE, GOOD_DESIGN, PLATFORMS, VIBE, athena, call, git, project, sprint_dir, tmpdir
 
-FROZEN_BINDING = VIBE / 'claude/9.9.9/.claude/hooks/_input-binding.cjs'
-LEGACY_SUITE = VIBE / 'scripts/tests/athena999/test_state_review.py'
+FROZEN_BINDING = VIBE / 'old/04-athena-8.9-9.9.9/claude/9.9.9/.claude/hooks/_input-binding.cjs'
+LEGACY_SUITE = VIBE / 'old/04-athena-8.9-9.9.9/scripts/tests/athena999/test_state_review.py'
 SPRINT = '2026-09-24-s'
 
 

@@ -22,7 +22,7 @@ import unittest
 sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[3]
-REPO = Path(__file__).resolve().parents[4]
+REPO = Path(__file__).resolve().parents[6]
 CC = ROOT / 'claude/9.9.9/.claude/hooks'
 CX = ROOT / 'codex/9.9.9/.codex/hooks'
 PI = ROOT / 'pi-agent/plugin/extensions/cc-core'

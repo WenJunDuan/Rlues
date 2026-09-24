@@ -10,8 +10,8 @@ import unittest
 
 from gate_harness import ATHENA, ENV, VIBE, athena, tmpdir
 
-FROZEN_CC = VIBE / 'claude/9.9.9/.claude'
-FROZEN_CX = VIBE / 'codex/9.9.9/.codex'
+FROZEN_CC = VIBE / 'old/04-athena-8.9-9.9.9/claude/9.9.9/.claude'
+FROZEN_CX = VIBE / 'old/04-athena-8.9-9.9.9/codex/9.9.9/.codex'
 
 
 def build(out):
