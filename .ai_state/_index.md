@@ -81,7 +81,7 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "S1 完成（athena-10.1）；下一波 W2：S2 gate-core ∥ S5 prompts-v2"
+next_action: "S2 起续：先读 .ai_state/docs/reports/athena-10-1-handoff-s2.md；顺序 S2→S4→S3→S5→S6→S7→S8→S9"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []
