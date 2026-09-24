@@ -11,11 +11,11 @@ Athena 的 Pi 端分两份，不要混：
 
 ```bash
 # 插件（可给别人）
-pi install /绝对路径/vibeCoding/pi/plugin
+pi install /绝对路径/vibeCoding/pi-agent/plugin
 
 # 私人配置（软链到 ~/.pi/agent，不要链整个目录）
 PI=~/.pi/agent
-SRC=/绝对路径/vibeCoding/pi/config
+SRC=/绝对路径/vibeCoding/pi-agent/config
 mkdir -p "$PI"
 for f in AGENTS.md settings.json models.json rules; do
   ln -sfn "$SRC/$f" "$PI/$f"

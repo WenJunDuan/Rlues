@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -50,6 +51,24 @@ def extract_design_path(payload: dict[str, Any]) -> str:
     return match.group(0) if match else ""
 
 
+def existed_at_baseline(design: str, cwd: Path) -> bool:
+    """athena-10-1 S0 (Q12 #30): only a design already at HEAD can be changed after impl.
+
+    A first write (a Quick that designs and implements in one round) is not a change.
+    Any git failure answers False -- this hook is a fail-open process rail.
+    """
+    try:
+        path = Path(design).expanduser()
+        path = (path if path.is_absolute() else cwd / path).resolve()
+        top = subprocess.run(["git", "-C", str(path.parent), "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, check=True).stdout.strip()
+        rel = path.relative_to(Path(top).resolve()).as_posix()
+        return subprocess.run(["git", "-C", top, "cat-file", "-e", f"HEAD:{rel}"],
+                              capture_output=True).returncode == 0
+    except Exception:  # noqa: BLE001 — fail-open
+        return False
+
+
 def read_field(idx: Path, field: str) -> str:
     match = re.search(rf'^{re.escape(field)}:\s*["\']?([^"\n]*)["\']?', idx.read_text(encoding="utf-8"), re.M)
     return match.group(1).strip() if match else ""
@@ -68,7 +87,8 @@ def main() -> int:
         payload = json.loads(raw) if raw.strip() else {}
         if not isinstance(payload, dict):
             return EXIT_SUCCESS
-        if not extract_design_path(payload):
+        design = extract_design_path(payload)
+        if not design:
             return EXIT_SUCCESS
         cwd_value = payload.get("cwd")
         cwd = Path(cwd_value).expanduser() if isinstance(cwd_value, str) and cwd_value.strip() else Path.cwd()
@@ -79,7 +99,7 @@ def main() -> int:
         if not idx.is_file():
             return EXIT_SUCCESS
         stage = read_field(idx, "stage")
-        if stage not in MARK_STAGES:
+        if stage not in MARK_STAGES or not existed_at_baseline(design, cwd):
             return EXIT_SUCCESS
         if set_flag_true(idx, "design_changed_after_impl"):
             sys.stderr.write(

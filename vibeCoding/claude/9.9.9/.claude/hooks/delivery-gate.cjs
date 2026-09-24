@@ -1393,8 +1393,14 @@ function shipChangeIsLight(cwd) {
   return files.every(isLightShipFile);
 }
 
-function validateVmPendingPromises(aiState, sprintDir, sprintSlug) {
-  const promise = /(记|登|转|→)\s*`?vm-pending/;
+function validateVmPendingPromises(aiState, sprintDir, sprintSlug, pathType) {
+  // athena-10-1 S0 (Q12 #27): a bare file path ("vm-pending.md") is not a promise, and a
+  // Quick whose design already puts the ledger in its write set settles it in the same change.
+  const promise = /(记|登|转|→)\s*`?vm-pending(?!\.md)/;
+  if (pathType === "Quick") {
+    const design = path.join(sprintDir, "design.md");
+    if (fs.existsSync(design) && fs.readFileSync(design, "utf8").includes("vm-pending.md")) return;
+  }
   const names = ["design.md", "runtime-verify.md", "cleanup-pass.md", "fix-note.md", "session-log.md"];
   for (const name of names) {
     const file = path.join(sprintDir, name);
@@ -1413,7 +1419,7 @@ function validateShip(aiState, fm, cwd) {
   const sprintDir = path.join(aiState, "sprints", sprintSlug);
   validateContainment(fm);
   validateOutsideRepoBackup(sprintDir, fm);
-  validateVmPendingPromises(aiState, sprintDir, sprintSlug);
+  validateVmPendingPromises(aiState, sprintDir, sprintSlug, fm.path);
   // 9.9.6 P2 fix (see .ai_state/proposals.md): a light ship — small net diff vs upstream,
   // touching only docs/config/deps/state/tests (no source logic, no harness/hooks) — has no
   // TDD red/green story and takes the light gate: roadmap consistency only, skipping the

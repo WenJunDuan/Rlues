@@ -94,10 +94,17 @@ def merge_latest(request, latest):
     return updated
 
 
+def package_platform(script):
+    """cc when the script sits in a Claude package (<pkg>/skills/athena-init/scripts/, pkg
+    named .claude); cx otherwise. A '.claude' segment elsewhere in the path (a repo checked
+    out under .claude/worktrees/) must not flip a Codex package (athena-10-1 S0)."""
+    return 'cc' if Path(script).parents[3].name == '.claude' else 'cx'
+
+
 def commit_discovery(index, request):
     script = Path(__file__).resolve()
     index.parent.mkdir(parents=True, exist_ok=True)
-    if '.claude' in script.parts:
+    if package_platform(script) == 'cc':
         # CC keeps its existing native Node lock. Python is used only by this init CLI.
         result = subprocess.run(['node', str(script.with_name('commit-index.cjs')),
                    str(script.parents[3] / 'hooks/_index-io.cjs'), str(index), sys.executable, str(script)],
@@ -145,7 +152,7 @@ def main():
     observed_intent = intent(text)
     selected = args.platforms if args.platforms is not None else observed_intent
     if selected is None:
-        selected = 'cc' if '.claude' in Path(__file__).parts else 'cx'
+        selected = package_platform(Path(__file__).resolve())
     selected = normalize(selected)
     cache_path = state / '.runtime/platform-capabilities.json'
     cache = {}

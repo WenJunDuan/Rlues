@@ -31,7 +31,7 @@ PI = ROOT / 'pi-agent/plugin/extensions/cc-core'
 # not a snapshot of the working tree.
 BASELINE = '512bb7cbb89231e242df6ef34556c29bf693b8c8'
 
-CONSUMERS = ('python3', 'python', 'node', 'tee', 'cat')
+CONSUMERS = ('python3', 'python', 'node', 'tee', 'cat', 'git', 'gh')
 
 # --- AC1: the four live mis-block forms (evidence/live-samples.md) ------------
 FORM_1 = ("python3 - <<'PYEOF'\n"

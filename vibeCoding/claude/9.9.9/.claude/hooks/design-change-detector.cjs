@@ -28,6 +28,25 @@ function findAiState(cwd) {
   return null;
 }
 
+/**
+ * athena-10-1 S0 (Q12 #30): a design that did not exist at HEAD is being written for the
+ * first time (a Quick that designs and implements in one round), not changed after impl.
+ * Any git failure answers "not at baseline" — this hook is a fail-open process rail.
+ */
+function existedAtBaseline(filePath, cwd) {
+  const { execFileSync } = require('child_process');
+  try {
+    const abs = fs.realpathSync(path.resolve(cwd, filePath));
+    const root = execFileSync('git', ['-C', path.dirname(abs), 'rev-parse', '--show-toplevel'],
+      { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    const rel = path.relative(fs.realpathSync(root), abs).split(path.sep).join('/');
+    execFileSync('git', ['-C', root, 'cat-file', '-e', `HEAD:${rel}`], { stdio: 'ignore' });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 function readField(idxPath, field) {
   const content = fs.readFileSync(idxPath, 'utf-8');
   const re = new RegExp(`^${field}:\\s*["']?([^"\\n]*)["']?`, 'm');
@@ -70,7 +89,7 @@ function main() {
     const stage = readField(idxPath, 'stage');
 
     // 仅 stage ∈ {impl, review, polish} 时标记 (plan/design 改动是正常的, 不需要 re-review)
-    if (['impl', 'review', 'polish'].includes(stage)) {
+    if (['impl', 'review', 'polish'].includes(stage) && existedAtBaseline(filePath, path.resolve(payload?.cwd || process.cwd()))) {
       updateField(idxPath, 'design_changed_after_impl', true);
       process.stderr.write(
         `[design-change-detector] 检测到 design.md 在 ${stage} stage 被修改\n` +

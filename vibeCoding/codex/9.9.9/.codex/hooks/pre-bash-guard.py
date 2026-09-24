@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import re
 import shlex
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,7 @@ DANGEROUS_ROOTS = {"/", "~", "$HOME", "${HOME}"}
 DB_CLIENTS = {"mysql", "psql", "sqlite3", "mariadb"}
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
 GIT_OPTS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"}
+REPO_REDIRECT_ENV = re.compile(r"\bGIT_(?:DIR|WORK_TREE|COMMON_DIR|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|NAMESPACE)\b")
 
 
 def strip_comments(command: str) -> str:
@@ -325,13 +327,204 @@ def analyze(command: str, depth: int = 0) -> dict[str, Any]:
                     return nested
         if re.match(r"^:\s*\(\s*\)", " ".join([name] + vals)) or re.search(r":\(\)\s*\{", active):
             return {"danger": "fork bomb"}
-        if name == "git" and git_subcommand(args) == "push":
+        # athena-10-1 S0: the subcommand is read after unwrapping, as CC does; reading the raw
+        # args let `env X=1 git push` and `sudo git push` pass as non-push commands.
+        if name == "git" and git_subcommand(vals) == "push":
             return {"push": True, "allow_push": env.get("ATHENA_ALLOW_PUSH") == "1"}
 
     for i in range(len(parsed) - 1):
         if parsed[i][3] == "|" and parsed[i][1] in {"curl", "wget"} and parsed[i + 1][1] in SHELLS:
             return {"danger": "network response piped to shell"}
     return {}
+
+
+def resolve_dir(raw: str | None, base: Path) -> Path | None:
+    """A directory named on the command line, resolved without running the shell.
+
+    Anything that needs expansion ($VAR, `...`, ~user, "-") or does not exist yields
+    None, and the caller falls back to cwd -- over-block, never open a way through.
+    """
+    if not isinstance(raw, str) or not raw or raw == "-" or re.search(r"[$`]", raw):
+        return None
+    value = raw
+    if value == "~" or value.startswith("~/"):
+        value = str(Path.home()) + value[1:]
+    elif value.startswith("~"):
+        return None
+    resolved = (base / value).resolve() if not Path(value).is_absolute() else Path(value).resolve()
+    return resolved if resolved.is_dir() else None
+
+
+def _unwrap(name: str, vals: list[str]) -> tuple[str, list[str]]:
+    depth = 0
+    while depth < 3 and name in {"sudo", "env", "command"} and vals:
+        depth += 1
+        if name == "command":
+            while vals and vals[0].startswith("-"):
+                vals.pop(0)
+        elif name == "env":
+            while vals and (vals[0].startswith("-") or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", vals[0])):
+                vals.pop(0)
+        elif name == "sudo":
+            options_with_value = {"-u", "-g", "-h", "-p", "-C", "-T"}
+            while vals and vals[0].startswith("-"):
+                option = vals.pop(0)
+                if option in options_with_value and vals:
+                    vals.pop(0)
+        if not vals:
+            break
+        name = Path(vals.pop(0)).name.lstrip("\\")
+    return name, vals
+
+
+def push_target(command: str, cwd: Path) -> tuple[Path, str | None | bool]:
+    """athena-10-1 S0 (Q12 #29): the project whose stage governs a push is the one pushed.
+
+    Last top-level ``cd`` joined by && or ; before the push, then the push's own
+    ``git -C <dir>`` options. A nested push (bash -c, eval, $(...)), a --git-dir /
+    --work-tree push, any GIT_DIR-family variable anywhere in the command (inline,
+    export, env wrapper -- it redirects the repository behind -C's back), or any
+    unresolvable directory keeps today's rule: cwd.
+    """
+    strict: tuple[Path, str | None | bool] = (cwd, False)   # False = no destination named
+    heredoc = narrow_heredoc(command)
+    active = strip_comments(mask_body(command, heredoc) if heredoc and heredoc["quoted"] else command)
+    if REPO_REDIRECT_ENV.search(active):
+        return strict
+    base = cwd
+    for seg, sep in split_segments(active):
+        _env, name, args = executable(tokenize(seg))
+        name, vals = _unwrap(name.lstrip("\\"), [a.strip("'\"") for a in args])
+        if name == "cd":
+            nxt = resolve_dir(vals[0], base) if vals else Path.home()
+            if nxt is None or sep not in ("&&", ";", "\n"):
+                return strict
+            base = nxt
+            continue
+        if name == "git" and git_subcommand(vals) == "push":
+            target: Path | None = base
+            i = 0
+            while i < len(vals):
+                value = vals[i]
+                if value == "-C":
+                    target = resolve_dir(vals[i + 1] if i + 1 < len(vals) else None, target)
+                    if target is None:
+                        return strict
+                    i += 2
+                    continue
+                if re.match(r"^--(?:git-dir|work-tree)(?:=|$)", value):
+                    return strict
+                if value in {"-c", "--namespace", "--config-env"}:
+                    i += 2
+                    continue
+                if not value.startswith("-"):
+                    break
+                i += 1
+            return target, push_destination(vals[i + 1:])
+    return strict
+
+
+def push_destination(args: list[str]) -> str | None | bool:
+    """The repository argument of ``git push``: False when none is named, None when it
+    cannot be read without the shell ($VAR, `...`) -- the caller treats None as the project."""
+    with_value = {"-o", "--push-option", "--receive-pack", "--exec", "--repo"}
+    i = 0
+    while i < len(args):
+        value = args[i]
+        if value.startswith("--repo="):
+            dest: str | None = value[len("--repo="):]
+        elif value == "--repo":
+            dest = args[i + 1] if i + 1 < len(args) else None
+        elif value in with_value:
+            i += 2
+            continue
+        elif value.startswith("-"):
+            i += 1
+            continue
+        else:
+            dest = value
+        return None if dest is None or re.search(r"[$`]", dest) else dest
+    return False
+
+
+def git_out(directory: Path, args: list[str]) -> list[str]:
+    try:
+        out = subprocess.run(["git", "-C", str(directory), *args], capture_output=True, text=True, check=True).stdout
+    except Exception:  # noqa: BLE001
+        return []
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def remote_urls(directory: Path) -> list[str]:
+    """Every remote URL of a repository, as written and as git rewrites it (insteadOf / pushInsteadOf)."""
+    urls = {" ".join(line.split()[1:]) for line in git_out(directory, ["config", "--get-regexp", r"^remote\..*\.(url|pushurl)$"])
+            if line.split()[1:]}
+    for name in git_out(directory, ["remote"]):
+        urls.update(git_out(directory, ["remote", "get-url", "--all", name]))
+        urls.update(git_out(directory, ["remote", "get-url", "--push", "--all", name]))
+    return sorted(urls)
+
+
+def normalize_remote(url: str, base: Path) -> str:
+    """host/path for network remotes whatever the scheme (https, ssh://, scp-like); an absolute path otherwise."""
+    raw = re.sub(r"/+$", "", url.strip())
+    trimmed = re.sub(r"\.git$", "", raw)
+
+    def local(value: str) -> str:
+        # Real path (symlinks, macOS /var vs /private/var); Path.resolve resolves the
+        # existing prefix when the path itself does not exist; .git dropped after.
+        resolved = (base / value).resolve() if not Path(value).is_absolute() else Path(value).resolve()
+        return re.sub(r"\.git$", "", str(resolved))
+
+    if re.match(r"^file://", raw, re.I):
+        return local(re.sub(r"^file://", "", raw, flags=re.I))
+    match = re.match(r"^[a-z][a-z0-9+.-]*://(?:[^@/]+@)?([^/:]+)(?::\d+)?/?(.*)$", trimmed, re.I)
+    if match:
+        return f"{match.group(1)}/{match.group(2)}".lower()
+    match = re.match(r"^(?:[^@/\s]+@)?([^:/\s]+):(?!//)(.*)$", trimmed)
+    if match and len(match.group(1)) > 1:
+        return f"{match.group(1)}/{match.group(2).lstrip('/')}".lower()
+    return local(raw)
+
+
+def same_project(target: Path, cwd: Path, dest: str | None | bool) -> bool:
+    """Another checkout of the same project stays under the project's stage: a worktree or
+    subdirectory (same git common dir), a separate clone sharing any remote URL with the
+    project, a clone whose remote is the project itself, or a push whose destination is one
+    of the project's remotes. Only a repository proven unrelated is judged by its own stage."""
+    if same_repository(target, cwd):
+        return True
+    if dest is None:
+        return True
+    own = {normalize_remote(url, cwd) for url in remote_urls(cwd)}
+    theirs = remote_urls(target)
+    if isinstance(dest, str):
+        theirs.extend([dest, *git_out(target, ["ls-remote", "--get-url", dest])])
+    for raw in theirs:
+        if normalize_remote(raw, target) in own:
+            return True
+        local = Path(raw) if Path(raw).is_absolute() else target / raw
+        try:
+            if local.is_dir() and same_repository(local.resolve(), cwd):
+                return True
+        except OSError:
+            pass
+    return False
+
+
+def same_repository(a: Path, b: Path) -> bool:
+    """A worktree or subdirectory of the project is the same project (its checked-out
+    ``_index.md`` may lag), so the project's own stage governs it. Same repository =
+    same ``git rev-parse --git-common-dir``; any git failure = not proven."""
+    def common(directory: Path) -> Path | None:
+        try:
+            out = subprocess.run(["git", "-C", str(directory), "rev-parse", "--git-common-dir"],
+                                 capture_output=True, text=True, check=True).stdout.strip()
+            return (directory / out).resolve()
+        except Exception:  # noqa: BLE001
+            return None
+    left = common(a)
+    return left is not None and left == common(b)
 
 
 def find_ai_state(cwd: Path) -> Path | None:
@@ -381,7 +574,9 @@ def main() -> int:
         if verdict.get("push") and not verdict.get("allow_push"):
             cwd = payload.get("cwd")
             cwd = Path(cwd).expanduser() if isinstance(cwd, str) and cwd.strip() else Path.cwd()
-            ai_state = find_ai_state(cwd)
+            origin = cwd.resolve()
+            target, dest = push_target(command, origin)
+            ai_state = find_ai_state(origin if target == origin or same_project(target, origin, dest) else target)
             if ai_state:
                 stage = read_field(ai_state / "_index.md", "stage")
                 # 与 CC P8 对齐: stage 为空 (idle, 无 sprint 在飞) 放行维护性 push

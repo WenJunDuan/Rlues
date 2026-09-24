@@ -15,7 +15,7 @@ skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/�
 
 # === 路由审议 (v9.9.6) ===
 route_confidence: 0.98  # 切片5：三缺陷根因行号勘定(两个本会话实测踩过); 施工经用户指定走 grok 外部执行
-route_history: ["2026-09-24 idle: q12 切片5 代码已合入 main，review 并入 athena-10-1 S2；规划合并为 10.1", "2026-09-21 System/design: q12 slice5 writer-provenance; Q12#1/#2/#16+承接; grok 施工(用户指定); conf=0.98", "2026-09-20 System/design: q12 slice7+8 并行流水线; Q12#12 + Q12#14+切片2遗留; conf=0.97", "2026-09-20 System/design: q12 slice4 contract-parser-diagnostics; Q12#5/#7/#8 + 字节断言接管; conf=0.98", "2026-09-20 System/design: q12 slice3 review-binding-preflight; Q12#6/#9/#10; conf=0.99", "2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99", "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0"]  # re-route ≤10, item ≤160B
+route_history: ["2026-09-24 Bugfix S0 gate-hotfix: 推送目标/git·gh heredoc/design 基线/vm-pending/过期事实; review 5 轮 PASS", "2026-09-24 idle: q12 切片5 代码已合入 main，review 并入 athena-10-1 S2；规划合并为 10.1", "2026-09-21 System/design: q12 slice5 writer-provenance; Q12#1/#2/#16+承接; grok 施工(用户指定); conf=0.98", "2026-09-20 System/design: q12 slice7+8 并行流水线; Q12#12 + Q12#14+切片2遗留; conf=0.97", "2026-09-20 System/design: q12 slice4 contract-parser-diagnostics; Q12#5/#7/#8 + 字节断言接管; conf=0.98", "2026-09-20 System/design: q12 slice3 review-binding-preflight; Q12#6/#9/#10; conf=0.99", "2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99"]  # re-route ≤10, item ≤160B
 plan_model: "opus"              # 2026-09-20: fable 触发额度上限, System plan/design 审议改 opus
 
 # === 平台与版本 ===
@@ -81,7 +81,7 @@ pointers:
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "athena-10-1 计划已定稿，待用户 GO：读 roadmap/athena-10-1/roadmap.md，首片 S0（gate-hotfix-9-9-9-p1）"
+next_action: "S0 已完成（commit 待推送）；待用户授权安装 9.9.9 补丁（setup-athena --migrate）；下一片 S1 single-source-build"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []

@@ -17,7 +17,7 @@ INTJ 风格工程 Agent。CC 做事, Athena 把关。主 agent 对结果负责; 
 6. **复利颗粒化** — `compound/{date}-{type}-{slug}.md`, type ∈ learning/trick/decision/explore, ≤100 行一事一档
 7. **反过度工程** — 禁过度设计与过度防御: 无第二消费者不抽象; 无现实需求不加配置项/参数/扩展点; 防御只设信任边界 (用户输入/外部 IO/跨进程/权限面), 边界内 fail-fast — 禁吞异常/静默降级/blanket try-catch; 判据: 删掉后测试仍全绿且无真实调用方=删; harness 门禁与防御纵深除外 (约束对象: 产出代码与新增机制)
 8. **Hook 是进化器** — 门禁 block 或用户纠偏时写 proposals.md; 不逐 Stop 反思 (产出优先于记账)
-9. **四原语** — Workflow 统领 (PACE; 超大规模切片用 CC 当前可用机制; 长任务用当前平台真实存在的持久任务入口, CC 无原生 `/goal`), SubAgent 执行 (谁做·红黄绿区), Skill 赋能 (做什么/知识·热路径精简 + references/ 下沉), MCP 连接 (够得着外部·产出落 .ai_state 才算数, 不承载流程/门禁)。CC/CX 只对齐语义, 不伪造对称工具; 引用铁律用 `铁律[名称]` 不用编号
+9. **四原语** — Workflow 统领 (PACE; 超大规模切片用 CC 当前可用机制; 长任务用当前平台真实存在的持久任务入口, CC ≥2.1.269 有 `/goal`), SubAgent 执行 (谁做·红黄绿区), Skill 赋能 (做什么/知识·热路径精简 + references/ 下沉), MCP 连接 (够得着外部·产出落 .ai_state 才算数, 不承载流程/门禁)。CC/CX 只对齐语义, 不伪造对称工具; 引用铁律用 `铁律[名称]` 不用编号
 
 CC-only 可完成适用 PACE 全流程；其他平台仅在用户选择且能力可用时增强。尊重有效模型与原生权限设置；工具可调用不等于副作用已授权。阶段义务唯一正文见 `~/.claude/skills/pace/references/stages.md`，绑定、整合与接收见 `references/execution-contracts.md`。
 

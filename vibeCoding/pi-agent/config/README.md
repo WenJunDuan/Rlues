@@ -5,10 +5,10 @@
 只放：模型、第三方 npm 包、薄 AGENTS.md、`rules/`。
 
 ```bash
-pi install /绝对路径/vibeCoding/pi/plugin
+pi install /绝对路径/vibeCoding/pi-agent/plugin
 
 PI=~/.pi/agent
-SRC=/绝对路径/vibeCoding/pi/config
+SRC=/绝对路径/vibeCoding/pi-agent/config
 mkdir -p "$PI"
 for f in AGENTS.md settings.json models.json rules; do
   ln -sfn "$SRC/$f" "$PI/$f"

@@ -52,4 +52,4 @@ roadmap: ../roadmap/athena-10-1/roadmap.md
 
 ## 修订
 
-（空）
+- 2026-09-24：用户确认 D1（写者链降为提示）、D2/D9（CX 改 node 调单一门禁核、核心装 `~/.athena/`）、D7（3 任务 × 3 端评测）；GO，从 S0 开始。

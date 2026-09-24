@@ -11,7 +11,9 @@
 // tool never reaches a hook at all — so treating such a body as text removes
 // nothing. Shells and wrappers (sudo/env/timeout/nice/…) are not enumerable, so
 // everything outside this set keeps today's behaviour: over-block, never under-block.
-const CONSUMERS = new Set(['python3', 'python', 'node', 'tee', 'cat']);
+// git and gh (athena-10-1 S0) read stdin as data too: a commit message (commit -F -),
+// a patch (apply), a PR body (--body-file -), an API payload (api --input -).
+const CONSUMERS = new Set(['python3', 'python', 'node', 'tee', 'cat', 'git', 'gh']);
 
 // Closed grammar the whole first line must match, anchored at both ends:
 //   LINE  = TOKEN (SP+ TOKEN)* SP* '<<' '-'? SP* DELIM SP* EOL

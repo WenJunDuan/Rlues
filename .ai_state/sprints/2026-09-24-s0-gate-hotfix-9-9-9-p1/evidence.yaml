@@ -1,0 +1,12 @@
+# Cowork 会话手工记录（本片在设备 VM 中施工，未经 CC hook 采集）
+- command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999"
+  phase: red
+  result: "test_gate_fixes_20260924: 24 failures + 8 errors（施工前）"
+- command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999"
+  phase: green
+  result: "Ran 231 tests, OK（221 既有 + 10 新增；PushTarget 含 36 个子用例 × CC/CX）"
+  env: "设备 VM Python 3.10 + datetime.UTC/tomllib 垫片（PYTHONPATH）+ GIT_* 身份变量；与代码无关的环境适配"
+- command: "python3 vibeCoding/scripts/validate-athena-9.9.9.py"
+  result: "package_checks_pass=60 fail=0（清理包内生成的 __pycache__ 后）"
+- command: "cmp CC hooks/{_shell-lex,pre-bash-guard}.cjs Pi cc-core/同名"
+  result: "byte-identical"

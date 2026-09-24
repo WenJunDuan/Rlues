@@ -1752,8 +1752,13 @@ def ship_change_is_light(cwd: Path) -> bool:
     return all(is_light_ship_file(f) for f in files)
 
 
-def validate_vm_pending_promises(ai_state: Path, sprint_dir: Path, sprint_slug: str) -> None:
-    promise = re.compile(r"(记|登|转|→)\s*`?vm-pending")
+def validate_vm_pending_promises(ai_state: Path, sprint_dir: Path, sprint_slug: str, path_type: str | None = None) -> None:
+    # athena-10-1 S0 (Q12 #27): a bare file path ("vm-pending.md") is not a promise, and a
+    # Quick whose design already puts the ledger in its write set settles it in the same change.
+    promise = re.compile(r"(记|登|转|→)\s*`?vm-pending(?!\.md)")
+    design = sprint_dir / "design.md"
+    if path_type == "Quick" and design.is_file() and "vm-pending.md" in design.read_text(encoding="utf-8", errors="replace"):
+        return
     names = ("design.md", "runtime-verify.md", "cleanup-pass.md", "fix-note.md", "session-log.md")
     for name in names:
         path = sprint_dir / name
@@ -2169,7 +2174,7 @@ def main() -> int:
                 raise GateError(f"ship stage has unknown Athena path {path_type!r}")
             validate_containment(fm)
             validate_outside_repo_backup(sprint_dir, fm)
-            validate_vm_pending_promises(ai_state, sprint_dir, sprint_slug)
+            validate_vm_pending_promises(ai_state, sprint_dir, sprint_slug, path_type)
             # 9.9.6 P2 fix (see .ai_state/proposals.md): a light ship -- small net diff vs
             # upstream, touching only docs/config/deps/state/tests (no source logic, no
             # harness/hooks) -- has no TDD red/green story and takes the light gate: roadmap
