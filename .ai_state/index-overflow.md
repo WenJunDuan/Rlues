@@ -37,3 +37,6 @@ Full items moved off `_index.md` (AC9). Do not delete.
 
 ### rh-spill-2026-09-24b
 2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0
+
+### rh-spill-2026-09-24c
+2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99

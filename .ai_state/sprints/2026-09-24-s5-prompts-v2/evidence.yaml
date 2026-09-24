@@ -1,0 +1,7 @@
+# Cowork 会话手工记录（athena-10.1，设备 VM）
+- command: "PYTHONPATH=<tomli shim> node vibeCoding/athena/gate/cli.cjs run --covers AC1,AC2,AC3,AC4,AC5 -- python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -t vibeCoding/athena/evals/fixtures"
+  result: "Ran 154 tests, OK（新增 test_prompts 9 + test_init 3；test_build 改 S5 DELTA）"
+  evidence_id: "bc2036f09b2a（provable, exit 0, tree 71d6d5e4e4ad）"
+- command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999"
+  result: "231 OK（需 tomli/datetime shim 与 git 身份环境变量；9.9.9 冻结基线未改动）"
+- measure: "宪法 core/package/AGENTS.md 1,573 B（≤2,500）；rules 合计 ~140 行（≤300）；SKILL.md 全部 ≤60 行；skills 23→21（core 统一源）；agents 7/9→4"

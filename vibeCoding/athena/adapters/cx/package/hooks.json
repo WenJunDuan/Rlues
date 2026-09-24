@@ -1,0 +1,98 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs SessionStart --platform cx",
+            "timeout": 10,
+            "statusMessage": "Loading Athena context"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs UserPromptSubmit --platform cx",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write|Bash|spawn_agent|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs PreToolUse --platform cx",
+            "timeout": 15,
+            "statusMessage": "Athena gate"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs PostToolUse --platform cx",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs SubagentStart --platform cx",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs SubagentStop --platform cx",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs Stop --platform cx",
+            "timeout": 120,
+            "statusMessage": "Athena ship gate"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs PostCompact --platform cx",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+roadmap_slug: {{slug}}
+created: {{date}}
+# status: pending | active | paused | deferred | done | dropped
+# deferred: {reason, resume_when}（"after <item>" 形式可被 athena status 机判）
+items:
+  - slug: example
+    title: "一句话"
+    status: pending
+    sprint: ""
+    path: Feature
+    depends_on: []
+    write_set: []
+    ac: ["AC1 …"]

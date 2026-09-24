@@ -18,8 +18,9 @@ items:
     notes: "Q12 #27/#29/#30、NV-B4/C13/C15、调研 F1/F7、Q12 切片 7 记账"
   - slug: s1-single-source-build
     title: "单源构建：athena/ → dist/{claude,codex,pi}/10.1"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s1-single-source-build"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 第 2 轮 PASS", tests: "fixtures 20/20; athena999 231 OK"}
     blocked_by: [s0-gate-hotfix-9-9-9-p1]
     depends_on: [s0-gate-hotfix-9-9-9-p1]
     path: System
@@ -29,8 +30,9 @@ items:
     notes: "design §3–4、§9.5；P11；brainstorm 9.10 A；R999 migration 部分"
   - slug: s2-gate-core
     title: "单一 JS 门禁核 + cc/cx/pi 适配器 + 证据"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s2-gate-core"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 5 轮，终态 PASS（r5 CONCERNS 已修）", tests: "evals 89/89; athena999 231 OK", size: "gate 2,237 行"}
     blocked_by: [s1-single-source-build]
     depends_on: [s1-single-source-build]
     path: System
@@ -40,8 +42,9 @@ items:
     notes: "design §5、§8；D1/D2/D4/D5；Q12 切片 5/6/9 记账；P8/P9/P10/P12/P14/P17；blockers P5"
   - slug: s3-review-cli
     title: "athena review prepare/accept 两步 + reviewer 合同"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s3-review-cli"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 2 轮 PASS", tests: "evals 129/129; athena999 231 OK"}
     blocked_by: [s2-gate-core]
     depends_on: [s2-gate-core]
     path: Feature
@@ -51,8 +54,9 @@ items:
     notes: "design §6；NV-C1/C2/C10/C11/C12；quantum 门禁坑 1–11；P13a"
   - slug: s4-state-v2
     title: ".ai_state v2 schema + CLI + 自动归档 + 迁移脚本"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s4-state-v2"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 3 轮 PASS", tests: "evals 117/117; athena999 231 OK"}
     blocked_by: [s2-gate-core]
     depends_on: [s2-gate-core]
     path: System
@@ -62,8 +66,8 @@ items:
     notes: "design §7、§11.3；refs/ai-state-v2.md；NV-A*/D*；Q12 #20/#31；R999 state-recovery"
   - slug: s5-prompts-v2
     title: "宪法、规则、skills、agents 重写（Kirby 审）"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s5-prompts-v2"
     blocked_by: [s1-single-source-build]
     depends_on: [s1-single-source-build]
     path: Feature
@@ -73,8 +77,9 @@ items:
     notes: "design §9；NV-B5/B6/B7/C9/C16/D11–D18；explore #6；convergence；R999 pace-contract"
   - slug: s6-install-doctor
     title: "athena install / rollback / doctor；退役 harness-patches 与 setup-athena.py"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s6-install-doctor"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 2 轮", tests: "evals 142/142; athena999 231 OK"}
     blocked_by: [s2-gate-core]
     depends_on: [s1-single-source-build, s2-gate-core]
     path: Feature
@@ -84,7 +89,8 @@ items:
     notes: "design §11；Q12 切片 9；R999 AC12；NV-D15；HP 全部"
   - slug: s7-platform-ahead
     title: "Pi 0.87 硬停 + 平台探测 + flag 接入（CC tasks/workflows、Grok）"
-    status: pending
+    status: dropped
+    dropped: "2026-09-24 用户：S7 不做（Pi 0.87 硬停与平台探测留待真机）"
     sprint_slug: ""
     blocked_by: [s2-gate-core]
     depends_on: [s2-gate-core]
@@ -95,7 +101,8 @@ items:
     notes: "design §10、§13；调研 F1–F8；pi-agent-9-10 sprint 取代；D6"
   - slug: s8-evals
     title: "evals：三端 fixture 一键跑 + 3 个行为任务 + 基线对比"
-    status: pending
+    status: dropped
+    dropped: "2026-09-24 用户：去掉，后续在项目中跑评测再完善"
     sprint_slug: ""
     blocked_by: [s2-gate-core, s5-prompts-v2]
     depends_on: [s2-gate-core, s5-prompts-v2]

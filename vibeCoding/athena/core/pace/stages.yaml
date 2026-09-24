@@ -1,0 +1,56 @@
+# PACE 阶段静态事实（athena-10-1 S2：10.1 门禁核 H1–H5 / A1–A10）。
+# 写法：YAML 的 JSON 子集（YAML ⊃ JSON）——build.mjs 零依赖解析；整行 # 注释会被剥除。
+# 规则实现：vibeCoding/athena/gate/rules/*.cjs；evals/fixtures/test_gate_contracts.py 核对本表与实现一致。
+# stage id 保持 9 个（plan 仍在）；build 由本文件生成 contracts.json 与 pace/references/stages.md（勿手改后者）。
+{
+  "paths": ["Hotfix", "Bugfix", "Quick", "Feature", "Refactor", "System"],
+  "order_note": "记账全部写完 → athena review prepare → reviewer → athena review accept → athena ship（ship 是最后一次写入）",
+  "zones": {
+    "green": "≤3 文件且合计 ≤150 行，或 Hotfix/Quick/Bugfix：主 agent 直做",
+    "yellow": "单模块 Feature：generator，worktree 可选",
+    "red": "Refactor/System 或 parallel_writers ≥2：写者子 agent 隔离（H4）"
+  },
+  "hard": {
+    "H1": {"name": "design-first", "event": "pre_tool write", "stages": ["plan", "design", "impl"],
+           "paths": ["Bugfix", "Quick", "Feature", "Refactor", "System"],
+           "does": "仓库内、.ai_state 外的写入需当前 sprint design.md ≥1 条非占位 `- ACn:`"},
+    "H2": {"name": "evidence", "event": "stop", "stages": ["ship"],
+           "paths": ["Hotfix", "Bugfix", "Quick", "Feature", "Refactor", "System"],
+           "does": "主仓 .runtime/evidence/<sprint>.jsonl 有 provable exit 0 记录且 tree_sha = 当前源码树"},
+    "H3": {"name": "review", "event": "stop", "stages": ["ship"],
+           "paths": ["Bugfix", "Feature", "Refactor", "System"],
+           "does": "review.json verdict PASS 且 tree_sha = 当前源码树"},
+    "H4": {"name": "isolation", "event": "pre_tool agent", "stages": [],
+           "paths": ["Refactor", "System"],
+           "does": "红区或 parallel_writers ≥2：写者子 agent 须 worktree 隔离；豁免 h4_worktree"},
+    "H5": {"name": "shell", "event": "pre_tool bash", "stages": [],
+           "paths": [],
+           "does": "危险命令表；推送本项目仓库在 plan/design/impl/runtime-verify/polish/review 拦"}
+  },
+  "advisory": {
+    "A1": "写者溯源（generator / 外部写者）", "A2": "R/S runtime-verify 与 polish 记录",
+    "A3": "R/S ≥5 文件改动未更新 architecture/（base_commit 锚定）", "A4": "承诺记账闭合",
+    "A5": "design 在实现开始后改动（基线已有 design）", "A6": "_index 指针存在",
+    "A7": "梳理阈值（热层 >3、issues >40、_index >3 KB）", "A8": "豁免将到期/无效",
+    "A9": "Bugfix 复现测试在 red 记录后被改（flag bugfix_test_lock）", "A10": "reviewer 与作者同家族"
+  },
+  "stages": [
+    {"id": "brainstorm", "kind": "conditional", "when": "写不出可观察验收标准，或用户要求探索",
+     "produces": [{"file": "docs/research/{date}-{slug}.md"}]},
+    {"id": "roadmap", "kind": "conditional", "when": "≥2 个可独立验收、可独立 ship 的切片，或用户要求拆分",
+     "produces": [{"file": "roadmap/{slug}/roadmap.md"}, {"file": "roadmap/{slug}/items.yaml"}]},
+    {"id": "plan", "kind": "core", "skip_paths": ["Hotfix"], "hard": ["H1"],
+     "produces": [{"file": "sprints/{slug}/design.md", "paths": ["Bugfix", "Quick", "Feature", "Refactor", "System"]}]},
+    {"id": "design", "kind": "conditional", "paths": ["System"], "hard": ["H1"],
+     "produces": [{"file": "sprints/{slug}/design.md"}]},
+    {"id": "impl", "kind": "core", "hard": ["H1", "H4", "H5"]},
+    {"id": "runtime-verify", "kind": "conditional", "paths": ["Refactor", "System"], "optional_paths": ["Feature"],
+     "advisory": ["A2"], "exemption": "skip_runtime_verify",
+     "next": {"Refactor": "polish", "System": "polish", "*": "review"}},
+    {"id": "polish", "kind": "conditional", "paths": ["Refactor", "System"], "advisory": ["A2"], "exemption": "skip_polish"},
+    {"id": "review", "kind": "core", "paths": ["Bugfix", "Feature", "Refactor", "System"], "hard": ["H3"],
+     "produces": [{"file": "sprints/{slug}/review.json"}]},
+    {"id": "ship", "kind": "core", "hard": ["H2", "H3"], "advisory": ["A1", "A2", "A3", "A4", "A5", "A6", "A9", "A10"],
+     "note": "记账全部完成 → athena review prepare → reviewer → accept → ship"}
+  ]
+}

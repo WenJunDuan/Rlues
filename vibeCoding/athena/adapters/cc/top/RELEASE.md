@@ -1,0 +1,24 @@
+# Athena 10.1 — 升级说明（先读）
+
+- 安装器换成 `athena install / doctor / rollback`（见 skills/athena-setup）；`setup-athena.py` 与 `harness-patches.md` 退役。
+- 门禁换成一个 JS 核：hooks 全部指向 `node ~/.athena/current/hook.cjs <Event> --platform cc`；旧 hook 文件由安装器移入备份。
+- 证据用 `athena run -- <检查命令>`；审查用 `athena review prepare/accept`；状态用 `athena sprint/ship/status/issue/tidy`。
+- 项目状态迁移：`athena migrate --to 10.1 --dry-run`。
+
+---
+
+# Athena Claude Code 9.9.9
+
+Status: candidate. Baseline: 9.9.8. Hotfix on 9.9.9 (not a new version): 电报体; 产出声明见 `.claude/rules/doc-style.md`. This package is prepared for implementation review; it does not claim the release Done Contract or efficiency measurements have passed.
+
+CC-only is a complete supported design path; additional platforms are optional enhancements. PACE stage obligations live in pace/references/stages.md. design.md owns the Done Contract, checklist is optional, and Refactor/System follows runtime-verify → polish → one independent review.
+
+Candidate contracts cover bounded state recovery, actual-input evidence, review dispatch/acceptance binding, writer integration and real fullstack admission. Local and SSH VM execution are environment choices; transport readiness is distinct from project readiness.
+
+Fresh configuration respects the user's effective model and native default permission mode; the Codex connector is disabled by default. Athena agents use `maxTurns: 70`; reaching the limit returns partial progress, not a PASS. Native review prompt lives in `skills/athena-review/REVIEW.md` (Claude Code skill layout), not `~/.claude/REVIEW.md`. VM registry schema/example ships in the package; LLM-as-a-Verifier is an opt-in skill (`/llm-as-a-verifier`), default off, never a ship gate. Migration preserves user model/effort/provider/permissions, third-party assets, and chat sessions. Historical releases and closed sprint records remain intact. Already-installed machines may drop older installer backups after a successful transaction.
+
+Candidate verification includes isolated cc/cx/both installation, migration/rollback regressions, state/review fault cases, actual Codex configuration loading, and local + SSH HTTP/SQLite runner smoke with cleanup. The review packet records exact results. Pending release proof: representative CC-only/CX-only agent tasks, all native hook/review/worktree entry points, cross-session recovery, real FE/BE/DB business scenarios, and preregistered quality/efficiency comparison. These remain separate from candidate package checks. No installation update or publishing is implied by candidate status.
+
+Native configuration sources: [Claude Code settings](https://code.claude.com/docs/en/settings), [subagents](https://code.claude.com/docs/en/sub-agents). Actual version/entry evidence is required; rolling documentation alone is not runtime proof.
+
+Structural limits (not claimed as closed): PreToolUse may allow `git push` at stage=ship before Stop runs delivery-gate; CX Stop may fail-open after three blocks by platform design. Native review receipts are agent-persisted JSON, not provider attestation. `author_target` is empty when the child process lacks `CLAUDE_SESSION_ID`/`CODEX_THREAD_ID`. AC14 native Codex hook/review/worktree entries remain unproven until install-time measurement. User settings backups under `~/.athena/backups/` may contain secrets and are never auto-deleted. VM `killpg` of a reaped session leader is retained so leftover prepare-session children are reaped; a reused pid remains a residual race.

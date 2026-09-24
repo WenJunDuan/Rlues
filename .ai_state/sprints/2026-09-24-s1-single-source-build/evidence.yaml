@@ -1,0 +1,11 @@
+# Cowork 会话手工记录（athena-10.1 分支，设备 VM）
+- command: "python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -t vibeCoding/athena/evals/fixtures"
+  phase: red
+  result: "10 tests: 8 failures + 4 errors（导入前）"
+- command: "同上"
+  phase: green
+  result: "Ran 20 tests, OK"
+- command: "node vibeCoding/athena/build.mjs --out /tmp/s1dist"
+  result: "claude/10.1 156 files; codex/10.1 158; pi/10.1 89（= 基线 153/155/86 + 3 个生成文件）"
+- command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999"
+  result: "Ran 231 tests, OK（9.9.9 套件不回归）"

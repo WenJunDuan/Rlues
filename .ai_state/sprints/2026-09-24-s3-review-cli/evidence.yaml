@@ -1,0 +1,6 @@
+# Cowork 会话手工记录（athena-10.1，设备 VM）
+- command: "node vibeCoding/athena/gate/cli.cjs run --covers AC1..AC5 -- python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -t vibeCoding/athena/evals/fixtures"
+  result: "Ran 129 tests, OK（test_review_cli 12）"
+  evidence_id: "4e3b542605c6（provable, exit 0）"
+- command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999"
+  result: "231 OK"
