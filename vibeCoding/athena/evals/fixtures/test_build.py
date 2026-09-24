@@ -25,11 +25,16 @@ BASELINES = {
     'pi': VIBE / 'pi-agent',
 }
 # Every difference from the 9.9.9 baseline must be declared here (prefixes end with "/").
-DELTA = {
-    'claude': {'removed': ['.claude/hooks/'], 'changed': ['.claude/settings.json'], 'added': []},
-    'codex': {'removed': ['.codex/hooks/'], 'changed': ['.codex/hooks.json'], 'added': []},
-    'pi': {'removed': ['plugin/extensions/cc-core/'], 'added': ['plugin/core/gate/'],
-           'changed': ['plugin/README.md', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts']},
+DELTA = {  # S2 gate core; S3 review CLI (reviewer contract, thin athena-review skill, CC workflow)
+    'claude': {'removed': ['.claude/hooks/', '.claude/skills/pace/scripts/review-binding.cjs', '.claude/skills/athena-review/REVIEW.md'],
+               'changed': ['.claude/settings.json', '.claude/agents/reviewer.md', '.claude/skills/athena-review/SKILL.md'],
+               'added': ['.claude/workflows/athena-review.js']},
+    'codex': {'removed': ['.codex/hooks/', '.codex/skills/athena-review/REVIEW.md'],
+              'changed': ['.codex/hooks.json', '.codex/agents/reviewer.toml', '.codex/skills/athena-review/SKILL.md'], 'added': []},
+    'pi': {'removed': ['plugin/extensions/cc-core/', 'plugin/skills/pace/scripts/review-binding.cjs', 'plugin/skills/athena-review/REVIEW.md'],
+           'added': ['plugin/core/gate/'],
+           'changed': ['plugin/README.md', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts',
+                       'plugin/prompts/reviewer.md', 'plugin/skills/athena-review/SKILL.md']},
 }
 NEW_DISTS = ('athena',)   # S2: gate core → ~/.athena/<ver>/
 

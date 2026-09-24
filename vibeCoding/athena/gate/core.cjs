@@ -50,10 +50,23 @@ function ledgerWrite(ev, ctx) {
   return guarded.length ? { rule: 'H2', reason: `H2 ledger: ${guarded.map(f => path.relative(ctx.mainRoot, f)).join(', ')} is written only by \`athena run\` / \`athena review accept\`` } : null;
 }
 
+/** Gate pit "cat alias heredoc 0 bytes": `cat > f <<EOF` with an empty body truncates f (warn only). */
+function emptyCatHeredoc(command) {
+  try {
+    const doc = require('./lib/shell-lex.cjs').simpleHeredoc(String(command || ''));
+    const first = String(command).split('\n')[0];
+    if (doc && doc.start === doc.end && /^\s*cat\s[^|;&]*>/.test(first)) {
+      return [{ rule: 'H5', message: 'cat > file with an empty heredoc body writes 0 bytes — use the edit tool or tee' }];
+    }
+  } catch (_) { /* advisory only */ }
+  return [];
+}
+
 function preTool(ev, ctx) {
   if (ev.tool === 'bash') {
     const verdict = hard('H5', () => h5.check(ev, ctx));
-    return verdict ? block(verdict) : allow();
+    if (verdict) return block(verdict);
+    return allow({ warnings: emptyCatHeredoc(ev.command) });
   }
   if (!ctx || context.idle(ctx)) return allow();
   if (ev.tool === 'write') {

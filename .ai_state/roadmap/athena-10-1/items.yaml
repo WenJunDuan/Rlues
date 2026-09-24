@@ -42,8 +42,9 @@ items:
     notes: "design §5、§8；D1/D2/D4/D5；Q12 切片 5/6/9 记账；P8/P9/P10/P12/P14/P17；blockers P5"
   - slug: s3-review-cli
     title: "athena review prepare/accept 两步 + reviewer 合同"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s3-review-cli"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 2 轮 PASS", tests: "evals 129/129; athena999 231 OK"}
     blocked_by: [s2-gate-core]
     depends_on: [s2-gate-core]
     path: Feature

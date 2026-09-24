@@ -50,13 +50,17 @@ function start(argv, io) {
   fs.writeFileSync(path.join(dir, 'design.md'), state.render(route === 'Bugfix' ? 'bugfix-design.md' : 'design.md', fields));
   fs.writeFileSync(path.join(dir, 'log.md'), state.render('log.md', fields));
   if (roadmap) state.setItem(state.itemsFile(ctx.aiState, roadmap), item, { status: 'active', sprint: slug });
+  const created = [];
+  for (const name of ['issues.md', 'queue.md']) {
+    if (!fs.existsSync(path.join(ctx.aiState, name))) { fs.copyFileSync(path.join(state.templatesDir(), name), path.join(ctx.aiState, name)); created.push(name); }
+  }
   const stage = route === 'Hotfix' ? 'impl' : 'design';
   state.setFields(path.join(ctx.aiState, '_index.md'), {
     path: route, stage, sprint: slug, roadmap: roadmap || undefined,
     next_action: route === 'Hotfix' ? 'fix, then athena run the check' : 'write design.md acceptance lines (- ACn:)',
     route_push: `${today()} ${route} ${roadmap ? `${roadmap}/${item}` : slug}`,
   });
-  archive.stage(ctx, ['_index.md', `sprints/${slug}/design.md`, `sprints/${slug}/log.md`, ...(roadmap ? [`roadmap/${roadmap}/items.yaml`] : [])]);
+  archive.stage(ctx, ['_index.md', `sprints/${slug}/design.md`, `sprints/${slug}/log.md`, ...created, ...(roadmap ? [`roadmap/${roadmap}/items.yaml`] : [])]);
   io.stdout.write(`sprint ${slug} started: path=${route} stage=${stage}\n  design: .ai_state/sprints/${slug}/design.md\n`);
   return 0;
 }
