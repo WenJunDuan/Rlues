@@ -2,16 +2,18 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "model": "best",
   "effortLevel": "high",
-  "fallbackModel": [
-    "opus",
-    "sonnet"
-  ],
+  "fallbackModel": ["opus", "sonnet"],
   "worktree": {
     "baseRef": "head"
   },
   "env": {
     "VIBECODING_ATHENA_VERSION": "{{athena:ATHENA_VERSION}}",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5-1",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "DISABLE_INSTALLATION_CHECKS": "1",
+    "API_TIMEOUT_MS": "600000"
   },
   "permissions": {
     "defaultMode": "default",
@@ -62,28 +64,8 @@
       "Bash(prettier --check*)",
       "Bash(tsc --noEmit*)"
     ],
-    "ask": [
-      "Bash(git push --force*)",
-      "Bash(git push -f*)",
-      "Bash(git reset --hard*)",
-      "Bash(npm publish*)",
-      "Bash(pnpm publish*)",
-      "Bash(yarn publish*)",
-      "Bash(docker push*)"
-    ],
+    "ask": ["Bash(npm publish*)", "Bash(pnpm publish*)", "Bash(yarn publish*)"],
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(~/.ssh/**)",
-      "Read(~/.aws/**)",
-      "Read(~/.config/gcloud/**)",
-      "Read(~/.kube/config)",
-      "Read(**/*.pem)",
-      "Read(**/*.key)",
-      "Read(**/credentials.json)",
-      "Read(**/secrets/**)",
       "Edit(./.env)",
       "Edit(./.env.*)",
       "Edit(**/.env)",
@@ -224,8 +206,7 @@
     "commit-commands@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "feature-dev@claude-plugins-official": false,
-    "superpowers@claude-plugins-official": false,
-    "codex@openai-codex": false
+    "feature-dev@claude-plugins-official": true,
+    "codex@openai-codex": true
   }
 }
