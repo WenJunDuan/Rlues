@@ -4,3 +4,4 @@
 - 2026-09-24：红测 test_gate_fixes_20260924（24F/8E）→ 实现 AC1–AC6 → 全量 231 OK。
 - 2026-09-24：独立 review 5 轮：FAIL(P0 GIT_DIR 绕过) → CONCERNS(clone 放宽) → REWORK(软链拼写 CC/CX 分裂) → CONCERNS(`..` 折叠) → PASS。附带修 CX 既有漏洞（未解包取子命令）。
 - 2026-09-24：validator 60/0；fix-note、review、evidence 落盘。ship：代码入 main；安装态同步待用户授权。
+- 2026-09-24：用户安装 cc+cx（--migrate，基线 bf58521）；17 文件更新（S0 10 + 切片 5 七个），25 个用户覆盖保留；backup `~/.athena/backups/20260924T025801139634-506bafc9-cc+cx-migrate`。

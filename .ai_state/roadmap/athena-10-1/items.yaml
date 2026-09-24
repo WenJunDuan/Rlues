@@ -8,7 +8,7 @@ items:
     title: "9.9.9 误拦与过期事实热修（立即安装）"
     status: done
     sprint_slug: "2026-09-24-s0-gate-hotfix-9-9-9-p1"
-    done: {review: "reviews/implementation-review.md 第 5 轮 PASS", tests: "athena999 231 OK; validator 60/0", install: "待用户授权"}
+    done: {review: "reviews/implementation-review.md 第 5 轮 PASS", tests: "athena999 231 OK; validator 60/0", install: "2026-09-24 已装 cc+cx（backup 20260924T025801139634-506bafc9-cc+cx-migrate；含切片 5）"}
     blocked_by: []
     depends_on: []
     path: Bugfix
