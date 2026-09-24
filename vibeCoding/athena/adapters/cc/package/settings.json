@@ -10,7 +10,7 @@
     "baseRef": "head"
   },
   "env": {
-    "VIBECODING_ATHENA_VERSION": "9.9.9",
+    "VIBECODING_ATHENA_VERSION": "10.1.0",
     "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",

@@ -66,8 +66,8 @@ items:
     notes: "design §7、§11.3；refs/ai-state-v2.md；NV-A*/D*；Q12 #20/#31；R999 state-recovery"
   - slug: s5-prompts-v2
     title: "宪法、规则、skills、agents 重写（Kirby 审）"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s5-prompts-v2"
     blocked_by: [s1-single-source-build]
     depends_on: [s1-single-source-build]
     path: Feature

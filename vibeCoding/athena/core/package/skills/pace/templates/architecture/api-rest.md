@@ -46,7 +46,7 @@ triggered_by_sprint: ""
 - 不支持: ...
 - 限制: ...
 
-## 演进历史 (引用 compound/)
+## 演进历史 (引用 decisions/)
 
-- {date}: 引入 RS256 → `compound/decision-jwt-rs256.md`
-- {date}: 加 refresh token → `compound/decision-jwt-refresh.md`
+- {date}: 引入 RS256 → `decisions/jwt-rs256.md`
+- {date}: 加 refresh token → `decisions/jwt-refresh.md`

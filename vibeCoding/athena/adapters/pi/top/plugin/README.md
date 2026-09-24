@@ -14,9 +14,9 @@ pi install /绝对路径/vibeCoding/pi-agent/plugin
 | 层 | 内容 |
 |---|---|
 | extensions | `athena-gates`（bash/write 门禁，`agent_end` followUp）· `athena-lifecycle`（面包屑、compact、铁律短注入） |
-| skills | pace · athena-dev · athena-init · athena-status · brainstorm · roadmap · compound · athena-review · polish · athena-runtime-verify · athena-issue · architect-doc |
+| skills | pace · athena-dev · athena-init · athena-status · brainstorm · roadmap · athena-review · polish · athena-runtime-verify · architect-doc（由 core 生成） |
 | prompts | `/generator` `/reviewer` `/architect` `/polish-worker` |
-| core/IRON.md | 常驻短规则（lifecycle 追加进 system prompt） |
+| core/IRON.md | 宪法（由 core/package/AGENTS.md 生成；lifecycle 每轮追加进 system prompt） |
 
 不含：你的模型/API、fff/btw 等第三方包、quantum 业务 skill。那些放个人 `settings.json`。
 

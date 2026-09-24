@@ -24,6 +24,13 @@ description: 在线查依赖可升级版本 (Maven / npm / PyPI / Cargo / Go / R
 - lockfile 已锁的传递依赖不在直接报告范围, 除非用户要求审计全树。
 - 私服/企业镜像: 换 registry base URL, 查询逻辑不变。
 
+## 必做清单
+
+1. 全组件清单：列出仓库内**所有** manifest（根目录与子包、工具链、CI、Dockerfile 基础镜像、运行时版本文件如 `.nvmrc` / `.python-version`），逐个检查，不只查主 package。
+2. 每个结论标来源：registry 元数据接口 URL + 查询时间；查不到写「未能查到」。
+3. SDK / 框架跨版本升级：列出项目对其私有或未文档化契约的使用（内部字段、猴子补丁、`as unknown as`、非公开导入路径），逐条对照新版 changelog / 源码复核；有一条对不上就标「需改代码」。
+4. 末步：本机 Node / Python 各保持一个主版本（与版本文件一致）；发现多版本并存先报告，不在多版本环境下装依赖。
+
 ## 详细 playbook
 
 完整工作流、模板、schema 与联动细节见 `references/playbook.md` —— 按需 Read, 不进热路径。

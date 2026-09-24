@@ -8,8 +8,10 @@
 //   adapters/<p>/package/**    -> <package_root>/**
 //   adapters/<p>/top/**        -> ./**
 //   gate/**                    -> <gate_root>/**     (platforms that set "gate_root"; S2 gate core)
+// "rename" {corePrefix: newPrefix} renames core files (CC AGENTS.md -> CLAUDE.md, CX rules/ -> standards/).
+// "core_map" {corePrefix: outPrefix} (platforms with "core": false) takes only the matching core files.
 // Generated at the root of every output: contracts.json (from core/pace/stages.yaml),
-// GENERATED.md, manifest.json.
+// GENERATED.md, manifest.json. Generated as a core file: skills/pace/references/stages.md.
 //
 // Templates: {{athena:NAME}} is replaced by the platform's vars.NAME; {{athena:!NAME}} writes
 // the literal {{athena:NAME}}. An undefined or malformed marker, or a marker inside a binary /
@@ -101,7 +103,38 @@ function contracts(src, version) {
     }
   }
   for (const [rule, spec] of Object.entries(data.hard || {})) checkPaths(`hard ${rule}`, spec.paths);
-  return `${JSON.stringify({ schema: 1, version, source: "core/pace/stages.yaml", ...data }, null, 2)}\n`;
+  return { json: `${JSON.stringify({ schema: 1, version, source: "core/pace/stages.yaml", ...data }, null, 2)}\n`, data };
+}
+
+const cell = (v) => String(v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length) ? "—" : Array.isArray(v) ? v.join(", ") : v).replace(/\|/g, "\\|");
+
+/** pace/references/stages.md — the human view of stages.yaml. */
+function stagesMd(data, version) {
+  const out = [`# PACE stages (Athena ${version})`, "",
+    "> 由 `core/pace/stages.yaml` 生成，勿手改。硬门 fail-closed，由门禁核执行；提示项只 warn。", "",
+    "## 路径", "", data.paths.join(" · "), "", "## 写入分区", "", "| 区 | 规则 |", "|---|---|"];
+  for (const [k, v] of Object.entries(data.zones || {})) out.push(`| ${k} | ${cell(v)} |`);
+  out.push("", "## 阶段", "", "| stage | 何时 | 路径 | 产出 | 硬门 | 提示 | 豁免 |", "|---|---|---|---|---|---|---|");
+  for (const s of data.stages) {
+    const paths = s.paths ? s.paths.join(", ") + (s.optional_paths ? `（可选 ${s.optional_paths.join(", ")}）` : "") : s.skip_paths ? `除 ${s.skip_paths.join(", ")}` : "全部";
+    const produces = (s.produces || []).map(p => `\`${p.file}\`${p.paths ? `（${p.paths.join("/")}）` : ""}`).join("<br>");
+    out.push(`| ${s.id} | ${cell(s.when || (s.kind === "core" ? "核心阶段" : "条件阶段"))} | ${cell(paths)} | ${cell(produces)} | ${cell(s.hard)} | ${cell(s.advisory)} | ${cell(s.exemption)} |`);
+  }
+  if (data.order_note) out.push("", `**ship 前顺序**：${data.order_note}`);
+  out.push("", "## 硬门", "", "| id | 名称 | 时机 | 阶段 | 路径 | 做什么 |", "|---|---|---|---|---|---|");
+  for (const [id, h] of Object.entries(data.hard || {})) out.push(`| ${id} | ${h.name} | ${h.event} | ${cell(h.stages)} | ${cell(h.paths)} | ${cell(h.does)} |`);
+  out.push("", "## 提示项", "", "| id | 内容 |", "|---|---|");
+  for (const [id, a] of Object.entries(data.advisory || {})) out.push(`| ${id} | ${cell(a)} |`);
+  return `${out.join("\n")}\n`;
+}
+
+/** Map a core-relative path through a {prefix: replacement} table (longest key wins); null when none matches. */
+function mapPrefix(rel, table) {
+  const keys = Object.keys(table).sort((a, b) => b.length - a.length);
+  for (const from of keys) {
+    if (rel === from || (from.endsWith("/") && rel.startsWith(from))) return table[from] + rel.slice(from.length);
+  }
+  return null;
 }
 
 function render(buffer, vars, label) {
@@ -138,7 +171,20 @@ function assemble(src, platform, version) {
     throw new BuildError(`adapters/${platform}/platform.json: invalid package_root ${root}`);
   }
   const layers = [];
-  if (config.core) layers.push({ dir: path.join(src, "core/package"), prefix: root, label: "core/package" });
+  for (const key of ["rename", "core_map"]) {
+    const table = config[key];
+    if (table === undefined) continue;
+    if (!table || typeof table !== "object" || Array.isArray(table)) throw new BuildError(`adapters/${platform}/platform.json: ${key} must be an object`);
+    for (const [from, to] of Object.entries(table)) {
+      if (typeof to !== "string" || [from, to].some(x => !x || path.isAbsolute(x) || x.split(/[\\/]/).includes(".."))
+          || from.endsWith("/") !== to.endsWith("/")) {
+        throw new BuildError(`adapters/${platform}/platform.json: invalid ${key} entry ${from} (directory keys and targets both end with "/")`);
+      }
+    }
+  }
+  if (config.core_map && config.core) throw new BuildError(`adapters/${platform}/platform.json: core_map is for platforms with "core": false`);
+  const table = config.core ? (config.rename || {}) : config.core_map;
+  if (table) layers.push({ dir: path.join(src, "core/package"), prefix: config.core ? root : "", label: "core/package", table, only: !config.core });
   if (config.gate_root !== undefined) {
     const gateRoot = config.gate_root;
     if (typeof gateRoot !== "string" || path.isAbsolute(gateRoot) || gateRoot.split(/[\\/]/).includes("..")) {
@@ -156,17 +202,33 @@ function assemble(src, platform, version) {
     keys.set(key, source);
   };
   for (const name of GENERATED_FILES) claim(name, "build.mjs");
+  const stages = contracts(src, version);
   for (const layer of layers) {
-    for (const file of walk(layer.dir)) {
-      const rel = posix(path.join(layer.prefix, path.relative(layer.dir, file)));
-      const source = `${layer.label}/${posix(path.relative(layer.dir, file))}`;
+    const entries = walk(layer.dir).map(file => ({ rel: posix(path.relative(layer.dir, file)), read: () => fs.readFileSync(file),
+      mode: fs.statSync(file).mode & 0o111 ? 0o755 : 0o644 }));
+    if (layer.table) {
+      entries.push({ rel: "skills/pace/references/stages.md", read: () => Buffer.from(stagesMd(stages.data, version), "utf8"), mode: 0o644, generated: true });
+      for (const from of Object.keys(layer.table)) {
+        if (!entries.some(e => e.rel === from || (from.endsWith("/") && e.rel.startsWith(from)))) {
+          throw new BuildError(`adapters/${platform}/platform.json: ${layer.only ? "core_map" : "rename"} key ${from} matches no core file`);
+        }
+      }
+    }
+    for (const entry of entries) {
+      let inner = entry.rel;
+      if (layer.table) {
+        const mapped = mapPrefix(inner, layer.table);
+        if (mapped === null && layer.only) continue;
+        if (mapped !== null) inner = mapped;
+      }
+      const rel = posix(path.join(layer.prefix, inner));
+      const source = entry.generated ? "core/pace/stages.yaml" : `${layer.label}/${entry.rel}`;
       claim(rel, source);
-      const mode = fs.statSync(file).mode & 0o111 ? 0o755 : 0o644;
-      outputs.set(rel, { content: render(fs.readFileSync(file), vars, source), mode, source });
+      outputs.set(rel, { content: render(entry.read(), vars, source), mode: entry.mode, source });
     }
   }
   const generated = (content, source = "build.mjs") => ({ content: Buffer.from(content, "utf8"), mode: 0o644, source });
-  outputs.set("contracts.json", generated(contracts(src, version), "core/pace/stages.yaml"));
+  outputs.set("contracts.json", generated(stages.json, "core/pace/stages.yaml"));
   outputs.set("GENERATED.md", generated(
     `${GENERATED_TITLE}\nEvery file in this tree is generated by \`vibeCoding/athena/build.mjs\` (Athena ${version}, platform ${platform}).\n` +
     "Edit the sources under `vibeCoding/athena/` and rebuild. `manifest.json` lists each file's sha256, mode and source.\n"));

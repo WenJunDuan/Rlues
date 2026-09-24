@@ -1,6 +1,6 @@
 # brainstorm · playbook
 
-> 从 SKILL.md 下沉的完整正文 (v9.9.6 渐进披露拆分)。热路径只留触发与判据。
+> 从 SKILL.md 下沉的完整正文。热路径只留触发与判据。
 
 ## 提问透镜 (混用, 不报菜名)
 
@@ -8,36 +8,10 @@
 
 ## 工作流
 
-### Step 1: 创建 sprint 目录
-
-```bash
-slug=$(date +%Y-%m-%d)-$(echo "$user_topic" | slugify)
-mkdir -p .ai_state/sprints/$slug
-cp {{athena:SKILLS_DIR}}/pace/templates/sprints/brainstorm.md .ai_state/sprints/$slug/
-```
-
-### Step 2: 更新 _index.md
-
-```yaml
-stage: "brainstorm"
-current_sprint_slug: "{date}-{slug}"
-pointers:
-  latest_brainstorm: "sprints/{date}-{slug}/brainstorm.md"
-```
-
-### Step 3: 提问循环 (核心循环 1-7)
-
-对话过程**不逐轮落盘** — 问答是过程, 不是产物。中途 compact 风险高时可先写半成品 log (标 converged: false)。
-
-### Step 4: 收敛 + 落盘 distilled log + 路由
-
-**终止条件**: 下一个具体动作 (写 plan / 拆 roadmap / 进 design) 已经可能 — 且仅在此时。
-落盘 brainstorm.md (distilled log 模板): 存结论与理由, 不存问答记录; 空段删除, 不留 TBD。
-
-路由判定 (同 v9.7.0):
-- 单 feature 清晰 → plan
-- ≥2 个可独立验收、可独立 ship 的切片 → roadmap
-- System 路径需求清晰 → direct design
+1. 不开 sprint、不写代码。提问循环（SKILL.md 1–7）；问答是过程，不逐轮落盘。上下文快满时先写半成品（`converged: false`）。
+2. 终止条件：下一个具体动作（开 sprint / 拆 roadmap / 写需求档）已经可以做——且仅在此时。
+3. 落盘 `.ai_state/docs/research/<date>-<slug>.md`：结论、理由、约束、可观察验收草稿；空段删除，不留 TBD。不存问答记录。
+4. 路由：单一能力清晰 → athena-requirements（新能力）或直接 `athena sprint start`；≥2 个可独立验收切片 → roadmap；System 需求清晰 → sprint start 后写 design。
 
 ## AI 角色
 
@@ -48,31 +22,8 @@ pointers:
 
 ## 约束
 
-- 不读 compound (避免污染创意空间; 例外见下)
-- 不调用其他 subagent (主 agent 与用户对话; 查库用自己的 Read/Grep)
-- 不写代码 (铁律[零写入]: brainstorm 无任何代码写入)
-- 不设固定轮数上限; 但用户表现出不耐烦或明说 "够了" → 立即收敛落盘
+- 默认不读 decisions（避免被旧结论框住）；用户问「之前怎么定的」时例外。
+- 不派子 agent；查库用自己的 Read/Grep。不写代码。
+- 不设固定轮数；用户不耐烦或说「够了」→ 立即收敛落盘。
 
-## 与其他 stage 联动
-
-| stage | 衔接 |
-|---|---|
-| plan | 收敛 = 单 feature 清晰 → 进 plan |
-| roadmap | 收敛 = 大需求 → 进 roadmap 拆分 |
-| design | 收敛 = System 路径需求清晰 → 直接 design |
-| compound | 产生 insight → 触发 `/compound add explore` 提示 |
-
-## 写入 _index.md (收敛后)
-
-```yaml
-stage: "{plan | roadmap | design}"
-current_sprint_slug: "..."
-pointers:
-  latest_brainstorm: "sprints/{date}-{slug}/brainstorm.md"
-```
-
-brainstorm.md 是后续 plan/design 的输入; Intent/Constraints 段是 design.md 验收标准的直接原料。
-
-## 模板
-
-见 `{{athena:SKILLS_DIR}}/pace/templates/sprints/brainstorm.md` (v9.9.6 distilled-log 格式)
+收敛文档的「约束」「验收草稿」段是 design.md 验收标准的直接原料。

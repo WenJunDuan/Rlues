@@ -1,6 +1,6 @@
-# PACE 全栈垂直切片准入 (9.9.9)
+# PACE 全栈垂直切片准入
 
-业务流程由 biz-delivery-loop 编排现有 quantum-codegen 六 mode、quantum-data 与 Convention Pack。单平台能按依赖完成全链；并行有收益时才拆互斥写集，整合责任见 [execution-contracts.md](execution-contracts.md)。
+业务流程由 biz-delivery-loop 编排现有 quantum-codegen 六 mode、quantum-data 与 Convention Pack。单平台能按依赖完成全链；并行有收益时才拆互斥写集，整合责任见 [execution.md](execution.md)。
 
 ## 真实项目准入
 

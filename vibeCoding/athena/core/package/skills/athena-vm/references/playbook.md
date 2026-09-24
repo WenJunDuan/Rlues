@@ -1,4 +1,4 @@
-# Athena VM 9.9.9 · executable protocol
+# Athena VM · executable protocol
 
 使用 Python 3.9+ 和 POSIX 本机/SSH；脚本仅依赖标准库，SSH 远端须有 python3。实际代码为相邻 `../scripts/runtime-run.py`，不是待实现 SDK。
 

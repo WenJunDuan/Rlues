@@ -8,7 +8,7 @@ class UsageError extends Error {}
 
 function requireCtx(io) {
   const ctx = context.load(io.cwd);
-  if (!ctx) throw new UsageError('no .ai_state found (run /athena-init first)');
+  if (!ctx) throw new UsageError('no .ai_state found (run `athena init` first)');
   if (!ctx.indexExists) throw new UsageError('.ai_state/_index.md missing');
   return ctx;
 }

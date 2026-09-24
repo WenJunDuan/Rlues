@@ -4,5 +4,8 @@
   "core": true,
   "vars": {
     "SKILLS_DIR": "~/.claude/skills"
+  },
+  "rename": {
+    "AGENTS.md": "CLAUDE.md"
   }
 }

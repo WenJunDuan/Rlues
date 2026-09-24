@@ -36,29 +36,15 @@ description: 业务需求走全栈 PACE 闭环的编排入口。只编排现有 
 3. 将可独立验收业务动作拆为 roadmap 切片；复用 blocked_by。先明确规则、API、schema 与适用 checkpoint，已确认内容引用原证据。
 4. 按依赖调度 FE page、DB design + DDL、BE module。mock demo 可用于效果确认，不能替代真实 FE/BE/DB 验收；有收益再并行互斥写集，由主 agent 整合。
 5. 集成后通过 unit、e2e、security 模式真实运行并核对 UI/API/DB/权限/审计。quantum-data 仅在 manifest 声明范围内只读。
-6. 后续阶段只按 [PACE stages](../pace/references/stages.md)：R/S 为 runtime-verify → polish → review；一次独立多维 review 的结果是 reviews/implementation-review.md。
+6. 后续阶段只按 [PACE stages](../pace/references/stages.md)：R/S 为 runtime-verify → polish → review；独立 review 走 `athena review`（结果 review.json）。
 7. 报告复用需求→产物→证据→状态/遗留；保留可空用量兼容字段，缺原生来源为 unavailable，不阻塞功能交付。CP1/CP3/CP5 仅在当前 design/用户要求且尚未确认时请求确认；按有效授权进入 ship。
 
-## 输出
+## 输出与约束
 
-- 每个 PACE stage 的产物路径、命令、证据和 checkpoint 结果。
-- 按 `references/delivery-report-schema.md` 生成的交付报告。
-- 回滚记录、loop 次数、blocked 原因和人工确认清单。
-
-## 铁律
-
-- 不建平行状态机；只读写 PACE 认可的 stage、hook、evidence 和报告产物。
-- checkpoint 验证证据，不验证日志里的某个字符串。
-- 同一 checkpoint 同因连续三次失败记录 stderr、已试方案和 issue；只阻塞相关依赖，继续独立授权工作。
-- 不猜环境；全栈运行只依据 `runtime-env`。
-- 本 skill 只编排，不直接写业务代码；代码生成交给对应 skill。
-
-## PACE 集成
-
-- requirements/roadmap/design：组织需求、切片、契约和人工 checkpoint。
-- impl：调度各生成 skill，收集产物路径。
-- runtime-verify：调度单测、集成、E2E、安全测试并归档证据。
-- review/polish/ship：复用 PACE 门禁，最终交付报告作为 ship 输入。
+- 每个 stage 的产物路径、`athena run` 证据、checkpoint 结果；按 `references/delivery-report-schema.md` 的交付报告；回滚记录、loop 次数、blocked 原因、人工确认清单。
+- 不建平行状态机；只编排，不直接写业务代码。checkpoint 验证证据，不验证日志字符串。
+- 同一 checkpoint 同因连续三次失败：记 stderr、已试方案、`athena issue add`；只阻塞相关依赖。
+- 全栈运行只依据 `runtime-env`，不猜环境。
 
 ## References
 

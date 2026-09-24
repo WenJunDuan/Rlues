@@ -7,6 +7,7 @@ permissionMode: plan
 tools: [Read, Grep, Glob, Bash]
 disallowedTools: [Write, Edit, Agent]
 background: false
+omitClaudeMd: true
 maxTurns: 70
 ---
 

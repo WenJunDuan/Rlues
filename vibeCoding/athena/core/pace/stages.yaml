@@ -1,9 +1,10 @@
 # PACE 阶段静态事实（athena-10-1 S2：10.1 门禁核 H1–H5 / A1–A10）。
 # 写法：YAML 的 JSON 子集（YAML ⊃ JSON）——build.mjs 零依赖解析；整行 # 注释会被剥除。
 # 规则实现：vibeCoding/athena/gate/rules/*.cjs；evals/fixtures/test_gate_contracts.py 核对本表与实现一致。
-# stage id 保持 9.9.9 的 9 个（plan 仍在）；stages.md 由本文件生成留到 S5。
+# stage id 保持 9 个（plan 仍在）；build 由本文件生成 contracts.json 与 pace/references/stages.md（勿手改后者）。
 {
   "paths": ["Hotfix", "Bugfix", "Quick", "Feature", "Refactor", "System"],
+  "order_note": "记账全部写完 → athena review prepare → reviewer → athena review accept → athena ship（ship 是最后一次写入）",
   "zones": {
     "green": "≤3 文件且合计 ≤150 行，或 Hotfix/Quick/Bugfix：主 agent 直做",
     "yellow": "单模块 Feature：generator，worktree 可选",
@@ -35,7 +36,7 @@
   },
   "stages": [
     {"id": "brainstorm", "kind": "conditional", "when": "写不出可观察验收标准，或用户要求探索",
-     "produces": [{"file": "sprints/{slug}/brainstorm.md"}]},
+     "produces": [{"file": "docs/research/{date}-{slug}.md"}]},
     {"id": "roadmap", "kind": "conditional", "when": "≥2 个可独立验收、可独立 ship 的切片，或用户要求拆分",
      "produces": [{"file": "roadmap/{slug}/roadmap.md"}, {"file": "roadmap/{slug}/items.yaml"}]},
     {"id": "plan", "kind": "core", "skip_paths": ["Hotfix"], "hard": ["H1"],

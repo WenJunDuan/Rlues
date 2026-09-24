@@ -40,6 +40,22 @@ DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/
            'changed': ['plugin/README.md', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts',
                        'plugin/prompts/reviewer.md', 'plugin/skills/athena-review/SKILL.md']},
 }
+# S5 prompts-v2 rewrites constitution, rules, skills and agents wholesale (one core source, generated
+# per platform); the per-file checks for that layer live in test_prompts.py.
+S5 = {
+    'claude': {'removed': ['.claude/rules/', '.claude/skills/', '.claude/agents/'],
+               'changed': ['.claude/CLAUDE.md', '.claude/rules/', '.claude/skills/', '.claude/agents/'],
+               'added': ['.claude/rules/', '.claude/skills/']},
+    'codex': {'removed': ['.codex/standards/', '.codex/skills/', '.codex/agents/'],
+              'changed': ['.codex/AGENTS.md', '.codex/standards/', '.codex/skills/', '.codex/agents/', '.codex/config.toml'],
+              'added': ['.codex/standards/', '.codex/skills/']},
+    'pi': {'removed': ['config/rules/', 'plugin/skills/'],
+           'changed': ['plugin/core/IRON.md', 'config/AGENTS.md', 'config/rules/', 'plugin/skills/', 'plugin/prompts/'],
+           'added': ['config/rules/', 'plugin/skills/']},
+}
+for _p, _d in S5.items():
+    for _k, _entries in _d.items():
+        DELTA[_p][_k] = DELTA[_p][_k] + _entries
 NEW_DISTS = ('athena',)   # S2: gate core → ~/.athena/<ver>/
 
 
@@ -187,7 +203,7 @@ class BuildProperties(unittest.TestCase):
     def test_ac4_core_adapter_conflict_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
             src = self.copy_source(tmp)
-            shared = next(p for p in sorted((src / 'core/package').rglob('*')) if p.is_file())
+            shared = next(p for p in sorted((src / 'core/package/skills').rglob('*')) if p.is_file())
             rel = shared.relative_to(src / 'core/package')
             clash = src / 'adapters/cc/package' / rel
             clash.parent.mkdir(parents=True, exist_ok=True)
@@ -197,21 +213,23 @@ class BuildProperties(unittest.TestCase):
             self.assertIn(rel.as_posix(), run.stderr)
 
     def test_single_source_counts(self):
-        """The shared layer really is shared: every core file ships to both CC and CX."""
-        for platform in ('cc', 'cx'):
-            config = json.loads((ATHENA / 'adapters' / platform / 'platform.json').read_text(encoding='utf-8'))
-            self.assertTrue(config['core'], platform)
+        """The shared layer really is shared: every core file ships to both CC and CX (after renames)."""
         core = sorted(p.relative_to(ATHENA / 'core/package').as_posix()
                       for p in (ATHENA / 'core/package').rglob('*') if p.is_file())
         self.assertGreaterEqual(len(core), 70)
         templated = [rel for rel in core if b'{{athena:' in (ATHENA / 'core/package' / rel).read_bytes()]
-        self.assertGreaterEqual(len(templated), 7)
-        for rel in core:
-            with self.subTest(core=rel):
-                self.assertTrue((BASELINES['claude'] / '.claude' / rel).is_file())
-                self.assertTrue((BASELINES['codex'] / '.codex' / rel).is_file())
-                self.assertFalse((ATHENA / 'adapters/cc/package' / rel).exists())
-                self.assertFalse((ATHENA / 'adapters/cx/package' / rel).exists())
+        self.assertGreaterEqual(len(templated), 5)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(build(Path(tmp) / 'dist').returncode, 0)
+            for platform, dist, root in (('cc', 'claude', '.claude'), ('cx', 'codex', '.codex')):
+                config = json.loads((ATHENA / 'adapters' / platform / 'platform.json').read_text(encoding='utf-8'))
+                self.assertTrue(config['core'], platform)
+                rename = config.get('rename', {})
+                for rel in core:
+                    out = next((to + rel[len(fr):] for fr, to in rename.items() if rel == fr or (fr.endswith('/') and rel.startswith(fr))), rel)
+                    with self.subTest(platform=platform, core=rel):
+                        self.assertTrue((Path(tmp) / 'dist' / dist / '10.1' / root / out).is_file())
+                        self.assertFalse((ATHENA / 'adapters' / platform / 'package' / rel).exists())
 
     def test_executable_source_builds_executable(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -3,7 +3,7 @@ name: athena-vm
 description: 把用户虚拟机注册为 runtime-verify 的真实环境。需要 VM 环境或跑 setup / doctor 时触发。
 ---
 
-# /athena-vm — VM 运行时接入 (v9.9.9)
+# athena-vm — VM 运行时接入
 
 真实入口：`scripts/configure-vm.py` 写私有 `~/.athena/vm.json`；`scripts/runtime-run.py snapshot|doctor|run` 执行验证。使用和输出协议见 `references/playbook.md`。配置存在、SSH 可达、项目场景 ready 是不同事实。单端 CC 或 CX 都可独立调用；VM 是项目合同选择的环境，不是全局门禁。
 
@@ -16,7 +16,7 @@ runtime-verify 的"不同环境"此前只有本机 (空库/满库/慢网络都�
 
 ## 包内自带（fresh install 不依赖旧版）
 
-发行包自带 schema 与示例，**不**从已装 9.9.8 或 `~/.athena/vm.json` 抄：
+发行包自带 schema 与示例，**不**从已装旧版或 `~/.athena/vm.json` 抄：
 
 | 文件 | 用途 |
 |---|---|
@@ -31,6 +31,11 @@ python3 {{athena:SKILLS_DIR}}/athena-vm/scripts/runtime-run.py doctor --runner s
 ```
 
 复用已有 `~/.athena/vm.json`（chmod 600）和现有认证，不输出凭证、不写 SSH/host 配置。SSH 目标与原生授权仍有效；不把连接能力当生产部署或破坏性操作授权。
+
+## doctor 额外核对
+
+- 厂商 apt 源优先级：自建 / 厂商源的 pin 优先级要高于发行版默认源，否则装到旧版本；`apt-cache policy <包>` 核对候选版本来源。
+- docker compose：删掉镜像缺省 tag 后，运行时必须显式传镜像变量（如 `IMAGE_TAG=… docker compose up`），缺省值为空时 compose 会拉错镜像或失败。
 
 ## 不做
 

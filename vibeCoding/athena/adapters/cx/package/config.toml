@@ -1,4 +1,4 @@
-# VibeCoding Athena v9.9.9 · Codex Configuration
+# VibeCoding Athena 10.1 · Codex Configuration
 # 位置: ~/.codex/config.toml
 
 project_root_markers = [".git", ".hg", ".sl"]
@@ -41,7 +41,7 @@ hide_spawn_agent_metadata = false
 inherit = "core"
 
 [shell_environment_policy.set]
-VIBECODING_VERSION = "9.9.9"
+VIBECODING_VERSION = "10.1.0"
 
 [plugins."browser@openai-bundled"]
 enabled = true

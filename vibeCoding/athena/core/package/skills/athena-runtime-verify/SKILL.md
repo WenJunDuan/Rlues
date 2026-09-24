@@ -3,7 +3,7 @@ name: athena-runtime-verify
 description: impl 之后的运行时验证环。System/Refactor 强制；需要实跑接口而非只跑单测时触发。
 ---
 
-# /athena-runtime-verify — 运行时验证环 (v9.9.9)
+# /athena-runtime-verify — 运行时验证环
 
 阶段义务唯一正文为 `../pace/references/stages.md`。本 skill 负责运行场景与证据。
 
@@ -24,7 +24,7 @@ PACE 到 impl 为止, review + 单测只验证 **"我们想的问题实现没 / 
 | Refactor | **强制** | 可选增强，不是唯一通道 |
 | System | **强制 + 完整 Sprint** | 可选增强 |
 
-> 不在小改动上强制 (铁律[反过度工程]).
+> 不在小改动上强制 (rules/coding.md 反过度工程).
 
 普通本平台 workflow 可完成验证。VM 和另一模型平台均是可选能力，required 环境不足只阻塞相应验收。不可把 unknown、未运行或 SSH 可达当场景通过。
 
@@ -42,7 +42,7 @@ PACE 到 impl 为止, review + 单测只验证 **"我们想的问题实现没 / 
 ## 例外
 
 - 项目无可运行环境 (纯库 / 纯算法): 降级为"用真实数据跑示例 + 边界"
-- `_index.skip_runtime_verify = true`: 跳过 (用户自负责, 不推荐 System/Refactor 跳)
+- 跳过：豁免 `skip_runtime_verify`（`_index.exemptions`，带 until 与 reason；不推荐 System/Refactor 跳）
 
 ## 详细 playbook
 

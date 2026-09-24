@@ -2,6 +2,24 @@
   "dist_dir": "pi",
   "package_root": "",
   "core": false,
-  "vars": {},
-  "gate_root": "plugin/core/gate"
+  "vars": {
+    "SKILLS_DIR": "~/.athena/current/pi/plugin/skills"
+  },
+  "gate_root": "plugin/core/gate",
+  "core_map": {
+    "AGENTS.md": "plugin/core/IRON.md",
+    "rules/": "config/rules/",
+    "skills/architect-doc/": "plugin/skills/architect-doc/",
+    "skills/athena-dev/": "plugin/skills/athena-dev/",
+    "skills/athena-init/": "plugin/skills/athena-init/",
+    "skills/athena-review/": "plugin/skills/athena-review/",
+    "skills/athena-runtime-verify/": "plugin/skills/athena-runtime-verify/",
+    "skills/athena-status/": "plugin/skills/athena-status/",
+    "skills/brainstorm/": "plugin/skills/brainstorm/",
+    "skills/pace/": "plugin/skills/pace/",
+    "skills/polish/": "plugin/skills/polish/",
+    "skills/roadmap/": "plugin/skills/roadmap/",
+    "skills/athena-vm/": "plugin/skills/athena-vm/",
+    "skills/athena-requirements/": "plugin/skills/athena-requirements/"
+  }
 }

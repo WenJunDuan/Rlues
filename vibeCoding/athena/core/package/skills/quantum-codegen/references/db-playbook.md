@@ -55,7 +55,7 @@ DDL SQL。本 skill **系统无关**：数据库类型、命名、审计字段�
 - design stage：冻结表语义和 schema 评审材料。
 - impl stage：生成本地可验证的 DDL 或 migration。
 - runtime-verify stage：按声明环境验证 schema 可执行。
-- review stage：一次独立 review 核对需求字段、权限归属和 DDL 一致性。不调度 spec-compliance。
+- review stage：一次独立 review 核对需求字段、权限归属和 DDL 一致性。
 
 ## References
 

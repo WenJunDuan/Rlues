@@ -43,6 +43,6 @@ triggered_by_sprint: ""
 - 不支持: 全文搜索 (用 ElasticSearch 子系统)
 - 限制: 单表 ≤ 100M 行 (超出分表)
 
-## 演进历史 (引用 compound/)
+## 演进历史 (引用 decisions/)
 
-- {date}: 选 Postgres 不用 MongoDB → `compound/decision-postgres-vs-mongo.md`
+- {date}: 选 Postgres 不用 MongoDB → `decisions/postgres-vs-mongo.md`

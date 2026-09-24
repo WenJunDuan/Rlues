@@ -5,7 +5,7 @@ description: 安装、升级、回滚、体检 Athena（CC/CX/Pi 共用核心 ~/
 
 # athena-setup
 
-安装与迁移只走 CLI；9.9.x 的 `setup-athena.py`、`harness-patches.md` 台账与 `athena-migrate` skill 已退役（安装态漂移由 doctor 按 sha 发现）。
+安装与迁移只走 CLI；9.9.x 的安装脚本、harness 补丁台账与迁移 skill 已退役（安装态漂移由 doctor 按 sha 发现）。
 
 | 目的 | 命令 |
 |---|---|

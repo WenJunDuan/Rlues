@@ -1,4 +1,4 @@
-# Runtime verify 9.9.9
+# Runtime verify
 
 可执行入口是 `athena-vm/scripts/runtime-run.py`（snapshot / doctor / run）。`/goal` 仅在用户显式要求或已有 Goal 时作为可选增强，不是唯一通道。
 

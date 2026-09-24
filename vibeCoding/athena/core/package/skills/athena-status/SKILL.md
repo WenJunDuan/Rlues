@@ -1,116 +1,38 @@
 ---
 name: athena-status
-description: 只读查看当前 stage / path / sprint / 进度 / 活动 worktree。用户问当前状态时触发。
+description: 看项目状态、记检查点、记或关问题账；用户问进度/状态、会话要结束或交接、发现要留痕的问题时用。
 ---
 
-# /athena-status — 项目状态查询 (v9.9.9)
+# athena-status（状态 · 检查点 · 问题账）
 
-Memory contract: **Tier1 working memory** is ignored as authority; **Tier2 persistent memory** is read from `.ai_state`; **_index.md retrieval router** supplies routed state and pointers.
+## 看状态（只读）
 
-Status emits `missing authoritative pointer`, `escaping authoritative pointer`, or `stale authoritative pointer` for invalid nonempty targets. It also flags malformed/over-10 `route_history` and `## 当前状态`; required keys are `latest_design`, `latest_review`, `latest_cleanup`, `latest_requirement`.
+`athena status`（机器可读用 `--json`）：路由（path / stage / sprint / next_action）、热 sprint、队列前 10、等待项（resume 条件满足标 ready）、roadmap 进度、未关 issue、豁免、提示项。
+没有 `.ai_state` → 提示 `athena init`，不自动初始化。回答用户时给结论与下一步，不贴整段输出。
 
-## 工作流
+## 检查点（会话结束、交接、上下文将满）
 
-```bash
-# 1. 检查初始化
-[ -d .ai_state ] || { echo "项目未 init, 先跑 /athena-init"; exit 1; }
+1. 在当前 sprint `log.md` 末尾追加一段：`## <日期 时刻>`，写做了什么（文件、决定、跑过的 `athena run`）、卡在哪、下一步。只写本会话增量，不复述历史。
+2. 更新 `_index.md` 的 `next_action` 为一句可执行的下一步。
+3. 要暂停：`athena sprint pause --resume-when "<条件>"`（条件可写 `after <roadmap>/<item>`，满足时 status 标 ready）。
+4. 检查点改动随下一次代码提交；不单独提交记账。
 
-# 2. _index.md frontmatter 摘要
-echo "=== 项目状态 ==="
-sed -n '/^---$/,/^---$/p' .ai_state/_index.md | head -50
+## 问题账（`issues.md`，唯一）
 
-# 3. 当前 sprint
-slug=$(grep -oP 'current_sprint_slug:\s*"?\K[^"\n]*' .ai_state/_index.md | head -1)
-if [ -n "$slug" ]; then
-  echo ""
-  echo "=== 当前 sprint: $slug ==="
-  ls .ai_state/sprints/$slug/ 2>/dev/null
-
-  # 4. 最新 review
-  if [ -d ".ai_state/sprints/$slug/reviews" ]; then
-    echo ""
-    echo "=== 最新 review ==="
-    ls -t .ai_state/sprints/$slug/reviews/*.md 2>/dev/null | head -1 | xargs tail -30 2>/dev/null
-  fi
-
-  # 5. cleanup-pass
-  if [ -f ".ai_state/sprints/$slug/cleanup-pass.md" ]; then
-    echo ""
-    echo "=== Cleanup pass ==="
-    tail -20 ".ai_state/sprints/$slug/cleanup-pass.md"
-  fi
-fi
-
-# 5b. 解析四个 authoritative pointers；拒绝 .. / 绝对路径逃逸，核对文件存在，
-# latest_review 必须绑定当前 review_run_id / packet / 实际输入，不能按 mtime 最大文件或旧 PASS 推断当前通过；history 超过 10 条报 overflow。
-
-# 6. 活动 worktree
-echo ""
-echo "=== 活动 worktree ==="
-grep -oP 'active_worktrees:\s*\K\[.*\]' .ai_state/_index.md | head -1
-git worktree list 2>/dev/null
-
-# 7. compound/ 统计
-echo ""
-echo "=== Compound 沉淀 ==="
-for type in learning trick decision explore; do
-  count=$(ls .ai_state/compound/*-${type}-*.md 2>/dev/null | wc -l)
-  echo "  $type: $count"
-done
-
-# 8. roadmap 进度
-roadmap=$(grep -oP 'current_roadmap_slug:\s*"?\K[^"\n]*' .ai_state/_index.md | head -1)
-if [ -n "$roadmap" ]; then
-  echo ""
-  echo "=== Roadmap: $roadmap ==="
-  cat .ai_state/roadmap/$roadmap/items.yaml 2>/dev/null
-fi
-
-# 9. git 状态
-echo ""
-echo "=== Git ==="
-git status -s
-git log --oneline -5
-```
-
-## 输出示例
-
-```
-=== 项目状态 ===
-version: "9.9.6"
-path: "Feature"
-stage: "impl"
-current_sprint_slug: "2026-05-25-jwt-refresh"
-...
-
-=== 当前 sprint: 2026-05-25-jwt-refresh ===
-brainstorm.md  design.md  checklist.yaml  reviews/
-evidence.yaml  (subagent-log/tool-trace 仅历史或显式 release-eval)
-
-=== 活动 worktree ===
-["worktree-jwt-refresh-impl"]
-
-=== Compound 沉淀 ===
-  learning: 3
-  trick: 1
-  decision: 5
-  explore: 2
-
-=== Roadmap: auth-system ===
-[items.yaml]
-```
-
-## 不要做
-
-- ❌ 不修改任何文件 (只读)
-- ❌ 不触发任何 hook
-- ❌ 不调度任何 subagent
-
-## 联动
-
-| 用户问 | 进什么 |
+| 类型 | 用于 |
 |---|---|
-| "现在做到哪了" | /athena-status (这个) |
-| "上次 sprint 怎么搞的" | grep .ai_state/sprints/ |
-| "为啥之前决定用 X" | grep .ai_state/compound/decision-*.md |
-| "回顾整个项目历史" | git log + .ai_state/sprints/ + .ai_state/compound/ |
+| bug (B) | 发现的缺陷，不在本 sprint 修 |
+| gate (G) | 门禁误拦或熔断（熔断自动写） |
+| upstream (U) | 上游工具/平台问题 |
+| env (E) | 环境问题（余额、版本、网络） |
+| debt (D) | 技术债 |
+| question (Q) | 待用户裁定 |
+
+- 记：`athena issue add --type <类型> --text "<一句话>" [--sev P0..P3] [--next <去向>]`。
+- 关：`athena issue close <id> --note "<怎么解决>" [--status dropped]`。
+- 查：`athena issue list [--type T] [--all]`。
+- 一行一事；细节放 sprint log 或 decision，issue 行里只放指针。不直接手改表格。
+
+## 完成条件
+
+状态问答：给出路由、当前阻塞与下一步。检查点：log.md 有本会话段落，`next_action` 可执行。问题账：CLI 返回 id。

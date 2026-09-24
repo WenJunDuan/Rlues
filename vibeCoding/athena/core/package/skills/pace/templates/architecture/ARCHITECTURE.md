@@ -6,7 +6,7 @@ state: "current"                  # current | superseded (旧版本归档时设)
 
 # {Project Name} Architecture
 
-> 项目**现状档**, 反映当前系统形态. 不写演进历史 (看 git log + compound/decision-*.md).
+> 项目**现状档**, 反映当前系统形态. 不写演进历史 (看 git log + decisions/*.md).
 > 由 architect-doc skill 维护. Refactor/System ship 前强制更新.
 
 ## 一句话
@@ -55,9 +55,9 @@ sequenceDiagram
 - 不做: 实时推送 (轮询为主)
 - 不做: 多租户 (单租户)
 
-## 关键决策 (引用 compound/decision-*.md)
+## 关键决策 (引用 decisions/*.md)
 
 [列出 architecture 受影响的历史决策]
 
-- JWT 用 RS256 → `compound/2026-05-25-decision-jwt-rs256-vs-hs256.md`
-- DB 选 Postgres → `compound/2026-04-12-decision-postgres-vs-mongo.md`
+- JWT 用 RS256 → `decisions/2026-05-25-jwt-rs256-vs-hs256.md`
+- DB 选 Postgres → `decisions/2026-04-12-postgres-vs-mongo.md`

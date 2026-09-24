@@ -55,7 +55,7 @@ Convention Pack；运行环境只从 `runtime-env` 读取。
 
 - design stage：确认安全验收标准和角色矩阵。
 - runtime-verify stage：执行静态与动态安全测试。
-- review stage：一次独立 review 把高风险问题作为 REWORK 输入。不调度 evaluator。
+- review stage：一次独立 review 把高风险问题作为 REWORK 输入。
 - ship stage：交付报告列出安全结论和人工确认项。
 
 ## References
