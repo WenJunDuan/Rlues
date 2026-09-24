@@ -30,8 +30,17 @@
 ### 已知取舍与未做
 - S7（Pi 0.87 Stop 硬停）、S8（模型实测评测）取消：Pi 仍以 followUp 提示代替硬停。
 - test_build 对 prompts 层整体声明 delta，逐文件约束由 test_prompts 承担。
-- 真实安装（`~/.claude`、`~/.codex`）需用户执行 `athena install`。
+- 行为评测门豁免（`.ai_state/decisions/2026-09-24-decision-athena-10-1-release-gate.md`，债务 D-014，10.2 恢复）。
+- 部署范围 CC + CX；Pi 不部署（同上 decision）。
+
+### 回滚
+| 要回滚什么 | 怎么做 |
+|---|---|
+| 本机安装（`~/.claude` `~/.codex` `~/.athena`） | `athena rollback`：事务式，按 install 时备份逐字节恢复到 9.9.9；`athena doctor` 应报 `not installed` |
+| 项目 `.ai_state`（v2 → v1） | 回到 tag `pre-athena-10.1-state`（`athena migrate` 实迁前自动打）。**只覆盖 `.ai_state` 迁移**：该 tag 在 10.1 代码合入之后，不能用来回滚代码 |
+| 源码（查看或回退到 10.1 之前） | `d42979a`（S0 热修后、`athena-10.1` 合入前的最后一个 main 提交）；10.1 代码合入点为 `cfc76aa` |
 
 ### 验证
-- `vibeCoding/athena/evals/fixtures`：154 个测试通过；9.9.9 回归（athena999）231 通过。
+- `vibeCoding/athena/evals/fixtures`：156 个测试通过；9.9.9 回归（athena999）231 通过。
+- 发布前：真机 `athena install --dry-run`、quantum-agent `athena migrate --dry-run`（Blockers 0）；安装后 `athena doctor` no drift。
 - 每片独立 review 2–5 轮，结论与处置见各 sprint 的 reviews/。

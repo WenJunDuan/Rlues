@@ -32,3 +32,7 @@ superseded_by: ""
 - 10.1.0 的「质量不退化」无量化证据；回退路径 = `athena rollback`（事务式，fixture 验证可逐字节回到 9.9.9）。
 - 行为评测债记入 issues，下一个 minor（10.2）发布门恢复该项，不得再次豁免而不写 decision。
 - quantum 在 10.1 上首个真实 sprint 中撞到的门禁问题按 10.1.x 热修处理。
+
+## 补记（2026-09-24）：部署范围
+
+用户裁定：10.1 **只部署 CC + CX，Pi 不部署**。S9 AC2 原写「安装到本机（cc,cx,pi）」，据此收窄；Pi dist 继续随构建产出与 fixture 覆盖，需要时 `athena install --platform pi` 补装。

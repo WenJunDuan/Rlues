@@ -122,5 +122,5 @@ items:
     path: System
     est_days: 1
     write_set: ["main", ".ai_state/**", "~/.athena", "~/.claude", "~/.codex", "~/.agents", "~/.pi"]
-    ac: ["AC1 合入 main + tag v10.1.0", "AC2 安装 + doctor 零漂移", "AC3 Rlues .ai_state v2 实迁", "AC4 分支/worktree 清理", "AC5 推送", "AC6 quantum 迁移（真实 Feature 仅 major 条件，见 release-gate decision）"]
+    ac: ["AC1 合入 main + tag v10.1.0", "AC2 安装 CC+CX + doctor 零漂移（Pi 不部署，见 release-gate decision 补记）", "AC3 Rlues .ai_state v2 实迁", "AC4 分支/worktree 清理", "AC5 推送", "AC6 quantum 迁移（真实 Feature 仅 major 条件，见 release-gate decision）"]
     notes: "2026-09-24 用户已授权安装、清理、合并与推送；行为评测豁免见 release-gate decision，债务 D-014 归 10.2"
