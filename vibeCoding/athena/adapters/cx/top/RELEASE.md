@@ -1,3 +1,12 @@
+# Athena 10.1 — 升级说明（先读）
+
+- 安装器换成 `athena install / doctor / rollback`（见 skills/athena-setup）；`setup-athena.py` 与 `harness-patches.md` 退役。
+- 门禁换成一个 JS 核：hooks 全部指向 `node ~/.athena/current/hook.cjs <Event> --platform cx`；旧 hook 文件由安装器移入备份。
+- 证据用 `athena run -- <检查命令>`；审查用 `athena review prepare/accept`；状态用 `athena sprint/ship/status/issue/tidy`。
+- 项目状态迁移：`athena migrate --to 10.1 --dry-run`。
+
+---
+
 # Athena Codex 9.9.9
 
 Status: **candidate — not shipped**. Baseline: immutable 9.9.8. Hotfix on 9.9.9 (not a new version): 电报体; 产出声明见 `.codex/standards/doc-style.md`.

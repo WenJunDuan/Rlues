@@ -77,8 +77,9 @@ items:
     notes: "design §9；NV-B5/B6/B7/C9/C16/D11–D18；explore #6；convergence；R999 pace-contract"
   - slug: s6-install-doctor
     title: "athena install / rollback / doctor；退役 harness-patches 与 setup-athena.py"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s6-install-doctor"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 2 轮", tests: "evals 142/142; athena999 231 OK"}
     blocked_by: [s2-gate-core]
     depends_on: [s1-single-source-build, s2-gate-core]
     path: Feature
@@ -88,7 +89,8 @@ items:
     notes: "design §11；Q12 切片 9；R999 AC12；NV-D15；HP 全部"
   - slug: s7-platform-ahead
     title: "Pi 0.87 硬停 + 平台探测 + flag 接入（CC tasks/workflows、Grok）"
-    status: pending
+    status: dropped
+    dropped: "2026-09-24 用户：S7 不做（Pi 0.87 硬停与平台探测留待真机）"
     sprint_slug: ""
     blocked_by: [s2-gate-core]
     depends_on: [s2-gate-core]

@@ -1,0 +1,7 @@
+# Cowork 会话手工记录（athena-10.1，设备 VM）
+- command: "node vibeCoding/athena/gate/cli.cjs run --covers AC1..AC4 -- python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -t vibeCoding/athena/evals/fixtures"
+  result: "Ran 142 tests, OK（test_install 4 + test_install_regressions 9）"
+  evidence_id: "7a09d960c08e（provable, exit 0）"
+- command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999"
+  result: "231 OK"
+- note: "全部安装演练在临时 HOME；未触碰用户真实 ~/.claude ~/.codex（安装需用户授权）"

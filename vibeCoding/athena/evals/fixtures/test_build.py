@@ -25,12 +25,16 @@ BASELINES = {
     'pi': VIBE / 'pi-agent',
 }
 # Every difference from the 9.9.9 baseline must be declared here (prefixes end with "/").
-DELTA = {  # S2 gate core; S3 review CLI (reviewer contract, thin athena-review skill, CC workflow)
-    'claude': {'removed': ['.claude/hooks/', '.claude/skills/pace/scripts/review-binding.cjs', '.claude/skills/athena-review/REVIEW.md'],
-               'changed': ['.claude/settings.json', '.claude/agents/reviewer.md', '.claude/skills/athena-review/SKILL.md'],
+DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/" are prefixes)
+    'claude': {'removed': ['.claude/hooks/', '.claude/skills/pace/scripts/review-binding.cjs', '.claude/skills/athena-review/REVIEW.md',
+                           '.claude/skills/athena-migrate/', '.claude/skills/athena-setup/scripts/', '.claude/skills/athena-setup/tests/'],
+               'changed': ['.claude/settings.json', '.claude/agents/reviewer.md', '.claude/skills/athena-review/SKILL.md',
+                           '.claude/skills/athena-setup/SKILL.md', 'RELEASE.md'],
                'added': ['.claude/workflows/athena-review.js']},
-    'codex': {'removed': ['.codex/hooks/', '.codex/skills/athena-review/REVIEW.md'],
-              'changed': ['.codex/hooks.json', '.codex/agents/reviewer.toml', '.codex/skills/athena-review/SKILL.md'], 'added': []},
+    'codex': {'removed': ['.codex/hooks/', '.codex/skills/athena-review/REVIEW.md', '.codex/skills/athena-migrate/',
+                          '.codex/skills/athena-setup/scripts/', '.codex/skills/athena-setup/tests/'],
+              'changed': ['.codex/hooks.json', '.codex/agents/reviewer.toml', '.codex/skills/athena-review/SKILL.md',
+                          '.codex/skills/athena-setup/SKILL.md', 'RELEASE.md'], 'added': []},
     'pi': {'removed': ['plugin/extensions/cc-core/', 'plugin/skills/pace/scripts/review-binding.cjs', 'plugin/skills/athena-review/REVIEW.md'],
            'added': ['plugin/core/gate/'],
            'changed': ['plugin/README.md', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts',
@@ -95,7 +99,9 @@ class BuildBaseline(unittest.TestCase):
                 differing = sorted(k for k in set(expected) & set(actual) if expected[k] != actual[k])
                 self.assertEqual([k for k in missing if not declared(k, delta['removed'])], [], 'undeclared removals')
                 self.assertEqual([k for k in extra if not declared(k, delta['added'])], [], 'undeclared additions')
-                self.assertEqual(differing, sorted(delta['changed']), 'byte differences must equal the declared changes')
+                self.assertEqual([k for k in differing if not declared(k, delta['changed'])], [], 'undeclared byte differences')
+                for entry in delta['changed']:
+                    self.assertTrue(any(declared(k, [entry]) for k in differing), f'declared change {entry} did not happen')
                 for entry in delta['removed']:
                     self.assertTrue(any(declared(k, [entry]) for k in missing), f'declared removal {entry} did not happen')
                 for entry in delta['added']:
