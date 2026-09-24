@@ -1,0 +1,8 @@
+{
+  "dist_dir": "codex",
+  "package_root": ".codex",
+  "core": true,
+  "vars": {
+    "SKILLS_DIR": "~/.agents/skills"
+  }
+}

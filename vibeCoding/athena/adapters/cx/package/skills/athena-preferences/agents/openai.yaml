@@ -1,0 +1,5 @@
+# v9.9.6: 副作用 skill — 禁止模型按 prompt 隐式触发; 显式 $athena-preferences 仍可用。
+# 官方: "When false, Codex won't implicitly invoke the skill based on user prompt;
+#        explicit $skill invocation still works."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,18 @@
+{
+  "name": "athena-pace",
+  "version": "0.1.0",
+  "description": "Athena PACE + .ai_state for Pi: routing, gates, init, core prompts.",
+  "keywords": ["pi-package", "athena", "pace"],
+  "license": "UNLICENSED",
+  "pi": {
+    "extensions": [
+      "./extensions/athena-gates.ts",
+      "./extensions/athena-lifecycle.ts"
+    ],
+    "skills": ["./skills"],
+    "prompts": ["./prompts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.87 <0.88"
+  }
+}

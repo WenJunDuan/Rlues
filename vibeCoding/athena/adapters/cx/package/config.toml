@@ -1,0 +1,68 @@
+# VibeCoding Athena v9.9.9 · Codex Configuration
+# 位置: ~/.codex/config.toml
+
+project_root_markers = [".git", ".hg", ".sl"]
+project_doc_max_bytes = 65536
+
+# 首装示例；迁移保留用户 provider/model/effort/权限与插件选择。
+# 原生 schema: https://learn.chatgpt.com/docs/config-file/config-reference
+model_provider = "openai"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+plan_mode_reasoning_effort = "xhigh"
+windows_wsl_setup_acknowledged = true
+web_search = "live"
+
+suppress_unstable_features_warning = true
+
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+personality = "pragmatic"
+
+[sandbox_workspace_write]
+network_access = true
+
+[features]
+memories = true
+
+[memories]
+generate_memories = true
+use_memories = true
+disable_on_external_context = true
+
+[features.multi_agent_v2]
+tool_namespace = "agents"
+enabled = true
+max_concurrent_threads_per_session = 9
+hide_spawn_agent_metadata = false
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VIBECODING_VERSION = "9.9.9"
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[desktop]
+preventSleepWhileRunning = true
+show-context-window-usage = true
+composerEnterBehavior = "cmdIfMultiline"
+git-show-sidebar-pr-icons = true

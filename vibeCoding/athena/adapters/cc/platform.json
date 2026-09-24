@@ -1,0 +1,8 @@
+{
+  "dist_dir": "claude",
+  "package_root": ".claude",
+  "core": true,
+  "vars": {
+    "SKILLS_DIR": "~/.claude/skills"
+  }
+}

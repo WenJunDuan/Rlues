@@ -18,8 +18,9 @@ items:
     notes: "Q12 #27/#29/#30、NV-B4/C13/C15、调研 F1/F7、Q12 切片 7 记账"
   - slug: s1-single-source-build
     title: "单源构建：athena/ → dist/{claude,codex,pi}/10.1"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s1-single-source-build"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 第 2 轮 PASS", tests: "fixtures 20/20; athena999 231 OK"}
     blocked_by: [s0-gate-hotfix-9-9-9-p1]
     depends_on: [s0-gate-hotfix-9-9-9-p1]
     path: System

@@ -1,0 +1,173 @@
+#!/usr/bin/env node
+/**
+ * Athena 9.9.8 _index.md bounds: ≤12 KiB, lists ≤10, item ≤160 bytes.
+ * Overflow is copied to .ai_state/index-overflow.md, never dropped.
+ */
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+const {writeAtomic} = require("./_index-io.cjs");
+
+const ITEM_MAX_BYTES = 160;
+const INDEX_MAX_BYTES = 12 * 1024;
+const LIST_MAX = 10;
+
+function byteLen(text) {
+  return Buffer.byteLength(String(text), "utf8");
+}
+
+function utf8Prefix(text, maxBytes) {
+  const buf = Buffer.from(String(text), "utf8");
+  if (buf.length <= maxBytes) return String(text);
+  let end = maxBytes;
+  while (end > 0 && (buf[end] & 0xc0) === 0x80) end -= 1;
+  return buf.subarray(0, end).toString("utf8");
+}
+
+function summarize(full, pointer) {
+  const suffix = ` →${pointer}`;
+  const budget = ITEM_MAX_BYTES - byteLen(suffix);
+  if (budget < 1) return utf8Prefix(pointer, ITEM_MAX_BYTES);
+  return utf8Prefix(String(full).replace(/\s+/g, " ").trim(), budget) + suffix;
+}
+
+function splitQuotedList(inner) {
+  const items = [];
+  let cur = "";
+  let quote = "";
+  let escaped = false;
+  const raw = String(inner).trim();
+  if (!raw) return items;
+  for (const char of raw) {
+    if (escaped) { cur += char; escaped = false; continue; }
+    if (char === "\\" && quote === "\"") { escaped = true; cur += char; continue; }
+    if (quote) {
+      cur += char;
+      if (char === quote) quote = "";
+      continue;
+    }
+    if (char === "\"" || char === "'") { quote = char; cur += char; continue; }
+    if (char === ",") { items.push(cur.trim()); cur = ""; continue; }
+    cur += char;
+  }
+  if (cur.trim()) items.push(cur.trim());
+  return items;
+}
+
+function unquote(item) {
+  const text = String(item).trim();
+  if (text.length >= 2 && text[0] === text[text.length - 1] && (text[0] === "\"" || text[0] === "'")) {
+    return text.slice(1, -1).replace(/\\"/g, "\"");
+  }
+  return text;
+}
+
+function loadSpill(filePath) {
+  try { return fs.readFileSync(filePath, "utf8"); }
+  catch (error) { if (error.code === 'ENOENT') return ""; throw error; }
+}
+
+function nextId(existing, prefix) {
+  const nums = [...String(existing).matchAll(new RegExp(`^## ${prefix}-(\\d+)`, "gm"))].map((m) => Number(m[1]));
+  return nums.length ? Math.max(...nums) + 1 : 0;
+}
+
+function makeSpiller(aiState) {
+  const filePath = path.join(aiState, "index-overflow.md");
+  let body = loadSpill(filePath);
+  const original = body;
+  if (!body) {
+    body = "# _index overflow — project\n\nFull items moved off `_index.md` (AC9). Do not delete.\n";
+  }
+  return {
+    pointer(id) { return `.ai_state/index-overflow.md#${id}`; },
+    spill(prefix, full) {
+      const id = `${prefix}-${nextId(body, prefix)}`;
+      body += `\n## ${id}\n\n${full}\n`;
+      return id;
+    },
+    flush() {
+      if (body === original || !/^## /m.test(body)) return;
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      writeAtomic(filePath, body);
+    },
+  };
+}
+
+function enforceRouteHistory(content, spiller) {
+  const match = content.match(/^route_history:\s*\[(.*)\]\s*(?:#.*)?$/m);
+  if (!match) return content;
+  let values = splitQuotedList(match[1]).map(unquote);
+  // route_history 新在前 (主 agent 头插): 保头淘汰尾, spill 的是被淘汰的旧条。
+  const extra = values.length > LIST_MAX ? values.slice(LIST_MAX) : [];
+  values = values.slice(0, LIST_MAX);
+  for (const full of extra) spiller.spill("rh", full);
+  const next = values.map((full) => {
+    if (byteLen(full) <= ITEM_MAX_BYTES) return full;
+    const id = spiller.spill("rh", full);
+    return summarize(full, spiller.pointer(id));
+  });
+  const rendered = `[${next.map((item) => JSON.stringify(item)).join(", ")}]`;
+  return content.replace(/^route_history:\s*\[.*\]\s*(?:#.*)?$/m, `route_history: ${rendered}  # re-route ≤10, item ≤160B`);
+}
+
+function enforceBulletSection(content, heading, spillPrefix, spiller) {
+  const match = content.match(new RegExp(`^(${heading}[^\\n]*\\n)([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, "m"));
+  if (!match) return content;
+  const header = match[1];
+  const lines = match[2].split(/\n/);
+  const prefix = [];
+  const items = [];
+  const suffix = [];
+  let seen = false;
+  for (const line of lines) {
+    if (/^\s*-\s+/.test(line)) { seen = true; items.push(line.replace(/^\s*-\s+/, "")); }
+    else if (!seen) prefix.push(line);
+    else suffix.push(line);
+  }
+  const overflowCount = Math.max(0, items.length - LIST_MAX);
+  const keepCount = overflowCount ? LIST_MAX - 1 : LIST_MAX;
+  const keep = items.slice(-keepCount);
+  const extra = items.slice(0, Math.max(0, items.length - keepCount));
+  let archiveId = "";
+  if (extra.length) {
+    archiveId = spiller.spill(spillPrefix, extra.map((item, i) => `### archived-${i}\n${item}`).join("\n\n"));
+  }
+  const out = keep.map((full) => {
+    if (byteLen(full) <= ITEM_MAX_BYTES) return `- ${full}`;
+    const id = spiller.spill(spillPrefix, full);
+    return `- ${summarize(full, spiller.pointer(id))}`;
+  });
+  if (archiveId) out.push(`- older ${heading.replace(/^##\s+/, "")} →${spiller.pointer(archiveId)}`);
+  const newBody = [...prefix, ...out, ...suffix].join("\n");
+  return content.slice(0, match.index) + header + newBody + content.slice(match.index + match[0].length);
+}
+
+function enforceIndexBounds(content, aiState) {
+  const spiller = makeSpiller(aiState);
+  let next = enforceRouteHistory(content, spiller);
+  next = enforceBulletSection(next, "## 当前状态", "st", spiller);
+  next = enforceBulletSection(next, "## 历史", "hi", spiller);
+  if (byteLen(next) > INDEX_MAX_BYTES) {
+    const split = next.match(/(---\n[\s\S]*?\n---\n)([\s\S]*)/);
+    if (!split) throw new Error("oversized index lacks closed frontmatter; original preserved");
+    const id = spiller.spill("body", split[2]);
+    next = split[1] + `\n# Project state\n\nFull state →${spiller.pointer(id)}\n`;
+    if (byteLen(next) > INDEX_MAX_BYTES) throw new Error("index frontmatter exceeds 12 KiB; original preserved");
+  }
+  spiller.flush(); // Durable overflow precedes the index commit.
+  return next;
+}
+
+module.exports = {
+  ITEM_MAX_BYTES,
+  INDEX_MAX_BYTES,
+  LIST_MAX,
+  byteLen,
+  utf8Prefix,
+  summarize,
+  splitQuotedList,
+  unquote,
+  enforceIndexBounds,
+};

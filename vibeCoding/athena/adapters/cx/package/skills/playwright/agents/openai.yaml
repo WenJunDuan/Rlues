@@ -1,0 +1,6 @@
+# v9.9.6: playwright 是 runtime-verify 阶段的执行工具, 不是配置类副作用 skill。
+# 锁掉隐式调用会让 agent 在验证 UI 流程时无法自动取用 —— 与 athena-runtime-verify 的
+# 设计冲突。计划 §8.1 的隐式调用锁只针对 setup / migrate / init / preferences 四个
+# 会覆写用户全局配置的 skill。此处显式声明放开。
+policy:
+  allow_implicit_invocation: true
