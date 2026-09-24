@@ -4,7 +4,8 @@ created: 2026-09-06
 trigger: user_explicit
 target_release: "9.9.9"
 estimated_total_complexity: L
-status: proposed
+status: superseded
+superseded_by: "../athena-10-1/roadmap.md"
 implementation_authorized: false
 ---
 # Roadmap — Athena 9.9.9

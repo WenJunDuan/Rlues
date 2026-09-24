@@ -1,5 +1,7 @@
 # Athena Harness 进化提案 (铁律[Hook 是进化器])
 
+> **2026-09-24**：未结条目（P8–P17）逐条去向见 `roadmap/athena-10-1/consolidation.md` P 节；10.1 起问题统一进 `issues.md`（S4）。
+
 > 📍 **归属说明 (用户 2026-07-25 指示)**: harness (hooks/rules/skills) 的**改动记录与补丁台账归 harness 自己的项目** —
 > `/Users/mi_manchi/workspace/Rlues/.ai_state/harness-patches.md` (8 条补丁, 含逐条可执行复核命令; 源码入库 `vibeCoding/{claude,codex}/9.9.6/`)。
 > **本文件只保留"在本项目实测发现"的提案记录**(发现过程是本项目的一手事实), 今后 harness 的修复 sprint 一律在 Rlues 立。

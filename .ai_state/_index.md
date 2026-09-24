@@ -4,18 +4,18 @@
 version: "9.9.9"
 
 # === PACE 路由状态 ===
-path: "System"
-stage: "impl"
+path: ""
+stage: ""
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-21-writer-provenance-and-repo-boundary"
-current_roadmap_slug: "q12-batch2-production-gaps"
+current_sprint_slug: ""
+current_roadmap_slug: "athena-10-1"
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
 skip_runtime_verify: false        # v9.8.0: true 跳过运行时验证 (纯库/无运行环境才设; System/Refactor 不建议)
 
 # === 路由审议 (v9.9.6) ===
 route_confidence: 0.98  # 切片5：三缺陷根因行号勘定(两个本会话实测踩过); 施工经用户指定走 grok 外部执行
-route_history: ["2026-09-21 System/design: q12 slice5 writer-provenance; Q12#1/#2/#16+承接; grok 施工(用户指定); conf=0.98", "2026-09-20 System/design: q12 slice7+8 并行流水线; Q12#12 + Q12#14+切片2遗留; conf=0.97", "2026-09-20 System/design: q12 slice4 contract-parser-diagnostics; Q12#5/#7/#8 + 字节断言接管; conf=0.98", "2026-09-20 System/design: q12 slice3 review-binding-preflight; Q12#6/#9/#10; conf=0.99", "2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99", "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0", "2026-07-28 System impl 红区降级 →index-overflow.md#rh-1"]  # re-route ≤10, item ≤160B
+route_history: ["2026-09-24 idle: q12 切片5 代码已合入 main，review 并入 athena-10-1 S2；规划合并为 10.1", "2026-09-21 System/design: q12 slice5 writer-provenance; Q12#1/#2/#16+承接; grok 施工(用户指定); conf=0.98", "2026-09-20 System/design: q12 slice7+8 并行流水线; Q12#12 + Q12#14+切片2遗留; conf=0.97", "2026-09-20 System/design: q12 slice4 contract-parser-diagnostics; Q12#5/#7/#8 + 字节断言接管; conf=0.98", "2026-09-20 System/design: q12 slice3 review-binding-preflight; Q12#6/#9/#10; conf=0.99", "2026-09-20 System/design takeover: CC 接管 codex slice2 evidence-pipeline; 采纳 pipefail 设计; conf=0.98", "2026-09-20 System/roadmap: Q12 batch2 production gaps; 15 actionable, 2 no-change, 1 external; conf=0.99", "2026-09-16 Quick: CC local 7-agent maxTurns 70→90; exact scope; conf=1.0", "2026-09-14 Hotfix: apply pending 9.9.9 CC/CX patches; preserve chats; conf=0.99", "2026-07-28 System impl 范围扩张 →index-overflow.md#rh-0"]  # re-route ≤10, item ≤160B
 plan_model: "opus"              # 2026-09-20: fable 触发额度上限, System plan/design 审议改 opus
 
 # === 平台与版本 ===
@@ -72,16 +72,16 @@ pointers:
   latest_design: "sprints/2026-09-20-heredoc-aware-shell-guard/design.md"
   latest_review: "sprints/2026-09-20-heredoc-aware-shell-guard/reviews/implementation-review.md"
   latest_cleanup: "sprints/2026-09-20-heredoc-aware-shell-guard/cleanup-pass.md"
-  latest_brainstorm: "sprints/2026-09-06-athena-next-version/brainstorm.md"
+  latest_brainstorm: "roadmap/athena-10-1/roadmap.md"
   latest_decisions: ["compound/2026-08-27-decision-retire-local-telemetry-collection.md", "compound/2026-07-28-decision-close-prompt-engineering-direction.md", "compound/2026-07-13-decision-quantum-7-to-2-consolidation.md", "compound/2026-07-13-decision-index-field-audit.md", "compound/2026-07-08-decision-token-usage-null-and-subagent-stop.md"]
   latest_lessons: ["compound/2026-09-20-learning-cross-port-divergence-needs-cmp.md", "compound/2026-09-20-learning-single-source-error-strings.md", "compound/2026-09-20-learning-self-mutating-regression-test.md", "compound/2026-07-28-learning-reserved-ac-labels-silent-exemption.md", "compound/2026-07-14-learning-canonical-install-path-runtime.md"]
   latest_architecture_update: "2026-09-20T14:06:36.135Z"
-  latest_requirement: "requirements/fullstack-delivery-pack.md"
+  latest_requirement: "requirements/athena-10-1.md"
 
 # === PACE 联动字段 (v9.8.0 新, hook 自动维护) ===
 # 9.9.8: await-review-result = 已发起一次原生异步 review, 结果在后续 turn 到达;
 # 该值期间 Stop / pace-continuator 放行不注入续跑 (等待不烧 token), 完成通知轮落盘后清空。
-next_action: "grok 施工中; 新会话读 sprints/2026-09-21-writer-provenance-and-repo-boundary/handoff.md 续做"
+next_action: "athena-10-1 计划已定稿，待用户 GO：读 roadmap/athena-10-1/roadmap.md，首片 S0（gate-hotfix-9-9-9-p1）"
 last_subagent: "polish-worker"
 last_subagent_at: "2026-09-20T04:11:57Z"
 active_worktrees: []

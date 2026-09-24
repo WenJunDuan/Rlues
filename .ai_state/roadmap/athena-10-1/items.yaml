@@ -1,0 +1,116 @@
+roadmap_slug: athena-10-1
+created: 2026-09-24
+total_items: 10
+# 兼容 9.9.9 门禁解析（roadmap_slug + "- slug:"）；10.1 新增键 depends_on / write_set / ac / est_days 供 v2 使用。
+# 状态: pending | active | paused | deferred | done | dropped（9.9.9 的 completed 视同 done）
+items:
+  - slug: s0-gate-hotfix-9-9-9-p1
+    title: "9.9.9 误拦与过期事实热修（立即安装）"
+    status: pending
+    sprint_slug: ""
+    blocked_by: []
+    depends_on: []
+    path: Bugfix
+    est_days: 0.5
+    write_set: ["vibeCoding/claude/9.9.9/.claude/hooks/**", "vibeCoding/codex/9.9.9/.codex/hooks/**", "vibeCoding/claude/9.9.9/.claude/CLAUDE.md", "vibeCoding/pi-agent/README.md", "vibeCoding/pi-agent/plugin/package.json", "vibeCoding/codex/9.9.9/.codex/skills/athena-init/scripts/init-platforms.py", "vibeCoding/scripts/tests/athena999/**"]
+    ac: ["AC1 跨仓推送/heredoc 正文不受 stage 约束", "AC2 design_changed 仅基线已有 design", "AC3 承诺闭合句式收窄 + Quick 豁免", "AC4 删 CC 无 /goal；Pi README 路径；peer 钉版", "AC5 init-platforms 判端", "AC6 每条 fixture + 全量绿"]
+    notes: "Q12 #27/#29/#30、NV-B4/C13/C15、调研 F1/F7、Q12 切片 7 记账"
+  - slug: s1-single-source-build
+    title: "单源构建：athena/ → dist/{claude,codex,pi}/10.1"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s0-gate-hotfix-9-9-9-p1]
+    depends_on: [s0-gate-hotfix-9-9-9-p1]
+    path: System
+    est_days: 1.5
+    write_set: ["vibeCoding/athena/build.mjs", "vibeCoding/athena/VERSION", "vibeCoding/athena/core/**", "vibeCoding/dist/**", "vibeCoding/athena/evals/fixtures/test_build.py"]
+    ac: ["AC1 骨架 + build + manifest", "AC2 零行为变化基线对比", "AC3 构建确定性", "AC4 未定义变量失败 + 头注", "AC5 stages.yaml 生成 stages.md 与 contracts.json"]
+    notes: "design §3–4、§9.5；P11；brainstorm 9.10 A；R999 migration 部分"
+  - slug: s2-gate-core
+    title: "单一 JS 门禁核 + cc/cx/pi 适配器 + 证据"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s1-single-source-build]
+    depends_on: [s1-single-source-build]
+    path: System
+    est_days: 4
+    write_set: ["vibeCoding/athena/gate/**", "vibeCoding/athena/adapters/*/hooks*", "vibeCoding/athena/adapters/pi/extensions/**", "vibeCoding/athena/evals/fixtures/**"]
+    ac: ["AC1 单入口 + 归一化/渲染", "AC2 H1–H5", "AC3 A1–A10", "AC4 豁免 + 熔断→issues", "AC5 athena run 证据 + tree-sha", "AC6 fixture 迁入并三端参数化", "AC7 Q12 切片 5/6 落点", "AC8 ≤3000 行", "AC9 删死 hook、无 py hook"]
+    notes: "design §5、§8；D1/D2/D4/D5；Q12 切片 5/6/9 记账；P8/P9/P10/P12/P14/P17；blockers P5"
+  - slug: s3-review-cli
+    title: "athena review prepare/accept 两步 + reviewer 合同"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s2-gate-core]
+    depends_on: [s2-gate-core]
+    path: Feature
+    est_days: 1
+    write_set: ["vibeCoding/athena/gate/cli/review.cjs", "vibeCoding/athena/core/agents/reviewer.md", "vibeCoding/athena/core/skills/athena-review/**", "vibeCoding/athena/adapters/cc/workflows/**", "vibeCoding/athena/evals/fixtures/test_review_*.py"]
+    ac: ["AC1 prepare/accept/show + latest", "AC2 逐文件 sha 归因", "AC3 reviewer 合同单处", "AC4 门禁坑 11 条回归", "AC5 cc_workflows athena-review.js"]
+    notes: "design §6；NV-C1/C2/C10/C11/C12；quantum 门禁坑 1–11；P13a"
+  - slug: s4-state-v2
+    title: ".ai_state v2 schema + CLI + 自动归档 + 迁移脚本"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s2-gate-core]
+    depends_on: [s2-gate-core]
+    path: System
+    est_days: 2
+    write_set: ["vibeCoding/athena/gate/cli/{status,sprint,ship,issue,tidy,migrate}.cjs", "vibeCoding/athena/core/templates/**", "vibeCoding/athena/evals/fixtures/test_state_*.py"]
+    ac: ["AC1 v2 schema 与模板", "AC2 CLI", "AC3 ship 自动归档 + 打包 + 读取检查", "AC4 两仓 migrate dry-run", "AC5 session-start 注入", "AC6 删 counts/index-updater/.snapshots"]
+    notes: "design §7、§11.3；refs/ai-state-v2.md；NV-A*/D*；Q12 #20/#31；R999 state-recovery"
+  - slug: s5-prompts-v2
+    title: "宪法、规则、skills、agents 重写（Kirby 审）"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s1-single-source-build]
+    depends_on: [s1-single-source-build]
+    path: Feature
+    est_days: 1.5
+    write_set: ["vibeCoding/athena/core/AGENTS.md", "vibeCoding/athena/core/rules.md", "vibeCoding/athena/core/rules/**", "vibeCoding/athena/core/skills/**", "vibeCoding/athena/core/agents/{architect,generator,polish-worker}.md"]
+    ac: ["AC1 宪法 ≤2500B 三端生成", "AC2 rules 溯源 + Kirby 审 + ≤300 行", "AC3 skills 处置 + ≤60 行 + description ≤6500 字符", "AC4 agents 4 个 + omitClaudeMd + 派工两句", "AC5 consolidation 中 S5 条目全勾"]
+    notes: "design §9；NV-B5/B6/B7/C9/C16/D11–D18；explore #6；convergence；R999 pace-contract"
+  - slug: s6-install-doctor
+    title: "athena install / rollback / doctor；退役 harness-patches 与 setup-athena.py"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s2-gate-core]
+    depends_on: [s1-single-source-build, s2-gate-core]
+    path: Feature
+    est_days: 1
+    write_set: ["vibeCoding/athena/gate/cli/{install,doctor}.cjs", "vibeCoding/athena/core/skills/athena-setup/**", "vibeCoding/athena/evals/fixtures/test_install_*.py", "vibeCoding/dist/*/10.1/RELEASE.md"]
+    ac: ["AC1 install/rollback/doctor + config-merge", "AC2 临时 HOME 往返演练", "AC3 退役台账与旧安装器", "AC4 必需资产缺失即失败"]
+    notes: "design §11；Q12 切片 9；R999 AC12；NV-D15；HP 全部"
+  - slug: s7-platform-ahead
+    title: "Pi 0.87 硬停 + 平台探测 + flag 接入（CC tasks/workflows、Grok）"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s2-gate-core]
+    depends_on: [s2-gate-core]
+    path: Feature
+    est_days: 1
+    write_set: ["vibeCoding/athena/adapters/pi/**", "vibeCoding/athena/adapters/grok/**", "vibeCoding/athena/gate/platform/{pi,grok}.cjs", ".ai_state/docs/reports/**"]
+    ac: ["AC1 Pi 0.87 适配 + 真机冒烟", "AC2 探测报告", "AC3 通过项实现 flag", "AC4 续跑等价说明"]
+    notes: "design §10、§13；调研 F1–F8；pi-agent-9-10 sprint 取代；D6"
+  - slug: s8-evals
+    title: "evals：三端 fixture 一键跑 + 3 个行为任务 + 基线对比"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s2-gate-core, s5-prompts-v2]
+    depends_on: [s2-gate-core, s5-prompts-v2]
+    path: Feature
+    est_days: 1.5
+    write_set: ["vibeCoding/athena/evals/**"]
+    ac: ["AC1 run.mjs 一键", "AC2 3 任务 + 无头运行器", "AC3 9.9.9 vs 10.1 对比表", "AC4 gate issues 导出"]
+    notes: "design §12；explore #10；R999 AC13；D7 预算"
+  - slug: s9-release-and-tidy
+    title: "发布 10.1、安装、Rlues .ai_state 整理、清理分支、推送、quantum 迁移"
+    status: pending
+    sprint_slug: ""
+    blocked_by: [s3-review-cli, s4-state-v2, s6-install-doctor, s7-platform-ahead, s8-evals]
+    depends_on: [s3-review-cli, s4-state-v2, s6-install-doctor, s7-platform-ahead, s8-evals]
+    path: System
+    est_days: 1
+    write_set: ["main", ".ai_state/**", "~/.athena", "~/.claude", "~/.codex", "~/.agents", "~/.pi"]
+    ac: ["AC1 合入 main + tag v10.1.0", "AC2 安装 + doctor 零漂移", "AC3 Rlues .ai_state v2 实迁", "AC4 分支/worktree 清理", "AC5 推送", "AC6 quantum 迁移 + 1 个真实 Feature"]
+    notes: "安装、删除分支、推送、删 .runtime 大包均需用户授权"

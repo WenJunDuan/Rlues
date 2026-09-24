@@ -8,6 +8,8 @@ implementation_authorized: true
 ---
 # Roadmap — Q12 批二生产缺口
 
+> **2026-09-24**：切片 5 代码已 cherry-pick 入 main（`08d7400..68b26f9`，221/221），切片 6、9 与全部「归切片 N」记账并入 `../athena-10-1/`（逐条见 `consolidation.md` Q12 节）。本 roadmap 不再推进。
+
 ## 目标与边界
 
 以当前 9.9.9 源码和可复现行为为准，修复 Rlues 自身的门禁、状态、证据和运行时缺口；不把 Claude Code 平台问题、已经修复的问题或既定语义重复实现进仓库。

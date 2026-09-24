@@ -4,42 +4,42 @@ total_items: 6
 items:
   - slug: pace-contract-convergence
     title: "PACE 合同、阶段与消费者一致"
-    status: pending
+    status: superseded  # 2026-09-24 → athena-10-1（见 consolidation.md R999）
     sprint_slug: ""
     blocked_by: []
     estimated_complexity: M
     notes: "AC3/7；统一 design Done Contract、polish/review、roadmap、业务入口与平台语法；本版基线评测提前准备"
   - slug: state-recovery-and-evidence
     title: "ai_state 恢复与证据有效范围"
-    status: pending
+    status: superseded  # 2026-09-24 → athena-10-1（见 consolidation.md R999）
     sprint_slug: ""
     blocked_by: [pace-contract-convergence]
     estimated_complexity: M
     notes: "AC4/5/6；索引有界原子、空更新零写、恢复材料与代码/合同/环境绑定"
   - slug: single-platform-and-parallel
     title: "单平台完整闭环与可选并行协作"
-    status: pending
+    status: superseded  # 2026-09-24 → athena-10-1（见 consolidation.md R999）
     sprint_slug: ""
     blocked_by: [pace-contract-convergence, state-recovery-and-evidence]
     estimated_complexity: L
     notes: "AC1/2/5/8/14；CC-only/CX-only、能力选择、单一状态写者、整合测试与交接"
   - slug: vm-runtime-contract
     title: "本机与 SSH VM 的真实运行协议"
-    status: pending
+    status: superseded  # 2026-09-24 → athena-10-1（见 consolidation.md R999）
     sprint_slug: ""
     blocked_by: [state-recovery-and-evidence]
     estimated_complexity: M
     notes: "AC9/10/14；传输/场景分离、输入核对、结果回传、teardown、required/advisory"
   - slug: fullstack-business-slice
     title: "真实全栈业务垂直切片"
-    status: pending
+    status: superseded  # 2026-09-24 → athena-10-1（见 consolidation.md R999）
     sprint_slug: ""
     blocked_by: [single-platform-and-parallel, vm-runtime-contract]
     estimated_complexity: L
     notes: "AC11；复用 biz-delivery-loop 与 quantum-*，验证 FE/BE/DB/权限及需求-证据映射"
   - slug: migration-and-behavior-evals
     title: "发行迁移、回滚与行为评测"
-    status: pending
+    status: superseded  # 2026-09-24 → athena-10-1（见 consolidation.md R999）
     sprint_slug: ""
     blocked_by: [pace-contract-convergence, state-recovery-and-evidence, single-platform-and-parallel, vm-runtime-contract, fullstack-business-slice]
     estimated_complexity: M

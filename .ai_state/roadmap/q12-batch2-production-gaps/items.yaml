@@ -32,14 +32,14 @@ items:
     notes: "Q12#5/#7/#8；结构化提取与标题别名"
   - slug: writer-provenance-and-repo-boundary
     title: "外部写者 provenance、仓库边界与 worktree 归属"
-    status: pending
+    status: superseded  # 2026-09-24 代码 cherry-pick 入 main 08d7400..68b26f9（221/221），review 并入 athena-10-1 S2
     sprint_slug: "2026-09-21-writer-provenance-and-repo-boundary"
     blocked_by: [contract-parser-diagnostics]
     estimated_complexity: L
     notes: "Q12#1/#2/#16；共享 delivery gate，串行实施。另接切片 3 遗留：导出 tryRepoRoot/findAiState 并消除 governance 的解析复写（字节断言已由切片 4 AC6 删除）"
   - slug: ship-session-and-architecture-binding
     title: "Ship 会话退出与 Architecture 已审范围绑定"
-    status: pending
+    status: superseded  # 2026-09-24 → athena-10-1 S2（Q12-6）
     sprint_slug: ""
     blocked_by: [review-binding-preflight, writer-provenance-and-repo-boundary]
     estimated_complexity: L
@@ -60,7 +60,7 @@ items:
     notes: "Q12#14；白名单窄形（首行封闭文法+消费者正集）quoted 正文免疫，非窄形字节等价；scanner 收敛=heredoc 判定单源 _shell-lex（完整合并证伪不做）；CX 4000 决策截断已修"
   - slug: package-parity-and-release-regressions
     title: "平台适用性同步与发行回归"
-    status: pending
+    status: superseded  # 2026-09-24 → athena-10-1 S1/S6（Q12-9）
     sprint_slug: ""
     blocked_by: [index-overflow-root-transaction, evidence-pipeline-integrity, review-binding-preflight, contract-parser-diagnostics, writer-provenance-and-repo-boundary, ship-session-and-architecture-binding, runtime-secret-false-positive, heredoc-aware-shell-guard]
     estimated_complexity: M

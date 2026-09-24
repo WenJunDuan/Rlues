@@ -31,3 +31,6 @@ Full items moved off `_index.md` (AC9). Do not delete.
 
 ### rh-spill-2026-09-21
 2026-07-29 System impl 安装态同步 →index-overflow.md#rh-2
+
+### rh-spill-2026-09-24
+2026-07-28 System impl 红区降级 →index-overflow.md#rh-1
