@@ -91,98 +91,60 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|resume|clear",
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/session-start.cjs",
+            "command": "node ~/.athena/current/hook.cjs SessionStart --platform cc",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.athena/current/hook.cjs UserPromptSubmit --platform cc",
+            "timeout": 5
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task",
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/delivery-gate.cjs",
+            "command": "node ~/.athena/current/hook.cjs PreToolUse --platform cc",
             "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/pre-bash-guard.cjs",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/subagent-worktree-check.cjs",
-            "timeout": 5
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/index-updater.cjs",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/evidence-collector.cjs",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/design-change-detector.cjs",
-            "timeout": 5
-          }
-        ]
-      },
-      {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/evidence-collector.cjs",
-            "timeout": 10
+            "command": "node ~/.athena/current/hook.cjs PostToolUse --platform cc",
+            "timeout": 60
           }
         ]
       }
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "Bash|Edit|Write|MultiEdit",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/evidence-collector.cjs",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/subagent-retry.cjs",
-            "timeout": 10
+            "command": "node ~/.athena/current/hook.cjs PostToolUseFailure --platform cc",
+            "timeout": 60
           }
         ]
       }
@@ -193,8 +155,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/subagent-tracker.cjs",
-            "timeout": 15
+            "command": "node ~/.athena/current/hook.cjs SubagentStart --platform cc",
+            "timeout": 5
           }
         ]
       }
@@ -205,21 +167,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/subagent-tracker.cjs",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "InstructionsLoaded": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/config-change-audit.cjs",
-            "timeout": 5,
-            "async": true
+            "command": "node ~/.athena/current/hook.cjs SubagentStop --platform cc",
+            "timeout": 5
           }
         ]
       }
@@ -230,7 +179,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/config-change-audit.cjs",
+            "command": "node ~/.athena/current/hook.cjs ConfigChange --platform cc",
             "timeout": 5
           }
         ]
@@ -242,56 +191,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/delivery-gate.cjs",
-            "timeout": 60
-          }
-        ]
-      }
-    ],
-    "StopFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/stop-failure-recorder.cjs",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/compact-restore.cjs",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/notification-router.cjs",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/hooks/stage-breadcrumb.cjs",
-            "timeout": 5
+            "command": "node ~/.athena/current/hook.cjs Stop --platform cc",
+            "timeout": 120
           }
         ]
       }

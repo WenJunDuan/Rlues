@@ -1,67 +1,55 @@
-# PACE 阶段静态事实（athena-10-1 S1）。
+# PACE 阶段静态事实（athena-10-1 S2：10.1 门禁核 H1–H5 / A1–A10）。
 # 写法：YAML 的 JSON 子集（YAML ⊃ JSON）——build.mjs 零依赖解析；整行 # 注释会被剥除。
-# S1 忠实描述 9.9.9(+S0+切片5) 现状：gates 的 check 名对应 delivery-gate.cjs / pre-bash-guard.cjs /
-# subagent-worktree-check.cjs 的现有函数；when/unless 写该检查实际生效的条件。
-# S2 改写为 10.1 的 H1–H5 / A1–A10；S5 起由本文件生成 stages.md。
+# 规则实现：vibeCoding/athena/gate/rules/*.cjs；evals/fixtures/test_gate_contracts.py 核对本表与实现一致。
+# stage id 保持 9.9.9 的 9 个（plan 仍在）；stages.md 由本文件生成留到 S5。
 {
   "paths": ["Hotfix", "Bugfix", "Quick", "Feature", "Refactor", "System"],
   "zones": {
     "green": "≤3 文件且合计 ≤150 行，或 Hotfix/Quick/Bugfix：主 agent 直做",
     "yellow": "单模块 Feature：generator，worktree 可选",
-    "red": "Refactor/System 或 ≥2 并行 writer：worktree 隔离"
+    "red": "Refactor/System 或 parallel_writers ≥2：写者子 agent 隔离（H4）"
+  },
+  "hard": {
+    "H1": {"name": "design-first", "event": "pre_tool write", "stages": ["plan", "design", "impl"],
+           "paths": ["Bugfix", "Quick", "Feature", "Refactor", "System"],
+           "does": "仓库内、.ai_state 外的写入需当前 sprint design.md ≥1 条非占位 `- ACn:`"},
+    "H2": {"name": "evidence", "event": "stop", "stages": ["ship"],
+           "paths": ["Hotfix", "Bugfix", "Quick", "Feature", "Refactor", "System"],
+           "does": "主仓 .runtime/evidence/<sprint>.jsonl 有 provable exit 0 记录且 tree_sha = 当前源码树"},
+    "H3": {"name": "review", "event": "stop", "stages": ["ship"],
+           "paths": ["Bugfix", "Feature", "Refactor", "System"],
+           "does": "review.json verdict PASS 且 tree_sha = 当前源码树"},
+    "H4": {"name": "isolation", "event": "pre_tool agent", "stages": [],
+           "paths": ["Refactor", "System"],
+           "does": "红区或 parallel_writers ≥2：写者子 agent 须 worktree 隔离；豁免 h4_worktree"},
+    "H5": {"name": "shell", "event": "pre_tool bash", "stages": [],
+           "paths": [],
+           "does": "危险命令表；推送本项目仓库在 plan/design/impl/runtime-verify/polish/review 拦"}
+  },
+  "advisory": {
+    "A1": "写者溯源（generator / 外部写者）", "A2": "R/S runtime-verify 与 polish 记录",
+    "A3": "R/S ≥5 文件改动未更新 architecture/（base_commit 锚定）", "A4": "承诺记账闭合",
+    "A5": "design 在实现开始后改动（基线已有 design）", "A6": "_index 指针存在",
+    "A7": "梳理阈值（热层 >3、issues >40、_index >3 KB）", "A8": "豁免将到期/无效",
+    "A9": "Bugfix 复现测试在 red 记录后被改（flag bugfix_test_lock）", "A10": "reviewer 与作者同家族"
   },
   "stages": [
     {"id": "brainstorm", "kind": "conditional", "when": "写不出可观察验收标准，或用户要求探索",
      "produces": [{"file": "sprints/{slug}/brainstorm.md"}]},
     {"id": "roadmap", "kind": "conditional", "when": "≥2 个可独立验收、可独立 ship 的切片，或用户要求拆分",
      "produces": [{"file": "roadmap/{slug}/roadmap.md"}, {"file": "roadmap/{slug}/items.yaml"}]},
-    {"id": "plan", "kind": "core", "skip_paths": ["Hotfix"],
-     "note": "只读 Quick 只记诊断目标并直接 ship，不建 design/packet",
-     "produces": [{"file": "sprints/{slug}/design.md", "paths": ["Bugfix", "Quick", "Feature", "Refactor", "System"]},
-                  {"file": "sprints/{slug}/review-packet.md", "paths": ["Feature", "Refactor", "System"]}]},
-    {"id": "design", "kind": "conditional", "paths": ["System"],
-     "produces": [{"file": "sprints/{slug}/design.md"}],
-     "gates": [{"hook": "delivery-gate", "check": "validateImplEntry", "event": "implementation write while stage=design",
-                "paths": ["Feature", "Refactor", "System"],
-                "does": "containment; spec-gate AC; review-packet 仅在 design.md 存在时校验"}]},
-    {"id": "impl", "kind": "core",
-     "gates": [{"hook": "delivery-gate", "check": "validateImplEntry", "event": "implementation write or Stop while stage=impl",
-                "paths": ["Feature", "Refactor", "System"],
-                "does": "containment; spec-gate AC; review-packet 仅在 design.md 存在时校验"},
-               {"hook": "pre-bash-guard", "check": "analyze + push stage", "does": "危险命令；推送按目标项目 stage（非 ship/idle 拦）"},
-               {"hook": "subagent-worktree-check", "check": "writer isolation", "paths": ["Refactor", "System"],
-                "does": "写者型子 agent 需 isolation: worktree"}]},
+    {"id": "plan", "kind": "core", "skip_paths": ["Hotfix"], "hard": ["H1"],
+     "produces": [{"file": "sprints/{slug}/design.md", "paths": ["Bugfix", "Quick", "Feature", "Refactor", "System"]}]},
+    {"id": "design", "kind": "conditional", "paths": ["System"], "hard": ["H1"],
+     "produces": [{"file": "sprints/{slug}/design.md"}]},
+    {"id": "impl", "kind": "core", "hard": ["H1", "H4", "H5"]},
     {"id": "runtime-verify", "kind": "conditional", "paths": ["Refactor", "System"], "optional_paths": ["Feature"],
-     "produces": [{"file": "sprints/{slug}/runtime-verify.md"}],
+     "advisory": ["A2"], "exemption": "skip_runtime_verify",
      "next": {"Refactor": "polish", "System": "polish", "*": "review"}},
-    {"id": "polish", "kind": "conditional", "paths": ["Refactor", "System"],
-     "note": "_index.skip_polish 在 ship 无效：非轻量 R/S ship 仍要求 cleanup-pass.md 含 PASS/completed",
-     "produces": [{"file": "sprints/{slug}/cleanup-pass.md"}]},
-    {"id": "review", "kind": "core", "paths": ["Feature", "Refactor", "System"],
-     "produces": [{"file": "sprints/{slug}/reviews/implementation-review.md"}]},
-    {"id": "ship", "kind": "core",
-     "light_ship": {"when": "shipChangeIsLight：净改动小且只动文档/配置/依赖/状态/测试，不含 hooks/harness",
-                    "keeps": ["validateContainment", "validateOutsideRepoBackup", "validateVmPendingPromises", "validateDesignContract", "validateRoadmap"]},
-     "gates": [
-       {"hook": "delivery-gate", "check": "validateContainment", "does": "harness_target_outside_repo 须配同 sprint 的 harness_target_outside_repo_sprint"},
-       {"hook": "delivery-gate", "check": "validateOutsideRepoBackup", "does": "仓库外改动须有备份"},
-       {"hook": "delivery-gate", "check": "validateVmPendingPromises", "unless": "path=Quick 且 design 含 vm-pending.md", "does": "承诺记 vm-pending 须有对应台账行"},
-       {"hook": "delivery-gate", "check": "validateDesignContract", "does": "design_changed_after_impl 为真或 design 新于 review 即拦"},
-       {"hook": "delivery-gate", "check": "cleanup-pass PASS", "paths": ["Refactor", "System"], "unless": "light_ship"},
-       {"hook": "delivery-gate", "check": "validateIndexGovernance", "when": "review-manifest.yaml 存在", "unless": "light_ship"},
-       {"hook": "delivery-gate", "check": "validateRoadmap", "when": "current_roadmap_slug 非空", "does": "对应 item 须 done/completed"},
-       {"hook": "delivery-gate", "check": "fix-note.md", "paths": ["Bugfix"], "unless": "light_ship"},
-       {"hook": "delivery-gate", "check": "validateWriterProvenance", "paths": ["Feature", "Refactor", "System"], "unless": "light_ship",
-        "does": "generator 链或 external-writer.json；skip_impl_subagent_check 仅对 Feature 有效"},
-       {"hook": "delivery-gate", "check": "validateChecklist", "paths": ["Feature", "Refactor", "System"], "when": "checklist.yaml 存在", "unless": "light_ship"},
-       {"hook": "delivery-gate", "check": "validateEvidence + validateReview PASS", "paths": ["Feature", "Refactor", "System"], "unless": "light_ship"},
-       {"hook": "delivery-gate", "check": "spec-gate + tdd-evidence + review binding + AC mapping", "paths": ["Feature", "Refactor", "System"],
-        "when": "review-manifest.yaml 存在", "unless": "light_ship"},
-       {"hook": "delivery-gate", "check": "validateCriticRounds", "paths": ["Feature", "Refactor", "System"], "unless": "light_ship"},
-       {"hook": "delivery-gate", "check": "runtime-verify.md 含测试场景", "paths": ["Refactor", "System"], "unless": "light_ship 或 skip_runtime_verify"},
-       {"hook": "delivery-gate", "check": "architecture/ARCHITECTURE.md 已更新", "paths": ["Refactor", "System"],
-        "when": "changed_files ≥ 5", "unless": "light_ship 或 skip_architecture_check"},
-       {"hook": "pre-bash-guard", "check": "push stage", "does": "stage=ship 或 idle 才放行推送本项目"}
-     ]}
+    {"id": "polish", "kind": "conditional", "paths": ["Refactor", "System"], "advisory": ["A2"], "exemption": "skip_polish"},
+    {"id": "review", "kind": "core", "paths": ["Bugfix", "Feature", "Refactor", "System"], "hard": ["H3"],
+     "produces": [{"file": "sprints/{slug}/review.json"}]},
+    {"id": "ship", "kind": "core", "hard": ["H2", "H3"], "advisory": ["A1", "A2", "A3", "A4", "A5", "A6", "A9", "A10"],
+     "note": "记账全部完成 → athena review prepare → reviewer → accept → ship"}
   ]
 }

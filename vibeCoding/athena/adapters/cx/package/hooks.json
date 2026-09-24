@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/session-start.py",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs SessionStart --platform cx",
             "timeout": 10,
             "statusMessage": "Loading Athena context"
           }
@@ -18,72 +18,33 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/user-prompt-submit.py",
-            "timeout": 5,
-            "statusMessage": "Athena pre-check"
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs UserPromptSubmit --platform cx",
+            "timeout": 5
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "apply_patch|Edit|Write",
+        "matcher": "apply_patch|Edit|Write|Bash|spawn_agent|Agent",
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs PreToolUse --platform cx",
             "timeout": 15,
-            "statusMessage": "Checking implementation spec-gate"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/pre-bash-guard.py",
-            "timeout": 10,
-            "statusMessage": "Checking Bash command"
-          }
-        ]
-      },
-      {
-        "matcher": "spawn_agent|Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-worktree-audit.py",
-            "timeout": 5,
-            "statusMessage": "Checking subagent worktree"
+            "statusMessage": "Athena gate"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|apply_patch|MCP|mcp__.*",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/evidence-collector.py",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "apply_patch|Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/design-change-detector.py",
-            "timeout": 5,
-            "statusMessage": "Athena design-change watch"
-          },
-          {
-            "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/index-updater.py",
-            "timeout": 8
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs PostToolUse --platform cx",
+            "timeout": 60
           }
         ]
       }
@@ -93,14 +54,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-tracker.py",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-worktree-audit.py",
-            "timeout": 5,
-            "statusMessage": "Athena worktree audit"
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs SubagentStart --platform cx",
+            "timeout": 5
           }
         ]
       }
@@ -110,8 +65,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/subagent-tracker.py",
-            "timeout": 15
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs SubagentStop --platform cx",
+            "timeout": 5
           }
         ]
       }
@@ -121,9 +76,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/delivery-gate.py",
-            "timeout": 60,
-            "statusMessage": "Athena delivery-gate"
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs Stop --platform cx",
+            "timeout": 120,
+            "statusMessage": "Athena ship gate"
           }
         ]
       }
@@ -133,8 +88,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env python3 ~/.codex/hooks/compact-restore.py",
-            "timeout": 15
+            "command": "/usr/bin/env node ~/.athena/current/hook.cjs PostCompact --platform cx",
+            "timeout": 10
           }
         ]
       }

@@ -1,0 +1,12 @@
+# Cowork 会话手工记录（athena-10.1 分支，设备 VM：node 22.23 / Python 3.10 + shim(datetime.UTC, tomli)）
+- command: "node vibeCoding/athena/gate/cli.cjs run --covers AC1..AC9 -- python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -t vibeCoding/athena/evals/fixtures"
+  phase: green
+  result: "Ran 89 tests, OK（gate 7 文件 69→89 条，含 test_build declared-delta 20 条）"
+  evidence_id: "43e9703f9f93（.ai_state/.runtime/evidence/2026-09-24-s2-gate-core.jsonl，provable, exit 0）"
+- command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999"
+  result: "Ran 231 tests, OK（冻结 9.9.9 基线不回归）"
+- command: "node vibeCoding/athena/build.mjs --out /tmp/s2dist"
+  result: "claude 134 / codex 140 / pi 101 / athena 26 文件；dist 无 hooks/、无 py hook、无 cc-core"
+- command: "node --experimental-strip-types /tmp/pismoke.mjs（dist/pi 扩展进程内冒烟）"
+  result: "tool_call bash rm -rf / → block；session_start/before_agent_start 注入；agent_end ship 缺 review → followUp"
+- metric: "gate/**/*.cjs 合计 2,237 行；最大文件 211 行（AC8 ≤3000 / ≤300）"

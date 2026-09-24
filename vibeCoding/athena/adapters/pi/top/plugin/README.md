@@ -26,4 +26,4 @@ git 仓库里 `/athena-init` → 建 `.ai_state/`。已有不覆盖。
 
 ## 限制
 
-Pi Stop 不能硬拦交付。红区无 `isolation: worktree`，用 git worktree。门禁逻辑目前仍调包内 `extensions/cc-core/*.cjs`（实现细节，不是给用户的第二套 hook）。
+Pi Stop 不能硬拦交付。红区无 `isolation: worktree`，用 git worktree。门禁逻辑进程内调用包内 `core/gate/hook.cjs`（与 `~/.athena/<ver>/` 同字节的 vendored 门禁核，由 build 生成）。

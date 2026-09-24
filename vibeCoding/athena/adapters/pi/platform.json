@@ -2,5 +2,6 @@
   "dist_dir": "pi",
   "package_root": "",
   "core": false,
-  "vars": {}
+  "vars": {},
+  "gate_root": "plugin/core/gate"
 }

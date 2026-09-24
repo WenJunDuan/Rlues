@@ -1,4 +1,5 @@
-"""athena-10-1 S1: single-source build reproduces the 9.9.9 packages byte for byte.
+"""athena-10-1 S1/S2: the single-source build reproduces the 9.9.9 packages byte for byte,
+except for the changes each 10.1 slice declares in DELTA (S2: declared-delta, not silent drift).
 
 Run: python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -t vibeCoding/athena/evals/fixtures
 """
@@ -23,6 +24,20 @@ BASELINES = {
     'codex': VIBE / 'codex/9.9.9',
     'pi': VIBE / 'pi-agent',
 }
+# Every difference from the 9.9.9 baseline must be declared here (prefixes end with "/").
+DELTA = {
+    'claude': {'removed': ['.claude/hooks/'], 'changed': ['.claude/settings.json'], 'added': []},
+    'codex': {'removed': ['.codex/hooks/'], 'changed': ['.codex/hooks.json'], 'added': []},
+    'pi': {'removed': ['plugin/extensions/cc-core/'], 'added': ['plugin/core/gate/'],
+           'changed': ['plugin/README.md', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts']},
+}
+NEW_DISTS = ('athena',)   # S2: gate core → ~/.athena/<ver>/
+
+
+def declared(rel, entries):
+    return any(rel == e or (e.endswith('/') and rel.startswith(e)) for e in entries)
+
+
 STAGE_DOCS = (
     VIBE / 'claude/9.9.9/.claude/skills/pace/references/stages.md',
     VIBE / 'codex/9.9.9/.codex/skills/pace/references/stages.md',
@@ -59,31 +74,40 @@ class BuildBaseline(unittest.TestCase):
 
     def test_ac1_build_succeeds_with_generated_extras(self):
         self.assertEqual(self.run_result.returncode, 0, self.run_result.stderr)
-        for platform in BASELINES:
+        for platform in (*BASELINES, *NEW_DISTS):
             for name in GENERATED_EXTRAS:
                 with self.subTest(platform=platform, file=name):
                     self.assertTrue((self.dist(platform) / name).is_file())
 
-    def test_ac2_output_equals_999_packages(self):
+    def test_ac2_output_equals_999_packages_except_declared_delta(self):
         for platform, baseline in BASELINES.items():
+            delta = DELTA[platform]
             with self.subTest(platform=platform):
                 expected = tree(baseline)
                 actual = {k: v for k, v in tree(self.dist(platform)).items() if k not in GENERATED_EXTRAS}
-                self.assertEqual(sorted(set(expected) - set(actual)), [], 'missing from build')
-                self.assertEqual(sorted(set(actual) - set(expected)), [], 'extra in build')
-                differing = sorted(k for k in expected if expected[k] != actual[k])
-                self.assertEqual(differing, [], 'byte differences')
+                missing = sorted(set(expected) - set(actual))
+                extra = sorted(set(actual) - set(expected))
+                differing = sorted(k for k in set(expected) & set(actual) if expected[k] != actual[k])
+                self.assertEqual([k for k in missing if not declared(k, delta['removed'])], [], 'undeclared removals')
+                self.assertEqual([k for k in extra if not declared(k, delta['added'])], [], 'undeclared additions')
+                self.assertEqual(differing, sorted(delta['changed']), 'byte differences must equal the declared changes')
+                for entry in delta['removed']:
+                    self.assertTrue(any(declared(k, [entry]) for k in missing), f'declared removal {entry} did not happen')
+                for entry in delta['added']:
+                    self.assertTrue(any(declared(k, [entry]) for k in extra), f'declared addition {entry} did not happen')
 
     def test_ac2_executable_bits_follow_sources(self):
         for platform, baseline in BASELINES.items():
             for rel in tree(baseline):
+                built = self.dist(platform) / rel
+                if not built.exists():
+                    continue
                 source_exec = bool((baseline / rel).stat().st_mode & 0o111)
-                built_exec = bool((self.dist(platform) / rel).stat().st_mode & 0o111)
                 with self.subTest(platform=platform, file=rel):
-                    self.assertEqual(built_exec, source_exec)
+                    self.assertEqual(bool(built.stat().st_mode & 0o111), source_exec)
 
     def test_ac5_manifest_matches_files(self):
-        for platform in BASELINES:
+        for platform in (*BASELINES, *NEW_DISTS):
             root = self.dist(platform)
             manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
             listed = {entry['path']: entry for entry in manifest['files']}
@@ -99,7 +123,7 @@ class BuildBaseline(unittest.TestCase):
 
     def test_ac5_contracts_follow_stages_yaml(self):
         ids = None
-        for platform in BASELINES:
+        for platform in (*BASELINES, *NEW_DISTS):
             contracts = json.loads((self.dist(platform) / 'contracts.json').read_text(encoding='utf-8'))
             stage_ids = [stage['id'] for stage in contracts['stages']]
             if ids is None:

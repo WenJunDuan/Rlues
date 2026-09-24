@@ -30,8 +30,9 @@ items:
     notes: "design §3–4、§9.5；P11；brainstorm 9.10 A；R999 migration 部分"
   - slug: s2-gate-core
     title: "单一 JS 门禁核 + cc/cx/pi 适配器 + 证据"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s2-gate-core"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 5 轮，终态 PASS（r5 CONCERNS 已修）", tests: "evals 89/89; athena999 231 OK", size: "gate 2,237 行"}
     blocked_by: [s1-single-source-build]
     depends_on: [s1-single-source-build]
     path: System

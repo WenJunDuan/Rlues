@@ -7,6 +7,7 @@
 //   core/package/**            -> <package_root>/**   (platforms with "core": true)
 //   adapters/<p>/package/**    -> <package_root>/**
 //   adapters/<p>/top/**        -> ./**
+//   gate/**                    -> <gate_root>/**     (platforms that set "gate_root"; S2 gate core)
 // Generated at the root of every output: contracts.json (from core/pace/stages.yaml),
 // GENERATED.md, manifest.json.
 //
@@ -92,7 +93,14 @@ function contracts(src, version) {
     for (const item of [...(stage.produces || []), ...(stage.gates || [])]) {
       if (item && typeof item === "object") checkPaths(`stage ${stage.id} ${item.file || item.check}`, item.paths);
     }
+    for (const rule of stage.hard || []) {
+      if (!data.hard || !data.hard[rule]) throw new BuildError(`core/pace/stages.yaml: stage ${stage.id} names unknown hard rule ${rule}`);
+    }
+    for (const rule of stage.advisory || []) {
+      if (!data.advisory || !data.advisory[rule]) throw new BuildError(`core/pace/stages.yaml: stage ${stage.id} names unknown advisory ${rule}`);
+    }
   }
+  for (const [rule, spec] of Object.entries(data.hard || {})) checkPaths(`hard ${rule}`, spec.paths);
   return `${JSON.stringify({ schema: 1, version, source: "core/pace/stages.yaml", ...data }, null, 2)}\n`;
 }
 
@@ -131,6 +139,13 @@ function assemble(src, platform, version) {
   }
   const layers = [];
   if (config.core) layers.push({ dir: path.join(src, "core/package"), prefix: root, label: "core/package" });
+  if (config.gate_root !== undefined) {
+    const gateRoot = config.gate_root;
+    if (typeof gateRoot !== "string" || path.isAbsolute(gateRoot) || gateRoot.split(/[\\/]/).includes("..")) {
+      throw new BuildError(`adapters/${platform}/platform.json: invalid gate_root ${gateRoot}`);
+    }
+    layers.push({ dir: path.join(src, "gate"), prefix: gateRoot, label: "gate" });
+  }
   layers.push({ dir: path.join(src, "adapters", platform, "package"), prefix: root, label: `adapters/${platform}/package` });
   layers.push({ dir: path.join(src, "adapters", platform, "top"), prefix: "", label: `adapters/${platform}/top` });
   const outputs = new Map();
