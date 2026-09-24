@@ -14,11 +14,14 @@ const FLAG_DEFAULTS = {
   pi_hard_stop: true, bugfix_test_lock: true, cross_family_review: false,
 };
 
-/** stdout of `git -C dir …` (trimmed), or null on any failure. */
+/**
+ * stdout of `git -C dir …` (trimmed), or null on any failure. GIT_OPTIONAL_LOCKS=0: a hook's
+ * read-only `git status` must never take (and possibly strand) the user's index.lock.
+ */
 function git(dir, args, options = {}) {
   try {
     return execFileSync('git', ['-C', dir, ...args], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 15000, ...options,
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 15000, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' }, ...options,
     }).trim();
   } catch (_) { return null; }
 }

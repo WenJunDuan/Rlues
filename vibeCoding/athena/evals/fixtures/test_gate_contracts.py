@@ -18,9 +18,11 @@ def sha(path):
 
 class Budget(unittest.TestCase):
     def test_line_budget(self):
+        """Hook path (hook/core/lib/rules/platform) ≤3,000 lines; every file incl. the CLI ≤300 (S4 design)."""
         files = sorted(GATE.rglob('*.cjs'))
         counts = {f.relative_to(GATE).as_posix(): len(f.read_text(encoding='utf-8').splitlines()) for f in files}
-        self.assertLessEqual(sum(counts.values()), 3000, counts)
+        hook_path = {k: v for k, v in counts.items() if not k.startswith('cli')}
+        self.assertLessEqual(sum(hook_path.values()), 3000, hook_path)
         for name, lines in counts.items():
             with self.subTest(file=name):
                 self.assertLessEqual(lines, 300)
@@ -28,8 +30,12 @@ class Budget(unittest.TestCase):
     def test_no_python_or_foreign_files_in_gate(self):
         for path in GATE.rglob('*'):
             if path.is_file():
-                with self.subTest(path=path.name):
-                    self.assertEqual(path.suffix, '.cjs')
+                rel = path.relative_to(GATE).as_posix()
+                with self.subTest(path=rel):
+                    if rel.startswith('templates/'):
+                        self.assertIn(path.suffix, ('.md', '.yaml'))
+                    else:
+                        self.assertEqual(path.suffix, '.cjs')
 
 
 class Distribution(unittest.TestCase):
@@ -76,8 +82,8 @@ class Distribution(unittest.TestCase):
 
     def test_core_dist_and_pi_vendor_are_byte_identical_to_gate(self):
         core = self.files('athena')
-        gate = {p.relative_to(GATE).as_posix(): p for p in GATE.rglob('*.cjs')}
-        self.assertEqual(set(gate), {k for k in core if k.endswith('.cjs')})
+        gate = {p.relative_to(GATE).as_posix(): p for p in GATE.rglob('*') if p.is_file()}
+        self.assertEqual(set(gate), set(core) - {'GENERATED.md', 'manifest.json', 'contracts.json'})
         pi = {k[len('plugin/core/gate/'):]: v for k, v in self.files('pi').items() if k.startswith('plugin/core/gate/')}
         self.assertEqual(set(pi), set(gate))
         for rel in gate:

@@ -118,6 +118,14 @@ function inject(ev, ctx) {
     for (const q of issues.list(ctx.aiState).filter(r => r.type === 'question' && r.status === 'open').slice(0, 5)) {
       lines.push(`待裁定 ${q.id}: ${q.text}`);
     }
+    try { // AC5 (S4): deferred / paused items whose `resume_when: after <item>` is satisfied
+      const state = require('./cli/lib/state.cjs');
+      const items = state.allItems(ctx.aiState);
+      for (const it of items.filter(x => ['deferred', 'paused'].includes(String(x.data.status)))) {
+        const when = it.data.deferred && it.data.deferred.resume_when;
+        if (state.resumeReady(ctx.aiState, when, items) === true) lines.push(`resume ready ${it.roadmap}/${it.slug}: ${when}`);
+      }
+    } catch (_) { /* injection is best-effort */ }
   }
   const text = lines.join('\n');
   return allow({ context: ev.event === 'prompt' && !queued.length ? undefined : text.slice(0, 2000) });

@@ -1,0 +1,9 @@
+# Cowork 会话手工记录（athena-10.1，设备 VM）
+- command: "node vibeCoding/athena/gate/cli.cjs run --covers AC1..AC6 -- python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -t vibeCoding/athena/evals/fixtures"
+  result: "Ran 117 tests, OK（state_cli 11 + state_regressions 17 + S2 gate 89）"
+  evidence_id: "b5115d727146（provable, exit 0）"
+- command: "python3 -m unittest discover -s vibeCoding/scripts/tests/athena999 -t vibeCoding/scripts/tests/athena999"
+  result: "231 OK"
+- command: "node vibeCoding/athena/gate/cli.cjs migrate --to 10.1 --dry-run --report .ai_state/docs/reports/2026-09-24-migrate-dry-run-rlues.md"
+  result: "rc 0；Rlues 工作树不变；报告含 54 move / 5 pause / 1 keep / 1 untrack、8 条待分诊教训、13 行 issues 草稿、blockers（冻结旧版源码字面引用 → S9 用 --allow-reads）"
+- metric: "钩子路径 2,162 行；CLI 1,257 行，单文件最大 215 行"

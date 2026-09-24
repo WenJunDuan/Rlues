@@ -77,7 +77,12 @@ function parseLines(lines) {
       continue;
     }
     const child = [];
-    while (i < lines.length && (skip(lines[i]) || indent(lines[i]) > 0)) { child.push(lines[i]); i += 1; }
+    // YAML allows a block list at the key's own indent ("key:\n- a"): collect it as the value.
+    const listAtZero = i < lines.length && /^- |^-$/.test(lines[i]);
+    while (i < lines.length && (skip(lines[i]) || indent(lines[i]) > 0 || (listAtZero && /^- |^-$/.test(lines[i])))) {
+      child.push(listAtZero && !/^\s/.test(lines[i]) ? `  ${lines[i]}` : lines[i]);
+      i += 1;
+    }
     result[key] = nested(child);
   }
   return result;

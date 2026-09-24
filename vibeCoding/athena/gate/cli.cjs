@@ -6,8 +6,13 @@ const fs = require('fs');
 const path = require('path');
 
 const USAGE = `usage: athena <command> [args]
-  run [--covers AC1,AC2] -- <cmd…>   run a check and record its exit code as evidence
-Other commands appear as their slices land (review, status, sprint, ship, issue, tidy, migrate, install, doctor).`;
+  status [--json]                      route, hot sprints, queue, waiting items, issues, exemptions
+  sprint start|stage|pause|resume|drop open and move sprints (athena sprint for details)
+  run [--covers AC1,AC2] -- <cmd…>     run a check and record its exit code as evidence
+  ship [--dry-run]                     H2/H3, archive, items done, _index idle (stages, never commits)
+  issue add|close|list                 the issues.md ledger
+  tidy [--dry-run]                     month-close, packing, hot-layer limit, .runtime retention
+  migrate --to 10.1 [--dry-run]        v1 → v2 state migration`;
 
 function commands() {
   const dir = path.join(__dirname, 'cli');

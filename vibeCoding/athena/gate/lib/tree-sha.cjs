@@ -34,7 +34,13 @@ function treeSha(root, ignore = []) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'athena-tree-'));
   const env = { ...clean, GIT_INDEX_FILE: path.join(tmp, 'index') };
   try {
-    try { fs.copyFileSync(indexPath, env.GIT_INDEX_FILE); } catch (_) { /* unborn repo: start empty */ }
+    try {
+      fs.copyFileSync(indexPath, env.GIT_INDEX_FILE);
+      // keep the index mtime: git's racy-clean check compares entry mtimes against it, and a fresh
+      // copy would make a same-size edit within the same second look clean
+      const st = fs.statSync(indexPath);
+      fs.utimesSync(env.GIT_INDEX_FILE, st.atime, st.mtime);
+    } catch (_) { /* unborn repo: start empty */ }
     // assume-unchanged / skip-worktree entries would hide edits from `git add` (review S2 P2).
     const hidden = run(root, ['ls-files', '-v', '-z'], env).split('\0').filter(l => /^[a-zS]/.test(l)).map(l => l.slice(2));
     // Paths go on argv (git ignores --no-skip-worktree with --stdin), one flag per call (combined
@@ -45,7 +51,7 @@ function treeSha(root, ignore = []) {
     const globs = ignore.filter(usableGlob).map(g => g.trim());
     const excluded = ['.ai_state', ...globs.map(g => `:(glob)${g}`)];
     run(root, ['add', '-A', '--', '.', ...excluded.map(p => (p.startsWith(':(') ? `:(exclude,${p.slice(2)}` : `:(exclude)${p}`))], env);
-    run(root, ['rm', '-r', '-q', '--cached', '--ignore-unmatch', '--', ...excluded], env);
+    run(root, ['rm', '-r', '-q', '-f', '--cached', '--ignore-unmatch', '--', ...excluded], env); // temp index only
     return run(root, ['write-tree'], env);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

@@ -53,8 +53,9 @@ items:
     notes: "design §6；NV-C1/C2/C10/C11/C12；quantum 门禁坑 1–11；P13a"
   - slug: s4-state-v2
     title: ".ai_state v2 schema + CLI + 自动归档 + 迁移脚本"
-    status: pending
-    sprint_slug: ""
+    status: done
+    sprint_slug: "2026-09-24-s4-state-v2"
+    done: {branch: "athena-10.1", review: "reviews/implementation-review.md 3 轮 PASS", tests: "evals 117/117; athena999 231 OK"}
     blocked_by: [s2-gate-core]
     depends_on: [s2-gate-core]
     path: System
@@ -97,7 +98,8 @@ items:
     notes: "design §10、§13；调研 F1–F8；pi-agent-9-10 sprint 取代；D6"
   - slug: s8-evals
     title: "evals：三端 fixture 一键跑 + 3 个行为任务 + 基线对比"
-    status: pending
+    status: dropped
+    dropped: "2026-09-24 用户：去掉，后续在项目中跑评测再完善"
     sprint_slug: ""
     blocked_by: [s2-gate-core, s5-prompts-v2]
     depends_on: [s2-gate-core, s5-prompts-v2]
