@@ -22,3 +22,5 @@
 - 已切换到 `2026-09-14-athena-9-9-9-local-hotfix`，不属于本 Feature 的验收。
 - 恢复入口：Feature / impl / `next_action: re-route`；原设计与未提交工作保持不动。
 - 2026-09-24：被 athena-10-1 S7（Pi 0.87 适配）取代；README 路径漂移入 S0·AC4。本 sprint 不再推进，S9 归档。
+
+shipped: 2026-09-24 closed — 被 athena-10.1 取代（Pi 适配随 S2/S5 落地，S7 取消）（10.1 迁移前收口）

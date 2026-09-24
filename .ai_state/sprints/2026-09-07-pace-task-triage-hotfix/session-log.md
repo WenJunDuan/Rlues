@@ -35,3 +35,5 @@
 - 本 sprint 已 ship。插入任务：`2026-09-13-telegram-style-hotfix`（9.9.9 电宝体，非新版本）。
 - 恢复本任务时：path=Hotfix, stage=ship, slug=`2026-09-07-pace-task-triage-hotfix`；父 System 仍见 `../2026-09-06-athena-9-9-9/session-log.md`。
 - 本轮用户未要求续跑本任务或父 System。
+
+shipped: 2026-09-24 closed — Hotfix 已 ship（9.9.9 期）（10.1 迁移前收口）

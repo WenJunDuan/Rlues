@@ -59,3 +59,5 @@ validator: `package_checks_pass=59 fail=1`。唯一 FAIL=`CC agents have maxTurn
 
 - 本 Hotfix 已 ship。插入：`2026-09-13-pi-agent-9-10`（CC 9.9.9 全结构迁 Pi，版本暂定 9.10）。
 - 恢复本任务：path=Hotfix, stage=ship, slug=`2026-09-13-telegram-style-hotfix`。
+
+shipped: 2026-09-24 closed — Hotfix 已 ship（10.1 迁移前收口）

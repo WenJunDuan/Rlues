@@ -16,3 +16,5 @@
 
 - 原 Quick 已完成，未沿用其 `stage=ship`、repo 外目标或免 subagent 设置。
 - 新任务为 Q12 批二生产缺口，按独立 System + roadmap 路由；范围见 `../../roadmap/q12-batch2-production-gaps/`。
+
+shipped: 2026-09-24 closed — Quick 已完成（maxTurns 70）（10.1 迁移前收口）

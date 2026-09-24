@@ -17,3 +17,5 @@
 
 - 已完成的 Hotfix 保持 `ship / re-route`；无活动 writer 或 worktree。
 - 新的独立 Quick 仅修改本机 CC agent 的 `maxTurns`，见 `../2026-09-16-cc-agent-turn-cap/session-log.md`。
+
+shipped: 2026-09-24 closed — Hotfix 已 ship（10.1 迁移前收口）

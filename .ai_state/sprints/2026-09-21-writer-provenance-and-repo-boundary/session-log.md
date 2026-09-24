@@ -26,3 +26,5 @@
 - 2026-09-21：grok 施工完成（end_turn，73 turns，$3.89）。5 commits `761983d..09c429f`，红→绿 TDD 时序正确，测试 160→217（/tmp clone 全绿），工作树干净零未推。自报 AC1-AC8 全绿 + CC==Pi cmp。**用户指示暂停**——核验整合链（handoff 动作链 1-4）未启动，待指令。
 - 2026-09-24 Cowork: grok/writer-provenance 5 commit cherry-pick 入 main (08d7400..68b26f9, 树 97f3d02 与隔离克隆实测一致); athena999 221/221 OK (py3.10+datetime.UTC shim, main 基线 164); 未过 implementation review, 安装态未同步; grok/q12-review-binding 已全量在 main。
 - 2026-09-24：用户指示合并散落规划入 10.1。本切片以「代码已合入、review 并入 athena-10-1 S2」收口，idle 释放。
+
+shipped: 2026-09-24 closed — 代码已合入 main，review 并入 athena-10-1 S2（10.1 迁移前收口）

@@ -4,10 +4,10 @@
 version: "9.9.9"
 
 # === PACE 路由状态 ===
-path: "Feature"
-stage: "impl"
+path: ""
+stage: ""
 breadcrumb: "on"                # v9.9.6 每轮 stage 面包屑注入; "off" 关闭 (fail-open)
-current_sprint_slug: "2026-09-24-s5-prompts-v2"
+current_sprint_slug: ""
 current_roadmap_slug: "athena-10-1"
 skip_polish: false                # 项目级 opt-out (默认 false)
 skip_architecture_check: false    # System/Refactor ship 前是否跳过 architecture 更新检查
