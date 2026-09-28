@@ -13,9 +13,9 @@ const cell = (value) => String(value === undefined || value === null || value ==
 
 function file(aiState) { return path.join(aiState, 'issues.md'); }
 
-function list(aiState) {
+function rowsFromFile(target) {
   let text;
-  try { text = fs.readFileSync(file(aiState), 'utf8'); } catch (_) { return []; }
+  try { text = fs.readFileSync(target, 'utf8'); } catch (_) { return []; }
   const rows = [];
   for (const line of text.split(/\r?\n/)) {
     const m = line.match(ROW);
@@ -24,6 +24,8 @@ function list(aiState) {
   return rows;
 }
 
+function list(aiState) { return rowsFromFile(file(aiState)); }
+
 /** Append a row; returns its id. */
 function add(aiState, { type, sev, text, found, next, status = 'open' }) {
   const prefix = TYPES[type];
@@ -31,7 +33,14 @@ function add(aiState, { type, sev, text, found, next, status = 'open' }) {
   const target = file(aiState);
   let body = '';
   try { body = fs.readFileSync(target, 'utf8'); } catch (_) { body = HEADER; }
-  const numbers = list(aiState).filter(row => row.id.startsWith(`${prefix}-`)).map(row => Number(row.id.slice(2)));
+  const archiveDir = path.join(aiState, 'archive');
+  const archives = fs.existsSync(archiveDir)
+    ? fs.readdirSync(archiveDir).filter(name => name.startsWith('issues-') && name.endsWith('.md'))
+    : [];
+  const numbers = [target, ...archives.map(name => path.join(archiveDir, name))]
+    .flatMap(rowsFromFile)
+    .filter(row => row.id.startsWith(`${prefix}-`))
+    .map(row => Number(row.id.slice(2)));
   const id = `${prefix}-${String((numbers.length ? Math.max(...numbers) : 0) + 1).padStart(3, '0')}`;
   const row = `| ${id} | ${type} | ${cell(sev)} | ${cell(text)} | ${cell(found)} | ${cell(next)} | ${cell(status)} |\n`;
   fs.mkdirSync(path.dirname(target), { recursive: true });

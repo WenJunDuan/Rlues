@@ -178,6 +178,20 @@ class SprintLifecycle(unittest.TestCase):
 
 
 class IssuesAndTidy(unittest.TestCase):
+    def test_issue_add_continues_ids_from_archived_months(self):
+        root = v2project(tmpdir(self))
+        archive = root / '.ai_state/archive'
+        archive.mkdir(parents=True)
+        (archive / 'issues-2026-01.md').write_text(
+            '| D-003 | debt | P2 | older | sprint | later | closed |\n', encoding='utf-8')
+        (archive / 'issues-2026-02.md').write_text(
+            '| D-009 | debt | P2 | latest | sprint | later | closed |\n', encoding='utf-8')
+        (root / '.ai_state/issues.md').write_text(
+            '# Issues\n\n| id | 类型 | 级别 | 一句话 | 发现于 | 去向 | 状态 |\n'
+            '|---|---|---|---|---|---|---|\n', encoding='utf-8')
+
+        self.assertEqual(ok(self, athena('issue', 'add', '--type', 'debt', '--text', 'new debt', cwd=root)).stdout.strip(), 'D-010')
+
     def test_issue_ledger_and_month_close(self):
         root = v2project(tmpdir(self))
         ids = [ok(self, athena('issue', 'add', '--type', t, '--text', f'{t} one', '--sev', 'P2', cwd=root)).stdout.strip()
