@@ -8,12 +8,7 @@
   },
   "env": {
     "VIBECODING_ATHENA_VERSION": "{{athena:ATHENA_VERSION}}",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5-1",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
-    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
-    "DISABLE_INSTALLATION_CHECKS": "1",
-    "API_TIMEOUT_MS": "600000"
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
   "permissions": {
     "defaultMode": "default",
@@ -64,8 +59,28 @@
       "Bash(prettier --check*)",
       "Bash(tsc --noEmit*)"
     ],
-    "ask": ["Bash(npm publish*)", "Bash(pnpm publish*)", "Bash(yarn publish*)"],
+    "ask": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(npm publish*)",
+      "Bash(pnpm publish*)",
+      "Bash(yarn publish*)",
+      "Bash(docker push*)"
+    ],
     "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gcloud/**)",
+      "Read(~/.kube/config)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/credentials.json)",
+      "Read(**/secrets/**)",
       "Edit(./.env)",
       "Edit(./.env.*)",
       "Edit(**/.env)",
