@@ -119,6 +119,56 @@ class AthenaRun(unittest.TestCase):
                 self.assertEqual(athena(*args, cwd=root).returncode, 2)
 
 
+class RunOverSsh(unittest.TestCase):
+    """G-002: ssh to a VM registered in ~/.athena/vm.json proves like the remote command would locally."""
+
+    def setUp(self):
+        tmp = tmpdir(self)
+        self.root = project(tmp, design=GOOD_DESIGN)
+        home = tmp / 'home'
+        (home / '.athena').mkdir(parents=True)
+        (home / '.athena/vm.json').write_text(json.dumps({'version': 1, 'vms': [
+            {'name': 'dev', 'host': '10.0.0.5', 'port': 22, 'user': 'root', 'auth': {'method': 'key', 'key_path': '~/.ssh/x'}},
+            {'name': 'dev2', 'host': 'vm2.example.invalid', 'port': 2222, 'user': 'ci'}]}), encoding='utf-8')
+        bin_dir = tmp / 'bin'
+        bin_dir.mkdir()
+        (bin_dir / 'ssh').write_text('#!/bin/sh\nexit 0\n', encoding='utf-8')
+        (bin_dir / 'ssh').chmod(0o755)
+        import os
+        self.env = {'HOME': str(home), 'PATH': f"{bin_dir}{os.pathsep}{ENV['PATH']}"}
+
+    def run_ssh(self, *argv):
+        self.assertEqual(athena('run', '--', 'ssh', *argv, cwd=self.root, env=self.env).returncode, 0)
+        return records(self.root)[-1]
+
+    def test_registered_vm_with_provable_remote_command(self):
+        row = self.run_ssh('-o', 'BatchMode=yes', 'root@10.0.0.5', 'cd /opt/w && npm test')
+        self.assertEqual((row['kind'], row['provable'], row['reason']), ('test', True, None))
+        self.assertEqual((row['vm'], row['remote']), ('dev', 'cd /opt/w && npm test'))
+        row = self.run_ssh('-p', '2222', '-l', 'ci', 'vm2.example.invalid', 'go', 'test', './...')
+        self.assertEqual((row['kind'], row['provable'], row['vm']), ('test', True, 'dev2'))
+
+    def test_remote_command_follows_local_rules(self):
+        row = self.run_ssh('root@10.0.0.5', 'npm test | tail -3')
+        self.assertEqual((row['kind'], row['provable'], row['reason']), ('test', False, 'pipeline_without_pipefail'))
+        row = self.run_ssh('root@10.0.0.5', 'uname -a')
+        self.assertEqual((row['kind'], row['provable']), ('other', False))
+
+    def test_unregistered_or_redirected_ssh_stays_unprovable(self):
+        for argv in (('root@10.0.0.6', 'npm test'),                      # host not registered
+                     ('admin@10.0.0.5', 'npm test'),                     # user mismatch
+                     ('10.0.0.5', 'npm test'),                           # user unknown
+                     ('-p', '2200', 'root@10.0.0.5', 'npm test'),        # port mismatch
+                     ('-o', 'HostName=10.0.0.6', 'root@10.0.0.5', 'npm test'),
+                     ('-o', 'ProxyCommand=sh -c x', 'root@10.0.0.5', 'npm test'),
+                     ('-F', '/tmp/cfg', 'root@10.0.0.5', 'npm test'),
+                     ('-f', 'root@10.0.0.5', 'npm test')):
+            with self.subTest(argv=argv):
+                row = self.run_ssh(*argv)
+                self.assertFalse(row['provable'])
+                self.assertNotIn('vm', row)
+
+
 class Collector(unittest.TestCase):
     """Fallback: a validation command seen by post_tool is recorded with each platform's exit semantics."""
 

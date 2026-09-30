@@ -45,6 +45,19 @@ class ReviewFlow(unittest.TestCase):
         self.assertIn('current', ok(self, athena('review', 'show', cwd=root)).stdout)
         ok(self, athena('ship', cwd=root))
 
+    def test_changes_list_excludes_ai_state_like_the_tree(self):
+        # G-003: base tree kept .ai_state (and review_ignore), current tree drops it → every
+        # tracked .ai_state file was listed as deleted.
+        root = v2project(tmpdir(self))
+        ready(self, root)
+        (root / '.ai_state/queue.md').write_text('# Queue\n\nunstaged edit\n', encoding='utf-8')
+        prep = ok(self, athena('review', 'prepare', cwd=root)).stdout
+        run = re.search(r'^run (\S+)', prep, re.M).group(1)
+        packet = (root / f'.ai_state/.runtime/review/{run}/packet.md').read_text(encoding='utf-8')
+        changes = packet.split('## Changes (base → current tree)')[1].split('## Evidence')[0]
+        self.assertNotIn('.ai_state', changes)
+        self.assertEqual(re.findall(r'^- (.+)$', changes, re.M), ['M\tapp.js'])
+
     def test_source_change_after_prepare_is_rejected_file_by_file(self):
         root = v2project(tmpdir(self))
         ready(self, root)

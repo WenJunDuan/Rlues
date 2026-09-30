@@ -129,6 +129,7 @@ function append(ctx, fields) {
     ignore: Array.isArray(fields.ignore) ? fields.ignore : [],
     covers: Array.isArray(fields.covers) ? fields.covers : [],
   };
+  if (fields.vm) Object.assign(record, { vm: fields.vm, remote: redact(fields.remote).slice(0, 500) });
   if (fields.output !== undefined) record.output = redact(fields.output);
   const target = file(ctx);
   fs.mkdirSync(path.dirname(target), { recursive: true });

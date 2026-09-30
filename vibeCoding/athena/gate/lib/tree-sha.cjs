@@ -24,6 +24,11 @@ function usableGlob(glob) {
   return Boolean(g) && !g.startsWith('/') && !g.split('/').includes('..') && /[^*?/[\]{}!.,\s]/.test(g);
 }
 
+/** Pathspec for the source tree: '.' minus .ai_state and usable review_ignore globs. */
+function pathspec(ignore = []) {
+  return ['.', ':(exclude).ai_state', ...ignore.filter(usableGlob).map(g => `:(exclude,glob)${g.trim()}`)];
+}
+
 /** Tree sha of root's working tree, or null when root is not a git work tree. */
 function treeSha(root, ignore = []) {
   const clean = { ...process.env };
@@ -48,9 +53,8 @@ function treeSha(root, ignore = []) {
     for (const flag of ['--no-assume-unchanged', '--no-skip-worktree']) {
       for (let i = 0; i < hidden.length; i += 200) run(root, ['update-index', flag, '--', ...hidden.slice(i, i + 200)], env);
     }
-    const globs = ignore.filter(usableGlob).map(g => g.trim());
-    const excluded = ['.ai_state', ...globs.map(g => `:(glob)${g}`)];
-    run(root, ['add', '-A', '--', '.', ...excluded.map(p => (p.startsWith(':(') ? `:(exclude,${p.slice(2)}` : `:(exclude)${p}`))], env);
+    const excluded = ['.ai_state', ...ignore.filter(usableGlob).map(g => `:(glob)${g.trim()}`)];
+    run(root, ['add', '-A', '--', ...pathspec(ignore)], env);
     run(root, ['rm', '-r', '-q', '-f', '--cached', '--ignore-unmatch', '--', ...excluded], env); // temp index only
     return run(root, ['write-tree'], env);
   } finally {
@@ -69,4 +73,4 @@ function treeFiles(root, tree) {
   return out;
 }
 
-module.exports = { treeSha, treeFiles, usableGlob };
+module.exports = { treeSha, treeFiles, usableGlob, pathspec };

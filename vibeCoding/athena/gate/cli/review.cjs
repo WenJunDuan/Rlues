@@ -8,7 +8,7 @@ const archive = require('./lib/archive.cjs');
 const evidence = require('../lib/evidence.cjs');
 const frontmatter = require('../lib/frontmatter.cjs');
 const { git } = require('../lib/context.cjs');
-const { treeSha, treeFiles } = require('../lib/tree-sha.cjs');
+const { treeSha, treeFiles, pathspec } = require('../lib/tree-sha.cjs');
 const { reviewIgnore } = require('../core.cjs');
 const h1 = require('../rules/h1-design.cjs');
 
@@ -37,13 +37,16 @@ function resolveRun(ctx, id) {
   return id;
 }
 
-function changed(ctx, base, tree) {
+// The current tree omits .ai_state and review_ignore; diff the base through the same pathspec
+// or every tracked .ai_state file reads as deleted (G-003).
+function changed(ctx, base, tree, ignore) {
   if (!base) return { stat: '(design.md has no base_commit)', names: [] };
   const baseTree = git(ctx.root, ['rev-parse', `${base}^{tree}`]);
   if (!baseTree) return { stat: `(base_commit ${base} not found)`, names: [] };
+  const spec = ['--', ...pathspec(ignore)];
   return {
-    stat: git(ctx.root, ['diff-tree', '-r', '--stat=120', baseTree, tree]) || '(no changes)',
-    names: (git(ctx.root, ['diff-tree', '-r', '--name-status', baseTree, tree]) || '').split('\n').filter(Boolean),
+    stat: git(ctx.root, ['diff-tree', '-r', '--stat=120', baseTree, tree, ...spec]) || '(no changes)',
+    names: (git(ctx.root, ['diff-tree', '-r', '--name-status', baseTree, tree, ...spec]) || '').split('\n').filter(Boolean),
   };
 }
 
@@ -62,7 +65,7 @@ function prepare(argv, io) {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'files.json'), `${JSON.stringify({ run, scope, sprint: ctx.sprint, base_commit: base, tree_sha: tree, ignore, ac_sha: acSha(design), files: treeFiles(ctx.root, tree) })}\n`);
   const ac = h1.criteria(design);
-  const diff = changed(ctx, base, tree);
+  const diff = changed(ctx, base, tree, ignore);
   const valid = evidence.valid(ctx, tree, { ignore });
   const claims = design.split('\n').filter(l => /转录|transcribed/i.test(l)).slice(0, 20);
   const packet = [
