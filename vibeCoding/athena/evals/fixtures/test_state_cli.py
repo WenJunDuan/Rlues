@@ -9,7 +9,7 @@ import unittest
 
 from gate_harness import GATE, athena, call, check_file, git, tmpdir
 
-TODAY = datetime.date.today().isoformat()
+TODAY = datetime.datetime.now(datetime.timezone.utc).date().isoformat()  # athena dates are UTC
 MONTH = TODAY[:7]
 
 

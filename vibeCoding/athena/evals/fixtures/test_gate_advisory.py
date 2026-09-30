@@ -1,5 +1,5 @@
 """A1–A10 advisories, the Stop circuit breaker, and context injection (athena-10-1 S2 AC3, AC4, AC7)."""
-from datetime import date, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import subprocess
@@ -79,7 +79,7 @@ class Advisories(unittest.TestCase):
         for i in range(4):
             (root / f'.ai_state/sprints/2026-09-2{i}-x').mkdir()
         self.assertIn('hot sprints', advisories(root, ['A7'])['A7'])
-        soon = (date.today() + timedelta(days=1)).isoformat()
+        soon = (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
         set_index(root, exemptions=f'[{{key: skip_polish, until: "{soon}", reason: "lib only"}}, {{key: skip_h2, until: "{soon}", reason: "x"}}]')
         message = advisories(root, ['A8'])['A8']
         self.assertIn('skip_polish: expires', message)
@@ -133,7 +133,7 @@ class Breaker(unittest.TestCase):
 
 class Injection(unittest.TestCase):
     def test_session_start_and_prompt(self):
-        soon = (date.today() + timedelta(days=5)).isoformat()
+        soon = (datetime.now(timezone.utc).date() + timedelta(days=5)).isoformat()
         root = project(tmpdir(self), path='Refactor', stage='impl', design=GOOD_DESIGN,
                        extra_index=f'next_action: "finish AC1"\nexemptions:\n  - key: h4_worktree\n    until: "{soon}"\n    reason: "harness outside repo"\n')
         (root / '.ai_state/issues.md').write_text('| id | 类型 | 级别 | 一句话 | 发现于 | 去向 | 状态 |\n|---|---|---|---|---|---|---|\n'

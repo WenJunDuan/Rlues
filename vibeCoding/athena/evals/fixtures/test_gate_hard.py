@@ -172,11 +172,11 @@ class H4Isolation(unittest.TestCase):
         self.assertTrue(call('cc', 'agent', root, type='generator').blocked)
 
     def test_exemption_with_expiry(self):
-        from datetime import date, timedelta
+        from datetime import datetime, timedelta, timezone
         root = project(tmpdir(self), path='Refactor', stage='impl', design=GOOD_DESIGN)
-        soon = (date.today() + timedelta(days=3)).isoformat()
-        past = (date.today() - timedelta(days=1)).isoformat()
-        far = (date.today() + timedelta(days=40)).isoformat()
+        soon = (datetime.now(timezone.utc).date() + timedelta(days=3)).isoformat()
+        past = (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
+        far = (datetime.now(timezone.utc).date() + timedelta(days=40)).isoformat()
         for until, expected in ((soon, False), (past, True), (far, True)):
             set_index(root, exemptions=f'[{{key: h4_worktree, until: "{until}", reason: "target is ~/.claude"}}]')
             with self.subTest(until=until):
