@@ -199,7 +199,8 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
         self.assertEqual(replay.returncode, 0, replay.stderr + replay.stdout)
 
     def test_sensitive_names_rejected_without_execution_or_record(self):
-        for name in ('API_KEY', 'github_token', 'MY_SECRET', 'PASSWORD', 'DATABASE_URL', 'PASSWD'):
+        for name in ('API_KEY', 'APIKEY', 'ACCESS_KEY', 'ACCESSKEY', 'github_token', 'MY_SECRET',
+                     'PASSWORD', 'DATABASE_URL', 'PASSWD', 'PRIVATE_KEY', 'CLIENT_SECRET'):
             with self.subTest(name=name):
                 run = athena('run', '--env', f'{name}=fixture-private-value', '--',
                              'node', '-e', 'process.exit(9)', cwd=self.root)
@@ -207,6 +208,53 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
                 self.assertIn('env 文件', run.stderr)
                 self.assertNotIn('fixture-private-value', run.stderr + run.stdout)
         self.assertEqual(records(self.root), [])
+
+    def test_noncredential_name_segments_are_accepted(self):
+        self.target.write_text("require('node:test')('ok', () => {});\n")
+        for name in ('TOKENIZERS_PARALLELISM', 'MAX_TOKENS', 'KEYBOARD_LAYOUT', 'MONKEY',
+                     'MYTOKEN', 'MYSECRET', 'MYPASSWORD', 'NOTAPIKEY'):
+            with self.subTest(name=name):
+                run = athena('run', '--env', f'{name}=fixture-value', '--',
+                             'node', '--test', str(self.target), cwd=self.root)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                row = records(self.root)[-1]
+                self.assertTrue(row['provable'])
+                self.assertIn(f'{name}=fixture-value', row['command'])
+                self.assertEqual(row['env'], {name: 'fixture-value'})
+
+    def test_bash_env_cannot_prove_shadowed_failing_test(self):
+        self.target.write_text("require('node:test')('bad', () => { throw Error('red'); });\n")
+        startup = self.tmp / 'startup.sh'
+        startup.write_text('node() { echo "shadowed runner"; return 0; }\n')
+        command = f'node --test {self.target}'
+        probe = subprocess.run(['bash', '-o', 'pipefail', '-c', command],
+                               env={**ENV, 'BASH_ENV': str(startup)}, capture_output=True, text=True)
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        self.assertIn('shadowed runner', probe.stdout)
+        run = athena('run', '--env', f'BASH_ENV={startup}', '--', command, cwd=self.root)
+        # macOS system bash may suppress startup files when spawned directly by Node.
+        self.assertIn(run.returncode, (0, 1), run.stderr)
+        if run.returncode == 0:
+            self.assertIn('shadowed runner', run.stdout)
+        row = records(self.root)[-1]
+        self.assertFalse(row['provable'])
+        self.assertEqual(row['reason'], 'validation_shadowable')
+
+    def test_execution_changing_env_is_recorded_unprovable(self):
+        self.target.write_text("require('node:test')('ok', () => {});\n")
+        preload = self.tmp / 'preload.cjs'
+        preload.write_text('process.exit(0);\n')
+        assignments = (f'NODE_OPTIONS=--require={preload}', 'PYTHONPATH=/fixture',
+                       'PYTEST_ADDOPTS=-p fixture', 'LD_PRELOAD=', 'DYLD_INSERT_LIBRARIES=',
+                       'DYLD_LIBRARY_PATH=', 'ENV=/fixture', 'BASH_ENV=/fixture')
+        for assignment in assignments:
+            for cmd in (('node', '--test', str(self.target)), (f'node --test {self.target}',)):
+                with self.subTest(assignment=assignment, cmd=cmd):
+                    run = athena('run', '--env', assignment, '--', *cmd, cwd=self.root)
+                    self.assertEqual(run.returncode, 0, run.stderr)
+                    row = records(self.root)[-1]
+                    self.assertFalse(row['provable'])
+                    self.assertEqual(row['reason'], 'validation_shadowable')
 
     def test_credential_value_under_ordinary_name_is_rejected(self):
         value = 'sk-abcdefgh12345678'

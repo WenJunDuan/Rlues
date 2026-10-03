@@ -14,6 +14,8 @@ const evidence = require('../lib/evidence.cjs');
 const { treeSha } = require('../lib/tree-sha.cjs');
 const { reviewIgnore } = require('../core.cjs');
 
+// Explicit overrides can replace runners, inject code or alter collection/plugins.
+const EXECUTION_ENV = /^(?:PATH|BASH_ENV|ENV|NODE_OPTIONS|PYTHONPATH|PYTHONHOME|PYTEST_ADDOPTS|PYTEST_PLUGINS|LD_PRELOAD|LD_LIBRARY_PATH|DYLD_.*)$/;
 const WRAPPERS = /^(?:(?:ba|z|da|k)?sh|eval|env|sudo|xargs|timeout|nice|nohup|time|exec|stdbuf|command|fish|pwsh|powershell|cmd)$/;
 const quote = (w) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(w) ? w : `'${w.replace(/'/g, "'\\''")}'`);
 
@@ -74,7 +76,7 @@ function parse(argv) {
       const match = String(head[++i] || '').match(/^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/);
       if (!match) throw new Error('run: --env takes K=V');
       const assignment = `${match[1]}=${quote(match[2])}`;
-      if (/KEY|TOKEN|SECRET|PASSWORD/i.test(match[1]) || evidence.redact(assignment, { bounded: false }) !== assignment) {
+      if (evidence.credentialName(match[1]) || evidence.redact(assignment, { bounded: false }) !== assignment) {
         throw new Error(`run: --env ${match[1]} 像凭据；改走 env 文件，不写入证据`);
       }
       opts.env[match[1]] = match[2];
@@ -121,7 +123,7 @@ function main(argv, io) {
   let policy = shell ? evidence.policy(`set -o pipefail; ${rawCommand}`) : { provable: true, reason: null };
   if (!shell && WRAPPERS.test(path.basename(opts.cmd[0]))) policy = { provable: false, reason: 'wrapped_command' };
   if (ssh) policy = evidence.policy(ssh.remote);
-  if (Object.hasOwn(opts.env, 'PATH')) policy = { provable: false, reason: 'validation_shadowable' };
+  if (Object.keys(opts.env).some(name => EXECUTION_ENV.test(name))) policy = { provable: false, reason: 'validation_shadowable' };
   if (exit === 0 && kind === 'test' && zeroTests(output)) policy = { provable: false, reason: 'zero_tests: 零用例执行' };
   if (before !== after) policy = { provable: false, reason: 'tree_changed_during_run' };
   const record = evidence.append(ctx, {

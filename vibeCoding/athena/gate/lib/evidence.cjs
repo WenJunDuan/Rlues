@@ -91,12 +91,15 @@ function policy(command) {
   return { provable: true, reason: null };
 }
 
+// Credential names match underscore-delimited segments, not incidental substrings.
+const credentialName = (name) => /(?:^|_)(?:api_?key|access_?key|token|password|passwd|secret|private_?key|database_?url)(?:_|$)/i.test(name);
+
 /** Credential redaction + head 300 / tail 1200 truncation (optional for explicit-env replay). */
 function redact(value, { bounded = true } = {}) {
   const out = String(value || '')
     .replace(/\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,}|xox[abpr]-[A-Za-z0-9-]{8,}|AKIA[0-9A-Z]{16})\b/g, '[REDACTED]')
     .replace(/(authorization\s*:\s*(?:bearer|basic|token)\s+)[^\s,;'"]+/gi, '$1[REDACTED]')
-    .replace(/((?:api[_-]?key|token|password|passwd|secret|private[_-]?key|client[_-]?secret|aws[_-](?:secret[_-]?access[_-]?key|access[_-]?key[_-]?id)|database[_-]?url)\s*[=:]\s*)[^\s,;]+/gi, '$1[REDACTED]')
+    .replace(/(^|[^A-Za-z0-9_]|_)((?:api[_-]?key|access[_-]?key|token|password|passwd|secret|private[_-]?key|client[_-]?secret|aws[_-](?:secret[_-]?access[_-]?key|access[_-]?key[_-]?id)|database[_-]?url)(?:_[a-z0-9]+)*\s*[=:]\s*)[^\s,;]+/gi, '$1$2[REDACTED]')
     .replace(/(--(?:password|token|api[-_]?key|secret)(?:=|\s+))[^\s,;]+/gi, '$1[REDACTED]')
     .replace(/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^\s/@]+@/gi, '$1[REDACTED]@');
   const chars = [...out];
@@ -157,4 +160,4 @@ function valid(ctx, tree, { anyProvableKind = false, ignore = [] } = {}) {
     && (row.provable === true || (anyProvableKind && row.kind === 'lint' && row.reason === null)));
 }
 
-module.exports = { classify, classifySegment, policy, redact, append, read, valid, file, PROVABLE_KINDS };
+module.exports = { classify, classifySegment, policy, credentialName, redact, append, read, valid, file, PROVABLE_KINDS };

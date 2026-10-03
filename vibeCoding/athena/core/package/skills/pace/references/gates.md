@@ -16,10 +16,11 @@
 
 ## 证据可证明性（H2）
 
-`athena run [--env K=V] -- <cmd>` 记录 exit 与 tree_sha。`--env` 可多次，注入子进程并写进 command 与独立 env 字段；显式 env 的重放内容保留完整长度（仍脱敏），不采集调用时的隐式 env。变量名含 KEY/TOKEN/SECRET/PASSWORD 或序列化赋值命中已有凭据脱敏规则时拒收，凭据改走 env 文件；显式 PATH 保持遮蔽判定。以下判为 unprovable：
+`athena run [--env K=V] -- <cmd>` 记录 exit 与 tree_sha。`--env` 可多次，注入子进程并写进 command 与独立 env 字段；显式 env 的重放内容保留完整长度（仍脱敏），不采集调用时的隐式 env。变量名按下划线分词段匹配 APIKEY/API_KEY、ACCESSKEY/ACCESS_KEY、TOKEN、SECRET、PASSWORD、PASSWD、PRIVATEKEY/PRIVATE_KEY、DATABASEURL/DATABASE_URL，或序列化赋值命中已有凭据脱敏规则时拒收，凭据改走 env 文件。以下判为 unprovable：
 - 检查放后台（`&`），或 `||` / `exit` / `exec` 让检查可能不跑；
 - 检查后还有非 `&&` 的命令，或管道没开 `pipefail`；
 - `trap`、`alias`、函数、`source`（venv activate 除外）、`PATH=` 可能遮蔽检查命令；
+- 显式 `--env` 覆盖 `PATH`、`BASH_ENV`、`ENV`、`NODE_OPTIONS`、`PYTHONPATH`、`PYTHONHOME`、`PYTEST_ADDOPTS`、`PYTEST_PLUGINS`、`LD_PRELOAD`、`LD_LIBRARY_PATH` 或 `DYLD_*`：允许执行并记录，因可改变执行体或测试收集，标记 `validation_shadowable`，不能用作 H2 证据；
 - argv[0] 被包装、运行期间源码树变了。
 - 测试 exit 0，但明确汇总为零用例（node `ℹ tests 0` / `# tests 0`、pytest `collected 0 items` / `no tests ran`，含 npm test 包装）；未知格式按现状。
 
