@@ -10,7 +10,7 @@ argument-hint: "[packet path]"
 维度（一轮做完）：spec 覆盖（逐条 AC：MISSING / EXTRA / DEVIATED）、正确性、安全、测试风险、过度设计。能跑的就跑（只读命令），用输入复现而不是推测。review_ignore 若藏了源码本身就是发现项。
 
 输出（原样返回给主 agent，不写文件）：
-- 每个发现一行：`- [P0|P1|P2|P3] <file>:<line> — <问题 + 具体失败输入>`；P0/P1 = 发布前必须修。P2/P3 合计 ≤5 条。
+- 每个发现一行：`- [P0|P1|P2|P3] <file>:<line> — <问题 + 具体失败输入>`；证据或合同级定位用 `<evidence|packet|design>:<id|—>`，无需伪造文件行号；P0/P1 = 发布前必须修。P2/P3 合计 ≤5 条。
 - 然后恰好一行：`VERDICT: PASS|CONCERNS|REWORK|FAIL`（有 P0/P1 不得 PASS）。
 - 可选 ≤5 行总结。不写 run id、时间戳、frontmatter —— 这些由 `athena review accept` 生成。
 

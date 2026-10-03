@@ -118,7 +118,7 @@ function prepare(argv, io) {
     '## Evidence on this tree', '', ...(valid.length ? valid.map(r => `- ${r.id} ${r.kind} exit ${r.exit} covers ${(r.covers || []).join(',') || '—'}: ${r.command}`) : ['- none yet (H2 will refuse ship)']), '',
     ...(claims.length ? ['## Transcribed claims (verify, do not trust)', '', ...claims, ''] : []),
     '## Dimensions', '', ...DIMENSIONS.map(d => `- ${d}`), '',
-    '## Output contract', '', 'Follow the reviewer contract (agents/reviewer.md): findings lines `- [P0|P1|P2|P3] <file>:<line> — <text>`, then exactly one line `VERDICT: PASS|CONCERNS|REWORK|FAIL`. No run id, no timestamps, no frontmatter.', '',
+    '## Output contract', '', 'Follow the reviewer contract (agents/reviewer.md): findings lines `- [P0|P1|P2|P3] <file>:<line> or <evidence|packet|design>:<id|—> — <text>`, then exactly one line `VERDICT: PASS|CONCERNS|REWORK|FAIL`. No run id, no timestamps, no frontmatter.', '',
   ].join('\n');
   fs.writeFileSync(path.join(dir, 'packet.md'), packet);
   io.stdout.write(`run ${run}\npacket ${path.relative(io.cwd, path.join(dir, 'packet.md'))}\nnext: give the packet to an independent reviewer, then \`athena review accept --run ${run} --file <its output>\`\n`);
@@ -148,7 +148,7 @@ function parseOutput(text) {
     }
     if (/[[(]\s*p\d+\s*[\])]/i.test(line)) { // anything tag-like must be an exact [P0]–[P3] finding
       const m = line.match(/^- \[(P[0-3])\] (\S.*?) (?:—|–|--) (\S.*)$/);
-      if (!m) throw new UsageError(`malformed finding line: "${line.trim().slice(0, 80)}" (must be \`- [Pn] <file>:<line> — <text>\`)`);
+      if (!m || (/^(?:evidence|packet|design):/.test(m[2]) && !/^(?:evidence|packet|design):(?:[^\s:]+|—)$/.test(m[2]))) throw new UsageError(`malformed finding line: "${line.trim().slice(0, 80)}" (must be \`- [Pn] <file>:<line> or <evidence|packet|design>:<id|—> — <text>\`)`);
       findings.push({ sev: m[1], loc: m[2], text: m[3].trim() });
     }
   }
