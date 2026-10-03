@@ -39,3 +39,12 @@ reason 字段写明原因；照 reason 改写命令后重跑。
 ## 熔断与误拦
 
 同一 Stop 拦截连续 3 次：放行本次，并在 issues.md 记一条 G 行。认为是误拦：`athena issue add --type gate --text "<门禁 id + 命令/路径 + 为什么是误拦>"`，请用户决定；不要改写 `.runtime` 或账本绕过。
+
+
+### run 环境与 monorepo 证据（G-011）
+
+`--env K=V`、行内赋值 `K=V cmd`、`export K=V; cmd` 均检查执行环境族：npm_config_*、UV_*、POETRY_*、PIPENV_*、CARGO_*、HATCH_ENV、VIRTUAL_ENV、GOFLAGS、RUSTC_WRAPPER、GRADLE_USER_HOME、MAVEN_ARGS 及既有 Node/Python/loader/config 族。命令仍执行，但记 `validation_shadowable`、不可证明。PAT/DSN 凭据名和空用户名带密码 URL 不收进显式 env。
+
+安全单调限制：NODE_ENV 和 *RC（含 DATA_SRC）仍沿用基线不可证明判定；本轮不增加豁免。它们可能只影响业务行为，但改为可证明将放宽基线。
+
+monorepo **按包分跑**：进入各包子目录分别 `athena run --covers ACn -- npm test`；记录 `cwd`（相对源码仓根）供重放。`--workspaces` 的任一包或嵌套 suite 出现 runner 的零用例/全跳过摘要，整体均不可证明；非空的后续摘要不抵消先前零执行。

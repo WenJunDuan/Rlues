@@ -248,8 +248,11 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
         command = f'node --test {self.target}'
         probe = subprocess.run(['bash', '-o', 'pipefail', '-c', command],
                                env={**ENV, 'BASH_ENV': str(startup)}, capture_output=True, text=True)
-        self.assertEqual(probe.returncode, 0, probe.stderr)
-        self.assertIn('shadowed runner', probe.stdout)
+        # The host may suppress BASH_ENV for subprocesses too; the policy must
+        # reject the override whether or not startup code ran on this host.
+        self.assertIn(probe.returncode, (0, 1), probe.stderr)
+        if probe.returncode == 0:
+            self.assertIn('shadowed runner', probe.stdout)
         run = athena('run', '--env', f'BASH_ENV={startup}', '--', command, cwd=self.root)
         # macOS system bash may suppress startup files when spawned directly by Node.
         self.assertIn(run.returncode, (0, 1), run.stderr)

@@ -22,6 +22,19 @@ const PATTERNS = [
   ['build', String.raw`(?:(?:npm|pnpm|yarn|bun)\s+run\s+build|cargo\s+build|go\s+build|mvn\s+compile|\./gradlew\s+build|cmake\s+--build)`],
 ].map(([kind, pattern]) => [kind, new RegExp(`${PREFIX}${pattern}\\b`, 'im')]);
 const PROVABLE_KINDS = new Set(['test', 'typecheck', 'build', 'docs']);
+// Preserve every baseline rejection (including NODE_ENV and *RC) while extending
+// the runner-selection families. G-011 requires monotonically stricter provability.
+const EXECUTION_ENV = /^(?:(?:npm_config|XDG|NODE|PYTEST|LD|DYLD|UV|POETRY|PIPENV|CARGO)_.*|PYTHON.*|HOME|USERPROFILE|BASH_ENV|ENV|SHELL|PATH|COMSPEC|.*_(?:OPTIONS|OPTS|ADDOPTS)|.*_CONFIG.*|.*RC|HATCH_ENV|VIRTUAL_ENV|GOFLAGS|RUSTC_WRAPPER|GRADLE_USER_HOME|MAVEN_ARGS)$/i;
+
+function executionAssignments(text) {
+  return words.commandSegments(text).some(segment => {
+    const item = words.executable(segment);
+    const names = Object.keys(item.env);
+    if (item.name === 'export') names.push(...item.args.map(t => t.value.split('=')[0]));
+    return names.some(name => EXECUTION_ENV.test(name));
+  });
+}
+
 
 function classifySegment(text) {
   const hit = PATTERNS.find(([, pattern]) => pattern.test(String(text || '')));
@@ -76,8 +89,8 @@ function policy(command) {
   const last = hits[hits.length - 1];
   // venv activation is the normal workflow — relative, in-repo paths only.
   const activate = /^\s*(?:source|\.)\s+['"]?(?:\.\/)?(?:(?!\.\.\/)\.?[\w-][\w.-]*\/)*bin\/activate['"]?\s*$/;
-  const shadow = segments.slice(0, last + 1).some(s => !activate.test(s.text)
-    && /^\s*(?:trap|alias|shopt|enable|hash|source|\.|function)\s|^\s*[A-Za-z_][\w.-]*\s*\(\s*\)|(?:^|\s)(?:export\s+)?PATH=/.test(s.text));
+  const shadow = segments.slice(0, last + 1).some(s => executionAssignments(s.text) || (!activate.test(s.text)
+    && /^\s*(?:trap|alias|shopt|enable|hash|source|\.|function)\s|^\s*[A-Za-z_][\w.-]*\s*\(\s*\)|(?:^|\s)(?:export\s+)?PATH=/.test(s.text)));
   if (shadow) return { provable: false, reason: 'validation_shadowable' };
   for (const vi of hits) {
     let end = vi;
@@ -94,16 +107,16 @@ function policy(command) {
 // Substring matching preserves baseline rejection; exceptions are exact, reviewed names.
 const NONCREDENTIAL_NAMES = new Set(['TOKENIZERS_PARALLELISM', 'MAX_TOKENS', 'KEYBOARD_LAYOUT', 'MONKEY']);
 const credentialName = (name) => !NONCREDENTIAL_NAMES.has(name)
-  && /KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|PASS$|PASS_|CREDENTIAL|AUTH|DATABASE_?URL/i.test(name);
+  && /KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|PASS$|PASS_|CREDENTIAL|AUTH|DATABASE_?URL|(?:^|_)(?:PAT|DSN)(?:$|_)/i.test(name);
 
 /** Credential redaction + head 300 / tail 1200 truncation (optional for explicit-env replay). */
 function redact(value, { bounded = true } = {}) {
   const out = String(value || '')
     .replace(/\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,}|xox[abpr]-[A-Za-z0-9-]{8,}|AKIA[0-9A-Z]{16})\b/g, '[REDACTED]')
     .replace(/(authorization\s*:\s*(?:bearer|basic|token)\s+)[^\s,;'"]+/gi, '$1[REDACTED]')
-    .replace(/((?:api[_-]?key|token|password|passwd|secret|private[_-]?key|client[_-]?secret|aws[_-](?:secret[_-]?access[_-]?key|access[_-]?key[_-]?id)|database[_-]?url)\s*[=:]\s*)[^\s,;]+/gi, '$1[REDACTED]')
+    .replace(/((?:api[_-]?key|token|password|passwd|secret|private[_-]?key|client[_-]?secret|aws[_-](?:secret[_-]?access[_-]?key|access[_-]?key[_-]?id)|database[_-]?url|[a-z0-9_]*(?:_pat|_dsn)|pat|dsn)\s*[=:]\s*)[^\s,;]+/gi, '$1[REDACTED]')
     .replace(/(--(?:password|token|api[-_]?key|secret)(?:=|\s+))[^\s,;]+/gi, '$1[REDACTED]')
-    .replace(/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^\s/@]+@/gi, '$1[REDACTED]@');
+    .replace(/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/@:]*:[^\s/@]+@/gi, '$1[REDACTED]@');
   const chars = [...out];
   if (!bounded || chars.length <= 1500) return out;
   return `${chars.slice(0, 300).join('')}\n…[truncated ${chars.length - 1500} chars]…\n${chars.slice(-1200).join('')}`;
@@ -133,6 +146,7 @@ function append(ctx, fields) {
     reason: verdict.reason || (Number.isInteger(fields.exit) ? null : 'exit_code_unknown'),
     tree_sha: fields.tree_sha || null,
     ignore: Array.isArray(fields.ignore) ? fields.ignore : [],
+    cwd: path.relative(ctx.root, ctx.cwd) || '.',
     covers: Array.isArray(fields.covers) ? fields.covers : [],
   };
   if (explicitEnv) record.env = Object.fromEntries(Object.entries(fields.env).map(([k, v]) => [k, redact(v, { bounded: false })]));
@@ -162,4 +176,4 @@ function valid(ctx, tree, { anyProvableKind = false, ignore = [] } = {}) {
     && (row.provable === true || (anyProvableKind && row.kind === 'lint' && row.reason === null)));
 }
 
-module.exports = { classify, classifySegment, policy, credentialName, redact, append, read, valid, file, PROVABLE_KINDS };
+module.exports = { classify, classifySegment, policy, credentialName, redact, append, read, valid, file, PROVABLE_KINDS, EXECUTION_ENV };
