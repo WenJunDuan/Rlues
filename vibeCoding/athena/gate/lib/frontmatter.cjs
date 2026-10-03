@@ -32,6 +32,8 @@ function scalar(raw) {
 /** Strip a trailing comment, including after flow values; quoted hashes are data. */
 function stripComment(value) {
   let quote = '';
+  const flow = [];
+  let start = true;
   for (let i = 0; i < value.length; i += 1) {
     const ch = value[i];
     if (quote) {
@@ -40,8 +42,12 @@ function stripComment(value) {
       if (ch === quote) quote = '';
       continue;
     }
-    if (ch === '"' || ch === "'") quote = ch;
+    if ((ch === '"' || ch === "'") && start) { quote = ch; start = false; }
     else if (ch === '#' && /\s/.test(value[i - 1] || '')) return value.slice(0, i);
+    else if ((ch === '[' || ch === '{') && start) { flow.push(ch); start = true; }
+    else if (flow.length && (ch === ']' || ch === '}')) { flow.pop(); start = false; }
+    else if (flow.length && (ch === ',' || (ch === ':' && flow[flow.length - 1] === '{'))) start = true;
+    else if (!/\s/.test(ch)) start = false;
   }
   return value;
 }

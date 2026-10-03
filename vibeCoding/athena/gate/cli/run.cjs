@@ -90,25 +90,35 @@ function parse(argv) {
 // Only explicit runner summaries; generic "0 tests" prose is not a count.
 function zeroTests(output) {
   const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
-  let empty = false;
   let tests = null;
   for (const line of plain.split(/\r?\n/)) {
     const node = line.match(/^\s*[ℹ#]\s+tests\s+(\d+)\s*$/);
-    if (node) { tests = Number(node[1]); empty = tests === 0; continue; }
-    const skipped = line.match(/^\s*[ℹ#]\s+skipped\s+(\d+)\s*$/);
-    if (skipped && tests !== null) { empty = tests === Number(skipped[1]); continue; }
-    const collected = line.match(/^\s*collected (\d+) items(?:\s[^\r\n]*)?\s*$/);
-    if (collected) { tests = null; empty = Number(collected[1]) === 0; continue; }
-    if (/^\s*(?:=+\s*)?no tests ran(?: in \d+(?:\.\d+)?s(?: \((?:\d+ days?, )?\d+:\d{2}:\d{2}\))?)?(?:\s*=+)?\s*$/.test(line)) {
-      tests = null; empty = true; continue;
+    if (node) {
+      tests = Number(node[1]);
+      if (tests === 0) return true;
+      continue;
     }
-    const summary = line.trim().replace(/^=+\s*|\s*=+$/g, '');
-    if (/^\d+ (?:passed|failed|skipped|deselected|xfailed|xpassed|errors?)(?:, \d+ (?:passed|failed|skipped|deselected|xfailed|xpassed|errors?|warnings?))* in \d+(?:\.\d+)?s(?: \((?:\d+ days?, )?\d+:\d{2}:\d{2}\))?$/.test(summary)) {
+    const skipped = line.match(/^\s*[ℹ#]\s+skipped\s+(\d+)\s*$/);
+    if (skipped && tests !== null && tests === Number(skipped[1])) return true;
+    const collected = line.match(/^\s*collected (\d+) items(?:\s[^\r\n]*)?\s*$/);
+    if (collected) {
       tests = null;
-      empty = !/\d+ (?:passed|failed|xfailed|xpassed|errors?)\b/.test(summary);
+      if (Number(collected[1]) === 0) return true;
+      continue;
+    }
+    if (/^\s*(?:=+\s*)?no tests ran(?: in \d+(?:\.\d+)?s(?: \((?:\d+ days?, )?\d+:\d{2}:\d{2}\))?)?(?:\s*=+)?\s*$/.test(line)) return true;
+    const summary = line.trim().replace(/^=+\s*|\s*=+$/g, '');
+    if (/^\d+ (?:subtests? )?(?:passed|failed|skipped|deselected|xfailed|xpassed|errors?|warnings?)(?:, \d+ (?:subtests? )?(?:passed|failed|skipped|deselected|xfailed|xpassed|errors?|warnings?))* in \d+(?:\.\d+)?s(?: \((?:\d+ days?, )?\d+:\d{2}:\d{2}\))?$/.test(summary)) {
+      tests = null;
+      const counts = [...summary.matchAll(/(\d+) (subtests? )?(passed|failed|skipped|deselected|xfailed|xpassed|errors?|warnings?)\b/g)]
+        .filter(([, , subtest, status]) => !subtest && !status.startsWith('warning'));
+      // Subtest/plugin counts do not turn a fully skipped primary suite into execution.
+      if (counts.length && !counts.some(([, count, , status]) => Number(count) > 0
+        && /^(?:passed|failed|xfailed|xpassed|errors?)$/.test(status))) return true;
     }
   }
-  return empty;
+  // A later nonempty summary cannot erase an earlier zero/all-skipped run.
+  return false;
 }
 
 function main(argv, io) {

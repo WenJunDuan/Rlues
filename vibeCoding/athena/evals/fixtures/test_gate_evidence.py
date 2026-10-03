@@ -383,7 +383,7 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
             self.assertFalse(row['provable'])
             self.assertIn('零用例', row['reason'])
 
-    def test_monorepo_empty_workspace_with_nonempty_final_summary(self):
+    def test_empty_workspace_cannot_be_overridden_by_nonempty_summary(self):
         green_file = self.tmp / 'green.test.cjs'
         green_file.write_text("require('node:test')('ok', () => {});\n")
         (self.root / 'package.json').write_text(json.dumps({'scripts': {
@@ -392,16 +392,42 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertIn('tests 0', run.stdout)
         self.assertIn('tests 1', run.stdout)
-        self.assertTrue(records(self.root)[-1]['provable'])
+        self.assertFalse(records(self.root)[-1]['provable'])
+        self.assertIn('零用例', records(self.root)[-1]['reason'])
 
-    def test_final_runner_summary_overrides_intermediate_counts(self):
+    def test_any_empty_or_all_skipped_summary_is_unprovable(self):
         outputs = ['# tests 2\n# skipped 2\n', 'ℹ tests 2\nℹ skipped 2\n',
                    '# tests 0\n# skipped 0\n# tests 2\n# skipped 0\n',
                    '# tests 0\n# tests 2\n# skipped 2\n', '# tests 2\n# skipped 1\n',
-                   'collected 0 items\n1 passed in 0.01s\n']
+                   'collected 0 items\n1 passed in 0.01s\n',
+                   'no tests ran in 0.01s\n1 passed in 0.01s\n',
+                   '# tests 2\n# skipped 2\n# tests 1\n# skipped 0\n',
+                   '# tests 0\n# tests 1\n', '# tests 1\n# tests 0\n']
         actual = node_json("const m=require(process.argv[1]);const xs=JSON.parse(require('fs').readFileSync(0,'utf8'));"
                            "process.stdout.write(JSON.stringify(xs.map(x=>m.zeroTests(x))))", GATE / 'cli/run.cjs', outputs)
-        self.assertEqual(actual, [True, True, False, True, False, False])
+        self.assertEqual(actual, [True, True, True, True, False, True, True, True, True, True])
+
+    def test_trailing_echo_cannot_cover_real_zero_tests(self):
+        command = f"node --test '{self.tmp}/unmatched/*.test.cjs' && echo '# tests 1'"
+        run = athena('run', '--', command, cwd=self.root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertIn('tests 0', run.stdout)
+        self.assertIn('# tests 1', run.stdout)
+        row = records(self.root)[-1]
+        self.assertFalse(row['provable'])
+        self.assertIn('零用例', row['reason'])
+
+    def test_pytest_summaries_with_subtest_counts(self):
+        outputs = ['1 skipped, 3 subtests passed in 0.01s',
+                   '===== 2 skipped, 1 warning, 3 subtests passed in 0.01s =====',
+                   '1 skipped, 2 deselected, 3 subtests passed in 60.00s (0:01:00)',
+                   '1 skipped, 3 subtests passed in 0.01s\n1 passed in 0.01s',
+                   '1 passed, 3 subtests passed in 0.01s',
+                   '1 passed, 1 skipped, 2 subtests passed in 0.01s',
+                   '3 subtests passed in 0.01s', 'example: 1 skipped, 3 subtests passed in 0.01s']
+        actual = node_json("const m=require(process.argv[1]);const xs=JSON.parse(require('fs').readFileSync(0,'utf8'));"
+                           "process.stdout.write(JSON.stringify(xs.map(x=>m.zeroTests(x))))", GATE / 'cli/run.cjs', outputs)
+        self.assertEqual(actual, [True] * 4 + [False] * 4)
 
     def test_zero_detection_only_matches_runner_summaries(self):
         outputs = ['ℹ tests 0\n', '# tests 0\n', 'collected 0 items\n', 'no tests ran in 0.01s\n',

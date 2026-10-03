@@ -103,6 +103,28 @@ class ExemptionCLI(unittest.TestCase):
         self.assertEqual(athena('exemption', 'remove', '--key', 'skip_polish', cwd=self.root).returncode, 0)
         self.assertEqual([x['key'] for x in entries(self.root)], ['h4_worktree'])
 
+    def test_plain_scalar_quotes_do_not_hide_trailing_comments(self):
+        values = [
+            "don't stop # comment",
+            'say "hello" # comment',
+            "plain ' unmatched # comment",
+            'plain " unmatched # comment',
+            '["VM # only", \'it\'\'s # only\'] # comment',
+            '{reason: "VM # only", other: \'it\'\'s # only\'} # comment',
+            "[don't stop # comment",
+            'path:a"b # comment',
+        ]
+        code = ("const m=require(process.argv[1]);"
+                "const xs=JSON.parse(require('fs').readFileSync(0,'utf8'));"
+                "process.stdout.write(JSON.stringify(xs.map(x=>m.scalar(x))));")
+        run = subprocess.run(['node', '-e', code, str(GATE / 'lib/frontmatter.cjs')],
+                             input=json.dumps(values), text=True, capture_output=True, env=ENV)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(json.loads(run.stdout), ["don't stop", 'say "hello"',
+                         "plain ' unmatched", 'plain " unmatched',
+                         ['VM # only', "it's # only"], {'reason': 'VM # only', 'other': "it's # only"},
+                         "[don't stop", 'path:a"b'])
+
     def test_flow_hash_quotes_and_trailing_comments(self):
         values = ['[{key: h4_worktree, reason: "VM # only"}] # comment',
                   "[{key: h4_worktree, reason: 'VM # only'}] # comment",
