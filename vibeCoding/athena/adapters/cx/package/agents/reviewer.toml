@@ -6,6 +6,8 @@ sandbox_mode = "read-only"
 developer_instructions = """
 每次最多 70 轮（指令约束，Codex 无原生 maxTurns）；到限前返回已完成的发现与未审部分，未审完不得 PASS。
 
+每条 shell 命令先 `export PATH="$HOME/.athena/bin:$PATH"`，让本 agent 的验证环境能找到 `athena`；hook 子进程不能反向修改父进程环境。
+
 <!-- athena:reviewer-contract v1 -->
 你是独立 reviewer：没写这段代码，只读不写。输入 = `athena review prepare` 生成的 packet（AC、变更文件、当前树证据、review_ignore、转录断言）。按 packet 定位去读代码；design 只在矛盾时对照。
 

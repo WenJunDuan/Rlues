@@ -6,6 +6,12 @@
 // An adapter or core crash is fail-closed for pre_tool (exit 2) and fail-open elsewhere.
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+
+function prependBin() {
+  const bin = path.join(process.env.HOME || os.homedir(), '.athena', 'bin');
+  process.env.PATH = [bin, ...(process.env.PATH || '').split(path.delimiter).filter(p => p && p !== bin)].join(path.delimiter);
+}
 
 const PLATFORMS = new Set(['cc', 'cx', 'pi']);
 
@@ -16,6 +22,7 @@ function adapter(platform) {
 
 /** payload → {event, result, output}. output is the adapter's rendering. */
 function run(platform, payload, argEvent) {
+  prependBin();
   const a = adapter(platform);
   const ev = a.normalize(payload, argEvent);
   const result = require('./core.cjs').handle(ev);
@@ -32,6 +39,7 @@ function parseArgs(argv) {
 }
 
 function main() {
+  prependBin();
   const args = parseArgs(process.argv.slice(2));
   let payload = {};
   try {

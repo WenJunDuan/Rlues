@@ -3,12 +3,22 @@
 // Core → ~/.athena/<release>/ + ~/.athena/current; adapter files per platform; config files merged
 // (user keys kept); 9.9.9 files 10.1 no longer ships are moved into the backup. See also rollback, doctor.
 const os = require('os');
+const fs = require('fs');
 const path = require('path');
 const { flags, UsageError } = require('./lib/common.cjs');
 const { plan, distRoot, InstallError } = require('./lib/install-plan.cjs');
 const { apply } = require('./lib/install-apply.cjs');
 
 const PLATFORMS = new Set(['cc', 'cx', 'pi']);
+
+function shellPathHint(home, env) {
+  const rc = path.join(home, path.basename(env.SHELL || '') === 'zsh' ? '.zshrc' : '.bashrc');
+  let text = '';
+  try { text = fs.readFileSync(rc, 'utf8'); } catch (_) { /* missing rc */ }
+  const configured = text.split('\n').some(line => !/^\s*#/.test(line) && /\bPATH=/.test(line)
+    && ['$HOME/.athena/bin', '${HOME}/.athena/bin', '~/.athena/bin', path.join(home, '.athena/bin')].some(p => line.includes(p)));
+  return configured ? '' : `PATH missing in ${rc}: add export PATH="$HOME/.athena/bin:$PATH"; restart the shell (rc was not modified).\n`;
+}
 
 function main(argv, io) {
   let f;
@@ -33,6 +43,7 @@ function main(argv, io) {
   if (f['dry-run']) {
     io.stdout.write(`${summary}\n`);
     for (const a of p.actions.filter(x => x.action !== 'write')) io.stdout.write(`  ${a.action} ${a.dest}\n`);
+    io.stdout.write(shellPathHint(home, io.env || process.env));
     io.stdout.write('(dry-run: nothing changed)\n');
     return 0;
   }
@@ -43,7 +54,8 @@ function main(argv, io) {
   io.stdout.write(`${summary}\nbackup: ${path.join(home, '.athena/backups', record.ts)}\n` +
     `CLI: add ${path.join(home, '.athena/bin')} to PATH for \`athena\`; \`athena doctor\` checks the install; \`athena rollback\` undoes it.\n` +
     (platforms.includes('pi') ? `Pi: install the package with \`pi install ${path.join(home, '.athena/current/pi/plugin')}\` (待验证 on Pi 0.87).\n` : ''));
+  io.stdout.write(shellPathHint(home, io.env || process.env));
   return 0;
 }
 
-module.exports = { main };
+module.exports = { main, shellPathHint };
