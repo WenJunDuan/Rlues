@@ -1,5 +1,7 @@
 'use strict';
 // Audited exemptions; validation shared with the hooks. H2/H3 have no key.
+const fs = require('fs');
+const { isDeepStrictEqual } = require('util');
 const { requireCtx, flags, today, UsageError } = require('./lib/common.cjs');
 const state = require('./lib/state.cjs');
 const archive = require('./lib/archive.cjs');
@@ -16,7 +18,13 @@ function key(value) {
 }
 
 function write(ctx, entries, action, entry) {
-  state.setFields(state.readIndex(ctx.aiState).file, { exemptions: entries });
+  const { file } = state.readIndex(ctx.aiState);
+  const before = fs.readFileSync(file);
+  state.setFields(file, { exemptions: entries });
+  if (!isDeepStrictEqual(state.readIndex(ctx.aiState).fm.exemptions, entries)) {
+    fs.writeFileSync(file, before);
+    throw new Error('exemption readback mismatch');
+  }
   issues.add(ctx.aiState, {
     type: 'gate', text: `exemption ${action} ${entry.key} until ${entry.until}`,
     found: `${today()} ${ctx.sprint || 'idle'}`, next: `reason: ${entry.reason}`, status: 'closed',

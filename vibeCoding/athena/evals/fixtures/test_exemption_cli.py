@@ -1,9 +1,10 @@
 """G-004: audited CLI exemptions use the same validation as the hooks."""
 from datetime import datetime, timedelta, timezone
 import json
+import subprocess
 import unittest
 
-from gate_harness import GOOD_DESIGN, athena, call, git, project, set_index, tmpdir
+from gate_harness import ENV, GATE, GOOD_DESIGN, athena, call, git, project, set_index, tmpdir
 
 
 def date(days=0):
@@ -88,6 +89,50 @@ class ExemptionCLI(unittest.TestCase):
             self.assertEqual(run.returncode, 0, run.stderr)
         self.assertEqual([x['key'] for x in entries(self.root)], list(keys))
         self.assertEqual(athena('exemption', 'list', cwd=self.root).stdout.count(reason), len(keys))
+
+    def test_hash_reason_preserves_multiple_exemptions_and_h4(self):
+        reasons = ('VM # only', 'quoted " # hash", and \' # single')
+        for key, reason in zip(('h4_worktree', 'skip_polish'), reasons):
+            run = self.add(key=key, reason=reason)
+            self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual([x['key'] for x in entries(self.root)], ['h4_worktree', 'skip_polish'])
+        listed = athena('exemption', 'list', cwd=self.root).stdout
+        for reason in reasons:
+            self.assertIn(reason, listed)
+        self.assertFalse(call('cc', 'agent', self.root, type='generator').blocked)
+        self.assertEqual(athena('exemption', 'remove', '--key', 'skip_polish', cwd=self.root).returncode, 0)
+        self.assertEqual([x['key'] for x in entries(self.root)], ['h4_worktree'])
+
+    def test_flow_hash_quotes_and_trailing_comments(self):
+        values = ['[{key: h4_worktree, reason: "VM # only"}] # comment',
+                  "[{key: h4_worktree, reason: 'VM # only'}] # comment",
+                  "[{key: h4_worktree, reason: 'it''s # only'}] # comment"]
+        code = ("const m=require(process.argv[1]);"
+                "const xs=JSON.parse(require('fs').readFileSync(0,'utf8'));"
+                "process.stdout.write(JSON.stringify(xs.map(x=>m.scalar(x))));")
+        run = subprocess.run(['node', '-e', code, str(GATE / 'lib/frontmatter.cjs')],
+                             input=json.dumps(values), text=True, capture_output=True, env=ENV)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(json.loads(run.stdout), [
+            [{'key': 'h4_worktree', 'reason': reason}] for reason in ('VM # only', 'VM # only', "it's # only")])
+
+    def test_readback_mismatch_fails_without_audit(self):
+        index = self.root / '.ai_state/_index.md'
+        before = index.read_bytes()
+        code = ("const path=require('path');const gate=process.argv[1];"
+                "const state=require(path.join(gate,'cli/lib/state.cjs'));const set=state.setFields;"
+                "state.setFields=(file,fields)=>set(file,{exemptions:[]});"
+                "const cli=require(path.join(gate,'cli/exemption.cjs'));"
+                "try {process.exitCode=cli.main(process.argv.slice(2),"
+                "{cwd:process.cwd(),stdout:process.stdout,stderr:process.stderr});}"
+                "catch(e){console.error(e.message);process.exitCode=1;}")
+        run = subprocess.run(['node', '-e', code, str(GATE), 'add', '--key', 'h4_worktree',
+                              '--until', date(3), '--reason', 'VM only'],
+                             cwd=self.root, text=True, capture_output=True, env=ENV)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn('readback', run.stderr)
+        self.assertFalse((self.root / '.ai_state/issues.md').exists())
+        self.assertEqual(index.read_bytes(), before)
 
     def test_expired_entry_is_listed_and_ignored(self):
         set_index(self.root, exemptions=f'[{{key: h4_worktree, until: "{date(-1)}", reason: "VM"}}]')

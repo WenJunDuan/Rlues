@@ -5,7 +5,7 @@
 // maps. Anything else is kept as its raw string — the gate never throws on odd YAML.
 
 function scalar(raw) {
-  let value = String(raw).trim();
+  const value = stripComment(String(raw).trim()).trim();
   const quoted = value.match(/^"((?:[^"\\]|\\.)*)"|^'((?:[^']|'')*)'/);
   if (quoted) {
     if (quoted[1] !== undefined) {
@@ -13,8 +13,6 @@ function scalar(raw) {
     }
     return quoted[2].replace(/''/g, "'");
   }
-  const hash = value.search(/\s#/);
-  if (hash >= 0) value = value.slice(0, hash).trim();
   if (value === 'true') return true;
   if (value === 'false') return false;
   if (value === 'null' || value === '~') return null;
@@ -27,6 +25,23 @@ function scalar(raw) {
       if (m) out[String(scalar(m[1]))] = scalar(m[2]);
     }
     return out;
+  }
+  return value;
+}
+
+/** Strip a trailing comment, including after flow values; quoted hashes are data. */
+function stripComment(value) {
+  let quote = '';
+  for (let i = 0; i < value.length; i += 1) {
+    const ch = value[i];
+    if (quote) {
+      if (quote === '"' && ch === '\\') { i += 1; continue; }
+      if (quote === "'" && ch === "'" && value[i + 1] === "'") { i += 1; continue; }
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === '#' && /\s/.test(value[i - 1] || '')) return value.slice(0, i);
   }
   return value;
 }
