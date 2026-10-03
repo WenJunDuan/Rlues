@@ -15,7 +15,7 @@ const { treeSha } = require('../lib/tree-sha.cjs');
 const { reviewIgnore } = require('../core.cjs');
 
 // Explicit overrides can replace runners, inject code or alter collection/plugins.
-const EXECUTION_ENV = /^(?:PATH|BASH_ENV|ENV|NODE_OPTIONS|PYTHONPATH|PYTHONHOME|PYTEST_ADDOPTS|PYTEST_PLUGINS|LD_PRELOAD|LD_LIBRARY_PATH|DYLD_.*)$/;
+const EXECUTION_ENV = /^(?:(?:npm_config|XDG|NODE|PYTEST|LD|DYLD)_.*|PYTHON.*|HOME|USERPROFILE|BASH_ENV|ENV|SHELL|PATH|COMSPEC|.*_(?:OPTIONS|OPTS|ADDOPTS)|.*_CONFIG.*|.*RC)$/i;
 const WRAPPERS = /^(?:(?:ba|z|da|k)?sh|eval|env|sudo|xargs|timeout|nice|nohup|time|exec|stdbuf|command|fish|pwsh|powershell|cmd)$/;
 const quote = (w) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(w) ? w : `'${w.replace(/'/g, "'\\''")}'`);
 

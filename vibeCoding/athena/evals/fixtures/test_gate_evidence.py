@@ -275,6 +275,48 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
                     self.assertFalse(row['provable'])
                     self.assertEqual(row['reason'], 'validation_shadowable')
 
+    def test_execution_env_families_are_unprovable(self):
+        self.target.write_text("require('node:test')('ok', () => {});\n")
+        assignments = ('npm_config_script_shell=/usr/bin/true', 'NpM_cOnFiG_fixture=1',
+                       f'HOME={self.tmp}', f'USERPROFILE={self.tmp}', 'XDG_CONFIG_HOME=/fixture',
+                       'NPM_CONFIG_USERCONFIG=/fixture', 'NODE_PATH=/fixture',
+                       'PYTHONUSERBASE=/fixture', 'PYTHONSTARTUP=/fixture', 'PYTHONSAFEPATH=1',
+                       'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1', 'LD_BIND_NOW=1', 'DYLD_FRAMEWORK_PATH=',
+                       'SHELL=/bin/sh', f"PATH={ENV['PATH']}", 'COMSPEC=/fixture',
+                       'RUNNER_OPTIONS=', 'JAVA_OPTS=', 'TOOL_ADDOPTS=',
+                       'TOOL_CONFIG_FILE=/fixture', 'TOOL_CONFIGURATION=fixture', 'TOOLRC=/fixture')
+        for assignment in assignments:
+            for cmd in (('node', '--test', str(self.target)), (f'node --test {self.target}',)):
+                with self.subTest(assignment=assignment, cmd=cmd):
+                    run = athena('run', '--env', assignment, '--', *cmd, cwd=self.root)
+                    self.assertEqual(run.returncode, 0, run.stderr)
+                    row = records(self.root)[-1]
+                    self.assertFalse(row['provable'])
+                    self.assertEqual(row['reason'], 'validation_shadowable')
+
+    def test_npm_config_and_home_npmrc_cannot_prove_shadowed_failure(self):
+        self.target.write_text("require('node:test')('bad', () => { throw Error('red'); });\n")
+        (self.root / 'package.json').write_text(json.dumps({'scripts': {'test': f'node --test {self.target}'}}))
+        home = self.tmp / 'home'
+        home.mkdir()
+        (home / '.npmrc').write_text('script-shell=/usr/bin/true\n')
+        for assignment in ('npm_config_script_shell=/usr/bin/true', f'HOME={home}',
+                           f'NPM_CONFIG_USERCONFIG={home}/.npmrc'):
+            with self.subTest(assignment=assignment):
+                run = athena('run', '--env', assignment, '--', 'npm', 'test', cwd=self.root)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                row = records(self.root)[-1]
+                self.assertFalse(row['provable'])
+                self.assertEqual(row['reason'], 'validation_shadowable')
+        self.assertNotEqual(athena('run', '--', 'npm', 'test', cwd=self.root).returncode, 0)
+
+    def test_ordinary_feature_flags_remain_provable(self):
+        self.target.write_text("require('node:test')('ok', () => {});\n")
+        for name in ('QUANTUM_AGENT_LIVE', 'CI', 'TEST_MODE'):
+            run = athena('run', '--env', f'{name}=1', '--', 'node', '--test', str(self.target), cwd=self.root)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertTrue(records(self.root)[-1]['provable'])
+
     def test_credential_value_under_ordinary_name_is_rejected(self):
         value = 'sk-abcdefgh12345678'
         run = athena('run', '--env', f'ATHENA_TEST_MARK={value}', '--',

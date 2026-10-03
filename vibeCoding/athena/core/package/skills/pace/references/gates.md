@@ -20,7 +20,7 @@
 - 检查放后台（`&`），或 `||` / `exit` / `exec` 让检查可能不跑；
 - 检查后还有非 `&&` 的命令，或管道没开 `pipefail`；
 - `trap`、`alias`、函数、`source`（venv activate 除外）、`PATH=` 可能遮蔽检查命令；
-- 显式 `--env` 覆盖 `PATH`、`BASH_ENV`、`ENV`、`NODE_OPTIONS`、`PYTHONPATH`、`PYTHONHOME`、`PYTEST_ADDOPTS`、`PYTEST_PLUGINS`、`LD_PRELOAD`、`LD_LIBRARY_PATH` 或 `DYLD_*`：允许执行并记录，因可改变执行体或测试收集，标记 `validation_shadowable`，不能用作 H2 证据；
+- 显式 `--env` 覆盖执行环境族（大小写不敏感）：`npm_config_*` / `NPM_CONFIG_*`、`HOME`、`USERPROFILE`、`XDG_*`、`NODE_*`、`PYTHON*`、`PYTEST_*`、`LD_*`、`DYLD_*`、`BASH_ENV`、`ENV`、`SHELL`、`PATH`、`COMSPEC`、`*_OPTIONS`、`*_OPTS`、`*_ADDOPTS`、`*_CONFIG*`、`*RC`：允许执行并记录，因可改变执行体、配置或测试收集（含 `HOME/.npmrc` 的 script-shell），标记 `validation_shadowable`，不能用作 H2 证据。普通功能开关如 `QUANTUM_AGENT_LIVE`、`CI`、`TEST_MODE` 仍可证明；
 - argv[0] 被包装、运行期间源码树变了。
 - 测试 exit 0，但最后明确汇总为零用例或全跳过（node `ℹ tests N` / `# tests N` 为 0 或 skipped 等于 tests；pytest `collected 0 items` / `no tests ran` 或最终全 skipped，含 npm test 包装；中间 workspace 为 0、最终汇总非 0 不误判）；未知格式按现状。
 
