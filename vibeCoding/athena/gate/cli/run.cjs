@@ -10,8 +10,9 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const context = require('../lib/context.cjs');
+const words = require('../lib/shell-words.cjs');
 const evidence = require('../lib/evidence.cjs');
-const { treeSha } = require('../lib/tree-sha.cjs');
+const { treeSha, treeFiles } = require('../lib/tree-sha.cjs');
 const { reviewIgnore } = require('../core.cjs');
 
 // Explicit overrides can replace runners, inject code or alter collection/plugins.
@@ -121,6 +122,44 @@ function zeroTests(output) {
   return false;
 }
 
+// Narrow read-only assertion grammar; all expanded targets must belong to the source tree.
+function docsAssertion(command, cwd, ctx, tree) {
+  const segments = words.commandSegments(command);
+  if (segments.length !== 1 || segments[0].after || /[$`<>]/.test(command)) return false;
+  const tokens = segments[0].words.map(t => t.value);
+  if (!['grep', 'rg'].includes(tokens.shift())) return false;
+  let fixed = false, pattern = null, endOptions = false;
+  const files = [];
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    if (!endOptions && token === '--') { endOptions = true; continue; }
+    if (!endOptions && ['-e', '--regexp'].includes(token)) { if (pattern !== null || !tokens[i + 1]) return false; pattern = tokens[++i]; continue; }
+    if (!endOptions && token.startsWith('-')) {
+      if (/^-[Fqlni]+$/.test(token)) { fixed ||= token.includes('F'); continue; }
+      if (['--fixed-strings', '--quiet', '--files-with-matches', '--line-number', '--ignore-case'].includes(token)) { fixed ||= token === '--fixed-strings'; continue; }
+      return false;
+    }
+    if (pattern === null) pattern = token;
+    else files.push(token);
+  }
+  if (!fixed || !pattern || !files.length) return false;
+  const source = new Set(Object.keys(treeFiles(ctx.root, tree)));
+  return files.every(file => {
+    const abs = path.resolve(cwd, file);
+    let targets = [abs];
+    if (file.includes('*')) {
+      if (!/^\*\.md$/.test(path.basename(file)) || path.dirname(file).includes('*')) return false;
+      try { targets = fs.readdirSync(path.dirname(abs)).filter(n => n.endsWith('.md')).map(n => path.join(path.dirname(abs), n)); } catch (_) { return false; }
+    }
+    return targets.length > 0 && targets.every(target => {
+      try {
+        return target.endsWith('.md') && context.inside(target, ctx.root) && source.has(path.relative(ctx.root, target))
+          && source.has(path.relative(ctx.root, fs.realpathSync(target))) && fs.statSync(target).isFile();
+      } catch (_) { return false; }
+    });
+  });
+}
+
 function main(argv, io) {
   const opts = parse(argv);
   const shell = opts.cmd.length === 1;
@@ -145,7 +184,8 @@ function main(argv, io) {
   }
   const after = treeSha(ctx.root, ignore);
   const ssh = shell ? null : sshVm(opts.cmd, options.env);
-  const kind = evidence.classify(ssh ? ssh.remote : rawCommand) || 'other';
+  const docs = !ssh && docsAssertion(rawCommand, io.cwd, ctx, before);
+  const kind = docs ? 'docs' : (evidence.classify(ssh ? ssh.remote : rawCommand) || 'other');
   const output = `${child.stdout || ''}${child.stderr || ''}`;
   let policy = shell ? evidence.policy(`set -o pipefail; ${rawCommand}`) : { provable: true, reason: null };
   if (!shell && WRAPPERS.test(path.basename(opts.cmd[0]))) policy = { provable: false, reason: 'wrapped_command' };

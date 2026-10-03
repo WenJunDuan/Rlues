@@ -21,7 +21,7 @@ const PATTERNS = [
   ['typecheck', String.raw`(?:tsc|(?:npm|pnpm|yarn|bun)\s+run\s+(?:typecheck|check)|cargo\s+check)`],
   ['build', String.raw`(?:(?:npm|pnpm|yarn|bun)\s+run\s+build|cargo\s+build|go\s+build|mvn\s+compile|\./gradlew\s+build|cmake\s+--build)`],
 ].map(([kind, pattern]) => [kind, new RegExp(`${PREFIX}${pattern}\\b`, 'im')]);
-const PROVABLE_KINDS = new Set(['test', 'typecheck', 'build']);
+const PROVABLE_KINDS = new Set(['test', 'typecheck', 'build', 'docs']);
 
 function classifySegment(text) {
   const hit = PATTERNS.find(([, pattern]) => pattern.test(String(text || '')));
