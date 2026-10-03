@@ -68,3 +68,4 @@
 | index-overflow.md | archive/legacy/index-overflow.md |
 | harness-patches.md | archive/legacy/harness-patches.md |
 | archive/sprints/2026-07/ | archive/2026-07.tar.zst |
+| sprints/2026-10-03-gate-feedback/ | archive/sprints/2026-10/2026-10-03-gate-feedback/ |

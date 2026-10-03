@@ -1,0 +1,13 @@
+sprint: "2026-10-03-gate-feedback"
+shipped: "2026-10-03T10:37:12.763Z"
+tree_sha: "bd90702d288093e69d8d8dc7c4d20e277676793c"
+review: {run: "994f5913-ae60-4ad5-a7ae-581450bd2b06", verdict: "PASS"}
+final: {id: "df92b4a93254", command: "python3 -m unittest discover -s vibeCoding/athena/evals/fixtures", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "G-006 pause 记录实际阶段；packet 排除暂停期间提交并列明范围。", evidence: ["29772d9ae39a","df92b4a93254"]}
+  - {id: AC2, text: "G-007 接受 evidence/packet/design 定位且保留严密 verdict 合同。", evidence: ["29772d9ae39a","df92b4a93254"]}
+  - {id: AC3, text: "G-008 固定字串 Markdown 断言可证明；其余 other 保持原判。", evidence: ["29772d9ae39a","df92b4a93254"]}
+  - {id: AC4, text: "G-009 安装缺 PATH 配置时提示；hook 进程前置 Athena bin。", evidence: ["29772d9ae39a","df92b4a93254"]}
+  - {id: AC5, text: "G-010 真实 push 与数据字样区分、逐仓判 stage；无法安全完成部分写明限制。", evidence: ["29772d9ae39a","df92b4a93254"]}
+  - {id: AC6, text: "G-011 行内/export 和 runner 选择变量不可证明，凭据漏拒补齐；单调安全回归通过。", evidence: ["29772d9ae39a","df92b4a93254"]}
+  - {id: AC7, text: "完整 unittest fixtures 与发行构建通过；台账有对应提交。", evidence: ["df92b4a93254"]}
