@@ -154,6 +154,32 @@ class ExemptionCLI(unittest.TestCase):
         staged = git(self.root, 'diff', '--cached', '--name-only').stdout.splitlines()
         self.assertEqual(staged, ['.ai_state/_index.md', '.ai_state/issues.md'])
 
+    def test_audit_failure_rolls_back_add_and_remove(self):
+        self.assertEqual(self.add().returncode, 0)
+        ledger = self.root / '.ai_state/issues.md'
+        ledger.unlink()
+        ledger.mkdir()  # Deterministic write failure even when tests run as root.
+        index = self.root / '.ai_state/_index.md'
+        before = index.read_bytes()
+        for args in (('add', '--key', 'skip_polish', '--until', date(3), '--reason', 'VM'),
+                     ('remove', '--key', 'h4_worktree')):
+            with self.subTest(args=args):
+                run = athena('exemption', *args, cwd=self.root)
+                self.assertNotEqual(run.returncode, 0)
+                self.assertEqual(index.read_bytes(), before)
+                self.assertTrue(ledger.is_dir())
+
+    def test_remove_invalid_existing_key_but_add_stays_whitelisted(self):
+        invalid = 'unknown key # legacy'
+        values = [{'key': invalid, 'until': date(3), 'reason': 'legacy'},
+                  {'key': 'skip_polish', 'until': date(3), 'reason': 'valid'}]
+        set_index(self.root, exemptions=json.dumps(values))
+        run = athena('exemption', 'remove', '--key', invalid, cwd=self.root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual([x['key'] for x in entries(self.root)], ['skip_polish'])
+        self.assertIn(f'exemption remove {invalid}', (self.root / '.ai_state/issues.md').read_text())
+        self.assertEqual(self.add(key=invalid).returncode, 2)
+
     def test_usage_and_status_point_to_cli(self):
         self.assertIn('exemption add|list|remove', athena(cwd=self.root).stdout)
         self.assertIn('athena exemption', athena('status', cwd=self.root).stdout)

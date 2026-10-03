@@ -3,6 +3,7 @@
 checked against both the frozen implementation and the new core.
 """
 import ast
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -284,6 +285,7 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
             self.assertEqual((row['kind'], row['exit'], row['provable']), ('test', 0, False))
             self.assertIn('零用例', row['reason'])
 
+    @unittest.skipUnless(importlib.util.find_spec('pytest'), 'pytest is not installed')
     def test_pytest_zero_and_nonzero_cases(self):
         target = self.tmp / 'pytest-cases'
         target.mkdir()
@@ -310,6 +312,36 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
         row = records(self.root)[-1]
         self.assertFalse(row['provable'])
         self.assertIn('零用例', row['reason'])
+
+    def test_node_all_skipped_is_unprovable_in_both_reporters(self):
+        self.target.write_text("require('node:test')('env skip', {skip: !process.env.RUN_CASE}, () => {});\n")
+        for reporter in ('spec', 'tap'):
+            run = athena('run', '--env', 'RUN_CASE=', '--', 'node', '--test',
+                         f'--test-reporter={reporter}', str(self.target), cwd=self.root)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            row = records(self.root)[-1]
+            self.assertFalse(row['provable'])
+            self.assertIn('零用例', row['reason'])
+
+    def test_monorepo_empty_workspace_with_nonempty_final_summary(self):
+        green_file = self.tmp / 'green.test.cjs'
+        green_file.write_text("require('node:test')('ok', () => {});\n")
+        (self.root / 'package.json').write_text(json.dumps({'scripts': {
+            'test': f'node --test "{self.tmp}/unmatched/*.test.cjs" && node --test {green_file}'}}))
+        run = athena('run', '--', 'npm', 'test', cwd=self.root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertIn('tests 0', run.stdout)
+        self.assertIn('tests 1', run.stdout)
+        self.assertTrue(records(self.root)[-1]['provable'])
+
+    def test_final_runner_summary_overrides_intermediate_counts(self):
+        outputs = ['# tests 2\n# skipped 2\n', 'ℹ tests 2\nℹ skipped 2\n',
+                   '# tests 0\n# skipped 0\n# tests 2\n# skipped 0\n',
+                   '# tests 0\n# tests 2\n# skipped 2\n', '# tests 2\n# skipped 1\n',
+                   'collected 0 items\n1 passed in 0.01s\n']
+        actual = node_json("const m=require(process.argv[1]);const xs=JSON.parse(require('fs').readFileSync(0,'utf8'));"
+                           "process.stdout.write(JSON.stringify(xs.map(x=>m.zeroTests(x))))", GATE / 'cli/run.cjs', outputs)
+        self.assertEqual(actual, [True, True, False, True, False, False])
 
     def test_zero_detection_only_matches_runner_summaries(self):
         outputs = ['ℹ tests 0\n', '# tests 0\n', 'collected 0 items\n', 'no tests ran in 0.01s\n',

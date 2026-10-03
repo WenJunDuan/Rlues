@@ -20,15 +20,17 @@ function key(value) {
 function write(ctx, entries, action, entry) {
   const { file } = state.readIndex(ctx.aiState);
   const before = fs.readFileSync(file);
-  state.setFields(file, { exemptions: entries });
-  if (!isDeepStrictEqual(state.readIndex(ctx.aiState).fm.exemptions, entries)) {
+  try {
+    state.setFields(file, { exemptions: entries });
+    if (!isDeepStrictEqual(state.readIndex(ctx.aiState).fm.exemptions, entries)) throw new Error('exemption readback mismatch');
+    issues.add(ctx.aiState, {
+      type: 'gate', text: `exemption ${action} ${entry.key} until ${entry.until}`,
+      found: `${today()} ${ctx.sprint || 'idle'}`, next: `reason: ${entry.reason}`, status: 'closed',
+    });
+  } catch (error) {
     fs.writeFileSync(file, before);
-    throw new Error('exemption readback mismatch');
+    throw error;
   }
-  issues.add(ctx.aiState, {
-    type: 'gate', text: `exemption ${action} ${entry.key} until ${entry.until}`,
-    found: `${today()} ${ctx.sprint || 'idle'}`, next: `reason: ${entry.reason}`, status: 'closed',
-  });
   archive.stage(ctx, ['_index.md', 'issues.md']);
 }
 
@@ -60,7 +62,7 @@ function list(argv, io) {
 function remove(argv, io) {
   const { flags: f, rest } = flags(argv, { key: 'str' });
   if (rest.length) throw new UsageError('remove takes --key');
-  key(f.key);
+  if (f.key === undefined) throw new UsageError('remove takes --key');
   const ctx = requireCtx(io);
   const entry = ctx.exemptions.find(e => e && e.key === f.key);
   if (!entry) throw new UsageError(`${f.key} not found`);

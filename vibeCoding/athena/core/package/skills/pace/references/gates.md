@@ -22,7 +22,7 @@
 - `trap`、`alias`、函数、`source`（venv activate 除外）、`PATH=` 可能遮蔽检查命令；
 - 显式 `--env` 覆盖 `PATH`、`BASH_ENV`、`ENV`、`NODE_OPTIONS`、`PYTHONPATH`、`PYTHONHOME`、`PYTEST_ADDOPTS`、`PYTEST_PLUGINS`、`LD_PRELOAD`、`LD_LIBRARY_PATH` 或 `DYLD_*`：允许执行并记录，因可改变执行体或测试收集，标记 `validation_shadowable`，不能用作 H2 证据；
 - argv[0] 被包装、运行期间源码树变了。
-- 测试 exit 0，但明确汇总为零用例（node `ℹ tests 0` / `# tests 0`、pytest `collected 0 items` / `no tests ran`，含 npm test 包装）；未知格式按现状。
+- 测试 exit 0，但最后明确汇总为零用例或全跳过（node `ℹ tests N` / `# tests N` 为 0 或 skipped 等于 tests；pytest `collected 0 items` / `no tests ran` 或最终全 skipped，含 npm test 包装；中间 workspace 为 0、最终汇总非 0 不误判）；未知格式按现状。
 
 reason 字段写明原因；照 reason 改写命令后重跑。
 
@@ -32,7 +32,7 @@ reason 字段写明原因；照 reason 改写命令后重跑。
 
 ## 豁免
 
-`athena exemption add --key <key> --until <YYYY-MM-DD> --reason "<理由>"`；同 key 重加替换旧条目。`athena exemption list` 查看，`athena exemption remove --key <key>` 撤销。CLI 写 `_index` frontmatter，增删在 issues.md 留 closed 审计行（撤销记录原理由）。
+`athena exemption add --key <key> --until <YYYY-MM-DD> --reason "<理由>"`；同 key 重加替换旧条目。`athena exemption list` 查看，`athena exemption remove --key <key>` 撤销。CLI 写 `_index` frontmatter并回读校验，增删在 issues.md 留 closed 审计行（撤销记录原理由）；审计失败回滚 `_index`。remove 可按原样 key 撤销既有无效条目，add 仍只允许下列 key。
 
 `until` 按 UTC 当天包含，不能早于今天、截止时刻距现在 ≤14 天；reason 必填。key ∈ `h4_worktree`、`skip_runtime_verify`、`skip_polish`、`skip_architecture_check`、`harness_target_outside_repo`。H2/H3 没有豁免。过期或无效条目被忽略，`athena exemption list` / `athena status` 会列出。
 
