@@ -5,6 +5,7 @@ const path = require('path');
 const { requireCtx, flags, today, UsageError } = require('./lib/common.cjs');
 const state = require('./lib/state.cjs');
 const archive = require('./lib/archive.cjs');
+const { treeSha, pathspec } = require('../lib/tree-sha.cjs');
 const frontmatter = require('../lib/frontmatter.cjs');
 const { git, idle, PATHS, STAGES, SAFE_SLUG } = require('../lib/context.cjs');
 
@@ -85,8 +86,14 @@ function pause(argv, io) {
   if (itemsPath && (!fs.existsSync(itemsPath) || !state.readItems(itemsPath).items.some(it => it.slug === fm.item))) {
     throw new UsageError(`design names ${fm.roadmap}/${fm.item} but that item does not exist; fix design.md first`);
   }
-  state.setFields(file, { status: 'paused', resume_when: f['resume-when'], paused_stage: ctx.stage });
-  fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${today()} paused at ${ctx.stage}: resume when ${f['resume-when']}\n`);
+  let actualStage = ctx.stage;
+  if (['plan', 'design'].includes(actualStage) && fm.base_commit) {
+    const delta = git(ctx.root, ['diff-tree', '-r', '--name-only', String(fm.base_commit), treeSha(ctx.root, []), '--', ...pathspec([])]);
+    if (delta) actualStage = 'impl';
+  }
+  const head = git(ctx.root, ['rev-parse', 'HEAD']) || '';
+  state.setFields(file, { status: 'paused', resume_when: f['resume-when'], paused_stage: actualStage });
+  fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${today()} paused at ${actualStage} (head ${head}): resume when ${f['resume-when']}\n`);
   if (fm.roadmap && fm.item) state.setItem(state.itemsFile(ctx.aiState, fm.roadmap), fm.item, { status: 'paused', deferred: { reason: 'paused', resume_when: f['resume-when'] } });
   state.setFields(path.join(ctx.aiState, '_index.md'), { path: '', stage: '', sprint: '', next_action: `paused ${ctx.sprint}` });
   archive.stage(ctx, ['_index.md', `sprints/${ctx.sprint}/design.md`, `sprints/${ctx.sprint}/log.md`, ...(itemsPath ? [`roadmap/${fm.roadmap}/items.yaml`] : [])]);
@@ -105,7 +112,7 @@ function resume(argv, io) {
   state.setFields(file, { status: 'active' });
   if (fm.roadmap && fm.item) state.setItem(state.itemsFile(ctx.aiState, fm.roadmap), fm.item, { status: 'active' });
   state.setFields(path.join(ctx.aiState, '_index.md'), { path: fm.path, stage, sprint: slug, roadmap: fm.roadmap || undefined, next_action: `resumed ${slug}` });
-  fs.appendFileSync(path.join(ctx.aiState, 'sprints', slug, 'log.md'), `- ${today()} resumed at ${stage}\n`);
+  fs.appendFileSync(path.join(ctx.aiState, 'sprints', slug, 'log.md'), `- ${today()} resumed at ${stage} (head ${git(ctx.root, ['rev-parse', 'HEAD']) || ''})\n`);
   io.stdout.write(`resumed ${slug} at stage ${stage}\n`);
   return 0;
 }

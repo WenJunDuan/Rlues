@@ -50,6 +50,44 @@ function changed(ctx, base, tree, ignore) {
   };
 }
 
+// Commits made while this sprint is paused belong to the other active slice. Legacy
+// logs without HEAD boundaries keep the inclusive diff: unknown ownership is never hidden.
+function excludedCommits(ctx, base) {
+  let log = '';
+  try { log = fs.readFileSync(path.join(ctx.sprintDir, 'log.md'), 'utf8'); } catch (_) { return []; }
+  const range = new Set((git(ctx.root, ['rev-list', `${base}..HEAD`]) || '').split('\n').filter(Boolean));
+  const excluded = new Set();
+  let paused = null;
+  for (const line of log.split('\n')) {
+    const m = line.match(/ (paused|resumed) at .*?\(head ([0-9a-f]{40,64})\)/);
+    if (!m) continue;
+    if (m[1] === 'paused') paused = m[2];
+    else if (paused) {
+      const commits = git(ctx.root, ['rev-list', `${paused}..${m[2]}`]);
+      for (const commit of (commits || '').split('\n')) if (range.has(commit)) excluded.add(commit);
+      paused = null;
+    }
+  }
+  return [...excluded];
+}
+
+function sprintChanges(ctx, base, tree, ignore, excluded) {
+  if (!excluded.length) return changed(ctx, base, tree, ignore);
+  const omit = new Set(excluded);
+  const commits = (git(ctx.root, ['rev-list', '--reverse', '--first-parent', `${base}..HEAD`]) || '').split('\n').filter(c => c && !omit.has(c));
+  const spec = ['--', ...pathspec(ignore)];
+  const stats = [], names = new Set();
+  // Per-commit patches retain this sprint's edits even when another slice touched the same file.
+  const pairs = commits.map(c => [c + '^', c]);
+  pairs.push(['HEAD', tree]); // staged, unstaged and untracked source are still reviewed
+  for (const [from, to] of pairs) {
+    const stat = git(ctx.root, ['diff-tree', '-r', '--stat=120', from, to, ...spec]);
+    if (stat) stats.push(`${from} → ${to}\n${stat}`);
+    for (const name of (git(ctx.root, ['diff-tree', '-r', '--name-status', from, to, ...spec]) || '').split('\n')) if (name) names.add(name);
+  }
+  return { stat: stats.join('\n') || '(no changes)', names: [...names] };
+}
+
 function prepare(argv, io) {
   const { flags: f } = flags(argv, { scope: 'str' });
   const scope = f.scope || 'implementation';
@@ -65,7 +103,8 @@ function prepare(argv, io) {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'files.json'), `${JSON.stringify({ run, scope, sprint: ctx.sprint, base_commit: base, tree_sha: tree, ignore, ac_sha: acSha(design), files: treeFiles(ctx.root, tree) })}\n`);
   const ac = h1.criteria(design);
-  const diff = changed(ctx, base, tree, ignore);
+  const excluded = excludedCommits(ctx, base);
+  const diff = sprintChanges(ctx, base, tree, ignore, excluded);
   const valid = evidence.valid(ctx, tree, { ignore });
   const claims = design.split('\n').filter(l => /转录|transcribed/i.test(l)).slice(0, 20);
   const packet = [
@@ -73,6 +112,7 @@ function prepare(argv, io) {
     `- source tree: ${tree} (base ${base || '—'}); .ai_state excluded`,
     `- review_ignore (also excluded from the tree — challenge it if it hides source): ${ignore.length ? ignore.join(', ') : 'none'}`,
     `- design: .ai_state/sprints/${ctx.sprint}/design.md`, '',
+    ...(excluded.length ? ['## Excluded commits (paused intervals)', '', ...excluded.map(c => `- ${c} (committed while ${ctx.sprint} was paused)`), ''] : []),
     '## Acceptance', '', ...(ac.length ? ac.map(a => `- ${a.id}: ${a.text}`) : ['- (none found — that alone is a finding)']), '',
     '## Changes (base → current tree)', '', '```', diff.stat, '```', '', ...diff.names.slice(0, 200).map(n => `- ${n}`), '',
     '## Evidence on this tree', '', ...(valid.length ? valid.map(r => `- ${r.id} ${r.kind} exit ${r.exit} covers ${(r.covers || []).join(',') || '—'}: ${r.command}`) : ['- none yet (H2 will refuse ship)']), '',
