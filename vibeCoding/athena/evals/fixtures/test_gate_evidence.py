@@ -67,6 +67,9 @@ class Redaction(unittest.TestCase):
         ('sk-abcdefgh12345678', 'sk-abcdefgh12345678'), ('ghp_ABCDEFGHijkl1234', 'ghp_ABCDEFGHijkl1234'),
         ('AWS_SECRET_ACCESS_KEY=AbCd/123', 'AbCd/123'), ('AKIAABCDEFGHIJKLMNOP', 'AKIAABCDEFGHIJKLMNOP'),
         ('database_url=mysql://a:b@c', 'a:b@c'), ('client-secret: zzz', 'zzz'),
+        ('PGPASSWORD=pg-value', 'pg-value'), ('accessToken=at-value', 'at-value'),
+        ('userPassword=up-value', 'up-value'), ('dbpassword=db-value', 'db-value'),
+        ('NPMTOKEN=npm-value', 'npm-value'),
     )
 
     def test_redaction_and_truncation(self):
@@ -114,6 +117,17 @@ class AthenaRun(unittest.TestCase):
         run = athena('run', '--', 'node', '-e', 'process.exit(4)', cwd=idle)
         self.assertEqual(run.returncode, 4)
         self.assertIn('not recorded', run.stderr)
+
+    def test_concatenated_credentials_redacted_in_command_and_output(self):
+        root = project(tmpdir(self), design=GOOD_DESIGN)
+        command = ('PGPASSWORD=fixture-pg node -e '
+                   '"console.log(\'accessToken=fixture-at userPassword=fixture-up '
+                   'dbpassword=fixture-db NPMTOKEN=fixture-npm\')"')
+        run = athena('run', '--', command, cwd=root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        row = records(root)[0]
+        for secret in ('fixture-pg', 'fixture-at', 'fixture-up', 'fixture-db', 'fixture-npm'):
+            self.assertNotIn(secret, json.dumps(row))
 
     def test_bad_arguments(self):
         root = project(tmpdir(self), design=GOOD_DESIGN)
@@ -201,7 +215,12 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
 
     def test_sensitive_names_rejected_without_execution_or_record(self):
         for name in ('API_KEY', 'APIKEY', 'ACCESS_KEY', 'ACCESSKEY', 'github_token', 'MY_SECRET',
-                     'PASSWORD', 'DATABASE_URL', 'PASSWD', 'PRIVATE_KEY', 'CLIENT_SECRET'):
+                     'PASSWORD', 'DATABASE_URL', 'PASSWD', 'PRIVATE_KEY', 'CLIENT_SECRET',
+                     'PGPASSWORD', 'DEPLOY_KEY', 'SSH_KEY', 'STRIPE_KEY', 'SIGNING_KEY',
+                     'ENCRYPTION_KEY', 'MYSQL_PWD', 'DB_PASS', 'NPMTOKEN',
+                     'MYTOKEN', 'MYSECRET', 'MYPASSWORD', 'NOTAPIKEY', 'API_AUTH',
+                     'CREDENTIAL', 'PASS_VALUE', 'PREFIX_TOKENIZERS_PARALLELISM', 'MAX_TOKENS_EXTRA',
+                     'KEYBOARD_LAYOUT_SECRET', 'MONKEY_EXTRA'):
             with self.subTest(name=name):
                 run = athena('run', '--env', f'{name}=fixture-private-value', '--',
                              'node', '-e', 'process.exit(9)', cwd=self.root)
@@ -210,10 +229,9 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
                 self.assertNotIn('fixture-private-value', run.stderr + run.stdout)
         self.assertEqual(records(self.root), [])
 
-    def test_noncredential_name_segments_are_accepted(self):
+    def test_exact_noncredential_whitelist_is_accepted(self):
         self.target.write_text("require('node:test')('ok', () => {});\n")
-        for name in ('TOKENIZERS_PARALLELISM', 'MAX_TOKENS', 'KEYBOARD_LAYOUT', 'MONKEY',
-                     'MYTOKEN', 'MYSECRET', 'MYPASSWORD', 'NOTAPIKEY'):
+        for name in ('TOKENIZERS_PARALLELISM', 'MAX_TOKENS', 'KEYBOARD_LAYOUT', 'MONKEY'):
             with self.subTest(name=name):
                 run = athena('run', '--env', f'{name}=fixture-value', '--',
                              'node', '--test', str(self.target), cwd=self.root)
