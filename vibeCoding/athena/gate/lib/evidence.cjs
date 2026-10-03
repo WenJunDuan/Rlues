@@ -91,8 +91,8 @@ function policy(command) {
   return { provable: true, reason: null };
 }
 
-/** Credential redaction (union of the 9.9.9 CC/CX rules) + head 300 / tail 1200 truncation. */
-function redact(value) {
+/** Credential redaction + head 300 / tail 1200 truncation (optional for explicit-env replay). */
+function redact(value, { bounded = true } = {}) {
   const out = String(value || '')
     .replace(/\b(sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,}|xox[abpr]-[A-Za-z0-9-]{8,}|AKIA[0-9A-Z]{16})\b/g, '[REDACTED]')
     .replace(/(authorization\s*:\s*(?:bearer|basic|token)\s+)[^\s,;'"]+/gi, '$1[REDACTED]')
@@ -100,7 +100,7 @@ function redact(value) {
     .replace(/(--(?:password|token|api[-_]?key|secret)(?:=|\s+))[^\s,;]+/gi, '$1[REDACTED]')
     .replace(/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^\s/@]+@/gi, '$1[REDACTED]@');
   const chars = [...out];
-  if (chars.length <= 1500) return out;
+  if (!bounded || chars.length <= 1500) return out;
   return `${chars.slice(0, 300).join('')}\n…[truncated ${chars.length - 1500} chars]…\n${chars.slice(-1200).join('')}`;
 }
 
@@ -113,6 +113,7 @@ function append(ctx, fields) {
   if (!ctx.sprint) return null;
   const kind = fields.kind || classify(fields.command) || 'other';
   const verdict = fields.policy || policy(fields.command || '');
+  const explicitEnv = fields.env && Object.keys(fields.env).length > 0;
   const record = {
     schema: 1,
     id: crypto.randomBytes(6).toString('hex'),
@@ -120,7 +121,7 @@ function append(ctx, fields) {
     sprint: ctx.sprint,
     source: fields.source,
     platform: fields.platform || null,
-    command: redact(fields.command).slice(0, 500),
+    command: explicitEnv ? redact(fields.command, { bounded: false }) : redact(fields.command).slice(0, 500),
     kind,
     exit: Number.isInteger(fields.exit) ? fields.exit : null,
     provable: PROVABLE_KINDS.has(kind) && verdict.provable && Number.isInteger(fields.exit),
@@ -129,6 +130,7 @@ function append(ctx, fields) {
     ignore: Array.isArray(fields.ignore) ? fields.ignore : [],
     covers: Array.isArray(fields.covers) ? fields.covers : [],
   };
+  if (explicitEnv) record.env = Object.fromEntries(Object.entries(fields.env).map(([k, v]) => [k, redact(v, { bounded: false })]));
   if (fields.vm) Object.assign(record, { vm: fields.vm, remote: redact(fields.remote).slice(0, 500) });
   if (fields.output !== undefined) record.output = redact(fields.output);
   const target = file(ctx);

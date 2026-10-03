@@ -4,8 +4,10 @@ checked against both the frozen implementation and the new core.
 """
 import ast
 import json
+import os
 from pathlib import Path
 import subprocess
+import sys
 import unittest
 
 from gate_harness import green, red, ENV, GATE, GOOD_DESIGN, PLATFORMS, VIBE, athena, call, git, project, sprint_dir, tmpdir
@@ -117,6 +119,159 @@ class AthenaRun(unittest.TestCase):
         for args in (('run',), ('run', '--covers', 'x', '--', 'ls'), ('run', '--kind', 'test', '--', 'ls'), ('run', 'ls'), ('nope',)):
             with self.subTest(args=args):
                 self.assertEqual(athena(*args, cwd=root).returncode, 2)
+
+
+class RunExplicitEnvAndCounts(unittest.TestCase):
+    """G-005: explicit env is replayable; a successful empty test run proves nothing."""
+
+    def setUp(self):
+        self.tmp = tmpdir(self)
+        self.root = project(self.tmp, design=GOOD_DESIGN)
+        self.target = self.tmp / 'env.test.cjs'
+        self.marker = "spaces 'quotes' a=b $dollar; $(exit 9)"
+        self.target.write_text(
+            "const assert = require('node:assert/strict');\n"
+            "require('node:test')('explicit env', () => {\n"
+            "  assert.equal(process.env.ATHENA_TEST_ENABLED, '1');\n"
+            f"  assert.equal(process.env.ATHENA_TEST_MARK, {json.dumps(self.marker)});\n"
+            "});\n", encoding='utf-8')
+
+    def test_explicit_env_record_and_argv_replay(self):
+        run = athena('run', '--env', 'ATHENA_TEST_ENABLED=0', '--env', 'ATHENA_TEST_ENABLED=1',
+                     '--env', f'ATHENA_TEST_MARK={self.marker}', '--covers', 'AC1', '--',
+                     'node', '--test', str(self.target), cwd=self.root,
+                     env={'ATHENA_TEST_IMPLICIT': 'do not record'})
+        self.assertEqual(run.returncode, 0, run.stderr)
+        row = records(self.root)[0]
+        self.assertTrue(row['provable'])
+        self.assertEqual(row['env'], {'ATHENA_TEST_ENABLED': '1', 'ATHENA_TEST_MARK': self.marker})
+        self.assertIn('ATHENA_TEST_ENABLED=1', row['command'])
+        self.assertIn('ATHENA_TEST_MARK=', row['command'])
+        self.assertNotIn('ATHENA_TEST_IMPLICIT', json.dumps(row))
+        self.assertEqual(row['covers'], ['AC1'])
+        replay = subprocess.run(['bash', '-o', 'pipefail', '-c', row['command']], cwd=self.root,
+                                env=ENV, capture_output=True, text=True)
+        self.assertEqual(replay.returncode, 0, replay.stderr + replay.stdout)
+
+    def test_explicit_env_shell_replay_applies_to_all_segments(self):
+        command = f'node --test {self.target} && node --test {self.target}'
+        run = athena('run', '--env', 'ATHENA_TEST_ENABLED=1', '--env', f'ATHENA_TEST_MARK={self.marker}',
+                     '--', command, cwd=self.root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        row = records(self.root)[0]
+        self.assertTrue(row['provable'])
+        replay = subprocess.run(['bash', '-o', 'pipefail', '-c', row['command']], cwd=self.root,
+                                env=ENV, capture_output=True, text=True)
+        self.assertEqual(replay.returncode, 0, replay.stderr + replay.stdout)
+        self.assertEqual(replay.stdout.count('explicit env'), 2)
+
+    def test_long_explicit_env_is_not_truncated_for_replay(self):
+        value = 'z' * 2200 + self.marker
+        self.target.write_text(self.target.read_text().replace(json.dumps(self.marker), json.dumps(value)))
+        run = athena('run', '--env', 'ATHENA_TEST_ENABLED=1', '--env', f'ATHENA_TEST_MARK={value}',
+                     '--', 'node', '--test', str(self.target), cwd=self.root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        row = records(self.root)[0]
+        self.assertTrue(row['provable'])
+        self.assertEqual(row['env']['ATHENA_TEST_MARK'], value)
+        replay = subprocess.run(['bash', '-o', 'pipefail', '-c', row['command']], cwd=self.root,
+                                env=ENV, capture_output=True, text=True)
+        self.assertEqual(replay.returncode, 0, replay.stderr + replay.stdout)
+
+    def test_explicit_path_keeps_existing_shadow_policy(self):
+        for cmd in (('node', '--test', str(self.target)), (f'node --test {self.target}',)):
+            run = athena('run', '--env', f"PATH={ENV['PATH']}", '--env', 'ATHENA_TEST_ENABLED=1',
+                         '--env', f'ATHENA_TEST_MARK={self.marker}', '--', *cmd, cwd=self.root)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            row = records(self.root)[-1]
+            self.assertFalse(row['provable'])
+            self.assertEqual(row['reason'], 'validation_shadowable')
+
+    def test_readonly_shell_env_name_replays(self):
+        self.target.write_text("require('node:test')('UID env', () => {\n"
+                               "  require('node:assert/strict').equal(process.env.UID, '123');\n});\n")
+        run = athena('run', '--env', 'UID=123', '--', 'node', '--test', str(self.target), cwd=self.root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        row = records(self.root)[0]
+        self.assertTrue(row['provable'])
+        replay = subprocess.run(['bash', '-o', 'pipefail', '-c', row['command']], cwd=self.root,
+                                env=ENV, capture_output=True, text=True)
+        self.assertEqual(replay.returncode, 0, replay.stderr + replay.stdout)
+
+    def test_sensitive_names_rejected_without_execution_or_record(self):
+        for name in ('API_KEY', 'github_token', 'MY_SECRET', 'PASSWORD', 'DATABASE_URL', 'PASSWD'):
+            with self.subTest(name=name):
+                run = athena('run', '--env', f'{name}=fixture-private-value', '--',
+                             'node', '-e', 'process.exit(9)', cwd=self.root)
+                self.assertEqual(run.returncode, 2)
+                self.assertIn('env 文件', run.stderr)
+                self.assertNotIn('fixture-private-value', run.stderr + run.stdout)
+        self.assertEqual(records(self.root), [])
+
+    def test_credential_value_under_ordinary_name_is_rejected(self):
+        value = 'sk-abcdefgh12345678'
+        run = athena('run', '--env', f'ATHENA_TEST_MARK={value}', '--',
+                     'node', '-e', 'process.exit(9)', cwd=self.root)
+        self.assertEqual(run.returncode, 2)
+        self.assertIn('env 文件', run.stderr)
+        self.assertNotIn(value, run.stderr + run.stdout)
+        self.assertEqual(records(self.root), [])
+
+    def test_env_validation_and_no_implicit_capture(self):
+        for value in ('missing-equals', '1INVALID=value', '=value'):
+            self.assertEqual(athena('run', '--env', value, '--', 'node', '--test', str(self.target),
+                                    cwd=self.root).returncode, 2)
+        run = green(self.root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertTrue(records(self.root)[0]['provable'])
+        self.assertFalse(records(self.root)[0].get('env'))
+
+    def test_node_zero_tests_in_both_reporters(self):
+        no_files = str(self.tmp / 'unmatched/*.test.cjs')
+        for reporter in ('spec', 'tap'):
+            run = athena('run', '--', 'node', '--test', f'--test-reporter={reporter}', no_files, cwd=self.root)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertIn('tests 0', run.stdout)
+            row = records(self.root)[-1]
+            self.assertEqual((row['kind'], row['exit'], row['provable']), ('test', 0, False))
+            self.assertIn('零用例', row['reason'])
+
+    def test_pytest_zero_and_nonzero_cases(self):
+        target = self.tmp / 'pytest-cases'
+        target.mkdir()
+        # Model a wrapper/plugin that turns pytest's empty-suite status into exit 0.
+        (target / 'conftest.py').write_text('def pytest_sessionfinish(session):\n    session.exitstatus = 0\n')
+        env = {'PATH': f"{Path(sys.executable).parent}{os.pathsep}{ENV['PATH']}"}
+        run = athena('run', '--', 'python3', '-m', 'pytest', str(target), cwd=self.root, env=env)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertIn('collected 0 items', run.stdout)
+        row = records(self.root)[-1]
+        self.assertFalse(row['provable'])
+        self.assertIn('零用例', row['reason'])
+        (target / 'test_case.py').write_text('def test_ok():\n    assert 1 + 1 == 2\n')
+        run = athena('run', '--', 'python3', '-m', 'pytest', '-q', str(target), cwd=self.root, env=env)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertTrue(records(self.root)[-1]['provable'])
+
+    def test_npm_test_wrapping_empty_node_suite(self):
+        (self.root / 'package.json').write_text(json.dumps({'scripts': {
+            'test': f'node --test "{self.tmp}/unmatched/*.test.cjs"'}}))
+        run = athena('run', '--', 'npm', 'test', cwd=self.root)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertIn('tests 0', run.stdout)
+        row = records(self.root)[-1]
+        self.assertFalse(row['provable'])
+        self.assertIn('零用例', row['reason'])
+
+    def test_zero_detection_only_matches_runner_summaries(self):
+        outputs = ['ℹ tests 0\n', '# tests 0\n', 'collected 0 items\n', 'no tests ran in 0.01s\n',
+                   '\x1b[34mℹ tests 0\x1b[39m\n',
+                   '===== no tests ran in 0.01s =====\n', 'no tests ran in 60.00s (0:01:00)\n',
+                   '===== no tests ran in 86400.00s (1 day, 0:00:00) =====\n', '# tests 10\n', 'ℹ tests 2\n',
+                   'zero tests might run', 'example: # tests 0', 'tests 0', '1 passed in 0.01s']
+        actual = node_json("const m=require(process.argv[1]);const xs=JSON.parse(require('fs').readFileSync(0,'utf8'));"
+                           "process.stdout.write(JSON.stringify(xs.map(x=>m.zeroTests(x))))", GATE / 'cli/run.cjs', outputs)
+        self.assertEqual(actual, [True] * 8 + [False] * 6)
 
 
 class RunOverSsh(unittest.TestCase):

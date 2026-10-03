@@ -9,7 +9,7 @@ const USAGE = `usage: athena <command> [args]
   init [--dry-run]                     create .ai_state v2 in a new project
   status [--json]                      route, hot sprints, queue, waiting items, issues, exemptions
   sprint start|stage|pause|resume|drop open and move sprints (athena sprint for details)
-  run [--covers AC1,AC2] -- <cmd…>     run a check and record its exit code as evidence
+  run [--covers AC1,AC2] [--env K=V] -- <cmd…>  run a check; record explicit env and exit code
   review prepare|accept|show           bind an independent review to the source tree
   ship [--dry-run]                     H2/H3, archive, items done, _index idle (stages, never commits)
   issue add|close|list                 the issues.md ledger
