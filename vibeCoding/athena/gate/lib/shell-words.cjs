@@ -109,8 +109,8 @@ function tokenize(command) {
     }
     if (/\s/.test(char)) { pushWord(); if (char === '\n') tokens.push({ type: 'op', value: ';' }); continue; }
     const pair = command.slice(i, i + 2);
-    if (pair === '&&' || pair === '||') { pushWord(); tokens.push({ type: 'op', value: pair }); i += 1; continue; }
-    if (char === ';' || char === '|') { pushWord(); tokens.push({ type: 'op', value: char }); continue; }
+    if (pair === '&&' || pair === '||' || pair === '|&') { pushWord(); tokens.push({ type: 'op', value: pair }); i += 1; continue; }
+    if (char === ';' || char === '|' || (char === '&' && command[i - 1] !== '>' && command[i - 1] !== '<' && command[i + 1] !== '>')) { pushWord(); tokens.push({ type: 'op', value: char }); continue; }
     // Subshell / group delimiters start a new command: "(rm -rf /)" runs rm (10.1 addition).
     if ((char === '(' || char === ')') && !(char === '(' && command[i - 1] === '$')) { pushWord(); tokens.push({ type: 'op', value: char }); continue; }
     value += char;

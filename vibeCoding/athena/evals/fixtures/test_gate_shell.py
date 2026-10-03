@@ -39,7 +39,7 @@ NON_NARROW = (
     "echo 'a\ncat <<EOF'\nrm -rf /\nEOF", "# cat <<EOF\nrm -rf /\nEOF", "bash <<'OUT'\ncat <<EOF\nrm -rf /\nEOF\nOUT",
     "cat <<'A' <<'B'\nrm -rf /\nA\nx\nB", "cat <<EOF; cat <<EOF\nrm -rf /\nEOF", "cat <<<'EOF'\nrm -rf /\nEOF",
     "cat <<\\EOF\nrm -rf /\nEOF", 'cat <<E"OF"\nrm -rf /\nEOF', "grep '<<EOF' file\nrm -rf /\nEOF",
-    "cat <<'EOF'x\nrm -rf /\nEOF", "echo hi\ncat <<'EOF'\nrm -rf /\nEOF", "python3 - <<'PYEOF'\nrm -rf /",
+    "cat <<'EOF'x\nrm -rf /\nEOF", "python3 - <<'PYEOF'\nrm -rf /",
     "cat <<EOF | rm -rf /\nhello\nEOF", "cat <<'EOF' | rm -rf /\nhello\nEOF", "cat <<'EOF'; rm -rf /\nhello\nEOF",
     "{ cat <<'EOF'; }\nrm -rf /\nEOF", "cat <<'EOF' `rm -rf /`\nhello\nEOF", "bash <<'EOF'\nrm -rf /\nEOF",
     "sudo bash <<'EOF'\nrm -rf /\nEOF", "bash -s <<'EOF'\nrm -rf /\nEOF", "timeout 5 bash <<'EOF'\nrm -rf /\nEOF",
@@ -92,6 +92,10 @@ def blocked_by_core(commands):
     return [bool(v.get('danger') or (v.get('push') and not v.get('allowPush'))) for v in json.loads(proc.stdout)]
 
 
+# G-010 deliberately recognizes this top-level data heredoc after another command.
+# All other frozen counterexamples keep their original rejection.
+G010_DATA_HEREDOC = "echo hi\ncat <<'EOF'\nrm -rf /\nEOF"
+
 class FrozenParity(unittest.TestCase):
     """Every migrated sample keeps the 9.9.9 verdict; additions are declared, not accidental."""
 
@@ -100,6 +104,10 @@ class FrozenParity(unittest.TestCase):
         for command, old, new in zip(commands, blocked_by_frozen(commands), blocked_by_core(commands)):
             with self.subTest(command=command.splitlines()[0][:60]):
                 self.assertEqual(new, old)
+
+    def test_g010_data_heredoc_after_command(self):
+        self.assertEqual(blocked_by_frozen([G010_DATA_HEREDOC]), [True])
+        self.assertEqual(blocked_by_core([G010_DATA_HEREDOC]), [False])
 
     def test_declared_additions_are_new_dangers(self):
         """A danger blocks at every stage (a plain push only outside ship/idle)."""

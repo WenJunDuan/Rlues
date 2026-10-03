@@ -25,7 +25,36 @@ function narrowHeredoc(command) {
 /** Command text bash actually executes: quoted narrow heredoc body masked, comments stripped. */
 function activeText(command) {
   const heredoc = narrowHeredoc(command);
-  return { heredoc, active: words.stripComments(heredoc && heredoc.quoted ? words.maskBody(command, heredoc) : command) };
+  let active = command;
+  const heredocs = [];
+  // Extend the same closed data-consumer grammar to complete top-level lines after
+  // ordinary commands. Never cross quotes, continuations, grouping or unknown heredocs.
+  let quote = '', escaped = false, lineStart = 0;
+  for (let i = 0; i < active.length; i += 1) {
+    const ch = active[i];
+    if (escaped) { escaped = false; continue; }
+    if (ch === '\\' && quote !== "'") { escaped = true; continue; }
+    if (quote) { if (ch === quote) quote = ''; continue; }
+    if (ch === "'" || ch === '"') { quote = ch; continue; }
+    if (ch !== '\n') continue;
+    const line = active.slice(lineStart, i);
+    const segments = lex.scan(line);
+    const header = segments.length ? segments[segments.length - 1].text : '';
+    if (line.includes('<<')) {
+      const prefix = line.slice(0, line.length - header.length);
+      const span = !/[(){}\\`]|\$\(|<</.test(prefix) ? narrowHeredoc(header + active.slice(i)) : null;
+      if (!span) break; // unknown shell input remains fully visible
+      const offset = i - header.length;
+      const body = { start: offset + span.start, end: offset + span.end, quoted: span.quoted };
+      heredocs.push(body);
+      const close = active.indexOf('\n', body.end);
+      const end = close < 0 ? active.length : close;
+      active = words.maskBody(active, { start: body.start, end }); // delimiter is data too
+      i = end - 1;
+    }
+    lineStart = i + 1;
+  }
+  return { heredoc, heredocs, masked: active, active: words.stripComments(active) };
 }
 
 /** Does a parsed command write a ledger path (as its destination, not as a source)? */
@@ -97,36 +126,61 @@ function forcePushToDefault(values) {
   return force && refs.some(v => DEFAULT_REF.test(v.replace(/^\+/, '')));
 }
 
-function analyzeSubstitutions(command, depth) {
-  for (const span of words.findSubstitutions(command)) {
+function heredocSubstitutions(body) {
+  const spans = [];
+  for (let i = 0; i < body.length; i += 1) {
+    if (body[i] === '\\' && /[$`\\\n]/.test(body[i + 1] || '')) { i += 1; continue; }
+    if (body[i] !== '`' && body.slice(i, i + 2) !== '$(') continue;
+    const span = words.findSubstitutions(body.slice(i))[0];
+    if (!span) continue;
+    spans.push({ ...span, start: i + span.start, end: span.end < 0 ? -1 : i + span.end });
+    if (span.end < 0) break;
+    i += span.end - 1;
+  }
+  return spans;
+}
+
+function commandPrefix(parsed, index) {
+  const q = value => "'" + value.replace(/'/g, "'\\''") + "'";
+  return parsed.slice(0, index).map(item => item.segment.words.map(t => q(t.value)).join(' ') + (item.segment.after || '')).join(' ');
+}
+
+function analyzeSubstitutions(command, depth, heredocBody = false) {
+  const pushes = [];
+  for (const span of (heredocBody ? heredocSubstitutions(command) : words.findSubstitutions(command))) {
     if (span.end < 0) return { danger: 'unparsable command substitution' };
     const nested = analyze(span.inner, depth + 1);
     if (nested.danger) return nested;
-    if (nested.push && !nested.allowPush) return { push: true, allowPush: false };
+    for (const push of nested.pushes || []) pushes.push({ ...push, contexts: [...(heredocBody ? [] : [command.slice(0, span.start)]), ...(push.contexts || [])] });
   }
-  return {};
+  return { pushes };
 }
 
 /** {danger} | {push, allowPush} | {} for one command string. */
 function analyze(command, depth = 0) {
   if (depth > 2) return { danger: 'nested shell depth exceeds policy' };
-  const { heredoc, active } = activeText(command);
+  const { heredocs, masked, active } = activeText(command);
   if (/:\s*\(\s*\)\s*\{[^}]*:\s*\|\s*:/.test(active)) return { danger: 'fork bomb' };
   if (LEDGER_REDIRECT.test(active)) return { danger: 'shell write to the evidence ledger or review.json (only athena writes them)' };
   const substitution = analyzeSubstitutions(active, depth);
-  if (substitution.danger || substitution.push) return substitution;
+  if (substitution.danger) return substitution;
+  const pushes = [...substitution.pushes];
   // An unquoted body is expanded by bash: scan it on its own as well (findings only added).
-  if (heredoc && !heredoc.quoted) {
-    const body = analyzeSubstitutions(command.slice(heredoc.start, heredoc.end), depth);
-    if (body.danger || body.push) return body;
+  for (const span of heredocs.filter(h => !h.quoted)) {
+    const body = analyzeSubstitutions(command.slice(span.start, span.end), depth, true);
+    if (body.danger) return body;
+    pushes.push(...body.pushes.map(p => ({ ...p, contexts: [words.stripComments(masked.slice(0, span.start)), ...(p.contexts || [])] })));
   }
   const parsed = words.parse(active);
-  for (const item of parsed) {
+  let pushIndex = 0;
+  for (let itemIndex = 0; itemIndex < parsed.length; itemIndex += 1) {
+    const item = parsed[itemIndex];
     const name = item.name;
     const values = item.args.map(token => token.value);
     if (item.forwarded !== null && item.forwarded !== undefined) {
       const nested = analyze(item.forwarded, depth + 1);
-      if (nested.danger || nested.push) return nested;
+      if (nested.danger) return nested;
+      pushes.push(...(nested.pushes || []).map(p => ({ ...p, contexts: [commandPrefix(parsed, itemIndex + 1), ...(p.contexts || [])] })));
       continue;
     }
     if (writesLedger(item)) return { danger: 'shell write to the evidence ledger or review.json (only athena writes them)' };
@@ -137,14 +191,15 @@ function analyze(command, depth = 0) {
       const c = scriptIndex(values);
       if (c >= 0) {
         const nested = analyze(values[c], depth + 1);
-        if (nested.danger || nested.push) return nested;
+        if (nested.danger) return nested;
+        pushes.push(...(nested.pushes || []).map(p => ({ ...p, contexts: [commandPrefix(parsed, itemIndex + 1), ...(p.contexts || [])] })));
       }
     }
     if (name === 'git' && words.gitSubcommand(item.args) === 'push') {
       const pushArgs = values.slice(values.indexOf('push') + 1);
       if (forcePushToDefault(pushArgs)) return { danger: 'force push to default branch' };
       const shape = pushShape(pushArgs);
-      return { push: true, allowPush: item.env.ATHENA_ALLOW_PUSH === '1', force: shape.force && shape.refs.every(v => /^\+?HEAD$/.test(v)) };
+      pushes.push({ command: active, index: pushIndex++, allowPush: item.env.ATHENA_ALLOW_PUSH === '1', force: shape.force && shape.refs.every(v => /^\+?HEAD$/.test(v)) });
     }
   }
   for (let i = 0; i + 1 < parsed.length; i += 1) {
@@ -152,17 +207,25 @@ function analyze(command, depth = 0) {
       return { danger: 'network response piped to shell' };
     }
   }
-  return {};
+  return pushes.length ? { push: true, allowPush: pushes.every(p => p.allowPush), pushes } : {};
 }
 
 /**
  * {ctx, dir} of the project a push targets; ctx null when that repository has no .ai_state.
  * The session cwd is the strict fallback; a Codex workdir only acts as a leading `cd`.
  */
-function pushProject(command, cwd, start, ctx) {
-  const target = project.pushTarget(activeText(command).active, cwd, start);
-  if (target.dir === cwd || project.sameProject(target.dir, cwd, target.dest)) return { ctx, dir: target.dir };
-  return { ctx: context.load(target.dir), dir: target.dir };
+function pushProjects(push, cwd, start, ctx) {
+  let dirs = [start];
+  for (const prefix of push.contexts || []) {
+    const targets = dirs.map(dir => project.pushTarget(prefix, cwd, dir, 0, true));
+    if (targets.some(t => t.uncertain)) return [{ uncertain: true }];
+    dirs = [...new Set(targets.flatMap(t => t.dirs || [t.dir]))];
+  }
+  const targets = dirs.map(dir => project.pushTarget(push.command, cwd, dir, push.index));
+  if (targets.some(t => t.uncertain)) return [{ uncertain: true }];
+  return targets.flatMap(target => (target.dirs || [target.dir]).map(dir => ({
+    ctx: dir === cwd || project.sameProject(dir, cwd, target.dest) ? ctx : context.load(dir), dir,
+  })));
 }
 
 /** Hard gate. ev.tool === 'bash' at pre_tool. */
@@ -171,15 +234,19 @@ function check(ev, ctx) {
   if (!command) return null;
   const verdict = analyze(command);
   if (verdict.danger) return { rule: 'H5', reason: `H5 shell safety: ${verdict.danger}` };
-  if (verdict.push && !verdict.allowPush) {
+  for (const push of verdict.pushes || []) {
+    if (push.allowPush) continue;
     const cwd = path.resolve(ev.cwd);
-    const { ctx: owner, dir } = pushProject(command, cwd, ev.workdir ? path.resolve(ev.workdir) : cwd, ctx);
-    if (verdict.force && /^(?:main|master)$/.test(context.git(dir, ['symbolic-ref', '--short', 'HEAD']) || '')) {
-      return { rule: 'H5', reason: 'H5 shell safety: force push while main/master is checked out' };
-    }
-    if (owner && (owner.invalid || !PUSH_OK_STAGES.has(owner.stage))) {
-      const why = owner.invalid ? `state unknown (${owner.invalid})` : `stage=${owner.stage}`;
-      return { rule: 'H5', reason: `H5 push: ${why}; pushing this project waits for ship (or idle). Unrelated repositories are judged by their own stage.` };
+    for (const target of pushProjects(push, cwd, ev.workdir ? path.resolve(ev.workdir) : cwd, ctx)) {
+      if (target.uncertain) return { rule: 'H5', reason: 'H5 push: target repository is unresolved; entire command was not executed. Use an explicit git -C repository.' };
+      const { ctx: owner, dir } = target;
+      if (push.force && /^(?:main|master)$/.test(context.git(dir, ['symbolic-ref', '--short', 'HEAD']) || '')) {
+        return { rule: 'H5', reason: 'H5 shell safety: force push while main/master is checked out' };
+      }
+      if (owner && (owner.invalid || !PUSH_OK_STAGES.has(owner.stage))) {
+        const why = owner.invalid ? `state unknown (${owner.invalid})` : `stage=${owner.stage}`;
+        return { rule: 'H5', reason: `H5 push: ${why}; pushing this project waits for ship (or idle). Unrelated repositories are judged by their own stage; entire command was not executed. Split the push into a separate tool call.` };
+      }
     }
   }
   return null;

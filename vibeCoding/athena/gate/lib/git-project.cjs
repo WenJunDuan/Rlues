@@ -42,20 +42,25 @@ function pushDestination(args) {
 
 /**
  * {dir, dest} of the push in `active` (comments stripped, quoted heredoc body masked), starting
- * at `start` (a Codex workdir acts as a leading cd): the last top-level cd joined by && or ;,
+ * at `start` (a Codex workdir acts as a leading cd): top-level cd commands joined by && or ;,
  * then the push's own -C options. Anything the guard cannot resolve keeps the strict answer:
- * the session cwd.
+ * an unresolved target (the caller must block).
  */
-function pushTarget(active, cwd, start = cwd) {
-  const strict = { dir: cwd, dest: undefined };
+function pushTarget(active, cwd, start = cwd, pushIndex = 0, contextOnly = false) {
+  let seenPushes = 0;
+  const strict = { dir: cwd, dest: undefined, uncertain: true };
   if (REPO_REDIRECT_ENV.test(active)) return strict;
   let base = start;
-  let leading = true; // only a run of leading cd's can move the target; a cd after any other command may not run
-  for (const item of words.parse(active)) {
+  let possible = [start];
+  const parsed = words.parse(active);
+  const selected = parsed.map((item, i) => item.name === 'git' && words.gitSubcommand(item.args) === 'push' ? i : -1).filter(i => i >= 0)[pushIndex];
+  const limit = contextOnly ? parsed.length - 1 : selected;
+  for (let itemIndex = 0; itemIndex < parsed.length; itemIndex += 1) {
+    const item = parsed[itemIndex];
     const values = item.args.map(token => token.value);
     // A cd that may not run, or runs in another scope, must not move a later push (review r2/r3):
-    // subshell parens, `||`, and control words (if/then/while/do/!/{ …) → strict.
-    if ([item.segment.before, item.segment.after].some(op => op === '(' || op === ')' || op === '||')) return strict;
+    // subshell parens and control words (if/then/while/do/!/{ …) → strict.
+    if ([item.segment.before, item.segment.after].some(op => op === '(' || op === ')')) return strict;
     const first = item.segment.words.find(w => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w.value));
     if (first && words.CONTROL.has(first.value)) return strict;
     if (item.name === 'cd') {
@@ -63,14 +68,20 @@ function pushTarget(active, cwd, start = cwd) {
       // child (or fail) and leave the push in the project (review r4 P1).
       const raw = item.segment.words.map(w => w.value).filter(v => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(v));
       const builtin = raw[0] === 'cd' || (['builtin', 'command'].includes(raw[0]) && raw[1] === 'cd');
-      if (!leading || !builtin) return strict;
-      const next = values.length ? resolveDir(values[0], base) : os.homedir();
-      if (!next || !['&&', ';'].includes(item.segment.after)) return strict;
-      base = next;
+      if (!builtin) return strict;
+      const nextDirs = values.length ? possible.map(dir => resolveDir(values[0], dir)) : [os.homedir()];
+      if (nextDirs.some(dir => !dir) || !['&&', ';'].includes(item.segment.after)) return strict;
+      // A later push reached through only && implies this cd succeeded. If an
+      // earlier && can skip cd before a ;, retain both possible repositories.
+      const tail = parsed.slice(itemIndex, limit).map(p => p.segment.after);
+      const conditional = item.segment.before === '||' || (item.segment.before === '&&' && tail.some(op => op !== '&&'));
+      possible = conditional ? [...new Set([...possible, ...nextDirs])] : [...new Set(nextDirs)];
+      base = possible[0];
       continue;
     }
     if (item.name === 'git' && words.gitSubcommand(item.args) === 'push') {
-      leading = false;
+      if (contextOnly) continue;
+      if (seenPushes++ !== pushIndex) continue;
       let dir = base;
       let i = 0;
       for (; i < values.length; i += 1) {
@@ -85,11 +96,18 @@ function pushTarget(active, cwd, start = cwd) {
         if (['-c', '--namespace', '--config-env'].includes(value)) { i += 1; continue; }
         if (!value.startsWith('-')) break;
       }
-      return { dir, dest: pushDestination(values.slice(i + 1)) };
+      // Absolute -C resolves every possible cwd to the same repository. Relative
+      // -C must be resolved against each possible cwd independently.
+      const dirs = possible.map(startDir => {
+        let candidate = startDir;
+        for (let n = 0; n < i; n += 1) if (values[n] === '-C') { candidate = resolveDir(values[++n], candidate); if (!candidate) return null; }
+        return candidate;
+      });
+      if (dirs.some(d => !d)) return strict;
+      return { dir, dirs: [...new Set(dirs)], dest: pushDestination(values.slice(i + 1)) };
     }
-    leading = false;
   }
-  return strict;
+  return contextOnly ? { dir: base, dirs: possible, dest: undefined } : strict;
 }
 
 function gitOut(dir, args) {

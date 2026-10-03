@@ -257,10 +257,13 @@ class SubshellCd(unittest.TestCase):
         other = project(tmp, 'other', stage=None)
         self.assertFalse(call('cc', 'bash', root, command=f'cd {other} && git push origin $(git rev-parse --abbrev-ref HEAD)').blocked,
                          'a $( … ) substitution is not a subshell scope')
+        # G-010: a normal preceding command does not make a successful cd scoped.
+        for platform in PLATFORMS:
+            self.assertFalse(call(platform, 'bash', root, command=f'echo x; cd {other} && git push').blocked)
         for command in ('(cd /tmp) && git push origin HEAD', '(cd /tmp); git push origin HEAD', '( cd /tmp ) && git push',
                         'true && (cd /tmp) && git push', '(cd /tmp && git push)', 'if false; then cd /tmp; fi; git push',
                         'while false; do cd /tmp; done; git push', '! cd /tmp; git push', 'true || cd /tmp; git push',
-                        'false && cd /tmp; git push', 'echo x; cd /tmp && git push', '{ cd /tmp; }; git push',
+                        'false && cd /tmp; git push', '{ cd /tmp; }; git push',
                         'nohup cd /tmp; git push', 'timeout 5 cd /tmp; git push', 'nice cd /tmp; git push',
                         'env cd /tmp; git push', 'sudo cd /tmp; git push', 'xargs cd /tmp; git push'):
             for platform in PLATFORMS:
