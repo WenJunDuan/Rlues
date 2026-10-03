@@ -43,7 +43,7 @@ description: PACE 路径、阶段、门禁与 athena CLI 的全景；分诊后�
 | H5 | 危险命令换安全写法；推送等 ship |
 | 认为误拦 | `athena issue add --type gate --text "<一句话>"`，请用户放行；同一拦截连续 3 次自动熔断并记 G 行 |
 
-豁免：`_index.exemptions` 里 `{key, until, reason}`，≤14 天；H2/H3 没有豁免。细节 [gates.md](references/gates.md)。
+豁免：`athena exemption add --key <key> --until <YYYY-MM-DD> --reason "<理由>"`，≤14 天；`list` 查看、`remove --key <key>` 撤销，增删写审计。H2/H3 没有豁免。细节 [gates.md](references/gates.md)。
 
 ## References
 

@@ -30,7 +30,9 @@ reason 字段写明原因；照 reason 改写命令后重跑。
 
 ## 豁免
 
-`_index.exemptions: [{key, until, reason}]`，`until` ≤14 天，reason 必填。key ∈ `h4_worktree`、`skip_runtime_verify`、`skip_polish`、`skip_architecture_check`、`harness_target_outside_repo`。H2/H3 没有豁免。过期或无效条目被忽略，`athena doctor` 会列出。
+`athena exemption add --key <key> --until <YYYY-MM-DD> --reason "<理由>"`；同 key 重加替换旧条目。`athena exemption list` 查看，`athena exemption remove --key <key>` 撤销。CLI 写 `_index` frontmatter，增删在 issues.md 留 closed 审计行（撤销记录原理由）。
+
+`until` 按 UTC 当天包含，不能早于今天、截止时刻距现在 ≤14 天；reason 必填。key ∈ `h4_worktree`、`skip_runtime_verify`、`skip_polish`、`skip_architecture_check`、`harness_target_outside_repo`。H2/H3 没有豁免。过期或无效条目被忽略，`athena exemption list` / `athena status` 会列出。
 
 ## 熔断与误拦
 

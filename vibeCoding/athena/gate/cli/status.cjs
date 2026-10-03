@@ -62,6 +62,7 @@ function main(argv, io) {
   for (const q of s.questions) out.push(`待裁定 ${q.id}: ${q.text}`);
   out.push(`issues open: ${s.issues_open}`);
   for (const x of s.exemptions) out.push(`exemption ${x.key} until ${x.until} [${x.status}]${x.why ? ` ${x.why}` : ''}`);
+  out.push('exemptions: athena exemption add|list|remove');
   for (const a of s.advisories) out.push(`advisory ${a.rule}: ${a.message}`);
   io.stdout.write(`${out.join('\n')}\n`);
   return 0;

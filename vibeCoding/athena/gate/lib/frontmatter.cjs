@@ -36,9 +36,16 @@ function splitFlow(body) {
   const parts = [];
   let buf = '';
   let quote = '';
+  let escaped = false;
   let depth = 0;
   for (const ch of body) {
-    if (quote) { buf += ch; if (ch === quote) quote = ''; continue; }
+    if (quote) {
+      buf += ch;
+      if (escaped) escaped = false;
+      else if (quote === '"' && ch === '\\') escaped = true;
+      else if (ch === quote) quote = '';
+      continue;
+    }
     if (ch === '"' || ch === "'") { quote = ch; buf += ch; continue; }
     if (ch === '[' || ch === '{') depth += 1;
     if (ch === ']' || ch === '}') depth -= 1;
