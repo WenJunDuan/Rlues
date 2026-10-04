@@ -7,7 +7,7 @@
   "order_note": "记账全部写完 → athena review prepare → reviewer → athena review accept → athena ship（ship 是最后一次写入）",
   "zones": {
     "green": "≤3 文件且合计 ≤150 行，或 Hotfix/Quick/Bugfix：主 agent 直做",
-    "yellow": "单模块 Feature：generator，worktree 可选",
+    "yellow": "单模块 Feature：主 agent 直做；并行或隔离时派 generator，worktree 可选",
     "red": "Refactor/System 或 parallel_writers ≥2：写者子 agent 隔离（H4）"
   },
   "hard": {

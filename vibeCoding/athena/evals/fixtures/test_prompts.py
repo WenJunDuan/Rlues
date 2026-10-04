@@ -45,6 +45,9 @@ class Prompts(unittest.TestCase):
                 self.assertIsNone(re.search(r'\*\*[^*]*[A-Z]{4,}', t), 'no all-caps emphasis')
                 self.assertIn('review 窗口内还有并行写者', t)   # NV-C2
                 self.assertIn('转述别人的结论写出处', t)       # NV-C16
+                self.assertIn('收尾前看最后一段', t)           # K3 (10.5): named early-stop shapes
+                self.assertIn('不悄悄缩小、扩大或替换', t)     # K12 (10.5)
+                self.assertIn('直接执行不用问', t)             # K13 (10.5)
 
     def test_ac2_rules_budget_and_provenance(self):
         rules = sorted((ATHENA / 'core/package/rules').glob('*.md'))
@@ -180,3 +183,27 @@ class Prompts(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class PromptsV3(unittest.TestCase):
+    """athena-10-5 S5: wording the 2026-09 model guides advise against stays out of every prompt."""
+
+    BANNED = re.compile(r'think carefully|think step by step|仔细思考|逐步思考|深呼吸|写出(你的)?(完整)?推理|展示(你的)?思考过程', re.I)
+
+    def test_no_reasoning_extraction_or_think_harder(self):
+        roots = [ATHENA / 'core/package', ATHENA / 'adapters']
+        for root in roots:
+            for f in sorted(root.rglob('*')):
+                if f.is_file() and f.suffix in ('.md', '.toml'):
+                    with self.subTest(file=str(f.relative_to(ATHENA))):
+                        self.assertIsNone(self.BANNED.search(f.read_text(encoding='utf-8')))
+
+    def test_no_model_or_effort_pin_in_packages(self):
+        cx = (ATHENA / 'adapters/cx/package/config.toml').read_text(encoding='utf-8')
+        self.assertIsNone(re.search(r'^model\s*=|^model_reasoning_effort\s*=|^plan_mode_reasoning_effort\s*=', cx, re.M))
+        cc = (ATHENA / 'adapters/cc/package/settings.json').read_text(encoding='utf-8')
+        self.assertNotIn('effortLevel', cc)
+
+    def test_yellow_zone_defaults_to_direct(self):
+        self.assertIn('主 agent 直做', (ATHENA / 'core/pace/stages.yaml').read_text(encoding='utf-8'))
+        self.assertIn('主 agent 直做', (ATHENA / 'core/package/skills/pace/references/execution.md').read_text(encoding='utf-8'))
+

@@ -10,13 +10,16 @@
 |---|---|---|---|---|
 | K1 | 先读 `_index.md`，按指针只读所需 | 全量 glob 把上下文烧光；状态多处矛盾（compound 2026-07-13 index-field-audit） | 平台原生提供项目状态索引 | 宪法 |
 | K2 | 分诊；无 AC → brainstorm；≥2 切片 → roadmap | 凭感觉选路径，改动面超限无人回头（compound 2026-07-08 hook-order） | 路由由 CLI 机械判定 | 宪法 + athena-dev |
-| K3 | AC 有证据 + 门禁放行才算完成；未完继续做 | 无证据「静默假过」（compound 2026-07-08 token-usage-null）；以说明代替完成（GPT-6 指南：完成标准驱动） | 模型实测不再提前收工 | 宪法 + H2/H3 |
-| K4 | 写入分区；review 窗口内并行写者隔离 | 并行 generator 主 checkout 互相覆盖（compound 2026-07-11 worktree-ledger-gap）；review 窗口并行文档写者使 bind 恒拒（NV-C2） | — | 宪法 + H4 |
+| K3 | AC 有证据 + 门禁放行才算完成；收尾前自检末段 | 无证据「静默假过」（compound 2026-07-08 token-usage-null）；以说明代替完成；泛化的「继续做」不如点名早停形态（Anthropic Fable 5.1 / Opus 5.5 指南 2026-09） | 模型实测不再提前收工 | 宪法 + H2/H3 |
+| K4 | 写入分区（黄区默认直做，10.5）；review 窗口内并行写者隔离 | 并行 generator 主 checkout 互相覆盖（compound 2026-07-11 worktree-ledger-gap）；review 窗口并行文档写者使 bind 恒拒（NV-C2） | — | 宪法 + H4 |
 | K5 | `athena run` 做验证 | 证据缺失当作通过（compound 2026-07-10 codex-wire-evidence） | — | 宪法 + H2 |
 | K6 | 误拦记 issue 请放行，不绕过 | 规训写在 prompt 被模型权衡掉（9.9.x 铁律 8） | — | 宪法 + 熔断 |
 | K7 | 官方出处；待验证；转述写出处 | 文档层互相矛盾（9.9.6 review）；转录结论无核对（NV-C16/QA-26） | — | 宪法 |
 | K8 | 不可逆操作先确认 | 通用安全面 | — | 宪法 + H5 |
 | K9 | 记账随代码同一提交 | 记账提交碎片化、孤立记账提交（NV-A4） | CLI 自动归并 | 宪法 + rules/git |
+| K12 | 范围即交付物 | 模型悄悄缩小或替换任务范围（Anthropic Fable 5.1 指南 2026-09） | 评测中不再出现 | 宪法 |
+| K13 | athena 例行命令直接执行 | 模型逐条请示拖慢流程；auto 模式下状态变更须走 CLI（G-004）（OpenAI GPT-6 指南 2026-10：显式授权例行动作） | — | 宪法 |
+| K14 | 阶段切换给一行进度 | 新模型默认更少进度输出（Anthropic Fable 5.1 指南） | 平台原生进度足够 | 宪法 |
 | K11 | 同一路径失败三次带 stderr 报阻塞 | 同一失败换花样硬试、烧轮数（9.9.x CLAUDE.md 根入口） | 熔断覆盖工具失败 | 宪法 |
 | K10 | 电报体 | o200k 实测省 21–30%（9.9.0）；文言歧义被否（9.9.1） | — | 宪法 + rules/docs |
 
@@ -26,6 +29,9 @@
 |---|---|---|---|---|
 | R1 | P0 DRY/SRP/类型/异常归宿 | 通用工程基线（9.8 coding-standards） | 项目 lint 覆盖 | rules/coding |
 | R2 | 反过度工程 | v9.7 一次调研 24 文件无痛点支撑（9.9.3 CHANGELOG） | — | rules/coding |
+| R15 | 删除优于兼容 | 模型重构时留 deprecated shim、双写、兼容层（10.5 采自社区 CLAUDE.md，对应已知模型倾向） | — | rules/coding |
+| R16 | 新增依赖先查已有 | 模型凭印象断定已有库缺功能而新装或重写（同上） | — | rules/coding + deps-check |
+| R17 | 测试随 AC | 「每改动必加测试」导致凑数测试；Fable 5.1 指南：只在任务要求处提交测试 | — | rules/coding |
 | R3 | 量化 AC 先测基线；多写者绝对相等 | AC「≤300 行」而基线 341 行致 REWORK（2026-07-25）；多写者 `≥` 互相抵消（2026-07-28） | — | rules/coding |
 | R4 | 可达性检索式 | `as unknown as` 访问对 tsc 与 import 分析双隐形（2026-07-28） | — | rules/coding |
 | R5 | 安全 P0/P1 | 通用 OWASP 基线 | — | rules/security |

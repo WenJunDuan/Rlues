@@ -24,7 +24,8 @@ PLATFORMS = ('cc', 'cx', 'pi')
 ENV = {**os.environ,
        'GIT_AUTHOR_NAME': 'Fixture', 'GIT_AUTHOR_EMAIL': 'fixture@example.invalid',
        'GIT_COMMITTER_NAME': 'Fixture', 'GIT_COMMITTER_EMAIL': 'fixture@example.invalid',
-       'PYTHONDONTWRITEBYTECODE': '1'}
+       'PYTHONDONTWRITEBYTECODE': '1',
+       'ATHENA_FEEDBACK': ''}  # fixtures never append to a real upstream FEEDBACK.md
 
 PI_DRIVER = ("const {run}=require(process.argv[1]);"
              "const p=JSON.parse(require('fs').readFileSync(0,'utf8'));"
@@ -120,7 +121,10 @@ def call(platform, intent, cwd, env=None, **kw):
 
 
 def athena(*args, cwd, env=None):
-    return subprocess.run(['node', str(CLI), *args], capture_output=True, text=True, cwd=str(cwd), env={**ENV, **(env or {})})
+    merged = {**ENV, **(env or {})}
+    for key in [k for k, v in merged.items() if v is None]:  # env={'X': None} unsets X
+        del merged[key]
+    return subprocess.run(['node', str(CLI), *args], capture_output=True, text=True, cwd=str(cwd), env=merged)
 
 
 def check_file(root, passing=True):

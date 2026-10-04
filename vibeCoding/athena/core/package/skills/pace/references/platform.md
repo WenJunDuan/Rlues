@@ -11,9 +11,13 @@
 | 红区隔离 | `isolation: worktree` | 自建 git worktree，任务写 `worktree: /abs/path` | 自建 worktree + 新 session |
 | 续派 | SendMessage 给同一 agent | 同一 thread 继续 | 同一 session 继续 |
 | 独立 review | reviewer agent；可选 `athena-review` workflow（flag `cc_workflows`） | reviewer agent | `/reviewer` prompt |
-| Stop 硬停 | 支持 | 支持 | 无硬停（0.87）：ship 用 followUp 提示 |
+| Stop 硬停 | 支持 | 支持 | 支持（≥0.87，`agent_before_settle` 续跑；更旧版本退回 followUp 提示）· 待本机验证 |
+| 插件形态 | `dist/claude-plugin`：hooks + 门禁核 + skills + agents + `bin/athena`；带不走 CLAUDE.md 与 rules（宪法由 SessionStart 注入，rules 仍靠 `athena install`） | `dist/codex-plugin`：hooks + 门禁核 + skills；带不走 `config.toml` 与 AGENTS.md；hook 装后须在 `/hooks` 受信 | `dist/pi/…/plugin` 即 Pi 包 |
+| code mode | — | 默认关；嵌套调用是否触发 PreToolUse 官方文档与开放 issue 说法相反 · 待验证（探针 P1），未定前不要开 | 嵌套调用照发 `tool_call`（源码确认，待实跑）；外层 `codemode` 调用放行 |
 
 模型、effort、provider、权限由用户原生配置决定；不设覆盖子 agent 模型的全局环境变量（如 `CLAUDE_CODE_SUBAGENT_MODEL`，会让角色配置静默失效）。能调用某工具不等于该副作用已获授权。
+
+同一端不要同时启用安装器形态与插件形态：每个门禁会跑两遍，`athena doctor` 会告警。
 
 安装与检查：`athena install --platform cc,cx[,pi]`、`athena doctor`、`athena rollback`（见 athena-setup）。
 

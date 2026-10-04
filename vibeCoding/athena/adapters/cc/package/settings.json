@@ -1,7 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "model": "best",
-  "effortLevel": "high",
   "fallbackModel": ["opus", "sonnet"],
   "worktree": {
     "baseRef": "head"

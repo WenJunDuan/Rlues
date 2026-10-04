@@ -24,7 +24,7 @@ class UpstreamFeedback(unittest.TestCase):
         self.feedback.write_text(TABLE, encoding='utf-8')
 
     def add(self, *args, env=None, kind='gate', text='H1 blocks the design write'):
-        return athena('issue', 'add', '--type', kind, '--text', text, *args, cwd=self.root, env={'HOME': str(self.home), **(env or {})})
+        return athena('issue', 'add', '--type', kind, '--text', text, *args, cwd=self.root, env={'HOME': str(self.home), 'ATHENA_FEEDBACK': None, **(env or {})})  # harness default is off; unset unless the case sets it
 
     def issues(self):
         return (self.root / '.ai_state/issues.md').read_text(encoding='utf-8')

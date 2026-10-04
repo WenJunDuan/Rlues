@@ -5,7 +5,7 @@
 | 区 | 条件 | 谁写 |
 |---|---|---|
 | 绿 | ≤3 文件且 ≤150 行，或 Hotfix/Quick/Bugfix | 主 agent |
-| 黄 | 单模块 Feature | generator 子 agent；worktree 可选 |
+| 黄 | 单模块 Feature | 主 agent 直做；要并行或隔离时派 generator（worktree 可选） |
 | 红 | Refactor/System，或 `parallel_writers ≥2` | 写者子 agent + 隔离 worktree（H4） |
 
 review 窗口内（prepare 到 accept 之间）还有并行写者（含文档）时，也按红区隔离：设 `parallel_writers: 2` 让 H4 生效；否则源码树一变，review 就作废。
@@ -24,14 +24,15 @@ review 窗口内（prepare 到 accept 之间）还有并行写者（含文档）
 
 Git worktree 不带未提交内容：先提交或传递增量并校验。写者交回后，主 agent 核对（分支是 main 祖先 + 复验通过）即清理 worktree 与临时分支；返工时重建。`.ai_state` 只由主 agent 写。
 
-## 外部写者（grok 等）
+## 外部写者（grok / codex 等）
+
+用 `athena writer dispatch --tool <名> --family <家族>` 开窗口（建同级 worktree、记 `external-writer.json`、置 `parallel_writers`），写者交回后 `athena writer collect`（探冲突、只做 ff、还原 `parallel_writers`）。CLI 不启动外部工具，只做准备与接回。
 
 - 简报：同派工模板 + 「证据只写主仓 `.ai_state/.runtime/evidence/`，不在仓库根写任何证据文件」。
 - 核名：模型名用 `grok models` 查，不凭记忆。
 - 解析：`--output-format json` 的输出取最后一个顶层 JSON 对象。
 - 402（余额耗尽）：立即停派，记 `athena issue add --type env`，改本端写者。
-- 接回顺序：`athena sprint start`（Bugfix 用三段式 design）→ cherry-pick 写者提交 → 主 agent `athena run` 复跑检查。外部写者的自测不算证据。
-- 在 sprint 目录放 `external-writer.json`（写者、模型、基线、提交）满足 A1。
+- 顺序：`athena sprint start`（Bugfix 用三段式 design）→ `writer dispatch` → 启动写者 → `writer collect` → 主 agent `athena run` 复跑检查。外部写者的自测不算证据；reviewer 用与写者不同的家族。
 
 ## 整合
 

@@ -10,9 +10,11 @@ const USAGE = `usage: athena <command> [args]
   status [--json]                      route, hot sprints, queue, waiting items, issues, exemptions
   sprint start|stage|pause|resume|drop open and move sprints (athena sprint for details)
   run [--covers AC1,AC2] [--env K=V] -- <cmd…>  run a check; record explicit env and exit code
+  run --rebind                         re-run the latest PASS test/typecheck evidence on the current tree
   review prepare|accept|show           bind an independent review to the source tree
   ship [--dry-run]                     H2/H3, archive, items done, _index idle (stages, never commits)
-  issue add|close|list                 the issues.md ledger
+  writer dispatch|collect|status       external writer window: worktree, record, conflict probe, ff
+  issue add|close|list                 the issues.md ledger (--type gate also appends to the upstream FEEDBACK)
   exemption add|list|remove            audited, time-limited gate exemptions
   tidy [--dry-run]                     month-close, packing, hot-layer limit, .runtime retention
   migrate --to 10.1 [--dry-run]        v1 → v2 state migration
