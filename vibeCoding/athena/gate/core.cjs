@@ -114,9 +114,29 @@ function stop(ev, ctx) {
   return block(verdict, warnings);
 }
 
+const CONSTITUTION_MAX = 4096; // bytes
+
+/**
+ * Plugin form (a plugin cannot ship CLAUDE.md): ATHENA_CONSTITUTION names the constitution file, set by
+ * the plugin's SessionStart hook command. Session start / compaction only → {text?, warning?}.
+ */
+function constitution(ev) {
+  const file = process.env.ATHENA_CONSTITUTION;
+  if (!file || !['session_start', 'compact'].includes(ev.event)) return {};
+  let buf;
+  try { buf = fs.readFileSync(file); } catch (error) { return { warning: { rule: 'constitution', message: `ATHENA_CONSTITUTION unreadable (${error.code || error.message}); not injected` } }; }
+  if (buf.length > CONSTITUTION_MAX) return { warning: { rule: 'constitution', message: `${file} is ${buf.length} bytes (> ${CONSTITUTION_MAX}); not injected` } };
+  const root = process.env.CLAUDE_PLUGIN_ROOT || process.env.PLUGIN_ROOT;
+  const text = buf.toString('utf8').trim();
+  return { text: root ? text.split('${CLAUDE_PLUGIN_ROOT}').join(root).split('${PLUGIN_ROOT}').join(root) : text };
+}
+
 /** Context injected at session start / prompt / after compaction. */
 function inject(ev, ctx) {
-  if (!ctx) return allow();
+  // The constitution is capped on its own; the state lines keep their 2000-char cap.
+  const head = constitution(ev);
+  const warn = head.warning ? [head.warning] : [];
+  if (!ctx) return head.text || warn.length ? allow({ context: head.text, warnings: warn }) : allow();
   const lines = [];
   const i = ctx.index;
   if (context.idle(ctx)) lines.push('[athena] idle — no sprint in flight.');
@@ -141,7 +161,8 @@ function inject(ev, ctx) {
     } catch (_) { /* injection is best-effort */ }
   }
   const text = lines.join('\n');
-  return allow({ context: ev.event === 'prompt' && !queued.length ? undefined : text.slice(0, 2000) });
+  const state = ev.event === 'prompt' && !queued.length ? undefined : text.slice(0, 2000);
+  return allow({ context: head.text ? `${head.text}\n\n${state}` : state, warnings: warn });
 }
 
 function record(ctx, name, row) {

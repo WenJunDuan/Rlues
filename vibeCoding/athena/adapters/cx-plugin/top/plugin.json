@@ -1,0 +1,10 @@
+{
+  "name": "athena",
+  "version": "{{athena:ATHENA_VERSION}}",
+  "description": "Athena PACE harness: fail-closed gates (H1-H5) on hooks, the athena CLI, PACE skills.",
+  "extensions": {
+    "com.openai": {
+      "hooks": "./hooks/hooks.json"
+    }
+  }
+}

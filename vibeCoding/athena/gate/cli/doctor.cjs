@@ -1,6 +1,8 @@
 'use strict';
 // athena doctor [--home <dir>]: installed files vs their recorded sha (drift / missing), the current
 // link, node on PATH, leftover 9.9.9 files, and (inside a project) expired or invalid exemptions.
+// Plugin forms (10.5): read-only report of an `athena` plugin under ~/.claude/plugins or
+// ~/.codex/plugins/cache, and a WARN (exit code unchanged) when installer hooks are active too.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -12,12 +14,58 @@ const LEGACY = require('./lib/legacy-999.cjs');
 const context = require('../lib/context.cjs');
 const exemptions = require('../lib/exemptions.cjs');
 
+const INSTALLER_HOOK = /(?:~|\$HOME|\/)\.athena\/current\/hook\.cjs/;
+const PLUGIN_FORMS = [
+  { platform: 'cc', root: '.claude/plugins', manifest: '.claude-plugin/plugin.json', hooks: '.claude/settings.json' },
+  { platform: 'cx', root: '.codex/plugins/cache', manifest: 'plugin.json', hooks: '.codex/hooks.json' },
+];
+
+/** Directories under root (bounded walk, no symlinks) whose manifest names the plugin `athena`. */
+function findPlugins(root, manifest) {
+  const found = [];
+  let budget = 5000;
+  const visit = (dir, depth) => {
+    if (budget-- <= 0) return;
+    try {
+      const data = JSON.parse(fs.readFileSync(path.join(dir, manifest), 'utf8'));
+      if (data && data.name === 'athena') { found.push({ dir, version: typeof data.version === 'string' ? data.version : '?' }); return; }
+    } catch (_) { /* no manifest here, or not ours */ }
+    if (depth >= 6) return;
+    let names = [];
+    try { names = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    for (const entry of names.sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      if (entry.isDirectory() && !['node_modules', '.git'].includes(entry.name)) visit(path.join(dir, entry.name), depth + 1);
+    }
+  };
+  visit(root, 0);
+  return found;
+}
+
+/** Installer-form hooks (~/.athena/current/hook.cjs) currently present in a settings / hooks file. */
+function installerHooks(file) {
+  try {
+    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return Object.values(data.hooks || {}).flat().flatMap(g => (g && g.hooks) || []).filter(h => INSTALLER_HOOK.test(String(h && h.command))).length;
+  } catch (_) { return 0; }
+}
+
+function pluginReport(home, notes, warnings) {
+  for (const form of PLUGIN_FORMS) {
+    const found = findPlugins(path.join(home, form.root), form.manifest);
+    if (!found.length) { notes.push(`plugin ${form.platform}: none under ~/${form.root}`); continue; }
+    for (const p of found) notes.push(`plugin ${form.platform}: athena ${p.version} at ~/${path.relative(home, p.dir).split(path.sep).join('/')}`);
+    const count = installerHooks(path.join(home, form.hooks));
+    if (count) warnings.push(`${form.platform}: plugin form and installer form both present (${count} Athena hook(s) in ~/${form.hooks}) — with the plugin enabled every gate runs twice; keep one`);
+  }
+}
+
 function main(argv, io) {
   let f;
   try { f = flags(argv, { home: 'str' }).flags; } catch (error) { io.stderr.write(`athena doctor: ${error.message}\n`); return 2; }
   const home = path.resolve(f.home || os.homedir());
   const problems = [];
   const notes = [];
+  const warnings = [];
   const state = readJson(path.join(home, STATE));
   if (!state) problems.push('not installed (no ~/.athena/installed.json)');
   else {
@@ -53,9 +101,11 @@ function main(argv, io) {
     if (Number(version.replace(/^v/, '').split('.')[0]) < 22) problems.push(`node ${version} < 22`);
     else notes.push(`node ${version} at ${node.stdout.split('\n')[0]}`);
   }
+  pluginReport(home, notes, warnings);
   const ctx = context.load(io.cwd);
   if (ctx) for (const x of exemptions.review(ctx).filter(e => e.status !== 'active')) problems.push(`exemption ${x.entry && x.entry.key}: ${x.why}`);
   for (const n of notes) io.stdout.write(`ok   ${n}\n`);
+  for (const w of warnings) io.stdout.write(`WARN ${w}\n`);
   for (const p of problems) io.stdout.write(`FAIL ${p}\n`);
   io.stdout.write(problems.length ? `${problems.length} problem(s)\n` : 'doctor: no drift\n');
   return problems.length ? 1 : 0;
