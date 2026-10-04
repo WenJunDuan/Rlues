@@ -4,7 +4,7 @@
 // least one non-placeholder acceptance line.
 const fs = require('fs');
 const path = require('path');
-const { inside, PATHS } = require('../lib/context.cjs');
+const { inside, worktrees, PATHS } = require('../lib/context.cjs');
 
 const DESIGN_PATHS = new Set(['Bugfix', 'Quick', 'Feature', 'Refactor', 'System']);
 const STAGES = new Set(['plan', 'design', 'impl']);
@@ -36,11 +36,20 @@ function criteria(text) {
   return out;
 }
 
-/** Write targets that count as implementation: inside a project root, not under its .ai_state. */
+/**
+ * Write targets that count as implementation: inside a project root, not under the .ai_state of
+ * any root. Roots = this worktree, the main checkout and — only when a target is still a
+ * candidate — every worktree git has registered: `<main>/.claude/worktrees/w/.ai_state` is state,
+ * not source (G-018). A directory merely named .ai_state elsewhere stays implementation.
+ */
 function implementationTargets(ev, ctx) {
   const roots = [...new Set([ctx.root, ctx.mainRoot].filter(Boolean))];
   if (!ev.paths || !ev.paths.length) return null; // unknown target → treat as implementation
-  return ev.paths.filter(file => roots.some(root => inside(file, root) && !inside(file, path.join(root, '.ai_state'))));
+  const state = (list) => (file) => list.some(root => inside(file, path.join(root, '.ai_state')));
+  const targets = ev.paths.filter(file => roots.some(root => inside(file, root)) && !state(roots)(file));
+  if (!targets.length) return targets;
+  const registered = state(worktrees(ctx.mainRoot));
+  return targets.filter(file => !registered(file));
 }
 
 function check(ev, ctx) {

@@ -19,6 +19,16 @@ const USAGE = `usage:
 const VERDICTS = new Set(['PASS', 'CONCERNS', 'REWORK', 'FAIL']);
 const DIMENSIONS = ['spec coverage (MISSING/EXTRA/DEVIATED per AC)', 'correctness', 'security', 'test risk', 'over-engineering'];
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+// Every refusal of `accept` carries the corrected line format and the next command (10.5 S1):
+// guidance in the tool output is read at the moment it is needed.
+const SAMPLE = '- [P2] src/app.js:42 — <what is wrong>\n- [P3] evidence:<id> — <text>   (also packet:— / design:AC1)\nVERDICT: CONCERNS   (exactly one line, one of PASS|CONCERNS|REWORK|FAIL, no markup)';
+const PREPARE = 'athena review prepare';
+const acceptCmd = (run) => `athena review accept --run ${run || 'latest'} --file <reviewer output>`;
+
+/** UsageError that names the next command (and, for contract errors, the sample lines). */
+function refuse(message, next, sample) {
+  return Object.assign(new UsageError(message), { next, sample });
+}
 
 function runsDir(ctx) { return path.join(ctx.runtime, 'review'); }
 
@@ -30,10 +40,10 @@ function resolveRun(ctx, id) {
       runs = fs.readdirSync(dir, { withFileTypes: true }).filter(d => d.isDirectory() && fs.existsSync(path.join(dir, d.name, 'files.json')))
         .map(d => ({ n: d.name, t: fs.statSync(path.join(dir, d.name)).mtimeMs })).sort((a, b) => b.t - a.t);
     } catch (_) { /* none */ }
-    if (!runs.length) throw new UsageError('no prepared review run; run `athena review prepare` first');
+    if (!runs.length) throw refuse('no prepared review run; run `athena review prepare` first', PREPARE);
     return runs[0].n;
   }
-  if (!/^[0-9a-f-]{8,40}$/.test(id) || !fs.existsSync(path.join(dir, id))) throw new UsageError(`unknown review run ${id}`);
+  if (!/^[0-9a-f-]{8,40}$/.test(id) || !fs.existsSync(path.join(dir, id))) throw refuse(`unknown review run ${id}`, acceptCmd('latest'));
   return id;
 }
 
@@ -137,23 +147,23 @@ function parseOutput(text) {
     if (/^\s*(```|~~~)/.test(line)) { fence = !fence; continue; }
     if (!fence) lines.push(line);
   }
-  if (fence) throw new UsageError('unterminated code fence in reviewer output');
+  if (fence) throw refuse('unterminated code fence in reviewer output', null, SAMPLE);
   const verdicts = [];
   const findings = [];
   for (const line of lines) {
     if (/^[\s>*_#`~<!-]*verdict\b/i.test(line)) { // a line that *opens* with VERDICT (any markup/case); prose mentions are fine
       const m = line.match(/^VERDICT: (PASS|CONCERNS|REWORK|FAIL)$/);
-      if (!m) throw new UsageError(`malformed verdict line: "${line.trim().slice(0, 80)}" (must be exactly \`VERDICT: PASS|CONCERNS|REWORK|FAIL\`)`);
+      if (!m) throw refuse(`malformed verdict line: "${line.trim().slice(0, 80)}" (must be exactly \`VERDICT: PASS|CONCERNS|REWORK|FAIL\`)`, null, SAMPLE);
       verdicts.push(m[1]);
     }
     if (/[[(]\s*p\d+\s*[\])]/i.test(line)) { // anything tag-like must be an exact [P0]–[P3] finding
       const m = line.match(/^- \[(P[0-3])\] (\S.*?) (?:—|–|--) (\S.*)$/);
-      if (!m || (/^(?:evidence|packet|design):/.test(m[2]) && !/^(?:evidence|packet|design):(?:[^\s:]+|—)$/.test(m[2]))) throw new UsageError(`malformed finding line: "${line.trim().slice(0, 80)}" (must be \`- [Pn] <file>:<line> or <evidence|packet|design>:<id|—> — <text>\`)`);
+      if (!m || (/^(?:evidence|packet|design):/.test(m[2]) && !/^(?:evidence|packet|design):(?:[^\s:]+|—)$/.test(m[2]))) throw refuse(`malformed finding line: "${line.trim().slice(0, 80)}" (must be \`- [Pn] <file>:<line> or <evidence|packet|design>:<id|—> — <text>\`)`, null, SAMPLE);
       findings.push({ sev: m[1], loc: m[2], text: m[3].trim() });
     }
   }
-  if (verdicts.length !== 1) throw new UsageError(`reviewer output must hold exactly one \`VERDICT: PASS|CONCERNS|REWORK|FAIL\` line (found ${verdicts.length})`);
-  if (verdicts[0] === 'PASS' && findings.some(x => x.sev === 'P0' || x.sev === 'P1')) throw new UsageError('VERDICT: PASS with P0/P1 findings is contradictory');
+  if (verdicts.length !== 1) throw refuse(`reviewer output must hold exactly one \`VERDICT: PASS|CONCERNS|REWORK|FAIL\` line (found ${verdicts.length})`, null, SAMPLE);
+  if (verdicts[0] === 'PASS' && findings.some(x => x.sev === 'P0' || x.sev === 'P1')) throw refuse('VERDICT: PASS with P0/P1 findings is contradictory (P0/P1 need REWORK or FAIL; a PASS carries P2/P3 only)', null, SAMPLE);
   return { verdict: verdicts[0], findings };
 }
 
@@ -164,24 +174,32 @@ function acSha(designText) {
 
 function accept(argv, io) {
   const { flags: f } = flags(argv, { run: 'str', file: 'str', 'reviewer-agent': 'str', family: 'str', platform: 'str' });
-  const ctx = requireCtx(io);
-  if (!ctx.sprintDir) throw new UsageError('no sprint in flight');
+  let ctx;
+  try { ctx = requireCtx(io); } catch (error) { throw Object.assign(error, { next: 'athena init' }); }
+  if (!ctx.sprintDir) throw refuse('no sprint in flight', 'athena status');
   const run = resolveRun(ctx, f.run || 'latest');
   const saved = JSON.parse(fs.readFileSync(path.join(runsDir(ctx), run, 'files.json'), 'utf8'));
-  if (saved.sprint !== ctx.sprint) throw new UsageError(`run ${run} belongs to sprint ${saved.sprint}, not ${ctx.sprint}`);
-  if (!f.file && process.stdin.isTTY) throw new UsageError('give the reviewer output with --file <path> (or pipe it on stdin)');
+  if (saved.sprint !== ctx.sprint) throw refuse(`run ${run} belongs to sprint ${saved.sprint}, not ${ctx.sprint}`, PREPARE);
+  if (!f.file && process.stdin.isTTY) throw refuse('give the reviewer output with --file <path> (or pipe it on stdin)', acceptCmd(run));
   const packetPath = path.join(runsDir(ctx), run, 'packet.md');
+  const again = `${acceptCmd(run)}   # after the reviewer has reviewed ${path.relative(io.cwd, packetPath)}`;
+  if (f.file && !fs.existsSync(path.resolve(io.cwd, f.file))) throw refuse(`--file ${f.file} not found`, acceptCmd(run));
   if (f.file && fs.statSync(path.resolve(io.cwd, f.file)).mtimeMs < fs.statSync(packetPath).mtimeMs) {
-    throw new UsageError(`${f.file} is older than the packet of run ${run}; it cannot be a review of it`);
+    throw refuse(`${f.file} is older than the packet of run ${run}; it cannot be a review of it`, again);
   }
   const text = f.file ? fs.readFileSync(path.resolve(io.cwd, f.file), 'utf8') : fs.readFileSync(0, 'utf8');
-  const parsed = parseOutput(text);
+  let parsed;
+  try { parsed = parseOutput(text); } catch (error) {
+    // The reviewer re-emits; the main agent does not rewrite its output (G-007).
+    if (error instanceof UsageError) error.next = `${acceptCmd(run)}   # after the reviewer re-emits its output in the format above`;
+    throw error;
+  }
   // replay guard: one reviewer output is accepted for one run only (review S3 P1)
   const outputSha = sha(text);
   const ledger = path.join(runsDir(ctx), 'accepted.jsonl');
   const used = (() => { try { return fs.readFileSync(ledger, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch (_) { return []; } })();
   const reuse = used.find(u => u.output_sha === outputSha && u.run !== run);
-  if (reuse) throw new UsageError(`this reviewer output was already accepted for run ${reuse.run}; a new run needs a new review`);
+  if (reuse) throw refuse(`this reviewer output was already accepted for run ${reuse.run}; a new run needs a new review`, again);
   const ignore = reviewIgnore(ctx);
   const tree = treeSha(ctx.root, ignore);
   if (tree !== saved.tree_sha || JSON.stringify(ignore) !== JSON.stringify(saved.ignore)) {
@@ -191,13 +209,13 @@ function accept(argv, io) {
       if (saved.files[file] !== now[file]) lines.push(`  ${file}: expected ${saved.files[file] ? saved.files[file].slice(0, 12) : '(absent)'} actual ${now[file] ? now[file].slice(0, 12) : '(absent)'}`);
     }
     if (JSON.stringify(ignore) !== JSON.stringify(saved.ignore)) lines.push(`  review_ignore: expected ${JSON.stringify(saved.ignore)} actual ${JSON.stringify(ignore)}`);
-    io.stderr.write(`athena review accept: source changed since prepare (run ${run}); the review covers the old tree:\n${lines.slice(0, 50).join('\n')}\nrun \`athena review prepare\` again and re-review.\n`);
+    io.stderr.write(`athena review accept: source changed since prepare (run ${run}); the review covers the old tree:\n${lines.slice(0, 50).join('\n')}\nrun \`athena review prepare\` again and re-review.\nnext: ${PREPARE}\n`);
     return 4;
   }
   const packet = fs.readFileSync(packetPath, 'utf8');
   const design = fs.readFileSync(path.join(ctx.sprintDir, 'design.md'), 'utf8');
   if (saved.ac_sha && saved.ac_sha !== acSha(design)) {
-    io.stderr.write(`athena review accept: design acceptance lines changed since prepare (run ${run}); prepare again so the reviewer sees them\n`);
+    io.stderr.write(`athena review accept: design acceptance lines changed since prepare (run ${run}); prepare again so the reviewer sees them\nnext: ${PREPARE}\n`);
     return 4;
   }
   const record = {
@@ -212,7 +230,9 @@ function accept(argv, io) {
   fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${today()} review ${run.slice(0, 8)}: ${parsed.verdict} (${parsed.findings.length} findings)\n`);
   archive.stage(ctx, [`sprints/${ctx.sprint}/review.json`, `sprints/${ctx.sprint}/log.md`]);
   io.stdout.write(`review ${run}: ${parsed.verdict}, ${parsed.findings.length} finding(s) → sprints/${ctx.sprint}/review.json\n`);
-  return parsed.verdict === 'PASS' ? 0 : 3;
+  if (parsed.verdict === 'PASS') return 0;
+  io.stderr.write(`next: athena review show   # resolve each finding, re-run evidence (athena run --rebind), then ${PREPARE}\n`);
+  return 3;
 }
 
 function show(argv, io) {
@@ -239,7 +259,13 @@ function main(argv, io) {
   const table = { prepare, accept, show };
   if (!table[sub]) { io.stderr.write(`${USAGE}\n`); return 2; }
   try { return table[sub](rest, io); } catch (error) {
-    if (error instanceof UsageError) { io.stderr.write(`athena review ${sub}: ${error.message}\n`); return 2; }
+    if (error instanceof UsageError) {
+      const next = error.next || (sub === 'accept' ? acceptCmd('latest') : null);
+      io.stderr.write(`athena review ${sub}: ${error.message}\n${error.sample ? `expected lines:\n${error.sample}\n` : ''}${next ? `next: ${next}\n` : ''}`);
+      return 2;
+    }
+    // Unexpected failure (unreadable run files, …): cli.cjs prints the message and exits 2.
+    if (sub === 'accept') error.message += `\nnext: ${PREPARE}`;
     throw error;
   }
 }

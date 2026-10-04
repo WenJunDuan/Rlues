@@ -57,6 +57,16 @@ function roots(cwd) {
   return { root: realpath(top), mainRoot: realpath(mainRoot) };
 }
 
+/**
+ * Registered worktree roots of the repository owning dir (main checkout first); [] on failure.
+ * G-018: a worktree nested inside the main checkout has its own .ai_state under mainRoot.
+ */
+function worktrees(dir) {
+  const out = git(dir, ['worktree', 'list', '--porcelain']);
+  if (!out) return [];
+  return out.split('\n').filter(line => line.startsWith('worktree ')).map(line => realpath(line.slice(9)));
+}
+
 function readIndex(aiState) {
   const file = path.join(aiState, '_index.md');
   let text;
@@ -139,4 +149,4 @@ function realExisting(abs) {
   }
 }
 
-module.exports = { load, idle, git, findAiState, roots, inside, realExisting, PATHS, STAGES, SAFE_SLUG, FLAG_DEFAULTS };
+module.exports = { load, idle, git, findAiState, roots, worktrees, inside, realExisting, PATHS, STAGES, SAFE_SLUG, FLAG_DEFAULTS };

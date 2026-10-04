@@ -150,6 +150,9 @@ function append(ctx, fields) {
     covers: Array.isArray(fields.covers) ? fields.covers : [],
   };
   if (explicitEnv) record.env = Object.fromEntries(Object.entries(fields.env).map(([k, v]) => [k, redact(v, { bounded: false })]));
+  // Exact replay input for `athena run --rebind`; left out when redaction would alter it.
+  if (Array.isArray(fields.argv) && JSON.stringify(fields.argv).length <= 4000
+    && redact(fields.argv.join(' '), { bounded: false }) === fields.argv.join(' ')) record.argv = fields.argv;
   if (fields.vm) Object.assign(record, { vm: fields.vm, remote: redact(fields.remote).slice(0, 500) });
   if (fields.output !== undefined) record.output = redact(fields.output);
   const target = file(ctx);

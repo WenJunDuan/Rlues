@@ -1,5 +1,7 @@
 'use strict';
-// athena run -- <cmd…>: run a check and record its real exit code as evidence (design §8, D5).
+// athena run [--covers AC1,AC2] [--env K=V] -- <cmd…>: run a check, record its real exit code as evidence (design §8, D5).
+// athena run --rebind: after an edit, re-RUN the sprint's latest provable PASS test/typecheck
+// commands (same argv, env, cwd, covers) on the current tree; never copies an old PASS.
 // One argument = a shell line (bash -o pipefail -c); several = argv, executed without a shell.
 // kind comes from the command words only (no override); a wrapped or shell argv[0], or a
 // source tree that changed while the command ran, is recorded as unprovable.
@@ -18,6 +20,7 @@ const { reviewIgnore } = require('../core.cjs');
 // Explicit overrides can replace runners, inject code or alter collection/plugins.
 const { EXECUTION_ENV } = evidence;
 const WRAPPERS = /^(?:(?:ba|z|da|k)?sh|eval|env|sudo|xargs|timeout|nice|nohup|time|exec|stdbuf|command|fish|pwsh|powershell|cmd)$/;
+const REBIND_KINDS = new Set(['test', 'typecheck']);
 const quote = (w) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(w) ? w : `'${w.replace(/'/g, "'\\''")}'`);
 
 // ssh flags that keep "run <remote> on <destination>": no-arg / with-arg. Others (-f -N -s -W -G -O -F …) → no match.
@@ -65,17 +68,26 @@ function sshVm(argv, env) {
   return vm ? { vm: String(vm.name || vm.host), remote } : null;
 }
 
+const USAGE = 'run: usage: athena run [--covers AC1,AC2] [--env K=V] -- <cmd…> | athena run --rebind';
+
 function parse(argv) {
-  const opts = { covers: [], env: Object.create(null), cmd: [] };
+  const opts = { covers: [], env: Object.create(null), cmd: [], rebind: false };
   const dash = argv.indexOf('--');
-  if (dash < 0) throw new Error('run: usage: athena run [--covers AC1,AC2] [--env K=V] -- <cmd…>');
-  const head = argv.slice(0, dash);
+  const head = dash < 0 ? argv : argv.slice(0, dash);
+  if (head.includes('--rebind')) {
+    if (dash >= 0 || head.length !== 1) throw new Error('run: --rebind re-runs the recorded commands; it takes no --covers, --env or -- <cmd…>. sample: athena run --rebind');
+    return { ...opts, rebind: true };
+  }
+  if (dash < 0) throw new Error(USAGE);
   opts.cmd = argv.slice(dash + 1);
+  let rawCovers = '';
   for (let i = 0; i < head.length; i += 1) {
-    if (head[i] === '--covers') opts.covers = String(head[++i] || '').split(',').map(s => s.trim()).filter(Boolean);
-    else if (head[i] === '--env') {
+    if (head[i] === '--covers') {
+      rawCovers = String(head[++i] || '');
+      opts.covers = rawCovers.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (head[i] === '--env') {
       const match = String(head[++i] || '').match(/^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/);
-      if (!match) throw new Error('run: --env takes K=V');
+      if (!match) throw new Error('run: --env takes K=V. sample: athena run --env FOO=1 -- <cmd…>');
       const assignment = `${match[1]}=${quote(match[2])}`;
       if (evidence.credentialName(match[1]) || evidence.redact(assignment, { bounded: false }) !== assignment) {
         throw new Error(`run: --env ${match[1]} 像凭据；改走 env 文件，不写入证据`);
@@ -84,8 +96,36 @@ function parse(argv) {
     } else throw new Error(`run: unknown option ${head[i]}`);
   }
   if (!opts.cmd.length) throw new Error('run: missing command after --');
-  if (opts.covers.some(ac => !/^AC\d+$/.test(ac))) throw new Error('run: --covers takes AC ids like AC1,AC2');
+  if (opts.covers.some(ac => !/^AC\d+$/.test(ac))) {
+    // The corrected sample reuses the numbers the caller gave ("ac1 AC-2" → AC1,AC2).
+    const ids = (rawCovers.match(/\d+/g) || ['1', '2']).map(n => `AC${Number(n)}`).join(',');
+    throw new Error(`run: --covers takes AC ids like AC1,AC2 (got "${rawCovers}"). sample: athena run --covers ${ids} -- <cmd…>`);
+  }
   return opts;
+}
+
+// Provable forms, one per unprovable reason. Each mirrors a rule enforced in execute() or in
+// lib/evidence.cjs policy(): the fix travels with the refusal instead of living in a prompt.
+const FORMS = {
+  wrapped_command: 'argv[0] is a shell or wrapper (bash, sh, env, sudo, timeout, …): pass the tool itself `athena run -- npm test`, or one quoted shell line `athena run -- \'npm run build && npm test\'`; variables go in `--env K=V`',
+  validation_backgrounded: 'drop the trailing `&`: `athena run -- npm test`',
+  validation_may_not_run: 'nothing before the check may skip it (`||`, exit, return, exec): chain with `&&` only, e.g. `athena run -- \'npm run build && npm test\'`',
+  validation_status_not_reported: 'the check must decide the exit code: put it last, or follow it with `&&` only (no `;`, `||` or newline after it), e.g. `athena run -- \'npm run build && npm test\'`',
+  pipeline_without_pipefail: 'the pipe hides the check\'s exit code: drop it (`athena run -- npm test`; output is recorded anyway) or keep pipefail on, over ssh `ssh user@host \'set -o pipefail; npm test | tail -20\'`',
+  validation_shadowable: 'the runner could be replaced: no trap/alias/function/source (in-repo `bin/activate` excepted) or `PATH=` before the check, and no execution-environment variable (PATH, HOME, NODE_*, PYTHON*, npm_config_*, *_OPTIONS, *_CONFIG*, *RC, …) inline or via --env — put those in project config; ordinary variables: `athena run --env FOO=1 -- npm test`',
+  zero_tests: 'a runner reported 0 tests (or all skipped): run each package that has tests on its own, e.g. `athena run --covers AC1 -- npm test --workspace <pkg>` or `athena run -- python3 -m pytest <dir with tests>`',
+  tree_changed_during_run: 'the source tree changed while the command ran (build output, snapshot, cache, or another writer): add generated paths to .gitignore, then run again on a quiet tree',
+};
+const SSH_FORM = 'ssh proves only in argv form, with a remote command, to a VM registered in ~/.athena/vm.json (host + user + port): `athena run -- ssh user@host \'npm run build && npm test\'`';
+const KIND_FORM = 'only test / typecheck / build / docs commands are evidence, recognized by their first words: `athena run -- npm test`, `athena run -- python3 -m pytest -q`, `athena run -- npx tsc --noEmit`, `athena run -- npm run build`; docs: `athena run -- grep -F -q \'<text>\' docs/<file>.md`';
+
+/** The provable-form line for an unprovable record, or null. */
+function form(record, cmd) {
+  if (!record || record.provable) return null;
+  const known = FORMS[String(record.reason || '').split(':')[0]];
+  if (known) return known;
+  if (record.reason) return null; // exit_code_unknown etc.: nothing the caller can rephrase
+  return /^\s*(?:\S*\/)?ssh(?:\s|$)/.test(cmd[0]) ? SSH_FORM : `kind=${record.kind}: ${KIND_FORM}`;
 }
 
 // Only explicit runner summaries; generic "0 tests" prose is not a count.
@@ -160,8 +200,8 @@ function docsAssertion(command, cwd, ctx, tree) {
   });
 }
 
-function main(argv, io) {
-  const opts = parse(argv);
+/** Run opts.cmd in io.cwd and record it. Returns { exit, record } (record null without a sprint). */
+function execute(opts, io) {
   const shell = opts.cmd.length === 1;
   const rawCommand = shell ? opts.cmd[0] : opts.cmd.map(quote).join(' ');
   const assignments = Object.entries(opts.env).map(([k, v]) => `${k}=${quote(v)}`).join(' ');
@@ -180,7 +220,7 @@ function main(argv, io) {
   const exit = Number.isInteger(child.status) ? child.status : (child.signal ? 128 + signal : 127);
   if (!recording) {
     io.stderr.write('[athena run] no active sprint: evidence not recorded\n');
-    return exit;
+    return { exit, record: null };
   }
   const after = treeSha(ctx.root, ignore);
   const ssh = shell ? null : sshVm(opts.cmd, options.env);
@@ -194,11 +234,65 @@ function main(argv, io) {
   if (exit === 0 && kind === 'test' && zeroTests(output)) policy = { provable: false, reason: 'zero_tests: 零用例执行' };
   if (before !== after) policy = { provable: false, reason: 'tree_changed_during_run' };
   const record = evidence.append(ctx, {
-    source: 'run', command, kind, exit, policy, covers: opts.covers, env: opts.env,
+    source: 'run', command, kind, exit, policy, covers: opts.covers, env: opts.env, argv: opts.cmd,
     tree_sha: after, ignore, output, ...(ssh || {}),
   });
   io.stderr.write(`[athena run] exit=${exit} kind=${record.kind} provable=${record.provable}${record.reason ? ` (${record.reason})` : ''} tree=${String(after).slice(0, 12)} → evidence ${record.id}\n`);
-  return exit;
+  const fix = form(record, opts.cmd);
+  if (fix) io.stderr.write(`[athena run] provable form: ${fix}\n`);
+  return { exit, record };
 }
 
-module.exports = { main, parse, sshVm, zeroTests };
+/**
+ * Re-validate after an edit: the latest provable PASS test/typecheck record of each distinct
+ * command (command + cwd) is re-run on the current tree and recorded anew, covers carried
+ * over. A command already PASS on this tree is skipped; a re-run that fails or turns
+ * unprovable is recorded as such and makes the whole rebind exit 1.
+ */
+function rebind(io) {
+  const ctx = context.load(io.cwd);
+  if (!ctx || !ctx.sprint) { io.stderr.write('[athena run] --rebind: no active sprint, nothing to rebind\n'); return 2; }
+  const ignore = reviewIgnore(ctx);
+  const tree = treeSha(ctx.root, ignore);
+  const latest = new Map();
+  for (const row of evidence.read(ctx)) {
+    if (row.source !== 'run' || !REBIND_KINDS.has(row.kind) || row.provable !== true || row.exit !== 0) continue;
+    const key = `${row.command}\0${row.cwd}`;
+    const covers = [...new Set([...((latest.get(key) || {}).covers || []), ...(row.covers || [])])];
+    latest.delete(key); // re-insert: iteration order = order of the latest record
+    latest.set(key, { row, covers });
+  }
+  if (!latest.size) {
+    io.stderr.write('[athena run] --rebind: no provable PASS test/typecheck record in this sprint; run `athena run --covers AC1 -- <cmd…>` first\n');
+    return 2;
+  }
+  const failed = [];
+  let rerun = 0, kept = 0;
+  for (const { row, covers } of latest.values()) {
+    if (row.tree_sha === tree && JSON.stringify(row.ignore || []) === JSON.stringify(ignore)) { kept += 1; continue; }
+    const cwd = path.resolve(ctx.root, row.cwd || '.');
+    if (!Array.isArray(row.argv) || !row.argv.length || !fs.existsSync(cwd)) {
+      // No exact argv (recorded before 10.5, or redacted) or its cwd is gone: never guess a replay.
+      io.stderr.write(`[athena run] rebind SKIPPED evidence ${row.id}: not replayable; run it again by hand: athena run${covers.length ? ` --covers ${covers.join(',')}` : ''} -- ${row.command}\n`);
+      failed.push(row.command);
+      continue;
+    }
+    io.stderr.write(`[athena run] rebind ${row.id} (${row.kind}${covers.length ? `, covers ${covers.join(',')}` : ''}): ${row.command}\n`);
+    const { exit, record } = execute({ cmd: row.argv, env: { ...(row.env || {}) }, covers }, { ...io, cwd });
+    rerun += 1;
+    if (exit !== 0 || !record || record.provable !== true) {
+      io.stderr.write(`[athena run] rebind FAILED (exit=${exit}${record ? ` provable=${record.provable}` : ''}; no PASS recorded): ${row.command}\n`);
+      failed.push(row.command);
+    }
+  }
+  io.stderr.write(`[athena run] rebind: ${rerun} re-run, ${kept} already on this tree, ${failed.length} failed → tree ${String(treeSha(ctx.root, ignore)).slice(0, 12)}\n`);
+  if (failed.length) io.stderr.write('next: fix the failure, then `athena run --rebind`\n');
+  return failed.length ? 1 : 0;
+}
+
+function main(argv, io) {
+  const opts = parse(argv);
+  return opts.rebind ? rebind(io) : execute(opts, io).exit;
+}
+
+module.exports = { main, parse, sshVm, zeroTests, form };
