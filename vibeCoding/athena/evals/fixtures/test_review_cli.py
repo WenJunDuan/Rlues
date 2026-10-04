@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import unittest
 
-from gate_harness import ATHENA, ENV, GATE, athena, call, check_file, git, tmpdir
+from gate_harness import ATHENA, ENV, GATE, RELEASE, athena, call, check_file, git, tmpdir
 from test_state_cli import ok, v2project
 
 PASS_OUT = '- [P3] app.js:1 — naming nit\nVERDICT: PASS\n'
@@ -189,7 +189,7 @@ class Contract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run = subprocess.run(['node', str(ATHENA / 'build.mjs'), '--out', tmp], capture_output=True, text=True, env=ENV)
             self.assertEqual(run.returncode, 0, run.stderr)
-            wf = Path(tmp) / 'claude/10.1/.claude/workflows/athena-review.js'
+            wf = Path(tmp) / 'claude' / RELEASE / '.claude/workflows/athena-review.js'
             src = wf.read_text(encoding='utf-8')
             self.assertIn("name: 'athena-review'", src)
             self.assertIn('review prepare', src)
@@ -199,7 +199,7 @@ class Contract(unittest.TestCase):
             check = subprocess.run(['node', '-e', "new (Object.getPrototypeOf(async function(){}).constructor)('agent','parallel',require('fs').readFileSync(0,'utf8'))"],
                                    input=body, text=True, capture_output=True)
             self.assertEqual(check.returncode, 0, check.stderr)
-            self.assertFalse((Path(tmp) / 'codex/10.1/.codex/workflows').exists())
+            self.assertFalse((Path(tmp) / 'codex' / RELEASE / '.codex/workflows').exists())
 
 
 if __name__ == '__main__':

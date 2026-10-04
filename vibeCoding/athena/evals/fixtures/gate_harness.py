@@ -20,6 +20,10 @@ VIBE = ATHENA.parent
 GATE = ATHENA / 'gate'
 HOOK = GATE / 'hook.cjs'
 CLI = GATE / 'cli.cjs'
+# Release from VERSION; build.mjs writes dist/<platform>/<RELEASE>/ and the installer ~/.athena/<RELEASE>/.
+# Not the .ai_state schema generation (`_index.md` version "10.1", `athena migrate --to 10.1`).
+VERSION = (ATHENA / 'VERSION').read_text(encoding='utf-8').strip()
+RELEASE = '.'.join(VERSION.split('-')[0].split('.')[:2])
 PLATFORMS = ('cc', 'cx', 'pi')
 ENV = {**os.environ,
        'GIT_AUTHOR_NAME': 'Fixture', 'GIT_AUTHOR_EMAIL': 'fixture@example.invalid',

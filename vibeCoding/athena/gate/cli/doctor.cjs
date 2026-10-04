@@ -3,6 +3,8 @@
 // link, node on PATH, leftover 9.9.9 files, and (inside a project) expired or invalid exemptions.
 // Plugin forms (10.5): read-only report of an `athena` plugin under ~/.claude/plugins or
 // ~/.codex/plugins/cache, and a WARN (exit code unchanged) when installer hooks are active too.
+// A platform with only the plugin form is a WARN naming what only the installer carries, not a FAIL;
+// "not installed" fails only when neither form is present.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -16,8 +18,10 @@ const exemptions = require('../lib/exemptions.cjs');
 
 const INSTALLER_HOOK = /(?:~|\$HOME|\/)\.athena\/current\/hook\.cjs/;
 const PLUGIN_FORMS = [
-  { platform: 'cc', root: '.claude/plugins', manifest: '.claude-plugin/plugin.json', hooks: '.claude/settings.json' },
-  { platform: 'cx', root: '.codex/plugins/cache', manifest: 'plugin.json', hooks: '.codex/hooks.json' },
+  { platform: 'cc', root: '.claude/plugins', manifest: '.claude-plugin/plugin.json', hooks: '.claude/settings.json',
+    only: 'not carried by the plugin (installer form only): rules (~/.claude/rules/), ~/.claude/CLAUDE.md' },
+  { platform: 'cx', root: '.codex/plugins/cache', manifest: 'plugin.json', hooks: '.codex/hooks.json',
+    only: 'not carried by the plugin (installer form only): ~/.codex/config.toml, ~/.codex/AGENTS.md; plugin hooks run only after you trust them in Codex /hooks' },
 ];
 
 /** Directories under root (bounded walk, no symlinks) whose manifest names the plugin `athena`. */
@@ -49,14 +53,19 @@ function installerHooks(file) {
   } catch (_) { return 0; }
 }
 
-function pluginReport(home, notes, warnings) {
+/** Reports plugin forms; returns the platforms that have one. `installed` = installer-form platforms. */
+function pluginReport(home, installed, notes, warnings) {
+  const present = [];
   for (const form of PLUGIN_FORMS) {
     const found = findPlugins(path.join(home, form.root), form.manifest);
     if (!found.length) { notes.push(`plugin ${form.platform}: none under ~/${form.root}`); continue; }
+    present.push(form.platform);
     for (const p of found) notes.push(`plugin ${form.platform}: athena ${p.version} at ~/${path.relative(home, p.dir).split(path.sep).join('/')}`);
+    if (!installed.includes(form.platform)) warnings.push(`${form.platform}: plugin form only — ${form.only}`);
     const count = installerHooks(path.join(home, form.hooks));
     if (count) warnings.push(`${form.platform}: plugin form and installer form both present (${count} Athena hook(s) in ~/${form.hooks}) — with the plugin enabled every gate runs twice; keep one`);
   }
+  return present;
 }
 
 function main(argv, io) {
@@ -67,8 +76,7 @@ function main(argv, io) {
   const notes = [];
   const warnings = [];
   const state = readJson(path.join(home, STATE));
-  if (!state) problems.push('not installed (no ~/.athena/installed.json)');
-  else {
+  if (state) {
     notes.push(`athena ${state.version} for ${state.platforms.join(',')} (installed ${state.installed_at})`);
     for (const file of state.files) {
       const abs = path.join(home, file.path);
@@ -101,7 +109,8 @@ function main(argv, io) {
     if (Number(version.replace(/^v/, '').split('.')[0]) < 22) problems.push(`node ${version} < 22`);
     else notes.push(`node ${version} at ${node.stdout.split('\n')[0]}`);
   }
-  pluginReport(home, notes, warnings);
+  const plugins = pluginReport(home, state ? state.platforms : [], notes, warnings);
+  if (!state && !plugins.length) problems.unshift('not installed (no ~/.athena/installed.json, no Athena plugin)');
   const ctx = context.load(io.cwd);
   if (ctx) for (const x of exemptions.review(ctx).filter(e => e.status !== 'active')) problems.push(`exemption ${x.entry && x.entry.key}: ${x.why}`);
   for (const n of notes) io.stdout.write(`ok   ${n}\n`);

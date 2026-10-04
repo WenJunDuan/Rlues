@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import unittest
 
-from gate_harness import ENV, GATE, tmpdir
+from gate_harness import ENV, GATE, RELEASE, VERSION, tmpdir
 from test_install import build, cli, fake_999_home, snapshot
 
 TOML_DRIVER = ("const p=require(process.argv[1]);const c=JSON.parse(require('fs').readFileSync(0,'utf8'));"
@@ -54,7 +54,7 @@ class Rounds(unittest.TestCase):
         home = tmpdir(self) / 'fresh'
         home.mkdir()
         self.assertEqual(cli('install', '--platform', 'cx', home=home, dist=self.dist).returncode, 0)
-        self.assertIn('VIBECODING_VERSION = "10.1.0', (home / '.codex/config.toml').read_text())
+        self.assertIn(f'VIBECODING_VERSION = "{VERSION}', (home / '.codex/config.toml').read_text())
         self.assertNotIn('"9.9.9"', (home / '.codex/config.toml').read_text())
 
     def test_path_conflicts_refuse_before_writing(self):
@@ -99,15 +99,15 @@ class Rounds(unittest.TestCase):
         edited = json.loads((home / '.claude/settings.json').read_text())
         edited['added_after_install'] = True
         (home / '.claude/settings.json').write_text(json.dumps(edited))
-        (home / '.athena/10.1/mynotes').mkdir()
-        (home / '.athena/10.1/mynotes/n').write_text('note\n')
+        (home / '.athena' / RELEASE / 'mynotes').mkdir()
+        (home / '.athena' / RELEASE / 'mynotes/n').write_text('note\n')
         back = cli('rollback', home=home, dist=None)
         self.assertEqual(back.returncode, 0, back.stderr)
         self.assertEqual(snapshot(home), {k: v for k, v in before.items()})
         kept = list((home / '.athena/backups').glob('*/after-install'))
         self.assertTrue(kept)
         self.assertIn('added_after_install', (kept[0] / '.claude/settings.json').read_text())
-        self.assertTrue((kept[0] / '.athena/10.1/mynotes/n').is_file())
+        self.assertTrue((kept[0] / '.athena' / RELEASE / 'mynotes/n').is_file())
         self.assertFalse((home / '.athena/bin').exists(), 'directories the install created are removed')
 
     def test_doctor_catches_removed_hooks_and_broken_json(self):

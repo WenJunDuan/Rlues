@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { flags, VERSION } = require('./lib/common.cjs');
+const { flags, STATE_VERSION } = require('./lib/common.cjs');
 const state = require('./lib/state.cjs');
 
 function git(cwd, args) {
@@ -43,7 +43,7 @@ function main(argv, io) {
   for (const name of ['issues.md', 'queue.md']) {
     if (!fs.existsSync(path.join(A, name))) fs.copyFileSync(path.join(state.templatesDir(), name), path.join(A, name));
   }
-  fs.writeFileSync(index, state.render('_index.md', { version: VERSION() })); // last: its presence means "initialised"
+  fs.writeFileSync(index, state.render('_index.md', { version: STATE_VERSION })); // last: its presence means "initialised"
   const ignore = path.join(top, '.gitignore');
   let gi = fs.existsSync(ignore) ? fs.readFileSync(ignore, 'utf8') : '';
   if (!gi.split(/\r?\n/).includes('.ai_state/.runtime/')) fs.writeFileSync(ignore, `${gi}${gi && !gi.endsWith('\n') ? '\n' : ''}.ai_state/.runtime/\n`);

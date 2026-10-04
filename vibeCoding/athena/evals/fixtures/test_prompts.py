@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from test_build import ATHENA, build
+from test_build import ATHENA, RELEASE, build
 
 STALE = re.compile(r'9\.9\.[0-9]|delivery-gate|spec-gate|review-binding|tdd-evidence|review-packet|cleanup-pass\.md|route-note|route_history|'
                    r'checklist\.yaml|\bcritic\b|evaluator|spec-compliance|docs_researcher|pr_explorer|compound/|current_sprint_slug|'
@@ -27,7 +27,7 @@ class Prompts(unittest.TestCase):
         cls.tmp.cleanup()
 
     def out(self, platform):
-        return self.dist / platform / '10.1'
+        return self.dist / platform / RELEASE
 
     def constitutions(self):
         return {'claude': self.out('claude') / '.claude/CLAUDE.md', 'codex': self.out('codex') / '.codex/AGENTS.md',

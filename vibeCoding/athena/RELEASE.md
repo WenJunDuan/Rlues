@@ -1,4 +1,78 @@
-# Athena 10.1.0 发布声明
+# Athena 10.5.0 发布声明（候选）
+
+> **候选，未发布**：无 tag、未装机。发布门里标「未跑」的项补齐并经用户确认后才打 tag（设计 S7）。
+
+| 项 | 值 |
+|---|---|
+| 版本 | 10.5.0（minor，基线 10.1.0） |
+| 日期 | 2026-10-04（候选） |
+| Tag | 无（候选） |
+| 分支 | `athena-10.5` |
+| 部署范围 | Claude Code + Codex（安装器形态或插件形态，二选一）；Pi 构建与测试覆盖，默认不部署 |
+| 安装 | 见 `INSTALL.md`；构建产物在 `dist/<platform>/10.5/` |
+| 项目状态迁移 | 无：`.ai_state` schema 仍是 v2（`_index.md` `version: "10.1"`），10.1 项目直接可用 |
+| 完整变更 | `CHANGELOG.md` |
+
+## 一句话
+
+插件就绪：CC / Codex 各出一个自带门禁核的插件壳，Pi 拿到硬 Stop，门禁报错自带修法，提示词 v3。
+
+## 主要变化
+
+| 项 | 内容 |
+|---|---|
+| CC 插件壳 | `dist/claude-plugin/10.5/`：hooks → `${CLAUDE_PLUGIN_ROOT}/gate/hook.cjs`、`bin/athena`、skills + agents；宪法由 SessionStart 经 `ATHENA_CONSTITUTION` 注入。带不走：path-scoped rules、`settings.json` permissions/env、review workflow → 仍需安装器 |
+| Codex 插件壳 | `dist/codex-plugin/10.5/`：`extensions["com.openai"].hooks` → `${PLUGIN_ROOT}/gate/hook.cjs`、skills。带不走：`config.toml`、`AGENTS.md`、`standards/`、agents、`bin/`；hooks 装后须在 `/hooks` 受信 |
+| Pi 硬 Stop | `agent_before_settle` 返回 `{entries, continue: true}`，ship 缺证据/审查时续跑；Pi < 0.87 回退 followUp 软纠偏。codemode：外层调用放行，脚本内 `write`/`edit`/`bash` 照常走 H1/H5。peer 放宽为 `*` |
+| G-018 修复 | `.ai_state` 排除按任一已登记 worktree 根判；嵌套 worktree 内写 sprint design 不再被 H1 拦，worktree 内源码无 AC 仍拦 |
+| 报错带修法 | `athena run` 不可证明、`review accept` 拒收、covers 格式错：stderr 给可复制的修正样例与下一步命令 |
+| `run --rebind` | 在当前树重跑最后一条 test/typecheck 证据并记新 tree_sha；重跑失败不记 PASS |
+| `writer dispatch/collect` | dispatch 建 worktree + `external-writer.json` + `parallel_writers≥2`；collect 用 merge-tree 探冲突、`--ff-only`、还原 |
+| `status` | AC 覆盖矩阵 + ship 预检（缺哪条证据、是否走轻门禁及原因） |
+| `issue --type gate` | 追加一行到上游 FEEDBACK（`ATHENA_FEEDBACK` 或 `~/.athena/config.json`）；缺配置不失败 |
+| `doctor` | 分别报告安装器形态 / 插件形态；同端双装 WARN；只有插件形态时 WARN「plugin form only」并列出安装器才带的部分，不算 FAIL |
+| 提示词 v3 | 点名早停形态 + 末段自检；范围即交付物；例行 athena 命令预授权；黄区默认主 agent 直做；删除优于兼容；新增依赖先查已有；测试跟 AC；包内去掉模型钉版与 effort |
+| 合入 10.1.0 后未发布项 | CC/CX 包配置对齐官方文档、安装器 env 补缺、仓库整理（见 `CHANGELOG.md`） |
+
+## 破坏性变更
+
+| 项 | 影响 |
+|---|---|
+| `.ai_state` | 无。schema v2 不变；`athena migrate --to 10.1` 仍是 9.9.x → v2 的唯一迁移 |
+| 黄区默认 | 由派子 agent 改为主 agent 直做；子 agent 只为隔离或并行 |
+| 包内默认 | CC `settings.json` 去 `effortLevel`；Codex `config.toml` 去 `model` / `model_reasoning_effort` / `plan_mode_reasoning_effort`。已装用户的配置不受影响（安装器合并、用户优先），新装走平台默认 |
+
+## 发布门
+
+| 门项 | 结果 |
+|---|---|
+| fixture | 本环境全量 319 过 / 2 败（另 2505 subtests 过）；2 败为环境相关（npm/HOME），与基线相同 |
+| 行为评测 | **未跑**：D-014 仍开；计划经 `claude plugin eval`，待本机 |
+| 探针 P1–P8 | **未跑**：需本机 CC / Codex / Pi CLI（`.ai_state/roadmap/athena-10-5/probes.md`） |
+| 插件清单 | 未经真实 `claude plugin validate` / Codex 安装验证；仅 fixture 校验本仓依赖的字段 |
+| Pi 扩展 | `.ts` 已对 Pi 1.0.2 源码做类型检查，未在真实 Pi 里运行 |
+| 安装 / 回滚演练 | fixture 覆盖；本版未真机 install |
+
+## 已知限制
+
+- 插件形态尚不自足：skills / agents 正文仍写安装器路径（`~/.athena/current/templates/`、`~/.claude/rules/`）；纯插件形态下模板在 `gate/templates/`。
+- 同一平台不要同时启用安装器形态与插件形态：每道门跑两遍（`doctor` 报 WARN）。
+- Codex code mode、`spawn_agent` 是否触发 PreToolUse 待验证（P1/P2）；未触发则 H1/H4 在 CX 降级。
+- 只有插件形态时 `doctor` 只报 WARN 与缺什么，不代为安装；补安装器部分前先停用同端插件 hooks。
+- Stop 连续三次同因拦截后仍熔断放行，并写入 `issues.md`。
+
+## 回滚
+
+| 回滚什么 | 怎么做 |
+|---|---|
+| 本机安装 | `athena rollback`（回到上次安装前；装过 10.1.0 即回 10.1.0） |
+| 插件形态 | 停用 / 卸载插件（`claude plugin` 或 Codex 插件管理）；不碰 `~/.athena` |
+| 项目 `.ai_state` | 无需：本版不改状态 |
+| 源码 | 10.1.0 = `f4af800`（tag `v10.1.0`，本克隆未取到）；10.5 基线 `1c1cd73` |
+
+---
+
+## 历史：10.1.0 发布声明
 
 | 项 | 值 |
 |---|---|
@@ -6,15 +80,8 @@
 | 日期 | 2026-09-24 |
 | Tag | `v10.1.0` → `f4af800` |
 | 部署范围 | Claude Code + Codex；Pi 构建与测试覆盖，默认不部署 |
-| 安装 | 见 `INSTALL.md` |
-| 项目状态迁移 | 见 `MIGRATION.md` |
-| 完整变更 | `CHANGELOG.md` |
 
-## 一句话
-
-9.9.x 是「三端各一套 hook + 长宪法劝导」，10.1 改成「一个 JS 门禁核机械强制 + 一个 `athena` CLI 记账 + 一份短宪法」。
-
-## 主要变化
+一句话：9.9.x 是「三端各一套 hook + 长宪法劝导」，10.1 改成「一个 JS 门禁核机械强制 + 一个 `athena` CLI 记账 + 一份短宪法」。
 
 | 项 | 内容 |
 |---|---|
@@ -26,15 +93,9 @@
 | 安装器 | `athena install / doctor / rollback`，事务式、合并不覆盖 |
 | 提示词 v2 | 宪法三端同源 1.6 KB；rules ~140 行；skills 单源 |
 
-## 破坏性变更
+破坏性变更：项目 `.ai_state` 需迁移（`athena migrate --to 10.1`）；9.9.x 的 hook、`setup-athena.py`、`athena-migrate`、critic / evaluator / spec-compliance 等全部退役；证据只认 `athena run`。
 
-- 项目 `.ai_state` 需迁移（`athena migrate --to 10.1`）。
-- 9.9.x 的 hook、`setup-athena.py`、`athena-migrate`、critic / evaluator / spec-compliance 等全部退役。
-- 证据只认 `athena run`。
-
-## 发布门
-
-| 门项 | 结果 |
+| 发布门 | 结果 |
 |---|---|
 | fixture 三端全绿 | 通过（发布时 156/156） |
 | 行为评测对 9.9.9 不退化 | **豁免**：`.ai_state/decisions/2026-09-24-decision-athena-10-1-release-gate.md`；债务 D-014，10.2 恢复 |
@@ -42,23 +103,6 @@
 | 安装 / 回滚演练 | fixture 逐字节回滚验证；真机 dry-run → install → `doctor: no drift` |
 | quantum 真实 Feature sprint | major 条件，10.1 不适用；发布后验证 |
 
-## 已知限制
+已知限制（10.1.0 时）：无质量不退化的量化证据；Pi 以 followUp 代替 Stop 硬停（10.5 已做）；Stop 三连拦熔断；`~/.claude/settings.json` 里旧版遗留的无效插件键不被安装器清理。
 
-- 无「质量不退化」的量化证据（见上）。
-- Pi 仍以 followUp 提示代替 Stop 硬停（S7 未做）。
-- Stop 连续三次拦截后熔断放行，并写入 `issues.md`。
-- 用户 `~/.claude/settings.json` 里旧版遗留的无效插件键不会被安装器清理。
-
-## 回滚
-
-| 回滚什么 | 怎么做 |
-|---|---|
-| 本机安装 | `athena rollback` |
-| 项目 `.ai_state` | tag `pre-athena-10.1-state`（仅状态迁移，见 `MIGRATION.md` §5） |
-| 10.1 之前的源码 | `d42979a`（10.1 合入点 `cfc76aa`） |
-
-## 未发布（main 上，10.1.0 之后）
-
-- CC / CX 包配置对齐官方文档：官方插件市场名、密钥 deny、危险操作 ask、去掉模型钉版；Codex 首装改官方默认 `on-request` + `workspace-write`。
-- 安装器：包 `env` 此前被整体丢弃，改为补缺、用户优先；`permissions.ask` 与 `deny` 同为并集。
-- 仓库整理：9.9.x 及更早版本归档到 `vibeCoding/old/`；安装、迁移、发布三份文档移到 `vibeCoding/athena/` 顶层。
+回滚（10.1.0）：本机 `athena rollback`；项目 `.ai_state` 回 tag `pre-athena-10.1-state`（仅状态迁移，见 `MIGRATION.md` §5）；10.1 之前的源码 `d42979a`（10.1 合入点 `cfc76aa`）。

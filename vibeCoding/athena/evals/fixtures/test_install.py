@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import unittest
 
-from gate_harness import ATHENA, ENV, VIBE, athena, tmpdir
+from gate_harness import ATHENA, ENV, RELEASE, VERSION, VIBE, athena, tmpdir
 
 FROZEN_CC = VIBE / 'old/04-athena-8.9-9.9.9/claude/9.9.9/.claude'
 FROZEN_CX = VIBE / 'old/04-athena-8.9-9.9.9/codex/9.9.9/.codex'
@@ -76,8 +76,8 @@ class InstallRoundTrip(unittest.TestCase):
 
         run = cli('install', '--platform', 'cc,cx', home=home, dist=self.dist)
         self.assertEqual(run.returncode, 0, run.stderr)
-        self.assertEqual(os.readlink(home / '.athena/current'), '10.1')
-        self.assertTrue((home / '.athena/10.1/hook.cjs').is_file())
+        self.assertEqual(os.readlink(home / '.athena/current'), RELEASE)
+        self.assertTrue((home / '.athena' / RELEASE / 'hook.cjs').is_file())
         self.assertFalse((home / '.claude/hooks/delivery-gate.cjs').exists())
         self.assertFalse((home / '.codex/hooks/delivery-gate.py').exists())
         settings = json.loads((home / '.claude/settings.json').read_text())
@@ -90,7 +90,7 @@ class InstallRoundTrip(unittest.TestCase):
         self.assertTrue(all('.athena/current/hook.cjs' in h['command'] for gs in cx_hooks.values() for g in gs for h in g['hooks']))
         config = (home / '.codex/config.toml').read_text()
         self.assertIn('[profiles.mine]', config)
-        self.assertRegex(config, r'VIBECODING_VERSION = "10\.1\.0')
+        self.assertIn(f'VIBECODING_VERSION = "{VERSION}"', config)
         self.assertIn('athena review prepare', (home / '.agents/skills/athena-review/SKILL.md').read_text())
         self.assertEqual((home / '.claude/user-notes.md').read_text(), 'mine\n')
 
@@ -129,15 +129,15 @@ class InstallRoundTrip(unittest.TestCase):
         shutil.copytree(self.dist, dist)
         home = tmpdir(self) / 'home'
         home.mkdir()
-        (dist / 'claude/10.1/.claude/CLAUDE.md').write_text('tampered\n')
+        (dist / 'claude' / RELEASE / '.claude/CLAUDE.md').write_text('tampered\n')
         run = cli('install', '--platform', 'cc', home=home, dist=dist)
         self.assertEqual(run.returncode, 1)
-        self.assertIn('dist asset altered: claude/10.1/.claude/CLAUDE.md', run.stderr)
-        manifest = dist / 'athena/10.1/manifest.json'
+        self.assertIn(f'dist asset altered: claude/{RELEASE}/.claude/CLAUDE.md', run.stderr)
+        manifest = dist / 'athena' / RELEASE / 'manifest.json'
         data = json.loads(manifest.read_text())
         data['files'] = [f for f in data['files'] if f['path'] != 'lib/shell-lex.cjs']
         manifest.write_text(json.dumps(data))
-        (dist / 'athena/10.1/lib/shell-lex.cjs').unlink()
+        (dist / 'athena' / RELEASE / 'lib/shell-lex.cjs').unlink()
         run = cli('install', '--platform', 'cx', home=home, dist=dist)
         self.assertEqual(run.returncode, 1)
         self.assertIn('required asset: lib/shell-lex.cjs', run.stderr)

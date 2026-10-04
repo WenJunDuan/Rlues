@@ -10,7 +10,7 @@ description: 安装、升级、回滚、体检 Athena（CC/CX/Pi 共用核心 ~/
 | 目的 | 命令 |
 |---|---|
 | 构建 | `node vibeCoding/athena/build.mjs`（Rlues 仓内） |
-| 预演 | `node vibeCoding/dist/athena/10.1/cli.cjs install --platform cc,cx --dry-run` |
+| 预演 | `node vibeCoding/dist/athena/10.5/cli.cjs install --platform cc,cx --dry-run` |
 | 安装 | 同上去掉 `--dry-run`；之后把 `~/.athena/bin` 加进 PATH，即可用 `athena` |
 | 体检 | `athena doctor`（逐文件 sha、current 链接、node、9.9.x 残留、过期豁免） |
 | 回滚 | `athena rollback`（还原上次安装替换/移走/新建的全部文件与 current 链接） |

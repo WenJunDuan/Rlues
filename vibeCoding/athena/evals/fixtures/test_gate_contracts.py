@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import unittest
 
-from gate_harness import ATHENA, ENV, GATE
+from gate_harness import ATHENA, ENV, GATE, RELEASE
 
 DEAD_HOOKS = ('pace-continuator', 'compact-snapshot', 'subagent-retry')
 
@@ -52,7 +52,7 @@ class Distribution(unittest.TestCase):
         cls.tmp.cleanup()
 
     def files(self, platform):
-        root = self.out / platform / '10.1'
+        root = self.out / platform / RELEASE
         return {p.relative_to(root).as_posix(): p for p in root.rglob('*') if p.is_file()}
 
     def test_no_legacy_hooks_anywhere(self):
@@ -90,10 +90,10 @@ class Distribution(unittest.TestCase):
             with self.subTest(file=rel):
                 self.assertEqual(sha(core[rel]), sha(gate[rel]))
                 self.assertEqual(sha(pi[rel]), sha(gate[rel]))
-        self.assertTrue((self.out / 'athena/10.1/hook.cjs').stat().st_mode & 0o111)
+        self.assertTrue((self.out / 'athena' / RELEASE / 'hook.cjs').stat().st_mode & 0o111)
 
     def test_contracts_name_existing_rules(self):
-        contracts = json.loads((self.out / 'athena/10.1/contracts.json').read_text(encoding='utf-8'))
+        contracts = json.loads((self.out / 'athena' / RELEASE / 'contracts.json').read_text(encoding='utf-8'))
         for rule in contracts['hard']:
             with self.subTest(rule=rule):
                 self.assertEqual(len(list((GATE / 'rules').glob(f'{rule.lower()}-*.cjs'))), 1)

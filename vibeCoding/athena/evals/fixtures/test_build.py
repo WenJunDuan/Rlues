@@ -14,6 +14,8 @@ import unittest
 
 sys.dont_write_bytecode = True
 
+from gate_harness import RELEASE  # noqa: E402  (release dir from VERSION)
+
 ATHENA = Path(__file__).resolve().parents[2]          # vibeCoding/athena
 VIBE = ATHENA.parent                                  # vibeCoding
 BUILD = ATHENA / 'build.mjs'
@@ -95,7 +97,7 @@ class BuildBaseline(unittest.TestCase):
         cls.tmp.cleanup()
 
     def dist(self, platform):
-        return self.out / platform / '10.1'
+        return self.out / platform / RELEASE
 
     def test_ac1_build_succeeds_with_generated_extras(self):
         self.assertEqual(self.run_result.returncode, 0, self.run_result.stderr)
@@ -195,7 +197,7 @@ class BuildProperties(unittest.TestCase):
             out = Path(tmp) / 'dist'
             self.assertEqual(build(out).returncode, 0)
             self.assertEqual(build(out, ATHENA, '--check').returncode, 0)
-            target = out / 'claude/10.1/.claude/CLAUDE.md'
+            target = out / f'claude/{RELEASE}/.claude/CLAUDE.md'
             target.write_text(target.read_text(encoding='utf-8') + 'hand edit\n', encoding='utf-8')
             drift = build(out, ATHENA, '--check')
             self.assertNotEqual(drift.returncode, 0)
@@ -245,7 +247,7 @@ class BuildProperties(unittest.TestCase):
                 for rel in core:
                     out = next((to + rel[len(fr):] for fr, to in rename.items() if rel == fr or (fr.endswith('/') and rel.startswith(fr))), rel)
                     with self.subTest(platform=platform, core=rel):
-                        self.assertTrue((Path(tmp) / 'dist' / dist / '10.1' / root / out).is_file())
+                        self.assertTrue((Path(tmp) / 'dist' / dist / RELEASE / root / out).is_file())
                         self.assertFalse((ATHENA / 'adapters' / platform / 'package' / rel).exists())
 
     def test_executable_source_builds_executable(self):
@@ -261,8 +263,8 @@ class BuildProperties(unittest.TestCase):
             out = Path(tmp) / 'dist'
             self.assertEqual(build(out, src).returncode, 0)
             for dist, root in (('claude', '.claude'), ('codex', '.codex')):
-                base = out / dist / '10.1' / root / 'skills/zz-probe'
-                manifest = {e['path']: e for e in json.loads((out / dist / '10.1/manifest.json').read_text())['files']}
+                base = out / dist / RELEASE / root / 'skills/zz-probe'
+                manifest = {e['path']: e for e in json.loads((out / dist / RELEASE / 'manifest.json').read_text())['files']}
                 with self.subTest(dist=dist):
                     self.assertTrue((base / 'run.sh').stat().st_mode & 0o111)
                     self.assertFalse((base / 'notes.md').stat().st_mode & 0o111)
@@ -273,7 +275,7 @@ class BuildProperties(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'dist'
             self.assertEqual(build(out).returncode, 0)
-            target = out / 'claude/10.1/.claude/CLAUDE.md'
+            target = out / f'claude/{RELEASE}/.claude/CLAUDE.md'
             target.chmod(0o755)
             drift = build(out, ATHENA, '--check')
             self.assertNotEqual(drift.returncode, 0)
@@ -291,7 +293,7 @@ class BuildProperties(unittest.TestCase):
             src = self.probe(tmp, 'bom.md', b'\xef\xbb\xbfpath {{athena:SKILLS_DIR}}\n')
             out = Path(tmp) / 'dist'
             self.assertEqual(build(out, src).returncode, 0)
-            built = (out / 'claude/10.1/.claude/skills/zz-probe/bom.md').read_bytes()
+            built = (out / f'claude/{RELEASE}/.claude/skills/zz-probe/bom.md').read_bytes()
             self.assertEqual(built, b'\xef\xbb\xbfpath ~/.claude/skills\n')
 
     def test_malformed_and_binary_markers_fail(self):
@@ -312,7 +314,7 @@ class BuildProperties(unittest.TestCase):
             src = self.probe(tmp, 'doc.md', b'write {{athena:!SKILLS_DIR}} in sources\n')
             out = Path(tmp) / 'dist'
             self.assertEqual(build(out, src).returncode, 0)
-            built = (out / 'codex/10.1/.codex/skills/zz-probe/doc.md').read_bytes()
+            built = (out / f'codex/{RELEASE}/.codex/skills/zz-probe/doc.md').read_bytes()
             self.assertEqual(built, b'write {{athena:SKILLS_DIR}} in sources\n')
 
     def test_case_only_conflict_fails(self):
@@ -339,7 +341,7 @@ class BuildProperties(unittest.TestCase):
             self.assertIn('VERSION', run.stderr)
             self.assertTrue(keep.is_file())
             # an existing non-build target is never deleted
-            foreign = tmp / 'dist2/claude/10.1/user-file.txt'
+            foreign = tmp / f'dist2/claude/{RELEASE}/user-file.txt'
             foreign.parent.mkdir(parents=True)
             foreign.write_text('mine\n', encoding='utf-8')
             run = build(tmp / 'dist2')
@@ -359,7 +361,7 @@ class BuildProperties(unittest.TestCase):
     def test_nothing_written_when_a_later_target_is_foreign(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'dist'
-            foreign = out / 'codex/10.1/f'
+            foreign = out / f'codex/{RELEASE}/f'
             foreign.parent.mkdir(parents=True)
             foreign.write_text('k\n', encoding='utf-8')
             run = build(out)
@@ -382,7 +384,7 @@ class BuildProperties(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'dist'
             self.assertEqual(build(out).returncode, 0)
-            stale = out / 'claude/10.1/stale.txt'
+            stale = out / f'claude/{RELEASE}/stale.txt'
             stale.write_text('old\n', encoding='utf-8')
             self.assertEqual(build(out).returncode, 0)
             self.assertFalse(stale.exists())

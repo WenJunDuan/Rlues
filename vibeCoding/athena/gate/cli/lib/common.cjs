@@ -1,7 +1,5 @@
 'use strict';
 // Shared CLI plumbing: context, argument flags, dates.
-const fs = require('fs');
-const path = require('path');
 const context = require('../../lib/context.cjs');
 
 class UsageError extends Error {}
@@ -31,6 +29,8 @@ function flags(argv, spec) {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
-const VERSION = () => { try { return fs.readFileSync(path.join(__dirname, '..', '..', 'VERSION'), 'utf8').trim(); } catch (_) { return '10.1'; } };
+// `_index.md` `version` is the .ai_state generation (schema athena-state/2, introduced in 10.1 and the
+// `athena migrate --to 10.1` target), not the release: 10.5 kept the schema. Nothing gates on it.
+const STATE_VERSION = '10.1';
 
-module.exports = { requireCtx, flags, today, UsageError, VERSION };
+module.exports = { requireCtx, flags, today, UsageError, STATE_VERSION };

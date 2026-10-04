@@ -4,7 +4,7 @@
 // clean tracked tree, tags pre-athena-10.1-state, moves files, stages them — never commits.
 const fs = require('fs');
 const path = require('path');
-const { requireCtx, flags, today, UsageError, VERSION } = require('./lib/common.cjs');
+const { requireCtx, flags, today, UsageError, STATE_VERSION } = require('./lib/common.cjs');
 const { plan } = require('./lib/migrate-plan.cjs');
 const state = require('./lib/state.cjs');
 const archive = require('./lib/archive.cjs');
@@ -63,7 +63,7 @@ function apply(ctx, p) {
     fs.mkdirSync(ctx.runtime, { recursive: true });
     fs.writeFileSync(path.join(ctx.runtime, 'probe.json'), `${JSON.stringify({ migrated: today(), ...p.index.probe }, null, 2)}\n`);
     fs.writeFileSync(path.join(ctx.runtime, '_index.v1.md'), old);
-    fs.writeFileSync(index, state.render('_index.md', { version: VERSION() }));
+    fs.writeFileSync(index, state.render('_index.md', { version: STATE_VERSION }));
     state.setFields(index, { ...p.index.v2, route: p.index.v2.route });
   }
   for (const a of p.actions) {

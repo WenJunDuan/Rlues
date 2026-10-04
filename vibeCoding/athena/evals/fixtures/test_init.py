@@ -17,6 +17,7 @@ class Init(unittest.TestCase):
         self.assertEqual(run.returncode, 0, run.stderr)
         index = (root / '.ai_state/_index.md').read_text()
         self.assertIn('schema: athena-state/2', index)
+        self.assertIn('version: "10.1"', index, 'state generation, not the release (10.5 kept schema v2)')
         for name in ('issues.md', 'queue.md', 'sprints', 'roadmap', 'archive'):
             self.assertTrue((root / '.ai_state' / name).exists(), name)
         self.assertIn('.ai_state/.runtime/', (root / '.gitignore').read_text().splitlines())

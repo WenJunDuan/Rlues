@@ -3,7 +3,7 @@ name: pace
 description: PACE 路径、阶段、门禁与 athena CLI 的全景；分诊后要确定下一步、被门禁拦下、或恢复中断任务时读。
 ---
 
-# PACE（Athena 10.1）
+# PACE（Athena 10.5）
 
 新任务先按 [athena-dev](../athena-dev/SKILL.md) 分诊。阶段义务与硬门只看 [stages.md](references/stages.md)（由 stages.yaml 生成）。
 

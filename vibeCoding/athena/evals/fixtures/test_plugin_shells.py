@@ -12,10 +12,8 @@ import subprocess
 import tempfile
 import unittest
 
-from gate_harness import ATHENA, ENV, GOOD_DESIGN, athena, call, project, tmpdir
+from gate_harness import ATHENA, ENV, GOOD_DESIGN, RELEASE, VERSION, athena, call, project, tmpdir
 
-VERSION = (ATHENA / 'VERSION').read_text(encoding='utf-8').strip()
-RELEASE = '.'.join(VERSION.split('-')[0].split('.')[:2])
 GENERATED = ('manifest.json', 'GENERATED.md', 'contracts.json')
 INSTALLER_DISTS = ('claude', 'codex', 'pi', 'athena')
 IGNORED = {'__pycache__', '.DS_Store'}
@@ -345,12 +343,42 @@ class DoctorPluginForms(unittest.TestCase):
         (home / '.claude/plugins/broken/.claude-plugin/plugin.json').write_text('{not json', encoding='utf-8')
         before = sorted(p.as_posix() for p in home.rglob('*'))
         run = self.doctor(home)
-        self.assertEqual(run.returncode, 1, 'plugin presence does not change the exit code')
+        self.assertEqual(run.returncode, 0, run.stdout)
+        self.assertNotIn('FAIL', run.stdout, 'plugin form only is not "not installed"')
         self.assertIn('ok   plugin cc: athena 10.5.0 at ~/.claude/plugins/cache/local/athena/10.5.0', run.stdout)
         self.assertIn('ok   plugin cx: athena 10.5.1 at ~/.codex/plugins/cache/local/athena/10.5.1', run.stdout)
         self.assertNotIn('other', run.stdout)
-        self.assertNotIn('WARN', run.stdout, 'no installer hooks → no double-hook warning')
+        self.assertIn('WARN cc: plugin form only', run.stdout)
+        self.assertIn('WARN cx: plugin form only', run.stdout)
+        self.assertNotIn('both present', run.stdout, 'no installer hooks → no double-hook warning')
         self.assertEqual(sorted(p.as_posix() for p in home.rglob('*')), before, 'read-only')
+
+    def test_plugin_form_only_names_what_the_installer_still_carries(self):
+        home = tmpdir(self)
+        self.plugin(home, 'cc')
+        run = self.doctor(home)
+        self.assertEqual(run.returncode, 0, run.stdout)
+        self.assertRegex(run.stdout, r'WARN cc: plugin form only — .*~/\.claude/rules/.*~/\.claude/CLAUDE\.md')
+        self.assertIn('ok   plugin cx: none under ~/.codex/plugins/cache', run.stdout)
+        self.assertNotIn('WARN cx', run.stdout)
+        home = tmpdir(self)
+        self.plugin(home, 'cx')
+        run = self.doctor(home)
+        self.assertEqual(run.returncode, 0, run.stdout)
+        line = next(l for l in run.stdout.splitlines() if l.startswith('WARN cx: plugin form only'))
+        for needle in ('~/.codex/config.toml', '~/.codex/AGENTS.md', '/hooks'):
+            self.assertIn(needle, line)
+        self.assertNotIn('WARN cc', run.stdout)
+
+    def test_installer_on_one_platform_plugin_on_the_other(self):
+        home = tmpdir(self)
+        install = athena('install', '--platform', 'cc', '--home', str(home), '--dist', str(DIST), cwd=home)
+        self.assertEqual(install.returncode, 0, install.stderr)
+        self.plugin(home, 'cx')
+        run = self.doctor(home)
+        self.assertEqual(run.returncode, 0, run.stdout)
+        self.assertIn('WARN cx: plugin form only', run.stdout)
+        self.assertNotIn('WARN cc', run.stdout)
 
     def test_both_forms_warn_without_changing_the_exit_code(self):
         home = tmpdir(self)
@@ -365,9 +393,11 @@ class DoctorPluginForms(unittest.TestCase):
         self.assertIn('doctor: no drift', run.stdout)
         self.assertRegex(run.stdout, r'WARN cc: plugin form and installer form both present \(9 Athena hook\(s\) in ~/\.claude/settings\.json\)')
         self.assertNotIn('WARN cx', run.stdout)
+        self.assertNotIn('plugin form only', run.stdout)
         self.plugin(home, 'cx')
         run = self.doctor(home)
         self.assertEqual(run.returncode, 0, run.stdout)
+        self.assertNotIn('plugin form only', run.stdout)
         self.assertRegex(run.stdout, r'WARN cx: plugin form and installer form both present \(8 Athena hook\(s\) in ~/\.codex/hooks\.json\)')
 
 
