@@ -1,0 +1,17 @@
+{
+  "dist_dir": "codex-plugin",
+  "package_root": "",
+  "core": false,
+  "gate_root": "gate",
+  "vars": {
+    "SKILLS_DIR": "${PLUGIN_ROOT}/skills"
+  },
+  "core_map": {
+    "skills/": "skills/"
+  },
+  "adapter_map": {
+    "cx": {
+      "skills/": "skills/"
+    }
+  }
+}

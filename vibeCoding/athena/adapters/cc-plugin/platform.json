@@ -1,0 +1,18 @@
+{
+  "dist_dir": "claude-plugin",
+  "package_root": "",
+  "core": false,
+  "gate_root": "gate",
+  "vars": {
+    "SKILLS_DIR": "${CLAUDE_PLUGIN_ROOT}/skills"
+  },
+  "core_map": {
+    "AGENTS.md": "constitution.md",
+    "skills/": "skills/"
+  },
+  "adapter_map": {
+    "cc": {
+      "agents/": "agents/"
+    }
+  }
+}

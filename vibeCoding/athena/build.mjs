@@ -10,6 +10,9 @@
 //   gate/**                    -> <gate_root>/**     (platforms that set "gate_root"; S2 gate core)
 // "rename" {corePrefix: newPrefix} renames core files (CC AGENTS.md -> CLAUDE.md, CX rules/ -> standards/).
 // "core_map" {corePrefix: outPrefix} (platforms with "core": false) takes only the matching core files.
+// "adapter_map" {adapter: {packagePrefix: outPrefix}} takes only the matching files of another adapter's
+// package/ (plugin shells reuse the installer adapters' agents / skills without copying the sources);
+// they are rendered with this platform's vars.
 // Generated at the root of every output: contracts.json (from core/pace/stages.yaml),
 // GENERATED.md, manifest.json. Generated as a core file: skills/pace/references/stages.md.
 //
@@ -173,26 +176,36 @@ function assemble(src, platform, version) {
     throw new BuildError(`adapters/${platform}/platform.json: invalid package_root ${root}`);
   }
   const layers = [];
-  for (const key of ["rename", "core_map"]) {
-    const table = config[key];
-    if (table === undefined) continue;
-    if (!table || typeof table !== "object" || Array.isArray(table)) throw new BuildError(`adapters/${platform}/platform.json: ${key} must be an object`);
+  const isTable = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  const checkTable = (key, table) => {
+    if (!isTable(table)) throw new BuildError(`adapters/${platform}/platform.json: ${key} must be an object`);
     for (const [from, to] of Object.entries(table)) {
       if (typeof to !== "string" || [from, to].some(x => !x || path.isAbsolute(x) || x.split(/[\\/]/).includes(".."))
           || from.endsWith("/") !== to.endsWith("/")) {
         throw new BuildError(`adapters/${platform}/platform.json: invalid ${key} entry ${from} (directory keys and targets both end with "/")`);
       }
     }
-  }
+  };
+  for (const key of ["rename", "core_map"]) if (config[key] !== undefined) checkTable(key, config[key]);
   if (config.core_map && config.core) throw new BuildError(`adapters/${platform}/platform.json: core_map is for platforms with "core": false`);
   const table = config.core ? (config.rename || {}) : config.core_map;
-  if (table) layers.push({ dir: path.join(src, "core/package"), prefix: config.core ? root : "", label: "core/package", table, only: !config.core });
+  if (table) layers.push({ dir: path.join(src, "core/package"), prefix: config.core ? root : "", label: "core/package", table, only: !config.core, core: true, key: config.core ? "rename" : "core_map" });
   if (config.gate_root !== undefined) {
     const gateRoot = config.gate_root;
     if (typeof gateRoot !== "string" || path.isAbsolute(gateRoot) || gateRoot.split(/[\\/]/).includes("..")) {
       throw new BuildError(`adapters/${platform}/platform.json: invalid gate_root ${gateRoot}`);
     }
     layers.push({ dir: path.join(src, "gate"), prefix: gateRoot, label: "gate" });
+  }
+  if (config.adapter_map !== undefined) {
+    if (!isTable(config.adapter_map)) throw new BuildError(`adapters/${platform}/platform.json: adapter_map must be an object`);
+    for (const [other, map] of Object.entries(config.adapter_map)) {
+      if (!PLATFORM_RE.test(other) || other === platform || !fs.existsSync(path.join(src, "adapters", other, "platform.json"))) {
+        throw new BuildError(`adapters/${platform}/platform.json: adapter_map names unknown adapter ${other}`);
+      }
+      checkTable(`adapter_map.${other}`, map);
+      layers.push({ dir: path.join(src, "adapters", other, "package"), prefix: "", label: `adapters/${other}/package`, table: map, only: true, key: `adapter_map.${other}` });
+    }
   }
   layers.push({ dir: path.join(src, "adapters", platform, "package"), prefix: root, label: `adapters/${platform}/package` });
   layers.push({ dir: path.join(src, "adapters", platform, "top"), prefix: "", label: `adapters/${platform}/top` });
@@ -218,10 +231,10 @@ function assemble(src, platform, version) {
     const entries = files.map(file => ({ rel: posix(path.relative(layer.dir, file)), read: () => fs.readFileSync(file),
       mode: fs.statSync(file).mode & 0o111 ? 0o755 : 0o644 }));
     if (layer.table) {
-      entries.push({ rel: "skills/pace/references/stages.md", read: () => Buffer.from(stagesMd(stages.data, version), "utf8"), mode: 0o644, generated: true });
+      if (layer.core) entries.push({ rel: "skills/pace/references/stages.md", read: () => Buffer.from(stagesMd(stages.data, version), "utf8"), mode: 0o644, generated: true });
       for (const from of Object.keys(layer.table)) {
         if (!entries.some(e => e.rel === from || (from.endsWith("/") && e.rel.startsWith(from)))) {
-          throw new BuildError(`adapters/${platform}/platform.json: ${layer.only ? "core_map" : "rename"} key ${from} matches no core file`);
+          throw new BuildError(`adapters/${platform}/platform.json: ${layer.key} key ${from} matches no ${layer.core ? "core" : "source"} file`);
         }
       }
     }

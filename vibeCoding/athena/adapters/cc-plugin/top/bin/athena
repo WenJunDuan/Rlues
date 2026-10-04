@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+'use strict';
+// Plugin-form athena CLI: bin/ is on PATH while the plugin is enabled; the CLI is the vendored gate core.
+try { process.exitCode = require('../gate/cli.cjs').main(process.argv.slice(2)); }
+catch (error) { process.stderr.write(`athena: ${error.message}\n`); process.exitCode = 2; }
