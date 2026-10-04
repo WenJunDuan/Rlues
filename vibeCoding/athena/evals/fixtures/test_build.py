@@ -37,7 +37,7 @@ DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/
                           '.codex/skills/athena-setup/SKILL.md', 'RELEASE.md'], 'added': []},
     'pi': {'removed': ['plugin/extensions/cc-core/', 'plugin/skills/pace/scripts/review-binding.cjs', 'plugin/skills/athena-review/REVIEW.md'],
            'added': ['plugin/core/gate/'],
-           'changed': ['README.md', 'config/README.md', 'plugin/README.md', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts',
+           'changed': ['README.md', 'config/README.md', 'plugin/README.md', 'plugin/package.json', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts',
                        'plugin/prompts/reviewer.md', 'plugin/skills/athena-review/SKILL.md']},
 }
 # S5 prompts-v2 rewrites constitution, rules, skills and agents wholesale (one core source, generated
