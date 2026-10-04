@@ -6,7 +6,7 @@ stage: ""
 sprint: ""
 roadmap: ""
 next_action: ""
-route: ["2026-10-03 shipped 2026-10-03-gate-feedback","2026-10-03 Bugfix 2026-10-03-gate-feedback","2026-09-24 Feature S6 install-doctor: athena install/rollback/doctor 事务式安装 + 9.9.9 退役; review 2 轮; S7 取消"]
+route: ["2026-10-04 shipped 2026-10-04-athena-10-1-5-review","2026-10-04 Bugfix 2026-10-04-athena-10-1-5-review","2026-10-03 shipped 2026-10-03-gate-feedback"]
 parallel_writers: 1
 exemptions: []
 flags: {}

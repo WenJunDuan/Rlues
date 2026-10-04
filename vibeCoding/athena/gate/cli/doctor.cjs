@@ -1,7 +1,7 @@
 'use strict';
 // athena doctor [--home <dir>]: installed files vs their recorded sha (drift / missing), the current
 // link, node on PATH, leftover 9.9.9 files, and (inside a project) expired or invalid exemptions.
-// Plugin forms (10.5): read-only report of an `athena` plugin under ~/.claude/plugins or
+// Plugin forms (10.1.5): read-only report of an `athena` plugin under ~/.claude/plugins or
 // ~/.codex/plugins/cache, and a WARN (exit code unchanged) when installer hooks are active too.
 // A platform with only the plugin form is a WARN naming what only the installer carries, not a FAIL;
 // "not installed" fails only when neither form is present.

@@ -1,7 +1,7 @@
 """G-018: H1 blocked the sprint's own design.md written from a worktree nested in the main repo.
 
 `<main>/.claude/worktrees/w1/.ai_state/…` is inside mainRoot but not inside `<main>/.ai_state`,
-so it counted as an implementation write (athena-10-5 S1 AC1).
+so it counted as an implementation write (athena-10-1-5 S1 AC1).
 """
 import unittest
 

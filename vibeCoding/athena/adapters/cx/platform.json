@@ -3,7 +3,8 @@
   "package_root": ".codex",
   "core": true,
   "vars": {
-    "SKILLS_DIR": "~/.agents/skills"
+    "SKILLS_DIR": "~/.agents/skills",
+    "TEMPLATES_DIR": "~/.athena/current/templates"
   },
   "rename": {
     "rules/": "standards/"

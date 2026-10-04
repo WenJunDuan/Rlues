@@ -10,7 +10,7 @@
 | `archive/` | 已完成 sprint（按月），`archive/README.md` 记重定向 | `athena ship` / `tidy` |
 | `.runtime/` | 证据、review run、快照；不入库 | CLI / 门禁 |
 
-新项目 `athena init`；9.9.x 项目 `athena migrate --to 10.1 --dry-run` 先看计划。模板在 `~/.athena/current/templates/`。
+新项目 `athena init`；9.9.x 项目 `athena migrate --to 10.1 --dry-run` 先看计划。模板在 `{{athena:TEMPLATES_DIR}}/`。
 
 ## 恢复中断
 

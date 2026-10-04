@@ -1,4 +1,4 @@
-# 10.5 探针（需本机 CLI；结论回填 `core/package/skills/pace/references/platform.md`）
+# 10.1.5 探针（需本机 CLI；结论回填 `core/package/skills/pace/references/platform.md`）
 
 | # | 探针 | 步骤 | 判定 |
 |---|---|---|---|
@@ -10,3 +10,15 @@
 | P6 | Codex 插件壳可装 | 本地 marketplace 指向 `dist/codex-plugin/<ver>`；装后 `/hooks` 受信；跑一个 Quick sprint | hook 握手可见、H1 生效 |
 | P7 | Pi 硬 Stop | ship 阶段缺证据时让 agent 收尾 | 被续跑且带 H2 reason；同因 3 次后放行并记 G 行 |
 | P8 | CC ≥2.1.288 下 hook 输出合法 | 安装器形态跑全流程，观察有无「hook 序列化失败 → 拦截」 | 无误拦 |
+
+## 2026-10-04 本机结果
+
+| 项 | 结果 |
+|---|---|
+| P4（部分） | CC 2.1.289 validate 成功；details 识别 22 skills / 4 agents / 9 hooks；完整 Quick→ship 待验证 |
+| P6（部分） | CX 0.160.0 临时环境安装成功；原布局识别 22 skills / 8 hooks；portable 清单字段加载阻塞 U-001，真实工具触发待验证 |
+| P1/P2/P5/P8 | 未运行真实模型会话；不发收费请求 |
+| P3/P7 | 本机无 Pi CLI；两个扩展对 Pi 1.0.2 类型检查已通过，真实事件待 Pi 环境 |
+| 行为评测 | D-014 仍 open，无当前候选与旧版的行为质量对照 |
+
+复现、stderr 与三次已试方案见 `../../docs/reports/2026-10-04-athena-10-1-5-review.md`。不把 fixture 或组件发现等同于端到端通过。

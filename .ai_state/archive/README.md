@@ -69,3 +69,5 @@
 | harness-patches.md | archive/legacy/harness-patches.md |
 | archive/sprints/2026-07/ | archive/2026-07.tar.zst |
 | sprints/2026-10-03-gate-feedback/ | archive/sprints/2026-10/2026-10-03-gate-feedback/ |
+| sprints/2026-10-04-athena-10-1-5-review/ | archive/sprints/2026-10/2026-10-04-athena-10-1-5-review/ |
+| archive/sprints/2026-08/ | archive/2026-08.tar.zst |

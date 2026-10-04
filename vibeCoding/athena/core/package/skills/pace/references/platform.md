@@ -22,3 +22,11 @@
 安装与检查：`athena install --platform cc,cx[,pi]`、`athena doctor`、`athena rollback`（见 athena-setup）。
 
 官方文档（滚动更新，承重行为需本机实测）：[CC subagents](https://code.claude.com/docs/en/sub-agents) · [CC hooks](https://code.claude.com/docs/en/hooks) · [CC settings](https://code.claude.com/docs/en/settings) · [Codex config](https://developers.openai.com/codex/config-reference)。
+
+## 2026-10-04 本机验证（候选 10.1.5）
+
+- CC 2.1.289：清单 validate 通过（author 提示）；原生 details 识别 22 skills / 4 agents / 9 hooks。真实模型、子 agent PATH 和完整 Stop 流程待验证。
+- Codex 0.160.0：隔离 HOME 的本地 marketplace 安装成功，app-server plugin/read 识别 22 skills / 8 hooks；仍未验证 `/hooks` 受信后的工具触发。原 portable 根清单描述被忽略；添加官方 `$schema` 后，显式/default hooks 的三次加载均为 0 hooks，无 stderr/error，停止尝试。此项为发布阻塞，不改本机信任配置。
+- Pi 本机无 CLI，P3/P7 待验证；适配器 fixture 不能替代真实 Pi。
+- P1/P2 原生 code mode / spawn_agent 与行为质量评测未跑；未发起收费模型请求。
+- 协议依据：[CC plugin manifest](https://code.claude.com/docs/en/plugins-reference)、[OpenAI package plugin](https://developers.openai.com/plugins/build/plugins)。本机结果与文档有差异时以探针结果限定声明。

@@ -1,8 +1,8 @@
-"""athena status: AC coverage matrix + ship pre-check (athena-10-5 S2 AC4)."""
+"""athena status: AC coverage matrix + ship pre-check (athena-10-1-5 S2 AC4)."""
 import json
 import unittest
 
-from gate_harness import athena, check_file, tmpdir
+from gate_harness import athena, check_file, tmpdir, set_index
 from test_state_cli import ok, snapshot, v2project
 
 
@@ -104,6 +104,21 @@ class StatusMatrix(unittest.TestCase):
             ok(self, athena('status', '--json', cwd=root))
         self.assertEqual(snapshot(root), before)
         self.assertFalse((root / '.ai_state/issues.md').exists() and 'gate' in (root / '.ai_state/issues.md').read_text())
+
+    def test_ship_precheck_refuses_missing_roadmap_item_like_ship(self):
+        root = v2project(tmpdir(self))
+        sprint(self, root)
+        set_index(root, path='Quick')  # H3 does not apply; isolate the roadmap consistency check.
+        ok(self, athena('run', '--covers', 'AC1,AC2', '--', 'node', '--test', check_file(root), cwd=root))
+        self.assertTrue(view(self, root)['ship_precheck']['ok'])
+        items = root / '.ai_state/roadmap/r/items.yaml'
+        items.write_text(items.read_text().replace('slug: x', 'slug: renamed'))
+        pre = view(self, root)['ship_precheck']
+        self.assertFalse(pre['ok'])
+        blocker = next(b for b in pre['blockers'] if b['rule'] == 'roadmap')
+        ship = athena('ship', '--dry-run', cwd=root)
+        self.assertEqual(ship.returncode, 1)
+        self.assertIn(blocker['reason'], ship.stderr)
 
     def test_existing_json_keys_are_kept(self):
         root = v2project(tmpdir(self))

@@ -33,6 +33,6 @@ claude --plugin-dir <本目录>
 
 ## 待验证
 
-- 清单字段、hooks.json、`${CLAUDE_PLUGIN_ROOT}` 展开：待本机 `claude plugin validate` 验证。
-- skills 正文里的 `${CLAUDE_PLUGIN_ROOT}/skills/...` 是否展开：未验证；不展开时按插件目录手动定位。
-- 已知缺口：skills / agents 正文仍写安装器路径（`~/.athena/current/templates/`、`~/.claude/rules/`）；纯插件形态下模板在 `gate/templates/`。
+- Claude Code 2.1.289：`plugin validate` 通过（仅 author 提示）；`plugin details` 识别 22 skills、4 agents、9 hooks。
+- 官方文档支持 Markdown 中的 `${CLAUDE_PLUGIN_ROOT}` 展开；真实模型会话、子 agent PATH 与 Stop 仍待验证。
+- 模板指向插件内 `gate/templates/`；agents 优先插件 `bin/`。path-scoped rules 仍由安装器提供。

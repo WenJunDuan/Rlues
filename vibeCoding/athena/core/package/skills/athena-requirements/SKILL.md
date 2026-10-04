@@ -18,7 +18,7 @@ description: 为一项新能力写长效需求档（原始动机、范围取舍�
 
 ## 步骤
 
-1. 从 `~/.athena/current/templates/requirement.md` 建 `.ai_state/docs/requirements/<slug>.md`。
+1. 从 `{{athena:TEMPLATES_DIR}}/requirement.md` 建 `.ai_state/docs/requirements/<slug>.md`。
 2. 写背景与目标、范围与不做（写明划出去的原因）、用户视角验收。用户原话优先，不脑补。
 3. 澄清循环：没把握的点逐条写进「待澄清问题」，一次问用户最影响范围的 1–3 条；回答写成结论。全部有结论 → `status: final`。
 4. 开 sprint 时带上需求：`athena sprint start --req docs/requirements/<slug>.md --path P --slug S`（design 的 `req:` 字段指向它，reviewer 可回溯原始意图）。

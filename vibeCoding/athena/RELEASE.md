@@ -1,15 +1,15 @@
-# Athena 10.5.0 发布声明（候选）
+# Athena 10.1.5 发布声明（候选）
 
 > **候选，未发布**：无 tag、未装机。发布门里标「未跑」的项补齐并经用户确认后才打 tag（设计 S7）。
 
 | 项 | 值 |
 |---|---|
-| 版本 | 10.5.0（minor，基线 10.1.0） |
+| 版本 | 10.1.5（基线 10.1.0；版本编号经用户纠正） |
 | 日期 | 2026-10-04（候选） |
 | Tag | 无（候选） |
-| 分支 | `athena-10.5` |
+| 分支 | `athena-10.1.5` |
 | 部署范围 | Claude Code + Codex（安装器形态或插件形态，二选一）；Pi 构建与测试覆盖，默认不部署 |
-| 安装 | 见 `INSTALL.md`；构建产物在 `dist/<platform>/10.5/` |
+| 安装 | 见 `INSTALL.md`；构建产物在 `dist/<platform>/10.1/` |
 | 项目状态迁移 | 无：`.ai_state` schema 仍是 v2（`_index.md` `version: "10.1"`），10.1 项目直接可用 |
 | 完整变更 | `CHANGELOG.md` |
 
@@ -21,8 +21,8 @@
 
 | 项 | 内容 |
 |---|---|
-| CC 插件壳 | `dist/claude-plugin/10.5/`：hooks → `${CLAUDE_PLUGIN_ROOT}/gate/hook.cjs`、`bin/athena`、skills + agents；宪法由 SessionStart 经 `ATHENA_CONSTITUTION` 注入。带不走：path-scoped rules、`settings.json` permissions/env、review workflow → 仍需安装器 |
-| Codex 插件壳 | `dist/codex-plugin/10.5/`：`extensions["com.openai"].hooks` → `${PLUGIN_ROOT}/gate/hook.cjs`、skills。带不走：`config.toml`、`AGENTS.md`、`standards/`、agents、`bin/`；hooks 装后须在 `/hooks` 受信 |
+| CC 插件壳 | `dist/claude-plugin/10.1/`：hooks → `${CLAUDE_PLUGIN_ROOT}/gate/hook.cjs`、`bin/athena`、skills + agents；宪法由 SessionStart 经 `ATHENA_CONSTITUTION` 注入。带不走：path-scoped rules、`settings.json` permissions/env、review workflow → 仍需安装器 |
+| Codex 插件壳 | `dist/codex-plugin/10.1/`：默认发现 hooks → `${PLUGIN_ROOT}/gate/hook.cjs`（portable 清单字段未验证通过）、skills。带不走：`config.toml`、`AGENTS.md`、`standards/`、agents、`bin/`；hooks 装后须在 `/hooks` 受信 |
 | Pi 硬 Stop | `agent_before_settle` 返回 `{entries, continue: true}`，ship 缺证据/审查时续跑；Pi < 0.87 回退 followUp 软纠偏。codemode：外层调用放行，脚本内 `write`/`edit`/`bash` 照常走 H1/H5。peer 放宽为 `*` |
 | G-018 修复 | `.ai_state` 排除按任一已登记 worktree 根判；嵌套 worktree 内写 sprint design 不再被 H1 拦，worktree 内源码无 AC 仍拦 |
 | 报错带修法 | `athena run` 不可证明、`review accept` 拒收、covers 格式错：stderr 给可复制的修正样例与下一步命令 |
@@ -46,16 +46,16 @@
 
 | 门项 | 结果 |
 |---|---|
-| fixture | 本环境全量 319 过 / 2 败（另 2505 subtests 过）；2 败为环境相关（npm/HOME），与基线相同 |
+| fixture | 本机基线 320 项、跳过 1 项、其余通过；修复后全量结果见复核报告 |
 | 行为评测 | **未跑**：D-014 仍开；计划经 `claude plugin eval`，待本机 |
-| 探针 P1–P8 | **未跑**：需本机 CC / Codex / Pi CLI（`.ai_state/roadmap/athena-10-5/probes.md`） |
-| 插件清单 | 未经真实 `claude plugin validate` / Codex 安装验证；仅 fixture 校验本仓依赖的字段 |
-| Pi 扩展 | `.ts` 已对 Pi 1.0.2 源码做类型检查，未在真实 Pi 里运行 |
+| 探针 P1–P8 | **部分完成**：CC 清单/组件发现、CX 临时安装/原生加载已跑；原生工具事件、Pi 与行为评测仍待验证（`.ai_state/roadmap/athena-10-1-5/probes.md`） |
+| 插件清单 | CC 2.1.289 validate 通过；CX 0.160.0 安装/发现 22 skills 与 8 hooks，但根清单描述被忽略，加官方 schema 后 0 hooks；portable 协议仍阻塞 |
+| Pi 扩展 | 本机两个扩展对 Pi 1.0.2 的类型检查通过（TypeScript 7.0.2，临时环境）；真实 Pi 事件链待验证 |
 | 安装 / 回滚演练 | fixture 覆盖；本版未真机 install |
 
 ## 已知限制
 
-- 插件形态尚不自足：skills / agents 正文仍写安装器路径（`~/.athena/current/templates/`、`~/.claude/rules/`）；纯插件形态下模板在 `gate/templates/`。
+- 插件模板已改用随包 `gate/templates/`，CC agents 优先随包 CLI；rules / 全局配置仍按设计由安装器提供。CX portable 清单协议阻塞见发布门，不应发布为协议已验证的插件。
 - 同一平台不要同时启用安装器形态与插件形态：每道门跑两遍（`doctor` 报 WARN）。
 - Codex code mode、`spawn_agent` 是否触发 PreToolUse 待验证（P1/P2）；未触发则 H1/H4 在 CX 降级。
 - 只有插件形态时 `doctor` 只报 WARN 与缺什么，不代为安装；补安装器部分前先停用同端插件 hooks。
@@ -68,7 +68,7 @@
 | 本机安装 | `athena rollback`（回到上次安装前；装过 10.1.0 即回 10.1.0） |
 | 插件形态 | 停用 / 卸载插件（`claude plugin` 或 Codex 插件管理）；不碰 `~/.athena` |
 | 项目 `.ai_state` | 无需：本版不改状态 |
-| 源码 | 10.1.0 = `f4af800`（tag `v10.1.0`，本克隆未取到）；10.5 基线 `1c1cd73` |
+| 源码 | 10.1.0 = `f4af800`（tag `v10.1.0`，本克隆未取到）；10.1.5 基线 `1c1cd73` |
 
 ---
 
@@ -103,6 +103,6 @@
 | 安装 / 回滚演练 | fixture 逐字节回滚验证；真机 dry-run → install → `doctor: no drift` |
 | quantum 真实 Feature sprint | major 条件，10.1 不适用；发布后验证 |
 
-已知限制（10.1.0 时）：无质量不退化的量化证据；Pi 以 followUp 代替 Stop 硬停（10.5 已做）；Stop 三连拦熔断；`~/.claude/settings.json` 里旧版遗留的无效插件键不被安装器清理。
+已知限制（10.1.0 时）：无质量不退化的量化证据；Pi 以 followUp 代替 Stop 硬停（10.1.5 已做）；Stop 三连拦熔断；`~/.claude/settings.json` 里旧版遗留的无效插件键不被安装器清理。
 
 回滚（10.1.0）：本机 `athena rollback`；项目 `.ai_state` 回 tag `pre-athena-10.1-state`（仅状态迁移，见 `MIGRATION.md` §5）；10.1 之前的源码 `d42979a`（10.1 合入点 `cfc76aa`）。

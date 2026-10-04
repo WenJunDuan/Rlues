@@ -1,6 +1,6 @@
 # Athena CHANGELOG
 
-## 10.5.0 — 插件就绪（候选，2026-10-04）
+## 10.1.5 — 插件就绪（候选，2026-10-04）
 
 基线 10.1.0（含其后 main 上的未发布项）。一句话：CC / Codex 各出一个自带门禁核的插件壳，Pi 拿到硬 Stop，门禁报错自带修法，提示词 v3。**候选**：无 tag、未装机；发布门见 RELEASE.md。
 
@@ -8,7 +8,7 @@
 | 项 | 说明 |
 |---|---|
 | CC 插件壳 | `dist/claude-plugin/<ver>/`：`.claude-plugin/plugin.json`、`hooks/hooks.json`（9 事件 → `${CLAUDE_PLUGIN_ROOT}/gate/hook.cjs --platform cc`）、vendored `gate/`（与 `dist/athena` 同字节）、`bin/athena`、skills + agents；宪法经 SessionStart 注入（`ATHENA_CONSTITUTION`） |
-| Codex 插件壳 | `dist/codex-plugin/<ver>/`：`plugin.json`（`extensions["com.openai"].hooks`）、`hooks/hooks.json` → `${PLUGIN_ROOT}/gate/hook.cjs --platform cx`、vendored `gate/`、skills；hooks 须在 `/hooks` 受信 |
+| Codex 插件壳 | `dist/codex-plugin/<ver>/`：候选 `plugin.json`（portable 协议待解决）、`hooks/hooks.json` → `${PLUGIN_ROOT}/gate/hook.cjs --platform cx`、vendored `gate/`、skills；hooks 须在 `/hooks` 受信 |
 | Pi 硬 Stop | `agent_before_settle` → `{entries, continue: true}`；同因熔断上限；Pi < 0.87 回退 followUp。codemode 外层放行、脚本内工具照常过门；peer `*` |
 | `athena run --rebind` | 当前树重跑最后一条 test/typecheck 证据，记新 tree_sha；失败不记 PASS |
 | `athena writer dispatch/collect` | worktree + `external-writer.json` + `parallel_writers`；merge-tree 探冲突、`--ff-only`、还原 |
@@ -19,6 +19,9 @@
 ### 修复
 - G-018：嵌套 worktree 的 `<wt>/.ai_state/…` 被算实现写入 → 按任一已登记 worktree 根的 `.ai_state` 排除；worktree 内源码无 AC 仍拦。
 - 报错带修法：`run` 不可证明、`review accept` 拒收、covers 格式错时 stderr 给修正样例与下一步命令。
+- 复核修复：rebind 改用完整执行参数去重，补 AC 覆盖时实际重跑；status 校验 design 引用的 roadmap item。
+- writer 绑定目标 checkout/ref；自动 FF 前拒绝写者对主仓状态的更改，允许 rebase 继承主 agent 状态；提示记账与实现同交。
+- 插件模板路径按形态渲染，CC agents 优先随包 CLI，避免调用旧的全局 Athena。
 
 ### 提示词 v3
 - 宪法：「完成」改点名早停形态 + 末段自检；范围即交付物；例行 athena 命令预授权；进度更新一句。
@@ -36,8 +39,8 @@
 - 黄区默认改为主 agent 直做；新装不再带包内模型 / effort 默认（已装用户配置不变）。
 
 ### 已知取舍与未做
-- 行为评测（D-014）、探针 P1–P8 未跑，待本机；插件清单未经 `claude plugin validate` / Codex 实装；Pi 扩展只做了类型检查。
-- 插件形态未自足：skills / agents 正文仍写安装器路径；同端不可双装。
+- CC 2.1.289 validate / details 通过；CX 0.160.0 临时安装及 skills/hooks 发现通过，但 portable schema 原生加载 0 hooks，发布阻塞。P1/P2/P3/P5/P7/P8 与行为评测（D-014）仍待验证。
+- 插件 templates / CC CLI 路径已修复；path-scoped rules 与全局配置仍按设计由安装器提供；同端不可双装。
 - Stop 三连拦熔断保留。
 
 ### 回滚
@@ -46,7 +49,7 @@
 | 本机安装 | `athena rollback` |
 | 插件形态 | 停用 / 卸载插件 |
 | 项目 `.ai_state` | 不需要（未改） |
-| 源码 | 10.1.0 `f4af800`；10.5 基线 `1c1cd73` |
+| 源码 | 10.1.0 `f4af800`；10.1.5 基线 `1c1cd73` |
 
 ## 10.1 — 单一门禁核 + 状态 v2 + 提示词 v2（2026-09-24）
 

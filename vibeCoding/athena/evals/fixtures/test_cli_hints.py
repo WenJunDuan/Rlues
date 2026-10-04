@@ -1,4 +1,4 @@
-"""Refusals carry the fix (athena-10-5 S1 AC2): `athena run` unprovable records print a provable
+"""Refusals carry the fix (athena-10-1-5 S1 AC2): `athena run` unprovable records print a provable
 form, a malformed --covers prints a corrected sample, every `review accept` refusal ends with
 `next: <command>`. Exit codes and what is accepted stay as they were."""
 import json

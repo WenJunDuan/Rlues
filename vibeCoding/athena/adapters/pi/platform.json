@@ -3,7 +3,8 @@
   "package_root": "",
   "core": false,
   "vars": {
-    "SKILLS_DIR": "~/.athena/current/pi/plugin/skills"
+    "SKILLS_DIR": "~/.athena/current/pi/plugin/skills",
+    "TEMPLATES_DIR": "~/.athena/current/pi/plugin/core/gate/templates"
   },
   "gate_root": "plugin/core/gate",
   "core_map": {

@@ -1,6 +1,6 @@
 # `.ai_state` 迁移指南：v1（9.9.x）→ v2（10.1）
 
-读者：执行迁移的 AI agent。前提：Athena 10.1 或更高（当前 10.5，状态 schema 未变）已按 `INSTALL.md` 装好（或用 `node vibeCoding/dist/athena/<ver>/cli.cjs` 代替 `athena`）。
+读者：执行迁移的 AI agent。前提：Athena 10.1 或更高（当前 10.1.5，状态 schema 未变）已按 `INSTALL.md` 装好（或用 `node vibeCoding/dist/athena/<ver>/cli.cjs` 代替 `athena`）。
 
 **授权**：真实迁移会移动文件、打 tag、暂存改动；先给用户看 dry-run 报告并取得同意。删除 `.runtime` 文件、推送需再次确认。
 

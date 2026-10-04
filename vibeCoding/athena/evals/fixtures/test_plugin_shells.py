@@ -1,4 +1,4 @@
-"""athena-10-5 S3: Claude Code / Codex plugin shells (build outputs), constitution injection for the
+"""athena-10-1-5 S3: Claude Code / Codex plugin shells (build outputs), constitution injection for the
 plugin form (ATHENA_CONSTITUTION), and the plugin section of `athena doctor`.
 
 The manifests are checked against the fields this repo relies on only; neither `claude plugin validate`
@@ -121,7 +121,8 @@ class PluginShells(unittest.TestCase):
         for label, plugin, installer in (('cc', plugin_cc, cc), ('cx', plugin_cx, cx)):
             self.assertEqual({k for k in plugin if k.startswith('skills/')}, {k for k in installer if k.startswith('skills/')}, label)
         agents = {k: v for k, v in plugin_cc.items() if k.startswith('agents/')}
-        self.assertEqual(agents, {k: v for k, v in cc.items() if k.startswith('agents/')})
+        self.assertEqual({k: v.replace(b'${CLAUDE_PLUGIN_ROOT}/bin', b'$HOME/.athena/bin') for k, v in agents.items()},
+                         {k: v for k, v in cc.items() if k.startswith('agents/')})
         self.assertTrue(agents)
         self.assertFalse([k for k in plugin_cx if k.startswith('agents/') or k.endswith('.toml') or k == 'AGENTS.md'], 'no Codex agents / config / AGENTS.md')
         self.assertFalse([k for k in plugin_cc if k == 'CLAUDE.md' or k.startswith('rules/') or k == 'settings.json'])
@@ -142,6 +143,20 @@ class PluginShells(unittest.TestCase):
             self.assertIn('athena install', text)
         self.assertIn('--plugin-dir', (out('claude-plugin') / 'README.md').read_text(encoding='utf-8'))
         self.assertIn('/hooks', (out('codex-plugin') / 'README.md').read_text(encoding='utf-8'))
+
+    def test_plugin_templates_and_agent_cli_use_the_bundled_files(self):
+        for name, var in [('claude-plugin', '${CLAUDE_PLUGIN_ROOT}'), ('codex-plugin', '${PLUGIN_ROOT}')]:
+            for skill, template in [('athena-requirements/SKILL.md', 'requirement.md'),
+                                    ('pace/references/decisions.md', 'decision.md'),
+                                    ('roadmap/references/playbook.md', 'roadmap.md')]:
+                text = (out(name) / 'skills' / skill).read_text()
+                self.assertNotIn('~/.athena/current/templates', text)
+                self.assertIn(f'{var}/gate/templates/{template}', text)
+                self.assertTrue((out(name) / 'gate/templates' / template).is_file())
+        for role in ['generator', 'reviewer']:
+            text = (out('claude-plugin') / f'agents/{role}.md').read_text()
+            self.assertIn('export PATH="${CLAUDE_PLUGIN_ROOT}/bin:$PATH"', text)
+            self.assertNotIn('$HOME/.athena/bin', text)
 
     def test_bin_athena_runs_from_the_built_plugin(self):
         shim = out('claude-plugin') / 'bin/athena'
@@ -314,7 +329,7 @@ class DoctorPluginForms(unittest.TestCase):
     def doctor(self, home):
         return athena('doctor', '--home', str(home), cwd=home)
 
-    def plugin(self, home, platform, version='10.5.0', name='athena'):
+    def plugin(self, home, platform, version='10.1.5', name='athena'):
         if platform == 'cc':
             manifest = home / '.claude/plugins/cache/local/athena' / version / '.claude-plugin/plugin.json'
         else:
@@ -335,7 +350,7 @@ class DoctorPluginForms(unittest.TestCase):
     def test_plugins_are_reported_with_versions(self):
         home = tmpdir(self)
         self.plugin(home, 'cc')
-        self.plugin(home, 'cx', version='10.5.1')
+        self.plugin(home, 'cx', version='10.1.6')
         other = home / '.claude/plugins/cache/local/other/1.0.0/.claude-plugin/plugin.json'
         other.parent.mkdir(parents=True)
         other.write_text(json.dumps({'name': 'other', 'version': '1.0.0'}), encoding='utf-8')
@@ -345,8 +360,8 @@ class DoctorPluginForms(unittest.TestCase):
         run = self.doctor(home)
         self.assertEqual(run.returncode, 0, run.stdout)
         self.assertNotIn('FAIL', run.stdout, 'plugin form only is not "not installed"')
-        self.assertIn('ok   plugin cc: athena 10.5.0 at ~/.claude/plugins/cache/local/athena/10.5.0', run.stdout)
-        self.assertIn('ok   plugin cx: athena 10.5.1 at ~/.codex/plugins/cache/local/athena/10.5.1', run.stdout)
+        self.assertIn('ok   plugin cc: athena 10.1.5 at ~/.claude/plugins/cache/local/athena/10.1.5', run.stdout)
+        self.assertIn('ok   plugin cx: athena 10.1.6 at ~/.codex/plugins/cache/local/athena/10.1.6', run.stdout)
         self.assertNotIn('other', run.stdout)
         self.assertIn('WARN cc: plugin form only', run.stdout)
         self.assertIn('WARN cx: plugin form only', run.stdout)

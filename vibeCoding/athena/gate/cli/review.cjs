@@ -19,7 +19,7 @@ const USAGE = `usage:
 const VERDICTS = new Set(['PASS', 'CONCERNS', 'REWORK', 'FAIL']);
 const DIMENSIONS = ['spec coverage (MISSING/EXTRA/DEVIATED per AC)', 'correctness', 'security', 'test risk', 'over-engineering'];
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
-// Every refusal of `accept` carries the corrected line format and the next command (10.5 S1):
+// Every refusal of `accept` carries the corrected line format and the next command (10.1.5 S1):
 // guidance in the tool output is read at the moment it is needed.
 const SAMPLE = '- [P2] src/app.js:42 — <what is wrong>\n- [P3] evidence:<id> — <text>   (also packet:— / design:AC1)\nVERDICT: CONCERNS   (exactly one line, one of PASS|CONCERNS|REWORK|FAIL, no markup)';
 const PREPARE = 'athena review prepare';

@@ -1,4 +1,4 @@
-# 门禁（Athena 10.5）
+# 门禁（Athena 10.1.5）
 
 一个 JS 门禁核（`~/.athena/current/hook.cjs`），三端同一套规则。硬门 fail-closed：拦下并给 reason；提示项只 warn。规则表见 [stages.md](stages.md)。
 

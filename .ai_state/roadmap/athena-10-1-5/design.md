@@ -1,21 +1,21 @@
 ---
-roadmap_slug: athena-10-5
+roadmap_slug: athena-10-1-5
 created: "2026-10-04"
 status: in_progress
 author: claude (cowork, fable-5.1)
-reviewer: 待定（计划 codex gpt-6.1-sol）
+reviewer: "Codex 独立 reviewer /root/final_review；复核回执 821347d5"
 ---
-# Athena 10.5 设计 — 「插件就绪」
+# Athena 10.1.5 设计 — 「插件就绪」
 
-> 情报与取舍全文：项目文档 `claude/athena-10.5-iteration-plan.md`；情报快照：`.ai_state/docs/research/2026-10-04-radar.md`。
-> 基线 `1c1cd73`（VERSION 10.1.0 + 26 提交）。分支 `athena-10.5`。
+> 情报与取舍全文：外部项目文档 `claude/athena-10.1.5-iteration-plan.md`（本仓未提供）；情报快照：`.ai_state/docs/research/2026-10-04-radar.md`。
+> 基线 `1c1cd73`（VERSION 10.1.0 + 26 提交）。分支 `athena-10.1.5`。
 
 ## 0. 定位
 
 | 版本 | 内容 |
 |---|---|
-| 10.5（本版） | 三端各出可装的插件壳（门禁核仍是同一个 `hook.cjs`）+ 实撞 MUST + 提示词 v3 + Pi 硬 Stop |
-| 下一版 | CC 门禁迁入 mod function hooks + 三端上架。做到 = 用户定的新版本号；做不到切内核 = 10.6 |
+| 10.1.5（本版） | 三端各出可装的插件壳（门禁核仍是同一个 `hook.cjs`）+ 实撞 MUST + 提示词 v3 + Pi 硬 Stop |
+| 下一版 | CC 门禁迁入 mod function hooks + 三端上架。下一版版本号由用户另定 |
 
 不变量：H1–H5 语义、`.ai_state` schema v2、`athena run` 的可证明边界、证据绑树 sha、一轮审查 → 消解 → 最小复核。
 
@@ -45,7 +45,7 @@ dist/
 
 ### 1.2 插件带不走什么（事实来源见 radar；本机未验证的标待验证）
 
-| 端 | 带不走 | 10.5 处置 |
+| 端 | 带不走 | 10.1.5 处置 |
 |---|---|---|
 | CC | CLAUDE.md、path-scoped rules | 宪法由 SessionStart hook 注入（插件内 `gate/constitution.md`）；rules 留安装器 |
 | Codex | `config.toml`、AGENTS.md；agents 能否随插件分发待验证 | 留安装器；插件 hook 装后须在 `/hooks` 受信 |
@@ -116,3 +116,7 @@ dist/
 | Pi 扩展 `.ts` 在此环境无法加载实跑 | 逻辑下沉到 `pi.cjs`（可测），扩展只做薄转发；S6 实跑 |
 | `agent_before_settle` 返回值字段名取自 Pi 仓库文档 | 同上 |
 | writer collect 涉及 git 合并 | 只做 `merge-tree` 探测 + `--ff-only`；有冲突即停，不自动解 |
+
+## 本轮复核边界（2026-10-04）
+
+版本按用户纠正为 10.1.5。S1/S2/S3 实现缺陷的局部修复详见复核报告；不改 H1–H5 或 schema。CC 清单/组件发现已验证，CX 原生 portable 清单协议阻塞 U-001，原清单只确认默认组件发现；因此 S3、S6、S7 保持未完成，不能将本次 review/debug 收尾当成版本发布。

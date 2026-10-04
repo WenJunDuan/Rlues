@@ -1,4 +1,4 @@
-"""athena writer dispatch / collect / status on real git repos (athena-10-5 S2 AC5)."""
+"""athena writer dispatch / collect / status on real git repos (athena-10-1-5 S2 AC5)."""
 import hashlib
 import json
 from pathlib import Path
@@ -161,7 +161,8 @@ class WriterCollect(unittest.TestCase):
         head, before = git(root, 'rev-parse', 'HEAD').stdout, snapshot(root)
         run = refused(self, athena('writer', 'collect', cwd=root))
         self.assertIn(f'git -C {root} merge --no-ff writer/s-x-grok', run.stderr)
-        self.assertIn(f'next: git -C {root} commit', run.stderr)  # sprint state is staged: git would refuse the merge
+        self.assertIn(f'next: git -C {root} status', run.stderr)  # sprint state is staged: git would refuse the merge
+        self.assertIn('commit staged state together with implementation', run.stderr)
         self.assertEqual((git(root, 'rev-parse', 'HEAD').stdout, snapshot(root)), (head, before))  # no merge commit made
         git(root, 'commit', '-qm', 'chore: athena state')
         self.assertIn(f'next: git -C {root} merge --no-ff writer/s-x-grok', refused(self, athena('writer', 'collect', cwd=root)).stderr)
@@ -181,6 +182,43 @@ class WriterCollect(unittest.TestCase):
         self.assertIn('uncommitted changes', refused(self, athena('writer', 'collect', cwd=root)).stderr)
         self.assertEqual(git(root, 'rev-parse', 'HEAD').stdout, head)
         self.assertEqual(record(root)['status'], 'dispatched')
+
+    def test_collect_refuses_a_different_target_branch(self):
+        root, wt = self.root, self.wt
+        original = git(root, 'symbolic-ref', '--short', 'HEAD').stdout.strip()
+        writer_commit(wt)
+        git(root, 'switch', '-c', 'other-work')
+        before, head = snapshot(root), git(root, 'rev-parse', 'HEAD').stdout
+        run = refused(self, athena('writer', 'collect', cwd=root))
+        self.assertIn('target branch changed', run.stderr)
+        self.assertEqual(snapshot(root), before)
+        self.assertEqual(git(root, 'rev-parse', 'HEAD').stdout, head)
+        self.assertTrue(wt.exists())
+        git(root, 'switch', original)
+        ok(self, athena('writer', 'collect', cwd=root))
+
+    def test_collect_refuses_writer_changes_to_main_state(self):
+        root, wt = self.root, self.wt
+        writer_commit(wt, '.ai_state/queue.md', '# External rewrite\n')
+        before, head = snapshot(root), git(root, 'rev-parse', 'HEAD').stdout
+        run = refused(self, athena('writer', 'collect', cwd=root))
+        self.assertIn('.ai_state/queue.md', run.stderr)
+        self.assertEqual(snapshot(root), before)
+        self.assertEqual(git(root, 'rev-parse', 'HEAD').stdout, head)
+        self.assertEqual(record(root)['status'], 'dispatched')
+        self.assertTrue(wt.exists())
+
+    def test_rebased_writer_can_inherit_main_agents_state_commit(self):
+        root, wt = self.root, self.wt
+        writer_commit(wt)
+        (root / 'main.js').write_text('module.exports = 3;\n')
+        git(root, 'add', 'main.js')  # commit the staged sprint state with implementation
+        git(root, 'commit', '-qm', 'main implementation and state')
+        head = git(root, 'rev-parse', 'HEAD').stdout.strip()
+        git(wt, 'rebase', head)
+        ok(self, athena('writer', 'collect', cwd=root))
+        self.assertEqual((root / 'main.js').read_text(), 'module.exports = 3;\n')
+        self.assertEqual(record(root)['status'], 'collected')
 
     def test_parallel_writers_above_two_is_kept_and_restored(self):
         root = v2project(tmpdir(self), 'three')

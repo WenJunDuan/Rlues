@@ -4,7 +4,9 @@
   "core": false,
   "gate_root": "gate",
   "vars": {
-    "SKILLS_DIR": "${CLAUDE_PLUGIN_ROOT}/skills"
+    "SKILLS_DIR": "${CLAUDE_PLUGIN_ROOT}/skills",
+    "TEMPLATES_DIR": "${CLAUDE_PLUGIN_ROOT}/gate/templates",
+    "ATHENA_BIN_DIR": "${CLAUDE_PLUGIN_ROOT}/bin"
   },
   "core_map": {
     "AGENTS.md": "constitution.md",

@@ -1,0 +1,10 @@
+sprint: "2026-10-04-athena-10-1-5-review"
+shipped: "2026-10-04T16:12:27.954Z"
+tree_sha: "fba7d9a2dab1e9fd987f7edd22e54c40e5e3f553"
+review: {run: "821347d5-22e8-4f39-a9c4-a880eed839e5", verdict: "PASS"}
+final: {id: "d51da1b54166", command: "python3 -m unittest discover -s /Users/mi_manchi/workspace/Rlues/.ai_state/sprints/2026-10-04-athena-10-1-5-review -p test_native_plugins.py -q", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "当前迭代源码、说明、roadmap 与构建 manifest 的版本统一为 10.1.5；不残留误写版本引用，构建与检查通过。", evidence: ["10e4c929ec9e"]}
+  - {id: AC2, text: "审查确认的门禁、证据、writer 与插件行为缺陷有先失败后通过的回归验证；既有 fixture 全量通过，环境限制逐项据实记录。", evidence: ["9b7b3e894843","10e4c929ec9e"]}
+  - {id: AC3, text: "按原 S1–S5 设计完成独立审查并处理发现，CC 插件真实 validate 和可执行本机探针有结果；需要平台会话或付费调用的未验证项仍明确待验证。", evidence: ["9b7b3e894843","10e4c929ec9e","d51da1b54166"]}
+  - {id: AC4, text: "当前架构入口、迭代尾项、发布声明反映实际源码与验证结果；不将待发布或未运行的行为评测标为完成。", evidence: ["854f89ce2f4d"]}

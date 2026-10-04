@@ -1,5 +1,5 @@
 /**
- * athena-pace · 门禁适配（athena-10.5 S4）
+ * athena-pace · 门禁适配（athena-10.1.5 S4）
  *
  * 进程内调用 vendored 门禁核 `../core/gate/hook.cjs`（与 ~/.athena/<ver>/ 同字节，由 build.mjs 生成）:
  *   tool_call           → pre_tool  （H1 设计先行 / H5 shell 安全）→ {block, reason}

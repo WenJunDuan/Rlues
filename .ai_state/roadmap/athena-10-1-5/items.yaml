@@ -1,50 +1,55 @@
-roadmap_slug: athena-10-5
+roadmap_slug: athena-10-1-5
 created: 2026-10-04
 total_items: 7
 items:
   - slug: s1-gate-fixes
     title: "G-018 嵌套 worktree、报错自带修法、run --rebind、gate issue 进上游 FEEDBACK"
-    status: active
-    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
+    status: done
+    note: "实现、局部修复与独立复审通过；R9 的 node/SSH 分支均有回归"
+    done: {after: "d22d135", review: "821347d5-22e8-4f39-a9c4-a880eed839e5"}
     path: Feature
     depends_on: []
     ac: ["AC1", "AC2", "AC3"]
   - slug: s2-status-writer
     title: "status AC 矩阵 + ship 预检；athena writer dispatch/collect"
-    status: active
-    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
+    status: done
+    note: "实现与 R2–R5/R8 修复完成，独立复审通过"
+    done: {after: "d22d135", review: "821347d5-22e8-4f39-a9c4-a880eed839e5"}
     path: Feature
     depends_on: []
     ac: ["AC4", "AC5"]
   - slug: s3-plugin-shells
     title: "CC / Codex 插件壳构建产物 + doctor"
     status: active
-    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
+    note: "构建、模板和 CLI 路径已修；CC 原生发现通过，CX portable 协议阻塞 U-001，尚未完成"
     path: System
     depends_on: []
     ac: ["AC6"]
   - slug: s4-pi-hard-stop
     title: "Pi agent_before_settle 硬停 + 1.x peer"
-    status: active
-    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
+    status: done
+    note: "适配层 fixture 与本机 Pi 1.0.2 类型检查通过；真实 Pi P3/P7 属 S6 待验证"
+    done: {after: "d22d135", review: "821347d5-22e8-4f39-a9c4-a880eed839e5"}
     path: Feature
     depends_on: []
     ac: ["AC7"]
   - slug: s5-prompts-v3
     title: "宪法与 rules 按 2026-09 模型指南重写；黄区默认直做"
-    status: active
-    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
+    status: done
+    note: "源码、规则出处及三端同文 fixture 已核对；模型行为质量对照仍属 S6/D-014"
+    done: {after: "d22d135", review: "821347d5-22e8-4f39-a9c4-a880eed839e5"}
     path: Feature
     depends_on: []
     ac: ["AC8"]
   - slug: s6-probes-eval
     title: "P1–P8 探针 + 行为评测基线（需本机 CLI）"
-    status: pending
+    status: active
+    note: "P4/P6 组件验证和 Pi 类型检查已跑；U-001、真实工具事件、行为评测未完成"
     path: Feature
     depends_on: [s3-plugin-shells, s4-pi-hard-stop]
     ac: ["AC10"]
   - slug: s7-release
-    title: "VERSION 10.5.0、RELEASE、tag、装机（不可逆，用户确认）"
+    title: "VERSION 10.1.5、RELEASE、tag、装机（不可逆，用户确认）"
     status: pending
     path: System
     depends_on: [s1-gate-fixes, s2-status-writer, s3-plugin-shells, s4-pi-hard-stop, s5-prompts-v3, s6-probes-eval]

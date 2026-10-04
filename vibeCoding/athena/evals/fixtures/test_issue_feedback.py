@@ -1,5 +1,5 @@
 """`athena issue add --type gate` also appends one row to the configured upstream FEEDBACK.md
-(athena-10-5 S1): env ATHENA_FEEDBACK or `feedback` in ~/.athena/config.json. Best-effort:
+(athena-10-1-5 S1): env ATHENA_FEEDBACK or `feedback` in ~/.athena/config.json. Best-effort:
 no config, a missing file or a write error leave exit 0 and one warning line."""
 import datetime
 import json

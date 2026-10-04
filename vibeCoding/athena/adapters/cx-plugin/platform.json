@@ -4,7 +4,8 @@
   "core": false,
   "gate_root": "gate",
   "vars": {
-    "SKILLS_DIR": "${PLUGIN_ROOT}/skills"
+    "SKILLS_DIR": "${PLUGIN_ROOT}/skills",
+    "TEMPLATES_DIR": "${PLUGIN_ROOT}/gate/templates"
   },
   "core_map": {
     "skills/": "skills/"

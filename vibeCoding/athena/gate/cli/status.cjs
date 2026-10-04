@@ -63,6 +63,14 @@ function precheck(ctx, sha, ignore, acs) {
     const problems = archive.archiveProblems(ctx, ctx.sprint);
     if (problems.length) add('archive', problems.join('; '), 'athena ship --dry-run');
   });
+  guard('roadmap', () => {
+    const fm = frontmatter.parse(fs.readFileSync(path.join(ctx.sprintDir, 'design.md'), 'utf8'));
+    const roadmap = String(fm.roadmap || ''), item = String(fm.item || '');
+    const file = roadmap && item ? state.itemsFile(ctx.aiState, roadmap) : null;
+    if (file && (!fs.existsSync(file) || !state.readItems(file).items.some(it => it.slug === item))) {
+      add('roadmap', `design names ${roadmap}/${item} but roadmap/${roadmap}/items.yaml has no such item`, 'restore the design/item link, then athena ship --dry-run');
+    }
+  });
   // ship only warns about these (it never refuses on them), so they are not blockers
   const uncovered = acs.filter(a => a.state !== 'covered').map(a => a.id);
   return { ok: !blockers.length, tree_sha: sha || null, stage: ctx.stage, blockers, uncovered };

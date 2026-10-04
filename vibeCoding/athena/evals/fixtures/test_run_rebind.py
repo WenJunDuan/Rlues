@@ -1,11 +1,12 @@
-"""`athena run --rebind` (athena-10-5 S1 AC3): after an edit the sprint's latest provable PASS
+"""`athena run --rebind` (athena-10-1-5 S1 AC3): after an edit the sprint's latest provable PASS
 test/typecheck commands are RE-RUN on the current tree and recorded anew with the same covers and
 env. A PASS is never copied: every new PASS record corresponds to a real execution."""
 import json
+import os
 from pathlib import Path
 import unittest
 
-from gate_harness import GOOD_DESIGN, athena, check_file, project, tmpdir
+from gate_harness import ENV, GOOD_DESIGN, athena, check_file, project, tmpdir
 
 SPRINT = '2026-09-24-s'
 
@@ -102,18 +103,95 @@ class Rebind(unittest.TestCase):
         self.assertIn('0 re-run, 1 already on this tree', run.stderr)
         self.assertEqual((len(records(self.root)), len(counter.read_text().split())), (1, 1))
 
+    def test_later_failure_on_same_tree_requires_a_real_rerun(self):
+        target, counter = self.probe('external')
+        script = Path(target)
+        passing = script.read_text()
+        command = ('run', '--covers', 'AC1', '--', 'node', '--test', target)
+        self.assertEqual(athena(*command, cwd=self.root).returncode, 0)
+        old_tree = records(self.root)[-1]['tree_sha']
+        script.write_text(passing.replace('=== 3', '=== 1'))
+        self.assertNotEqual(athena(*command, cwd=self.root).returncode, 0)
+        self.assertEqual(records(self.root)[-1]['tree_sha'], old_tree)
+        run = self.rebind()
+        self.assertEqual(run.returncode, 1, run.stderr)
+        self.assertIn('1 re-run, 0 already on this tree, 1 failed', run.stderr)
+        self.assertEqual(len(counter.read_text().split()), 3)
+        script.write_text(passing)
+        self.assertEqual(self.rebind().returncode, 0)
+        self.assertEqual((records(self.root)[-1]['exit'], records(self.root)[-1]['covers']), (0, ['AC1']))
+        self.assertEqual(len(counter.read_text().split()), 4)
+        self.assertEqual(self.rebind().returncode, 0)
+        self.assertEqual(len(counter.read_text().split()), 4, 'a newer PASS permits skipping again')
+
+    def test_current_pass_without_covers_reruns_to_restore_ac_coverage(self):
+        target, counter = self.probe('coverage')
+        self.assertEqual(athena('run', '--covers', 'AC1', '--', 'node', '--test', target, cwd=self.root).returncode, 0)
+        self.edit()
+        self.assertEqual(athena('run', '--', 'node', '--test', target, cwd=self.root).returncode, 0)
+        run = self.rebind()
+        self.assertEqual(run.returncode, 0, run.stderr)
+        status = json.loads(athena('status', '--json', cwd=self.root).stdout)
+        self.assertEqual(status['acs'][0]['state'], 'covered')
+        self.assertEqual(records(self.root)[-1]['covers'], ['AC1'])
+        self.assertEqual(len(counter.read_text().split()), 3, 'restoring coverage must execute the check')
+
+    def test_later_unregistered_ssh_attempt_cannot_reuse_a_registered_pass(self):
+        bin_dir, task_home = self.tmp / 'bin', self.tmp / 'home'
+        bin_dir.mkdir()
+        (task_home / '.athena').mkdir(parents=True)
+        vm_file = task_home / '.athena/vm.json'
+        vm_json = json.dumps({'vms': [{'name': 'dev', 'host': '10.0.0.5', 'user': 'root'}]})
+        vm_file.write_text(vm_json)
+        ssh, counter = bin_dir / 'ssh', self.tmp / 'ssh.count'
+        script = '#!/usr/bin/env node\n' + f"require('fs').appendFileSync({json.dumps(str(counter))}, 'run\\n');\n"
+        ssh.write_text(script + 'process.exit(0);\n')
+        ssh.chmod(0o755)
+        env = {'HOME': str(task_home), 'PATH': f"{bin_dir}{os.pathsep}{ENV['PATH']}"}
+        command = ('run', '--covers', 'AC1', '--', 'ssh', 'root@10.0.0.5', 'npm test')
+        self.assertEqual(athena(*command, cwd=self.root, env=env).returncode, 0)
+        old_tree = records(self.root)[-1]['tree_sha']
+        vm_file.unlink()
+        ssh.write_text(script + 'process.exit(1);\n')
+        self.assertEqual(athena(*command, cwd=self.root, env=env).returncode, 1)
+        self.assertEqual((records(self.root)[-1]['kind'], records(self.root)[-1]['tree_sha']), ('other', old_tree))
+        run = athena('run', '--rebind', cwd=self.root, env=env)
+        self.assertEqual(run.returncode, 1, run.stderr)
+        self.assertIn('1 re-run, 0 already on this tree, 1 failed', run.stderr)
+        ssh.write_text(script + 'process.exit(0);\n')
+        self.assertEqual(athena('run', '--rebind', cwd=self.root, env=env).returncode, 1, 'unregistered exit 0 is still unprovable')
+        vm_file.write_text(vm_json)
+        self.assertEqual(athena('run', '--rebind', cwd=self.root, env=env).returncode, 0)
+        self.assertEqual(len(counter.read_text().split()), 5)
+
     def test_record_without_argv_is_not_replayed_or_copied(self):
         target, counter = self.probe('a')
         self.assertEqual(athena('run', '--covers', 'AC1', '--', 'node', '--test', target, cwd=self.root).returncode, 0)
         path = self.root / '.ai_state/.runtime/evidence' / f'{SPRINT}.jsonl'
         row = json.loads(path.read_text())
         self.assertEqual(row.pop('argv'), ['node', '--test', target])
-        path.write_text(json.dumps(row) + '\n')  # a record written before 10.5
+        path.write_text(json.dumps(row) + '\n')  # a record written before 10.1.5
         self.edit()
         run = self.rebind()
         self.assertEqual(run.returncode, 1)
         self.assertIn(f'athena run --covers AC1 -- node --test {target}', run.stderr)
         self.assertEqual((len(records(self.root)), len(counter.read_text().split())), (1, 1))
+
+    def test_long_commands_do_not_merge_distinct_checks(self):
+        long_dir = self.tmp.joinpath(*(['segment-' + 'x' * 170] * 3))
+        long_dir.mkdir(parents=True)
+        counters = []
+        for name, ac in [('a', 'AC1'), ('b', 'AC2')]:
+            original, counter = self.probe(name)
+            target = long_dir / f'{name}.test.cjs'
+            target.write_text(Path(original).read_text())
+            counters.append(counter)
+            self.assertEqual(athena('run', '--covers', ac, '--', 'node', '--test', str(target), cwd=self.root).returncode, 0)
+        self.edit()
+        run = self.rebind()
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual([len(p.read_text().split()) for p in counters], [2, 2])
+        self.assertEqual([r['covers'] for r in records(self.root)[-2:]], [['AC1'], ['AC2']])
 
     def test_usage(self):
         target, _ = self.probe('a')

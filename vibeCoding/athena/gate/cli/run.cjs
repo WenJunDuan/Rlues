@@ -243,12 +243,8 @@ function execute(opts, io) {
   return { exit, record };
 }
 
-/**
- * Re-validate after an edit: the latest provable PASS test/typecheck record of each distinct
- * command (command + cwd) is re-run on the current tree and recorded anew, covers carried
- * over. A command already PASS on this tree is skipped; a re-run that fails or turns
- * unprovable is recorded as such and makes the whole rebind exit 1.
- */
+// Re-run commands with a historical PASS, carrying covers. Skip only if the latest attempt
+// is already a provable PASS on this tree; any failed/unprovable replay makes rebind exit 1.
 function rebind(io) {
   const ctx = context.load(io.cwd);
   if (!ctx || !ctx.sprint) { io.stderr.write('[athena run] --rebind: no active sprint, nothing to rebind\n'); return 2; }
@@ -256,11 +252,15 @@ function rebind(io) {
   const tree = treeSha(ctx.root, ignore);
   const latest = new Map();
   for (const row of evidence.read(ctx)) {
-    if (row.source !== 'run' || !REBIND_KINDS.has(row.kind) || row.provable !== true || row.exit !== 0) continue;
-    const key = `${row.command}\0${row.cwd}`;
-    const covers = [...new Set([...((latest.get(key) || {}).covers || []), ...(row.covers || [])])];
+    if (row.source !== 'run') continue;
+    // `command` is display text (bounded to 500 chars), not a replay identity.
+    const key = JSON.stringify([row.argv || row.id, row.cwd, Object.entries(row.env || {}).sort()]);
+    const passed = REBIND_KINDS.has(row.kind) && row.provable === true && row.exit === 0;
+    if (!passed && !latest.has(key)) continue;
+    // Retain later failed/unprovable attempts so they cannot reuse an older same-tree PASS.
+    const covers = [...new Set([...((latest.get(key) || {}).covers || []), ...(passed ? row.covers || [] : [])])];
     latest.delete(key); // re-insert: iteration order = order of the latest record
-    latest.set(key, { row, covers });
+    latest.set(key, { row, covers, passed });
   }
   if (!latest.size) {
     io.stderr.write('[athena run] --rebind: no provable PASS test/typecheck record in this sprint; run `athena run --covers AC1 -- <cmd…>` first\n');
@@ -268,11 +268,12 @@ function rebind(io) {
   }
   const failed = [];
   let rerun = 0, kept = 0;
-  for (const { row, covers } of latest.values()) {
-    if (row.tree_sha === tree && JSON.stringify(row.ignore || []) === JSON.stringify(ignore)) { kept += 1; continue; }
+  for (const { row, covers, passed } of latest.values()) {
+    if (passed && row.tree_sha === tree && JSON.stringify(row.ignore || []) === JSON.stringify(ignore)
+        && covers.every(ac => (row.covers || []).includes(ac))) { kept += 1; continue; }
     const cwd = path.resolve(ctx.root, row.cwd || '.');
     if (!Array.isArray(row.argv) || !row.argv.length || !fs.existsSync(cwd)) {
-      // No exact argv (recorded before 10.5, or redacted) or its cwd is gone: never guess a replay.
+      // No exact argv (recorded before 10.1.5, or redacted) or its cwd is gone: never guess a replay.
       io.stderr.write(`[athena run] rebind SKIPPED evidence ${row.id}: not replayable; run it again by hand: athena run${covers.length ? ` --covers ${covers.join(',')}` : ''} -- ${row.command}\n`);
       failed.push(row.command);
       continue;

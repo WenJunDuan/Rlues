@@ -94,6 +94,7 @@ function dispatch(argv, io) {
     schema: 1, external: true, status: 'dispatched', sprint: ctx.sprint,
     tool: f.tool, family: f.family, model: f.model || '',
     base_commit: head.out, branch, worktree, target: ctx.root,
+    target_ref: git(ctx.root, ['symbolic-ref', '-q', 'HEAD']).out,
     ...(brief ? { brief_sha256: brief } : {}),
     parallel_writers_before: before === undefined ? null : before,
     dispatched_at: new Date().toISOString(),
@@ -137,7 +138,12 @@ function collect(argv, io) {
   const rec = load(ctx);
   if (!rec) throw new Refusal(`no external writer recorded for ${ctx.sprint}`, DISPATCH);
   if (rec.status !== 'dispatched') throw new Refusal(`the writer record is already ${rec.status} (head ${String(rec.head || '').slice(0, 12)})`, 'athena writer status');
-  const target = fs.existsSync(String(rec.target || '')) ? rec.target : ctx.root; // merge where the dispatch branched
+  const target = rec.target; // merge only into the checkout and branch that dispatched
+  if (!target || !fs.existsSync(target)) throw new Refusal('dispatch target checkout no longer exists', 'athena writer status');
+  if (git(target, ['symbolic-ref', '-q', 'HEAD']).out !== rec.target_ref) {
+    throw new Refusal('target branch changed since dispatch; nothing merged',
+      `git -C ${target} switch ${rec.target_ref ? rec.target_ref.replace(/^refs\/heads\//, '') : `--detach ${rec.base_commit}`}`);
+  }
   const again = 'athena writer collect';
   const tip = git(target, ['rev-parse', '--verify', '--quiet', `refs/heads/${rec.branch}^{commit}`]);
   if (tip.status !== 0) throw new Refusal(`writer branch ${rec.branch} does not exist`, `git -C ${target} branch --list`);
@@ -155,6 +161,12 @@ function collect(argv, io) {
   let how;
   if (ancestor(tip.out, head)) how = 'already-merged'; // the main agent ran the --no-ff merge itself
   else if (ancestor(head, tip.out)) {
+    // Only the delta about to be merged matters: a rebase may inherit the main agent's state commits.
+    const stateDelta = git(target, ['diff', '--name-only', head, tip.out, '--', '.ai_state']);
+    if (stateDelta.status !== 0 || stateDelta.out) {
+      throw new Refusal(`writer changes main-owned .ai_state; nothing merged:\n${stateDelta.out || stateDelta.err}`,
+        `restore .ai_state in ${rec.worktree} to the target HEAD, commit the correction, then ${again}`);
+    }
     const merged = git(target, ['merge', '--ff-only', '-q', rec.branch]);
     if (merged.status !== 0) {
       throw new Refusal(`git merge --ff-only ${rec.branch} failed (nothing merged): ${merged.err}`,
@@ -175,7 +187,7 @@ function collect(argv, io) {
     // git refuses a real merge over a dirty index, and `athena sprint start` leaves state staged.
     const staged = git(target, ['diff', '--cached', '--quiet']).status === 1;
     throw new Refusal(`${rec.branch} merges cleanly but not as a fast-forward (the main branch moved since dispatch); athena does not create merge commits`,
-      staged ? `git -C ${target} commit -m "chore: athena state"   (staged changes block a merge; then ${merge}; then ${again})` : `${merge}   (then ${again})`);
+      staged ? `git -C ${target} status   (commit staged state together with implementation; then ${merge}; then ${again})` : `${merge}   (then ${again})`);
   }
   let removed = false;
   let note = '';

@@ -1,4 +1,4 @@
-"""Pi adapter: hard Stop through agent_before_settle, single-boundary counting, codemode (athena-10-5 S4 AC7).
+"""Pi adapter: hard Stop through agent_before_settle, single-boundary counting, codemode (athena-10-1-5 S4 AC7).
 
 The Pi extension (.ts) cannot be loaded here; it only forwards what `gate/platform/pi.cjs` renders, so
 these fixtures send the raw Pi payloads through `run('pi', …)` exactly as the extension does.

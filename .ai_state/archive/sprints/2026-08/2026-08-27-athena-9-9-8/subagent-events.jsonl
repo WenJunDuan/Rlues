@@ -1,4 +1,0 @@
-{"schema_version":1,"event":"SubagentStart","agent_id":"01a04126-bd0e-7752-ac39-f30c77298567","agent_type":"architect","sprint_slug":"2026-08-27-athena-9-9-8","timestamp":"2026-08-27T02:57:33.966970Z"}
-{"schema_version":1,"event":"SubagentStop","agent_id":"01a04126-bd0e-7752-ac39-f30c77298567","agent_type":"architect","sprint_slug":"2026-08-27-athena-9-9-8","timestamp":"2026-08-27T03:03:49.822057Z"}
-{"schema_version":1,"event":"SubagentStart","agent_id":"a420e94cc8062dda5","agent_type":"general-purpose","sprint_slug":"2026-08-27-athena-9-9-8","timestamp":"2026-08-27T11:33:30.181Z"}
-{"schema_version":1,"event":"SubagentStop","agent_id":"a420e94cc8062dda5","agent_type":"general-purpose","sprint_slug":"2026-08-27-athena-9-9-8","timestamp":"2026-08-27T11:48:47.380Z"}

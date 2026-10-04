@@ -4,11 +4,11 @@
 
 ## items.yaml
 
-模板 `~/.athena/current/templates/items.yaml`。每个 item：`slug`、`title`、`status`（pending / active / paused / deferred / done / dropped）、`sprint`（CLI 回填）、`path`、`depends_on`（前置 item slug）、`write_set`、`ac`。暂缓写 `deferred: {reason, resume_when}`（`after <item>` 可被 athena status 机判）。
+模板 `{{athena:TEMPLATES_DIR}}/items.yaml`。每个 item：`slug`、`title`、`status`（pending / active / paused / deferred / done / dropped）、`sprint`（CLI 回填）、`path`、`depends_on`（前置 item slug）、`write_set`、`ac`。暂缓写 `deferred: {reason, resume_when}`（`after <item>` 可被 athena status 机判）。
 
 ## 工作流
 
-1. 建目录：`.ai_state/roadmap/<slug>/`，从 `~/.athena/current/templates/roadmap.md` 与 `items.yaml` 复制。
+1. 建目录：`.ai_state/roadmap/<slug>/`，从 `{{athena:TEMPLATES_DIR}}/roadmap.md` 与 `items.yaml` 复制。
 2. 调研：派只读 architect（任务写明问题与范围），返回 roadmap.md 草稿（背景 / 总体方案 / 切片）与 items 初稿（slug、title、path、depends_on、write_set、ac）。主 agent 审阅后落盘；architect 不写文件。
 3. 用户确认：增删 item、调依赖、调顺序。确认结果与裁定来源写进 `queue.md` 执行序。
 4. 选下一个：`status: pending` 且 `depends_on` 全部 done 的第一个 item。

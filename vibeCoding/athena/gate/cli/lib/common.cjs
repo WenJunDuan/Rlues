@@ -30,7 +30,7 @@ function flags(argv, spec) {
 
 const today = () => new Date().toISOString().slice(0, 10);
 // `_index.md` `version` is the .ai_state generation (schema athena-state/2, introduced in 10.1 and the
-// `athena migrate --to 10.1` target), not the release: 10.5 kept the schema. Nothing gates on it.
+// `athena migrate --to 10.1` target), not the release: 10.1.5 kept the schema. Nothing gates on it.
 const STATE_VERSION = '10.1';
 
 module.exports = { requireCtx, flags, today, UsageError, STATE_VERSION };

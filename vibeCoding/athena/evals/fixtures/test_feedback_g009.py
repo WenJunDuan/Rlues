@@ -35,4 +35,8 @@ class AgentPath(unittest.TestCase):
         for rel in ('cc/package/agents/generator.md', 'cc/package/agents/reviewer.md',
                     'cx/package/agents/generator.toml', 'cx/package/agents/reviewer.toml',
                     'pi/top/plugin/prompts/generator.md', 'pi/top/plugin/prompts/reviewer.md'):
-            self.assertIn('export PATH="$HOME/.athena/bin:$PATH"', (GATE.parent / 'adapters' / rel).read_text(), rel)
+            text = (GATE.parent / 'adapters' / rel).read_text()
+            if rel.startswith('cc/'):
+                config = json.loads((GATE.parent / 'adapters/cc/platform.json').read_text())
+                text = text.replace('{{athena:ATHENA_BIN_DIR}}', config['vars']['ATHENA_BIN_DIR'])
+            self.assertIn('export PATH="$HOME/.athena/bin:$PATH"', text, rel)
