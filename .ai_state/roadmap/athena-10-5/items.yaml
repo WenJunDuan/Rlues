@@ -5,30 +5,35 @@ items:
   - slug: s1-gate-fixes
     title: "G-018 嵌套 worktree、报错自带修法、run --rebind、gate issue 进上游 FEEDBACK"
     status: active
+    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
     path: Feature
     depends_on: []
     ac: ["AC1", "AC2", "AC3"]
   - slug: s2-status-writer
     title: "status AC 矩阵 + ship 预检；athena writer dispatch/collect"
     status: active
+    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
     path: Feature
     depends_on: []
     ac: ["AC4", "AC5"]
   - slug: s3-plugin-shells
     title: "CC / Codex 插件壳构建产物 + doctor"
     status: active
+    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
     path: System
     depends_on: []
     ac: ["AC6"]
   - slug: s4-pi-hard-stop
     title: "Pi agent_before_settle 硬停 + 1.x peer"
     status: active
+    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
     path: Feature
     depends_on: []
     ac: ["AC7"]
   - slug: s5-prompts-v3
     title: "宪法与 rules 按 2026-09 模型指南重写；黄区默认直做"
     status: active
+    note: "已实现并合入分支 athena-10.5（2026-10-04），待跨家族 review"
     path: Feature
     depends_on: []
     ac: ["AC8"]

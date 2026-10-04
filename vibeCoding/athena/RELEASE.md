@@ -28,7 +28,7 @@
 | 报错带修法 | `athena run` 不可证明、`review accept` 拒收、covers 格式错：stderr 给可复制的修正样例与下一步命令 |
 | `run --rebind` | 在当前树重跑最后一条 test/typecheck 证据并记新 tree_sha；重跑失败不记 PASS |
 | `writer dispatch/collect` | dispatch 建 worktree + `external-writer.json` + `parallel_writers≥2`；collect 用 merge-tree 探冲突、`--ff-only`、还原 |
-| `status` | AC 覆盖矩阵 + ship 预检（缺哪条证据、是否走轻门禁及原因） |
+| `status` | AC 覆盖矩阵 + ship 预检（缺哪条证据、H2/H3 现在会拦什么；10.1 代码里没有轻门禁，故不报） |
 | `issue --type gate` | 追加一行到上游 FEEDBACK（`ATHENA_FEEDBACK` 或 `~/.athena/config.json`）；缺配置不失败 |
 | `doctor` | 分别报告安装器形态 / 插件形态；同端双装 WARN；只有插件形态时 WARN「plugin form only」并列出安装器才带的部分，不算 FAIL |
 | 提示词 v3 | 点名早停形态 + 末段自检；范围即交付物；例行 athena 命令预授权；黄区默认主 agent 直做；删除优于兼容；新增依赖先查已有；测试跟 AC；包内去掉模型钉版与 effort |

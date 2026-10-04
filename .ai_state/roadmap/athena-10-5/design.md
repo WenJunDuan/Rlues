@@ -59,7 +59,7 @@ dist/
 | `gate/cli/run.cjs` | unprovable 时 stderr 末尾打印可证明写法模板；`--rebind` 对当前树重跑最后一条 typecheck/test 证据 | S1 |
 | `gate/cli/review.cjs` | 拒收时打印修正样例行与下一步命令 | S1 |
 | `gate/cli/issue.cjs` | `--type gate` 追加一行到配置的上游 FEEDBACK（`ATHENA_FEEDBACK` 或 `~/.athena/config.json`），缺配置不失败 | S1 |
-| `gate/cli/status.cjs` | AC 覆盖矩阵 + ship 预检（缺哪条证据、是否走轻门禁及原因） | S2 |
+| `gate/cli/status.cjs` | AC 覆盖矩阵 + ship 预检（缺哪条证据、H2/H3 现在会拦什么；10.1 代码里没有轻门禁，故不报） | S2 |
 | `gate/cli/writer.cjs`（新） | `dispatch` 建 worktree、记 `external-writer.json`、置 `parallel_writers`；`collect` 做 merge-tree 探冲突、ff、还原 `parallel_writers`、提示复跑 | S2 |
 | `gate/platform/pi.cjs` + `athena-gates.ts` | `agent_before_settle` 返回 `continue: true` 实现 H2/H3 硬停；防循环守卫；peer 放宽到 1.x | S4 |
 | `gate/core.cjs` | SessionStart 注入支持「宪法全文」（仅插件形态，由环境变量指明路径） | S3 |
