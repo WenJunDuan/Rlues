@@ -1,5 +1,5 @@
 ---
-last_updated: "2026-10-04"
+last_updated: "2026-10-05"
 triggered_by_sprint: "2026-10-04-athena-10-1-5-review"
 state: "current"
 ---
@@ -11,12 +11,12 @@ Athena 源码集中在 `vibeCoding/athena/`；VERSION 为 10.1.5 候选。一个
 
 | 组件 | 源码 | 职责 |
 |---|---|---|
-| 单源构建 | `build.mjs`、`VERSION`、`adapters/*/platform.json` | 合并 core、适配器、模板变量；生成 manifest 与 PACE 合同；产物目录按 major.minor（10.1），manifest 使用完整版本 |
+| 单源构建 | `build.mjs`、`VERSION`、`adapters/*/platform.json`、`docs/` | 合并 core、适配器、模板变量与发布文档；生成 manifest 与 PACE 合同；产物目录按 major.minor（10.1），manifest 使用完整版本 |
 | 门禁核 | `gate/core.cjs`、`gate/rules/`、`gate/platform/` | 三端输入归一化 → H1–H5 / 提示 → 各端阻断协议；平台只做适配 |
 | CLI | `gate/cli.cjs`、`gate/cli/` | sprint、run、review、ship、writer、安装与状态查询；源码树与状态分别处理 |
 | 共享提示 | `core/package/`、`core/pace/stages.yaml` | 宪法、rules、skills、阶段；构建时替换平台路径，不维护平台副本 |
 | 项目状态 | 主 checkout 的 `.ai_state/` | schema athena-state/2，state version 10.1；index 路由、sprints、roadmap、issues；runtime 证据不进 Git |
-| 分发形态 | `adapters/{cc,cx,pi,cc-plugin,cx-plugin,core}` | 安装器、CC/CX 插件与 Pi package 共用同一个核；插件限制见下 |
+| 分发形态 | `adapters/{cc,cx,pi,cc-plugin,cx-plugin,core}` | 安装器、CC/CX 插件（experimental）与 Pi package 共用同一个核；插件限制见下 |
 | 验证 | `evals/fixtures/` | 临时 Git 仓库覆盖三端 gate、CLI、安装/回滚与构建；真实平台探针单独记录 |
 
 ```mermaid
@@ -52,7 +52,8 @@ flowchart LR
 |---|---|
 | `.ai_state/roadmap/athena-10-1-5/design.md` | 当前迭代边界与验收 |
 | `.ai_state/roadmap/athena-10-1-5/probes.md` | 平台探针、已验证范围与剩余项 |
-| `vibeCoding/athena/RELEASE.md` | 候选状态、发布门、已知限制 |
+| `vibeCoding/athena/docs/RELEASE.md` | 候选状态、发布门、已知限制（CHANGELOG / INSTALL / MIGRATION 同目录） |
+| `.ai_state/docs/research/athena-downstream-feedback.md` | 下游项目的门禁 / CLI 反馈账（`athena issue add --type gate` 追加目标） |
 | `.ai_state/docs/reports/2026-10-04-athena-10-1-5-review.md` | 本轮审查发现与处置 |
 | `athena-9.9.*.md`、`lib-athena-delivery-pack.md` | 旧架构参考；对应源码在 vibeCoding/old，不是当前实现 |
 | `../decisions/2026-09-24-decision-athena-10-1-release-gate.md` | 10.1 行为评测债务 D-014 |

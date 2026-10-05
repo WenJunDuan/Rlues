@@ -120,3 +120,7 @@ dist/
 ## 本轮复核边界（2026-10-04）
 
 版本按用户纠正为 10.1.5。S1/S2/S3 实现缺陷的局部修复详见复核报告；不改 H1–H5 或 schema。CC 清单/组件发现已验证，CX 原生 portable 清单协议阻塞 U-001，原清单只确认默认组件发现；因此 S3、S6、S7 保持未完成，不能将本次 review/debug 收尾当成版本发布。
+
+## 范围裁定（2026-10-05，用户）
+
+方案 A：10.1.5 只承诺安装器形态；CC / Codex 插件壳随包构建、标 experimental。S3 按 AC6（构建级）完成；S6 deferred 到下一版插件化迭代；S7 发布门 = 真机 install → doctor 无 drift → 安装器形态 Quick→ship（P8）→ rollback 可回，用户确认后打 tag。U-001 为上游 openai/codex#47925，不阻塞。

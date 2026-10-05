@@ -12,7 +12,7 @@
 
 | 路径 | 作用 |
 |---|---|
-| `plugin.json` | 候选清单；本机按默认位置发现 hooks，portable 字段仍待解决 |
+| `plugin.json` | 根清单；故意不带 Agent Plugins `$schema`（见待验证），hooks 走默认 `hooks/hooks.json` 发现 |
 | `hooks/hooks.json` | 8 个事件 → `${PLUGIN_ROOT}/gate/hook.cjs --platform cx` |
 | `gate/` | 门禁核，与 `dist/athena` 同字节 |
 | `skills/` | 与安装器形态同源 |
@@ -30,5 +30,5 @@
 ## 待验证
 
 - Codex 0.160.0 临时环境安装与原生加载通过：22 skills、8 hooks；仍需 `/hooks` 受信与真实工具触发验证。
-- portable 格式阻塞：原清单描述被忽略；加官方 `$schema` 后三种探针均为 0 hooks、无诊断，停止尝试。不得据此宣称清单协议验证通过。
+- `$schema`：加上后 Codex 按 AgentPlugin 格式加载并跳过 hooks（openai/codex#47925，≤0.160.0 实测 0 hooks）；不加则 description 不被读取但 hooks 正常发现。上游修复后再加。
 - 模板指向插件内 `gate/templates/`；Markdown 的 `${PLUGIN_ROOT}` 展开仍待真实会话验证。

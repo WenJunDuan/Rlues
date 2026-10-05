@@ -22,3 +22,11 @@
 | 行为评测 | D-014 仍 open，无当前候选与旧版的行为质量对照 |
 
 复现、stderr 与三次已试方案见 `../../docs/reports/2026-10-04-athena-10-1-5-review.md`。不把 fixture 或组件发现等同于端到端通过。
+
+## 2026-10-05 范围裁定（方案 A）
+
+| 项 | 去向 |
+|---|---|
+| P8 | 留在本版：作为 S7 发布门，与真机 install / doctor / rollback 一起跑 |
+| P1–P7 | 顺延下一版插件化迭代（S6 deferred）。官方 hooks 文档已写明 code mode 嵌套调用与 `spawn_agent` 均触发 PreToolUse，P1/P2 仍需实测 |
+| U-001 | 根因定位为上游 openai/codex#47925：根清单带 Agent Plugins `$schema` → AgentPlugin 格式 → loader 跳过 `load_plugin_hooks()`。当前不带 `$schema`，hooks 由默认 `hooks/hooks.json` 发现，不缺失 |

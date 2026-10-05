@@ -29,14 +29,16 @@ BASELINES = {
 # Every difference from the 9.9.9 baseline must be declared here (prefixes end with "/").
 DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/" are prefixes)
     'claude': {'removed': ['.claude/hooks/', '.claude/skills/pace/scripts/review-binding.cjs', '.claude/skills/athena-review/REVIEW.md',
-                           '.claude/skills/athena-migrate/', '.claude/skills/athena-setup/scripts/', '.claude/skills/athena-setup/tests/'],
+                           '.claude/skills/athena-migrate/', '.claude/skills/athena-setup/scripts/', '.claude/skills/athena-setup/tests/',
+                           'RELEASE.md', 'AI-MIGRATION-GUIDE.md'],  # 10.1.5: pointer stubs dropped; docs ship in dist/athena
                'changed': ['.claude/settings.json', '.claude/agents/reviewer.md', '.claude/skills/athena-review/SKILL.md',
-                           '.claude/skills/athena-setup/SKILL.md', 'RELEASE.md'],
+                           '.claude/skills/athena-setup/SKILL.md'],
                'added': ['.claude/workflows/athena-review.js']},
     'codex': {'removed': ['.codex/hooks/', '.codex/skills/athena-review/REVIEW.md', '.codex/skills/athena-migrate/',
-                          '.codex/skills/athena-setup/scripts/', '.codex/skills/athena-setup/tests/'],
+                          '.codex/skills/athena-setup/scripts/', '.codex/skills/athena-setup/tests/',
+                          'RELEASE.md', 'AI-MIGRATION-GUIDE.md', 'CHANGELOG.md'],  # 10.1.5: pointer stubs dropped
               'changed': ['.codex/hooks.json', '.codex/agents/reviewer.toml', '.codex/skills/athena-review/SKILL.md',
-                          '.codex/skills/athena-setup/SKILL.md', 'RELEASE.md'], 'added': []},
+                          '.codex/skills/athena-setup/SKILL.md'], 'added': []},
     'pi': {'removed': ['plugin/extensions/cc-core/', 'plugin/skills/pace/scripts/review-binding.cjs', 'plugin/skills/athena-review/REVIEW.md'],
            'added': ['plugin/core/gate/'],
            'changed': ['README.md', 'config/README.md', 'plugin/README.md', 'plugin/package.json', 'plugin/extensions/athena-gates.ts', 'plugin/extensions/athena-lifecycle.ts',
@@ -46,10 +48,10 @@ DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/
 # per platform); the per-file checks for that layer live in test_prompts.py.
 S5 = {
     'claude': {'removed': ['.claude/rules/', '.claude/skills/', '.claude/agents/'],
-               'changed': ['.claude/CLAUDE.md', '.claude/rules/', '.claude/skills/', '.claude/agents/', 'AI-MIGRATION-GUIDE.md'],
+               'changed': ['.claude/CLAUDE.md', '.claude/rules/', '.claude/skills/', '.claude/agents/'],
                'added': ['.claude/rules/', '.claude/skills/']},
     'codex': {'removed': ['.codex/standards/', '.codex/skills/', '.codex/agents/'],
-              'changed': ['.codex/AGENTS.md', '.codex/standards/', '.codex/skills/', '.codex/agents/', '.codex/config.toml', 'AI-MIGRATION-GUIDE.md', 'CHANGELOG.md'],
+              'changed': ['.codex/AGENTS.md', '.codex/standards/', '.codex/skills/', '.codex/agents/', '.codex/config.toml'],
               'added': ['.codex/standards/', '.codex/skills/']},
     'pi': {'removed': ['config/rules/', 'plugin/skills/'],
            'changed': ['plugin/core/IRON.md', 'config/AGENTS.md', 'config/rules/', 'plugin/skills/', 'plugin/prompts/'],
@@ -136,10 +138,11 @@ class BuildBaseline(unittest.TestCase):
                     self.assertEqual(bool(built.stat().st_mode & 0o111), source_exec)
 
     def test_root_docs_ship_in_core_dist(self):
-        """INSTALL / MIGRATION / RELEASE are single-source at vibeCoding/athena/ and land at ~/.athena/<ver>/."""
-        for name in ('INSTALL.md', 'MIGRATION.md', 'RELEASE.md'):
+        """CHANGELOG / INSTALL / MIGRATION / RELEASE are single-source in vibeCoding/athena/docs/ and land at ~/.athena/<ver>/."""
+        for name in ('CHANGELOG.md', 'INSTALL.md', 'MIGRATION.md', 'RELEASE.md'):
             with self.subTest(doc=name):
-                self.assertEqual((self.dist('athena') / name).read_bytes(), (ATHENA / name).read_bytes())
+                source = (ATHENA / 'docs' / name).read_bytes().replace(b'{{athena:!', b'{{athena:')  # rendered like any layer
+                self.assertEqual((self.dist('athena') / name).read_bytes(), source)
         self.assertFalse((self.dist('athena') / 'AI-MIGRATION-GUIDE.md').exists())
 
     def test_version_single_source(self):

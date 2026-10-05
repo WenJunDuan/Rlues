@@ -1,19 +1,19 @@
 # Athena CHANGELOG
 
-## 10.1.5 — 插件就绪（候选，2026-10-04）
+## 10.1.5 — 安装器形态收尾 + 插件壳 experimental（候选，2026-10-04）
 
-基线 10.1.0（含其后 main 上的未发布项）。一句话：CC / Codex 各出一个自带门禁核的插件壳，Pi 拿到硬 Stop，门禁报错自带修法，提示词 v3。**候选**：无 tag、未装机；发布门见 RELEASE.md。
+基线 10.1.0（含其后 main 上的未发布项）。一句话：门禁报错自带修法，rebind / writer / status 三个 CLI，Pi 拿到硬 Stop，提示词 v3；CC / Codex 插件壳随包构建，experimental。**候选**：无 tag、未装机；发布门见 RELEASE.md。
 
 ### 新增
 | 项 | 说明 |
 |---|---|
-| CC 插件壳 | `dist/claude-plugin/<ver>/`：`.claude-plugin/plugin.json`、`hooks/hooks.json`（9 事件 → `${CLAUDE_PLUGIN_ROOT}/gate/hook.cjs --platform cc`）、vendored `gate/`（与 `dist/athena` 同字节）、`bin/athena`、skills + agents；宪法经 SessionStart 注入（`ATHENA_CONSTITUTION`） |
-| Codex 插件壳 | `dist/codex-plugin/<ver>/`：候选 `plugin.json`（portable 协议待解决）、`hooks/hooks.json` → `${PLUGIN_ROOT}/gate/hook.cjs --platform cx`、vendored `gate/`、skills；hooks 须在 `/hooks` 受信 |
+| CC 插件壳（experimental） | `dist/claude-plugin/<ver>/`：`.claude-plugin/plugin.json`、`hooks/hooks.json`（9 事件 → `${CLAUDE_PLUGIN_ROOT}/gate/hook.cjs --platform cc`）、vendored `gate/`（与 `dist/athena` 同字节）、`bin/athena`、skills + agents；宪法经 SessionStart 注入（`ATHENA_CONSTITUTION`） |
+| Codex 插件壳（experimental） | `dist/codex-plugin/<ver>/`：根 `plugin.json`（不带 `$schema`，避开 openai/codex#47925）、`hooks/hooks.json` → `${PLUGIN_ROOT}/gate/hook.cjs --platform cx`、vendored `gate/`、skills；hooks 须在 `/hooks` 受信 |
 | Pi 硬 Stop | `agent_before_settle` → `{entries, continue: true}`；同因熔断上限；Pi < 0.87 回退 followUp。codemode 外层放行、脚本内工具照常过门；peer `*` |
 | `athena run --rebind` | 当前树重跑最后一条 test/typecheck 证据，记新 tree_sha；失败不记 PASS |
 | `athena writer dispatch/collect` | worktree + `external-writer.json` + `parallel_writers`；merge-tree 探冲突、`--ff-only`、还原 |
 | `athena status` | AC 覆盖矩阵 + ship 预检 |
-| `athena issue --type gate` | 追加到上游 FEEDBACK（`ATHENA_FEEDBACK` / `~/.athena/config.json`），缺配置不失败 |
+| `athena issue --type gate` | 追加到上游反馈账（`ATHENA_FEEDBACK` / `~/.athena/config.json` 的 `feedback`），缺配置不失败 |
 | `athena doctor` | 插件形态报告；同端双装 WARN；只有插件形态 → WARN `plugin form only` + 安装器才带的部分（CC：rules、CLAUDE.md；CX：config.toml、AGENTS.md、`/hooks` 受信），不算 FAIL；两种形态都没有仍 FAIL `not installed` |
 
 ### 修复
@@ -22,6 +22,7 @@
 - 复核修复：rebind 改用完整执行参数去重，补 AC 覆盖时实际重跑；status 校验 design 引用的 roadmap item。
 - writer 绑定目标 checkout/ref；自动 FF 前拒绝写者对主仓状态的更改，允许 rebase 继承主 agent 状态；提示记账与实现同交。
 - 插件模板路径按形态渲染，CC agents 优先随包 CLI，避免调用旧的全局 Athena。
+- writer collect：git < 2.38 回退到旧版 `merge-tree` 时，冲突文件名恒为 `(unnamed path)`（按首字符非空白切块，把文件头和冲突块切开）；改按小写文件头切块。
 
 ### 提示词 v3
 - 宪法：「完成」改点名早停形态 + 末段自检；范围即交付物；例行 athena 命令预授权；进度更新一句。
@@ -32,7 +33,7 @@
 ### 并入（10.1.0 之后 main 上的未发布项）
 - CC / CX 包配置对齐官方文档：官方插件市场名、密钥 deny、危险操作 ask、去掉模型钉版；Codex 首装改官方默认 `on-request` + `workspace-write`。
 - 安装器：包 `env` 此前被整体丢弃，改为补缺、用户优先；`permissions.ask` 与 `deny` 同为并集。
-- 仓库整理：9.9.x 及更早版本归档到 `vibeCoding/old/`；安装、迁移、发布三份文档移到 `vibeCoding/athena/` 顶层。
+- 仓库整理：9.9.x 及更早版本归档到 `vibeCoding/old/`；CHANGELOG / INSTALL / MIGRATION / RELEASE 统一放 `vibeCoding/athena/docs/`（构建时仍落到 `dist/athena/<ver>/` 顶层）；删去 `adapters/{cc,cx}/top/` 下 5 个只指向源目录的空壳文档；下游反馈账 FEEDBACK.md 移到 `.ai_state/docs/research/athena-downstream-feedback.md`。
 
 ### 破坏性变更
 - `.ai_state`：无。schema v2 不变，`_index.md` `version: "10.1"` 是状态代际，`athena init` / `migrate` 继续写 `"10.1"`；`athena migrate --to 10.1` 不变。

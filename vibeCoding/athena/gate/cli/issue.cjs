@@ -1,6 +1,7 @@
 'use strict';
 // athena issue add|close|list — the one problem ledger (ai-state-v2 §4).
-// `add --type gate` also appends one row to the upstream Athena FEEDBACK.md when one is
+// `add --type gate` also appends one row to the upstream Athena feedback ledger (in Rlues:
+// .ai_state/docs/research/athena-downstream-feedback.md) when one is
 // configured (env ATHENA_FEEDBACK, else `feedback` in ~/.athena/config.json): gate problems
 // found downstream reach the harness without a manual copy. Best-effort, never fails the add.
 const fs = require('fs');
@@ -18,7 +19,7 @@ const OPEN = (row) => !['closed', 'dropped'].includes(row.status);
 
 const cell = (value) => String(value || '—').replace(/\r?\n/g, ' ').replace(/\|/g, '/').trim() || '—';
 
-/** Configured upstream FEEDBACK.md path, '' when switched off (ATHENA_FEEDBACK=""), or null. */
+/** Configured upstream feedback ledger path, '' when switched off (ATHENA_FEEDBACK=""), or null. */
 function feedbackFile(env) {
   if (env.ATHENA_FEEDBACK !== undefined) return String(env.ATHENA_FEEDBACK).trim();
   const home = env.HOME || os.homedir();

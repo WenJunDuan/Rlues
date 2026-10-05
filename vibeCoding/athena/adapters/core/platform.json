@@ -5,6 +5,7 @@
   "gate_root": "",
   "vars": {},
   "root_docs": [
+    "CHANGELOG.md",
     "INSTALL.md",
     "MIGRATION.md",
     "RELEASE.md"

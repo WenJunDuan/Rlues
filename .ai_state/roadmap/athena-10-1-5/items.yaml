@@ -20,8 +20,9 @@ items:
     ac: ["AC4", "AC5"]
   - slug: s3-plugin-shells
     title: "CC / Codex 插件壳构建产物 + doctor"
-    status: active
-    note: "构建、模板和 CLI 路径已修；CC 原生发现通过，CX portable 协议阻塞 U-001，尚未完成"
+    status: done
+    note: "AC6 构建级验收达成（test_build / test_plugin_shells）；doctor 插件报告完成。2026-10-05 用户裁定：插件壳随包构建、标 experimental，原生验证归 S6 顺延。U-001 根因为 Codex 上游 openai/codex#47925，不阻塞"
+    done: {after: "45bcf57", review: "821347d5-22e8-4f39-a9c4-a880eed839e5"}
     path: System
     depends_on: []
     ac: ["AC6"]
@@ -43,14 +44,16 @@ items:
     ac: ["AC8"]
   - slug: s6-probes-eval
     title: "P1–P8 探针 + 行为评测基线（需本机 CLI）"
-    status: active
-    note: "P4/P6 组件验证和 Pi 类型检查已跑；U-001、真实工具事件、行为评测未完成"
+    status: deferred
+    note: "P4/P6 组件验证和 Pi 类型检查已跑；P8 拆到 S7 作为本版发布门；其余插件 / Pi 原生事件与 D-014 顺延"
+    deferred: {reason: "2026-10-05 用户裁定方案 A：10.1.5 只发安装器形态，插件壳 experimental", resume_when: "下一版插件化迭代（Athena 进 CC mods / Codex / Pi 官方插件）"}
     path: Feature
     depends_on: [s3-plugin-shells, s4-pi-hard-stop]
     ac: ["AC10"]
   - slug: s7-release
     title: "VERSION 10.1.5、RELEASE、tag、装机（不可逆，用户确认）"
     status: pending
+    note: "发布门：真机 athena install → doctor 无 drift → 安装器形态 Quick→ship（P8）→ rollback 可回；用户确认后打 tag"
     path: System
-    depends_on: [s1-gate-fixes, s2-status-writer, s3-plugin-shells, s4-pi-hard-stop, s5-prompts-v3, s6-probes-eval]
+    depends_on: [s1-gate-fixes, s2-status-writer, s3-plugin-shells, s4-pi-hard-stop, s5-prompts-v3]
     ac: ["AC9"]

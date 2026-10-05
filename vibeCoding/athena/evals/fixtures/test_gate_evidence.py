@@ -6,6 +6,7 @@ import ast
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -178,7 +179,8 @@ class RunExplicitEnvAndCounts(unittest.TestCase):
         replay = subprocess.run(['bash', '-o', 'pipefail', '-c', row['command']], cwd=self.root,
                                 env=ENV, capture_output=True, text=True)
         self.assertEqual(replay.returncode, 0, replay.stderr + replay.stdout)
-        self.assertEqual(replay.stdout.count('explicit env'), 2)
+        # one pass line per segment, whatever the node reporter (TAP "ok 1 - …" or spec "✔ …")
+        self.assertEqual(len(re.findall(r'^\s*(?:ok \d+ - |✔ )explicit env', replay.stdout, re.M)), 2)
 
     def test_long_explicit_env_is_not_truncated_for_replay(self):
         value = 'z' * 2200 + self.marker

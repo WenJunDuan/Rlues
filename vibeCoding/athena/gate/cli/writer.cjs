@@ -122,8 +122,10 @@ function conflicts(dir, ours, theirs) {
   if (base.status !== 0) return null;
   const legacy = git(dir, ['merge-tree', base.out, ours, theirs]);
   if (legacy.status !== 0) return null;
+  // One block per path: it starts at a lowercase header ("changed in both", "added in remote", …); hunk
+  // lines start with "@@", "+", "-", " " or "\\" and stay inside the block that names their path.
   const files = [];
-  for (const block of legacy.out.split(/^(?=\S)/m)) {
+  for (const block of legacy.out.split(/^(?=[a-z])/m)) {
     if (!/^\+<<<<<<< /m.test(block)) continue;
     const m = block.match(/^\s+(?:our|their|base)\s+\d+ [0-9a-f]+ (.+)$/m);
     files.push(m ? m[1] : '(unnamed path)');

@@ -14,7 +14,7 @@ const USAGE = `usage: athena <command> [args]
   review prepare|accept|show           bind an independent review to the source tree
   ship [--dry-run]                     H2/H3, archive, items done, _index idle (stages, never commits)
   writer dispatch|collect|status       external writer window: worktree, record, conflict probe, ff
-  issue add|close|list                 the issues.md ledger (--type gate also appends to the upstream FEEDBACK)
+  issue add|close|list                 the issues.md ledger (--type gate also appends to the upstream feedback ledger)
   exemption add|list|remove            audited, time-limited gate exemptions
   tidy [--dry-run]                     month-close, packing, hot-layer limit, .runtime retention
   migrate --to 10.1 [--dry-run]        v1 → v2 state migration

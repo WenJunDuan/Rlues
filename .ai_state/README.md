@@ -31,7 +31,7 @@
 ## 本仓状态
 
 - schema：`athena-state/2`
-- Athena：`10.1.0`
-- 当前 roadmap：`athena-10-1`
+- Athena：源码 `vibeCoding/athena/VERSION`（10.1.5 候选）；已安装版本以 `athena doctor` 为准
+- 当前 roadmap：`athena-10-1-5`
 - Rlues 已完成 v1→v2 迁移；迁移报告在 `docs/reports/2026-09-24-migrate-rlues.md`。
 - 迁移前索引、基线与快照保留在 `.runtime/`，其余可重建缓存按 retention 清理。

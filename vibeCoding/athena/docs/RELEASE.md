@@ -1,6 +1,6 @@
 # Athena 10.1.5 发布声明（候选）
 
-> **候选，未发布**：无 tag、未装机。发布门里标「未跑」的项补齐并经用户确认后才打 tag（设计 S7）。
+> **候选，未发布**：无 tag、未装机。2026-10-05 范围收窄（方案 A）：本版只承诺**安装器形态**；CC / Codex 插件壳随包构建、标 experimental。发布门里标「本版待跑」的两项补齐并经用户确认后才打 tag（S7）。
 
 | 项 | 值 |
 |---|---|
@@ -8,28 +8,28 @@
 | 日期 | 2026-10-04（候选） |
 | Tag | 无（候选） |
 | 分支 | `athena-10.1.5` |
-| 部署范围 | Claude Code + Codex（安装器形态或插件形态，二选一）；Pi 构建与测试覆盖，默认不部署 |
+| 部署范围 | Claude Code + Codex 安装器形态；CC / Codex 插件壳 experimental（只验到构建与组件发现，不作发布承诺）；Pi 构建与测试覆盖，默认不部署 |
 | 安装 | 见 `INSTALL.md`；构建产物在 `dist/<platform>/10.1/` |
 | 项目状态迁移 | 无：`.ai_state` schema 仍是 v2（`_index.md` `version: "10.1"`），10.1 项目直接可用 |
 | 完整变更 | `CHANGELOG.md` |
 
 ## 一句话
 
-插件就绪：CC / Codex 各出一个自带门禁核的插件壳，Pi 拿到硬 Stop，门禁报错自带修法，提示词 v3。
+安装器形态收尾：门禁报错自带修法，rebind / writer / status 三个 CLI，Pi 拿到硬 Stop，提示词 v3；CC / Codex 插件壳随包提供，experimental。
 
 ## 主要变化
 
 | 项 | 内容 |
 |---|---|
-| CC 插件壳 | `dist/claude-plugin/10.1/`：hooks → `${CLAUDE_PLUGIN_ROOT}/gate/hook.cjs`、`bin/athena`、skills + agents；宪法由 SessionStart 经 `ATHENA_CONSTITUTION` 注入。带不走：path-scoped rules、`settings.json` permissions/env、review workflow → 仍需安装器 |
-| Codex 插件壳 | `dist/codex-plugin/10.1/`：默认发现 hooks → `${PLUGIN_ROOT}/gate/hook.cjs`（portable 清单字段未验证通过）、skills。带不走：`config.toml`、`AGENTS.md`、`standards/`、agents、`bin/`；hooks 装后须在 `/hooks` 受信 |
+| CC 插件壳（experimental） | `dist/claude-plugin/10.1/`：hooks → `${CLAUDE_PLUGIN_ROOT}/gate/hook.cjs`、`bin/athena`、skills + agents；宪法由 SessionStart 经 `ATHENA_CONSTITUTION` 注入。带不走：path-scoped rules、`settings.json` permissions/env、review workflow → 仍需安装器 |
+| Codex 插件壳（experimental） | `dist/codex-plugin/10.1/`：默认发现 `hooks/hooks.json` → `${PLUGIN_ROOT}/gate/hook.cjs`、skills；根清单不带 `$schema`（见已知限制 U-001）。带不走：`config.toml`、`AGENTS.md`、`standards/`、agents、`bin/`；hooks 装后须在 `/hooks` 受信 |
 | Pi 硬 Stop | `agent_before_settle` 返回 `{entries, continue: true}`，ship 缺证据/审查时续跑；Pi < 0.87 回退 followUp 软纠偏。codemode：外层调用放行，脚本内 `write`/`edit`/`bash` 照常走 H1/H5。peer 放宽为 `*` |
 | G-018 修复 | `.ai_state` 排除按任一已登记 worktree 根判；嵌套 worktree 内写 sprint design 不再被 H1 拦，worktree 内源码无 AC 仍拦 |
 | 报错带修法 | `athena run` 不可证明、`review accept` 拒收、covers 格式错：stderr 给可复制的修正样例与下一步命令 |
 | `run --rebind` | 在当前树重跑最后一条 test/typecheck 证据并记新 tree_sha；重跑失败不记 PASS |
 | `writer dispatch/collect` | dispatch 建 worktree + `external-writer.json` + `parallel_writers≥2`；collect 用 merge-tree 探冲突、`--ff-only`、还原 |
 | `status` | AC 覆盖矩阵 + ship 预检（缺哪条证据、H2/H3 现在会拦什么；10.1 代码里没有轻门禁，故不报） |
-| `issue --type gate` | 追加一行到上游 FEEDBACK（`ATHENA_FEEDBACK` 或 `~/.athena/config.json`）；缺配置不失败 |
+| `issue --type gate` | 追加一行到上游反馈账（`ATHENA_FEEDBACK` 或 `~/.athena/config.json` 的 `feedback`；Rlues 内为 `.ai_state/docs/research/athena-downstream-feedback.md`）；缺配置不失败 |
 | `doctor` | 分别报告安装器形态 / 插件形态；同端双装 WARN；只有插件形态时 WARN「plugin form only」并列出安装器才带的部分，不算 FAIL |
 | 提示词 v3 | 点名早停形态 + 末段自检；范围即交付物；例行 athena 命令预授权；黄区默认主 agent 直做；删除优于兼容；新增依赖先查已有；测试跟 AC；包内去掉模型钉版与 effort |
 | 合入 10.1.0 后未发布项 | CC/CX 包配置对齐官方文档、安装器 env 补缺、仓库整理（见 `CHANGELOG.md`） |
@@ -46,18 +46,20 @@
 
 | 门项 | 结果 |
 |---|---|
-| fixture | 本机基线 320 项、跳过 1 项、其余通过；修复后全量结果见复核报告 |
-| 行为评测 | **未跑**：D-014 仍开；计划经 `claude plugin eval`，待本机 |
-| 探针 P1–P8 | **部分完成**：CC 清单/组件发现、CX 临时安装/原生加载已跑；原生工具事件、Pi 与行为评测仍待验证（`.ai_state/roadmap/athena-10-1-5/probes.md`） |
-| 插件清单 | CC 2.1.289 validate 通过；CX 0.160.0 安装/发现 22 skills 与 8 hooks，但根清单描述被忽略，加官方 schema 后 0 hooks；portable 协议仍阻塞 |
-| Pi 扩展 | 本机两个扩展对 Pi 1.0.2 的类型检查通过（TypeScript 7.0.2，临时环境）；真实 Pi 事件链待验证 |
-| 安装 / 回滚演练 | fixture 覆盖；本版未真机 install |
+| fixture | 通过：macOS 全量 329 项零跳过（复核报告）；2026-10-05 目录整理后复跑见 `.ai_state/docs/reports/2026-10-05-athena-10-1-5-scope-and-tidy.md` |
+| 安装 / 回滚演练 | **本版待跑**：真机 `athena install --platform cc,cx` → `athena doctor` 无 drift → `athena rollback` 可回 |
+| 探针 P8 | **本版待跑**：CC ≥ 2.1.288 安装器形态跑一个 Quick sprint 到 ship，无「hook 序列化失败 → 误拦」 |
+| 探针 P1–P7 | 顺延下一版（插件 / Pi 原生事件）：CC 清单与组件发现、CX 临时安装与原生加载已跑，见 `.ai_state/roadmap/athena-10-1-5/probes.md` |
+| 插件清单 | experimental，不阻塞：CC 2.1.289 validate 通过；CX 0.160.0 不带 `$schema` 时发现 22 skills / 8 hooks；带 `$schema` 时 0 hooks 是上游 openai/codex#47925 |
+| 行为评测 | 未跑，不阻塞本版：D-014 去向为 10.2 发布门 |
+| Pi 扩展 | 本机两个扩展对 Pi 1.0.2 类型检查通过（TypeScript 7.0.2，临时环境）；真实 Pi 事件链顺延 |
 
 ## 已知限制
 
-- 插件模板已改用随包 `gate/templates/`，CC agents 优先随包 CLI；rules / 全局配置仍按设计由安装器提供。CX portable 清单协议阻塞见发布门，不应发布为协议已验证的插件。
+- 插件壳为 experimental：模板已改用随包 `gate/templates/`，CC agents 优先随包 CLI；rules / 全局配置仍按设计由安装器提供。
+- U-001：CX 根清单故意不带 Agent Plugins `$schema`。带上后 Codex（≤0.160.0 实测）按 AgentPlugin 格式加载、整段跳过 hooks（openai/codex#47925，未修）；不带时按默认 `hooks/hooks.json` 发现，hooks 不缺，只是根清单 description 不被读取。上游修复后再加。
 - 同一平台不要同时启用安装器形态与插件形态：每道门跑两遍（`doctor` 报 WARN）。
-- Codex code mode、`spawn_agent` 是否触发 PreToolUse 待验证（P1/P2）；未触发则 H1/H4 在 CX 降级。
+- Codex code mode、`spawn_agent` 是否触发 PreToolUse：官方 hooks 文档已写明两者都触发，仍待实测（P1/P2）；未触发则 H1/H4 在 CX 降级。
 - 只有插件形态时 `doctor` 只报 WARN 与缺什么，不代为安装；补安装器部分前先停用同端插件 hooks。
 - Stop 连续三次同因拦截后仍熔断放行，并写入 `issues.md`。
 

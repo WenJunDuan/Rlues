@@ -8,6 +8,7 @@
 //   adapters/<p>/package/**    -> <package_root>/**
 //   adapters/<p>/top/**        -> ./**
 //   gate/**                    -> <gate_root>/**     (platforms that set "gate_root"; S2 gate core)
+//   docs/<root_docs>           -> ./<root_docs>      (platforms that list "root_docs": release docs)
 // "rename" {corePrefix: newPrefix} renames core files (CC AGENTS.md -> CLAUDE.md, CX rules/ -> standards/).
 // "core_map" {corePrefix: outPrefix} (platforms with "core": false) takes only the matching core files.
 // "adapter_map" {adapter: {packagePrefix: outPrefix}} takes only the matching files of another adapter's
@@ -209,14 +210,14 @@ function assemble(src, platform, version) {
   }
   layers.push({ dir: path.join(src, "adapters", platform, "package"), prefix: root, label: `adapters/${platform}/package` });
   layers.push({ dir: path.join(src, "adapters", platform, "top"), prefix: "", label: `adapters/${platform}/top` });
-  // Root docs (INSTALL / MIGRATION / RELEASE) are single-source at vibeCoding/athena/ and ship at the top of the
-  // platforms that list them in platform.json "root_docs".
+  // Release docs (CHANGELOG / INSTALL / MIGRATION / RELEASE) are single-source in vibeCoding/athena/docs/ and ship
+  // at the top of the platforms that list them in platform.json "root_docs".
   const rootDocs = config.root_docs || [];
   if (!Array.isArray(rootDocs) || rootDocs.some(n => typeof n !== "string" || !/^[A-Z][A-Z0-9_-]*\.md$/.test(n))) {
     throw new BuildError(`adapters/${platform}/platform.json: root_docs must list top-level *.md names`);
   }
-  for (const name of rootDocs) if (!fs.existsSync(path.join(src, name))) throw new BuildError(`adapters/${platform}/platform.json: root_docs ${name} not found`);
-  if (rootDocs.length) layers.push({ dir: src, prefix: "", label: "athena", files: rootDocs });
+  for (const name of rootDocs) if (!fs.existsSync(path.join(src, "docs", name))) throw new BuildError(`adapters/${platform}/platform.json: root_docs ${name} not found in docs/`);
+  if (rootDocs.length) layers.push({ dir: path.join(src, "docs"), prefix: "", label: "docs", files: rootDocs });
   const outputs = new Map();
   const keys = new Map();
   const claim = (rel, source) => {
