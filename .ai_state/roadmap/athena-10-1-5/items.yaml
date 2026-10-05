@@ -53,7 +53,7 @@ items:
   - slug: s7-release
     title: "VERSION 10.1.5、RELEASE、tag、装机（不可逆，用户确认）"
     status: pending
-    note: "发布门：真机 athena install → doctor 无 drift → 安装器形态 Quick→ship（P8）→ rollback 可回；用户确认后打 tag"
+    note: "2026-10-05 Mac 发布门全部通过：两轮 install/doctor/P8/rollback；329 项全量通过。main/tag 待用户最终裁定，当前本机已恢复 10.1.0"
     path: System
     depends_on: [s1-gate-fixes, s2-status-writer, s3-plugin-shells, s4-pi-hard-stop, s5-prompts-v3]
     ac: ["AC9"]

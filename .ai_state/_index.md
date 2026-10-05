@@ -6,7 +6,7 @@ stage: ""
 sprint: ""
 roadmap: ""
 next_action: ""
-route: ["2026-10-04 shipped 2026-10-04-athena-10-1-5-review","2026-10-04 Bugfix 2026-10-04-athena-10-1-5-review","2026-10-03 shipped 2026-10-03-gate-feedback"]
+route: ["2026-10-05 shipped 2026-10-05-athena-10-1-5-release-gates","2026-10-05 System 2026-10-05-athena-10-1-5-release-gates","2026-10-04 shipped 2026-10-04-athena-10-1-5-review"]
 parallel_writers: 1
 exemptions: []
 flags: {}

@@ -1,11 +1,11 @@
 # Athena 10.1.5 发布声明（候选）
 
-> **候选，未发布**：无 tag、未装机。2026-10-05 范围收窄（方案 A）：本版只承诺**安装器形态**；CC / Codex 插件壳随包构建、标 experimental。发布门里标「本版待跑」的两项补齐并经用户确认后才打 tag（S7）。
+> **候选，未发布**：Mac 发布门已通过，待用户裁定合入 main 与本地 tag。2026-10-05 范围收窄（方案 A）：本版只承诺**安装器形态**；CC / Codex 插件壳随包构建、标 experimental。真机安装与 P8 演练后已回滚到 10.1.0，尚未正式部署 10.1.5。
 
 | 项 | 值 |
 |---|---|
 | 版本 | 10.1.5（基线 10.1.0；版本编号经用户纠正） |
-| 日期 | 2026-10-04（候选） |
+| 日期 | 2026-10-05（Mac 发布门验证） |
 | Tag | 无（候选） |
 | 分支 | `athena-10.1.5` |
 | 部署范围 | Claude Code + Codex 安装器形态；CC / Codex 插件壳 experimental（只验到构建与组件发现，不作发布承诺）；Pi 构建与测试覆盖，默认不部署 |
@@ -46,13 +46,15 @@
 
 | 门项 | 结果 |
 |---|---|
-| fixture | 通过：macOS 全量 329 项零跳过（复核报告）；2026-10-05 目录整理后复跑见 `.ai_state/docs/reports/2026-10-05-athena-10-1-5-scope-and-tidy.md` |
-| 安装 / 回滚演练 | **本版待跑**：真机 `athena install --platform cc,cx` → `athena doctor` 无 drift → `athena rollback` 可回 |
-| 探针 P8 | **本版待跑**：CC ≥ 2.1.288 安装器形态跑一个 Quick sprint 到 ship，无「hook 序列化失败 → 误拦」 |
+| fixture | 通过：Mac 对 Claude 候选 3552697 全量 329 项零跳过，`athena run` 证据 260bb9180af0；发布说明更新后的最终证据见本轮归档 |
+| 安装 / 回滚演练 | 通过：两轮真机 `install --platform cc,cx` → doctor 无 drift → rollback 恢复 10.1.0；第二轮 238 个管理路径的内容/权限均回到该轮基线。第一轮运行窗口的四个 Claude 配置字段变化与原始备份均保留，见 Mac 发布门报告 |
+| 探针 P8 | 通过：CC 2.1.289 原生 Quick→ship；补充现成 sprint 启动确认非空 JSON 上下文被接收，52 个 hook 响应均成功，无序列化误拦。两个原生会话与测试项目保留 |
 | 探针 P1–P7 | 顺延下一版（插件 / Pi 原生事件）：CC 清单与组件发现、CX 临时安装与原生加载已跑，见 `.ai_state/roadmap/athena-10-1-5/probes.md` |
 | 插件清单 | experimental，不阻塞：CC 2.1.289 validate 通过；CX 0.160.0 不带 `$schema` 时发现 22 skills / 8 hooks；带 `$schema` 时 0 hooks 是上游 openai/codex#47925 |
 | 行为评测 | 未跑，不阻塞本版：D-014 去向为 10.2 发布门 |
 | Pi 扩展 | 本机两个扩展对 Pi 1.0.2 类型检查通过（TypeScript 7.0.2，临时环境）；真实 Pi 事件链顺延 |
+
+Mac 运行记录与清理边界：`.ai_state/docs/reports/2026-10-05-athena-10-1-5-mac-release-gates.md`。已清理上轮 Pi 检查的可再生临时依赖，保留原始配置备份、回滚事务与会话历史。
 
 ## 已知限制
 

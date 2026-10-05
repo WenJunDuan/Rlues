@@ -1,0 +1,11 @@
+sprint: "2026-10-05-athena-10-1-5-release-gates"
+shipped: "2026-10-05T04:14:18.433Z"
+tree_sha: "e16cb17f7539b16b20dfd93255c5b90670fc5d40"
+review: {run: "12ede670-7f61-4b2b-b9f1-5c4db35ec773", verdict: "PASS"}
+final: {id: "d4bac12082d1", command: "python3 -m unittest discover -s /Users/mi_manchi/workspace/Rlues/.ai_state/sprints/2026-10-05-athena-10-1-5-release-gates -p test_release_gates.py -q", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "Mac 对 3552697 候选源码用 athena run 跑全量 fixture，通过且记录源码树；构建 --check 通过。", evidence: ["592aeaaba345"]}
+  - {id: AC2, text: "真机 athena install --platform cc,cx 成功，候选版本 10.1.5，athena doctor 无 drift；用户自定义配置和会话数据保留。", evidence: ["64ea1cff8df9","d4bac12082d1"]}
+  - {id: AC3, text: "CC 原生安装器形态完成一个隔离测试项目的 Quick sprint 到 ship，捕获实际 hook 生命周期且无 JSON/序列化误拦；不得用直接调用 hook 冒充原生验证。", evidence: ["64ea1cff8df9","d4bac12082d1"]}
+  - {id: AC4, text: "athena rollback 成功恢复安装前版本和配置，doctor 无 drift；有效回滚链与会话历史保留，确认无效的备份/缓存完成有界清理。", evidence: ["64ea1cff8df9","d4bac12082d1"]}
+  - {id: AC5, text: "记录发布门结果及独立复审结论；依据结果给出 main/tag 决策，未过门不发布。S6 顺延与 experimental 限制保持真实。", evidence: ["af82443a7209"]}
