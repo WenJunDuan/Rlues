@@ -33,6 +33,15 @@
 ### 并入（10.1.0 之后 main 上的未发布项）
 - CC / CX 包配置对齐官方文档：官方插件市场名、密钥 deny、危险操作 ask、去掉模型钉版；Codex 首装改官方默认 `on-request` + `workspace-write`。
 - 安装器：包 `env` 此前被整体丢弃，改为补缺、用户优先；`permissions.ask` 与 `deny` 同为并集。
+- 下游门禁反馈修复（quantum-agent 实用中撞到的 G 账，见 `.ai_state/docs/research/athena-downstream-feedback.md`）：
+  - G-004：新增 `athena exemption add|list|remove`，豁免带期限与理由、写入后回读校验，失败回滚（2a1a152、052b416、899d3fa）。
+  - G-005 / G-011：`athena run --env K=V` 记录且可重放；凭据名、执行环境族变量（含行内赋值、export、各 runner 自身选择变量）判不可证明；零用例或全跳过判不可证明，取最终计数（7696d6a … 4342ee1）。
+  - G-006：review packet 只取本片提交，轮换 sprint 不再混入他片 diff（0a44bdd）。
+  - G-007：`review accept` 接受 `evidence:<id>` / `packet` 这类非文件定位的发现（101769c）。
+  - G-008：只读文档断言（固定 Markdown 断言）可证明（443b711）。
+  - G-009：`athena` CLI 对 hook 子进程与子 agent 可见（0d9ae7d）。
+  - G-010：H5 按解析出的每段命令判 `git push`，heredoc 正文不参与；拦截时说明整条未执行（18a9b72）。
+  - 其他：VM 上 `athena run -- ssh …` 可证明、review diff 限定范围（5bdd535）；`tidy` 后 issue 编号不回退（d8ae223）；CC 包恢复读密钥 deny 与破坏性 git ask（574231b）。
 - 仓库整理：9.9.x 及更早版本归档到 `vibeCoding/old/`；CHANGELOG / INSTALL / MIGRATION / RELEASE 统一放 `vibeCoding/athena/docs/`（构建时仍落到 `dist/athena/<ver>/` 顶层）；删去 `adapters/{cc,cx}/top/` 下 5 个只指向源目录的空壳文档；下游反馈账 FEEDBACK.md 移到 `.ai_state/docs/research/athena-downstream-feedback.md`。
 
 ### 破坏性变更
@@ -40,7 +49,7 @@
 - 黄区默认改为主 agent 直做；新装不再带包内模型 / effort 默认（已装用户配置不变）。
 
 ### 已知取舍与未做
-- CC 2.1.289 validate / details 通过；CX 0.160.0 临时安装及 skills/hooks 发现通过，但 portable schema 原生加载 0 hooks，发布阻塞。P1/P2/P3/P5/P7/P8 与行为评测（D-014）仍待验证。
+- 插件壳 experimental：CC 2.1.289 validate / details 通过；CX 0.160.0 临时安装及 skills/hooks 发现通过。根清单带 `$schema` 时 0 hooks 是上游 openai/codex#47925，现不带，不阻塞。P1–P7 顺延下一版；P8 为本版发布门；行为评测（D-014）去向 10.2。
 - 插件 templates / CC CLI 路径已修复；path-scoped rules 与全局配置仍按设计由安装器提供；同端不可双装。
 - Stop 三连拦熔断保留。
 
