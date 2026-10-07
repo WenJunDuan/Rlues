@@ -53,8 +53,10 @@ class ClaudeSettings(unittest.TestCase):
 
     def test_no_pinned_or_undocumented_env(self):
         env = cc()['env']
-        for key in ('ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_FABLE_MODEL', 'CLAUDE_CODE_ATTRIBUTION_HEADER', 'DISABLE_INSTALLATION_CHECKS'):
-            self.assertNotIn(key, env, 'model pins go stale; undocumented keys stay in the user file')
+        for key in ('ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_FABLE_MODEL', 'DISABLE_INSTALLATION_CHECKS', 'API_TIMEOUT_MS'):
+            self.assertNotIn(key, env, 'model pins go stale; undocumented or default-valued keys stay in the user file')
+        # 10.1.5: CLAUDE_CODE_ATTRIBUTION_HEADER=0 is documented (code.claude.com/docs/en/env-vars) and shipped on purpose.
+        self.assertEqual(env.get('CLAUDE_CODE_ATTRIBUTION_HEADER'), '0')
 
 
 class InstallerMerge(unittest.TestCase):

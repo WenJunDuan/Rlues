@@ -28,11 +28,10 @@ generate_memories = true
 use_memories = true
 disable_on_external_context = true
 
-[features.multi_agent_v2]
-tool_namespace = "agents"
-enabled = true
+# 多 agent：官方 `features.multi_agent` 默认开，不重复写；并发上限归 [agents] 表。
+# 原 `[features.multi_agent_v2]` 表不在官方 config-reference 合同内，10.1.5 删除。
+[agents]
 max_concurrent_threads_per_session = 9
-hide_spawn_agent_metadata = false
 
 [shell_environment_policy]
 inherit = "core"

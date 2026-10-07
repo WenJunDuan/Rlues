@@ -7,7 +7,8 @@
   },
   "env": {
     "VIBECODING_ATHENA_VERSION": "{{athena:ATHENA_VERSION}}",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0"
   },
   "permissions": {
     "defaultMode": "default",

@@ -17,6 +17,8 @@
 | `athena doctor` | 插件形态报告；同端双装 WARN；只有插件形态 → WARN `plugin form only` + 安装器才带的部分（CC：rules、CLAUDE.md；CX：config.toml、AGENTS.md、`/hooks` 受信），不算 FAIL；两种形态都没有仍 FAIL `not installed` |
 
 ### 修复
+- 10-07 候选内 hotfix：Codex 包 `config.toml` 删除 `[features.multi_agent_v2]` 表（官方 config-reference 无此表，9.9.6 research 已判删，一直未删；`features.multi_agent` 官方默认开，不重复写），并发上限改写为官方 `[agents] max_concurrent_threads_per_session = 9`。真机此前未暴露：安装器对已有 `~/.codex/config.toml` 只改版本号，包内这份从未被本机 Codex 加载。
+- 10-07 候选内 hotfix：CC 包 env 加回 `CLAUDE_CODE_ATTRIBUTION_HEADER=0`（官方 env-vars 有文档；部分推翻 574231b 的"个人偏好归用户文件"）。`DISABLE_INSTALLATION_CHECKS`（官方无文档）与 `API_TIMEOUT_MS=600000`（等于默认值）不进包；`test_package_config` 禁止列表同步。
 - G-018：嵌套 worktree 的 `<wt>/.ai_state/…` 被算实现写入 → 按任一已登记 worktree 根的 `.ai_state` 排除；worktree 内源码无 AC 仍拦。
 - 报错带修法：`run` 不可证明、`review accept` 拒收、covers 格式错时 stderr 给修正样例与下一步命令。
 - 复核修复：rebind 改用完整执行参数去重，补 AC 覆盖时实际重跑；status 校验 design 引用的 roadmap item。

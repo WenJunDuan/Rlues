@@ -40,13 +40,13 @@
 |---|---|
 | `.ai_state` | 无。schema v2 不变；`athena migrate --to 10.1` 仍是 9.9.x → v2 的唯一迁移 |
 | 黄区默认 | 由派子 agent 改为主 agent 直做；子 agent 只为隔离或并行 |
-| 包内默认 | CC `settings.json` 去 `effortLevel`；Codex `config.toml` 去 `model` / `model_reasoning_effort` / `plan_mode_reasoning_effort`。已装用户的配置不受影响（安装器合并、用户优先），新装走平台默认 |
+| 包内默认 | CC `settings.json` 去 `effortLevel`，加 `CLAUDE_CODE_ATTRIBUTION_HEADER=0`；Codex `config.toml` 去 `model` / `model_reasoning_effort` / `plan_mode_reasoning_effort`，去 `[features.multi_agent_v2]`（改 `[agents] max_concurrent_threads_per_session`）。已装用户的配置不受影响（安装器合并、用户优先；已有 config.toml 整体保留），新装走平台默认 |
 
 ## 发布门
 
 | 门项 | 结果 |
 |---|---|
-| fixture | 通过：Mac 对 Claude 候选 3552697 全量 329 项零跳过，`athena run` 证据 260bb9180af0；发布说明更新后的最终证据见本轮归档 |
+| fixture | 通过：Mac 对 Claude 候选 3552697 全量 329 项零跳过，`athena run` 证据 260bb9180af0；发布说明更新后的最终证据见本轮归档。10-07 hotfix（config.toml 去非合同表、env 加回 ATTRIBUTION_HEADER）后在 Linux VM（python 3.10 + tomli）复跑 329 项：327 过、1 error 为 3.10 无 `tomllib`、1 skipped 为环境条件，均非源码问题；无活动 sprint，未记 `athena run` 证据——发布前在 Mac 补一次 `athena run` 绑定 |
 | 安装 / 回滚演练 | 通过：两轮真机 `install --platform cc,cx` → doctor 无 drift → rollback 恢复 10.1.0；第二轮 238 个管理路径的内容/权限均回到该轮基线。第一轮运行窗口的四个 Claude 配置字段变化与原始备份均保留，见 Mac 发布门报告 |
 | 探针 P8 | 通过：CC 2.1.289 原生 Quick→ship；补充现成 sprint 启动确认非空 JSON 上下文被接收，52 个 hook 响应均成功，无序列化误拦。两个原生会话与测试项目保留 |
 | 探针 P1–P7 | 顺延下一版（插件 / Pi 原生事件）：CC 清单与组件发现、CX 临时安装与原生加载已跑，见 `.ai_state/roadmap/athena-10-1-5/probes.md` |
