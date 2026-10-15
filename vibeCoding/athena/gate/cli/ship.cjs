@@ -1,6 +1,7 @@
 'use strict';
 // athena ship: strict H2/H3 → runtime-read check → evidence.yaml → archive → items done →
-// queue → _index idle → monthly pack → git add (never commits). Nothing is touched on refusal.
+// queue → _index idle → monthly pack. Never stages or commits: the state goes into the agent's
+// commit with `git add -A .ai_state` (a pre-staged index made a plain `git merge` refuse). Nothing is touched on refusal.
 const fs = require('fs');
 const path = require('path');
 const { requireCtx, flags, today, UsageError } = require('./lib/common.cjs');
@@ -71,22 +72,15 @@ function main(argv, io) {
   if (opts['dry-run']) { io.stdout.write(`dry-run: would archive ${slug}${months.length ? ` and pack ${months.join(', ')}` : ''}\n${text}`); return 0; }
   fs.writeFileSync(path.join(ctx.sprintDir, 'evidence.yaml'), text, 'utf8');
   fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${today()} shipped (evidence ${valid[valid.length - 1].id}${review ? `, review ${review.run || 'PASS'}` : ''})\n`);
-  // the sprint's four tracked files (design, evidence, review receipt, log) go into the ship commit
-  archive.stage(ctx, ['design.md', 'evidence.yaml', 'review.json', 'log.md'].map(n => `sprints/${slug}/${n}`));
-  const touched = ['_index.md', 'queue.md'];
   if (itemsPath) {
-    // `after`: the commit this ship lands on top of (ship stages, the agent commits).
+    // `after`: the commit this ship lands on top of (the agent commits the state with the change).
     state.setItem(itemsPath, item, { status: 'done', done: { after: git(ctx.mainRoot, ['rev-parse', '--short', 'HEAD']) || '', review: (review && review.run) || '' } });
-    touched.push(`roadmap/${roadmap}/items.yaml`);
   }
   const moved = archive.archiveSprint(ctx, slug);
   state.queueRemove(ctx.aiState, slug, itemsPath ? `${roadmap}/${item}` : '');
   state.setFields(path.join(ctx.aiState, '_index.md'), { path: '', stage: '', sprint: '', next_action: '', route_push: `${today()} shipped ${slug}` });
-  archive.stagePaths(ctx, moved.stage);
   const packed = months.map(name => archive.pack(ctx, name));
-  archive.stage(ctx, touched);
-  archive.stagePaths(ctx, packed.flatMap(p => p.stage));
-  io.stdout.write(`shipped ${slug} → ${moved.rel}${packed.length ? `; packed ${packed.map(p => p.rel).join(', ')}` : ''}\nstate staged; commit it together with the change.\n`);
+  io.stdout.write(`shipped ${slug} → ${moved.rel}${packed.length ? `; packed ${packed.map(p => p.rel).join(', ')}` : ''}\nstate changed (not staged); commit it with the change: git add -A .ai_state\n`);
   return 0;
 }
 

@@ -130,6 +130,8 @@ class SprintLifecycle(unittest.TestCase):
         self.assertFalse((root / '.ai_state/archive/sprints/2020-01').exists())
         self.assertTrue((root / '.ai_state/archive/sprints/2019-12/loose/untracked.md').is_file(), 'a month with loose files is not packed')
         self.assertIn('untracked/ignored', run.stderr)
+        self.assertEqual(git(root, 'diff', '--cached', '--name-only').stdout, '', 'ship never stages')
+        git(root, 'add', '-A', '.ai_state')  # the agent commits the state with the change
         self.assertNotIn('notes.scratch', git(root, 'diff', '--cached', '--name-only').stdout, 'ignored files are never staged')
         self.assertIn('| sprints/s-x/ |', (root / '.ai_state/archive/README.md').read_text(encoding='utf-8'))
         staged = git(root, 'diff', '--cached', '--name-only').stdout
@@ -224,7 +226,9 @@ class IssuesAndTidy(unittest.TestCase):
         out = ok(self, athena('tidy', cwd=root)).stdout
         self.assertFalse(old.exists())
         self.assertTrue(probe.exists())
-        self.assertEqual(sum(1 for d in (root / '.ai_state/sprints').iterdir() if d.is_dir()), 3, out)
+        # G-011 (quantum-links): paused sprints are in flight — listed, never archived
+        self.assertEqual(sum(1 for d in (root / '.ai_state/sprints').iterdir() if d.is_dir()), 5, out)
+        self.assertIn('paused: 2026-01-00-p', out)
 
 
 class V1Compatibility(unittest.TestCase):

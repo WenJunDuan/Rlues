@@ -4,7 +4,8 @@
 // least one non-placeholder acceptance line.
 const fs = require('fs');
 const path = require('path');
-const { inside, worktrees, PATHS } = require('../lib/context.cjs');
+const { inside, worktrees, git, PATHS } = require('../lib/context.cjs');
+const attribution = require('../lib/attribution.cjs');
 
 const DESIGN_PATHS = new Set(['Bugfix', 'Quick', 'Feature', 'Refactor', 'System']);
 const STAGES = new Set(['plan', 'design', 'impl']);
@@ -52,7 +53,32 @@ function implementationTargets(ev, ctx) {
   return targets.filter(file => !registered(file));
 }
 
+/**
+ * G-010: a write inside a linked worktree that maps to a sprint (lib/attribution.cjs) is judged by
+ * that sprint's design, active or paused; other writes by the main checkout's active sprint.
+ */
 function check(ev, ctx) {
+  if (!ctx || ctx.invalid || !ev.paths || !ev.paths.length) return checkOne(ev, ctx);
+  const groups = new Map();
+  for (const file of ev.paths) {
+    const wt = attribution.linkedWorktree(ctx, file);
+    let key = '';
+    if (wt) {
+      const branch = git(wt, ['symbolic-ref', '--short', '-q', 'HEAD']) || '';
+      const slug = attribution.sprintForWorktree(ctx, wt, branch);
+      if (slug) key = JSON.stringify([slug, wt]);
+    }
+    groups.set(key, [...(groups.get(key) || []), file]);
+  }
+  for (const [key, paths] of groups) {
+    const sub = { ...ev, paths };
+    const verdict = key ? checkOne(sub, attribution.sprintCtx(ctx, ...JSON.parse(key))) : checkOne(sub, ctx);
+    if (verdict) return verdict;
+  }
+  return null;
+}
+
+function checkOne(ev, ctx) {
   if (!ctx || (!ctx.invalid && !STAGES.has(ctx.stage))) return null;
   const targets = implementationTargets(ev, ctx);
   if (targets && !targets.length) return null;

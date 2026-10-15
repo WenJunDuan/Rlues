@@ -64,7 +64,6 @@ function add(argv, io) {
   if (f.sev && !/^(P[0-3]|—)$/.test(f.sev)) throw new UsageError('--sev must be P0..P3');
   const ctx = requireCtx(io);
   const id = issues.add(ctx.aiState, { type: f.type, sev: f.sev, text: f.text, found: f.found || ctx.sprint || today(), next: f.next, status: f.status || 'open' });
-  archive.stage(ctx, ['issues.md']);
   io.stdout.write(`${id}\n`);
   const warning = f.type === 'gate' ? upstream(ctx, io.env || process.env, id, f) : null;
   if (warning) io.stderr.write(`athena issue add: ${warning}; ${id} is recorded locally\n`);
@@ -88,7 +87,6 @@ function close(argv, io) {
   cells[cells.length - 2] = ` ${status} `;
   lines[at] = cells.join('|');
   fs.writeFileSync(file, lines.join('\n'), 'utf8');
-  archive.stage(ctx, ['issues.md']);
   io.stdout.write(`${id} ${status}\n`);
   return 0;
 }

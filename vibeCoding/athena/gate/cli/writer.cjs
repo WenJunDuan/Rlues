@@ -186,7 +186,7 @@ function collect(argv, io) {
         `git -C ${rec.worktree} rebase ${head.slice(0, 12)}   (then ${again})`);
     }
     const merge = `git -C ${target} merge --no-ff ${rec.branch}`;
-    // git refuses a real merge over a dirty index, and `athena sprint start` leaves state staged.
+    // git refuses a real merge over a dirty index (athena itself no longer stages state).
     const staged = git(target, ['diff', '--cached', '--quiet']).status === 1;
     throw new Refusal(`${rec.branch} merges cleanly but not as a fast-forward (the main branch moved since dispatch); athena does not create merge commits`,
       staged ? `git -C ${target} status   (commit staged state together with implementation; then ${merge}; then ${again})` : `${merge}   (then ${again})`);

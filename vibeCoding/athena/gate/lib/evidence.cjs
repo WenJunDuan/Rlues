@@ -78,8 +78,17 @@ function pipefailDelta(text) {
 function policy(command) {
   let segments;
   try { segments = lex.scan(command); } catch (_) { return { provable: false, reason: 'validation_status_not_reported' }; }
-  const hits = segments.map((s, i) => (classifySegment(s.text) ? i : -1)).filter(i => i >= 0);
-  if (!hits.length) return { provable: true, reason: null };
+  const all = segments.map((s, i) => (classifySegment(s.text) ? i : -1)).filter(i => i >= 0);
+  if (!all.length) return { provable: true, reason: null };
+  // G-002 (quantum-links): a check inside a backgrounded list (`load > log & npm test`) never
+  // reports its status; only foreground checks decide. All backgrounded → judged as before.
+  const background = (i) => {
+    let j = i;
+    while (j < segments.length && ['&&', '||', '|', '|&'].includes(segments[j].op)) j += 1;
+    return j < segments.length && segments[j].op === '&';
+  };
+  const foreground = all.filter(i => !background(i));
+  const hits = foreground.length ? foreground : all;
   if (segments[segments.length - 1].op === '&') return { provable: false, reason: 'validation_backgrounded' };
   // 10.1 addition: exit 0 must imply the validation ran — no `||` before it, no earlier exit/exec/return.
   const first = hits[0];

@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const context = require('./lib/context.cjs');
+const attribution = require('./lib/attribution.cjs');
 const ledger = require('./lib/ledger.cjs');
 const evidence = require('./lib/evidence.cjs');
 const exemptions = require('./lib/exemptions.cjs');
@@ -83,11 +84,16 @@ function preTool(ev, ctx) {
 }
 
 /** Fallback evidence collector: only recognized validation commands, only when a sprint is active. */
-function postTool(ev, ctx) {
-  if (!ctx || !ctx.sprint || ev.tool !== 'bash' || !ev.command || ev.via_athena_run) return allow();
+function postTool(ev, base) {
+  if (!base || ev.tool !== 'bash' || !ev.command || ev.via_athena_run) return allow();
   if (/(^|[\s;&|])athena(\.cjs)?\s+run\b|cli\.cjs\s+run\b/.test(ev.command)) return allow();
   const kind = evidence.classify(ev.command);
   if (!kind) return allow();
+  // Charged to the sprint owning the worktree the command ran in / aimed at (G-012/G-013).
+  const start = ev.workdir ? path.resolve(ev.cwd, ev.workdir) : ev.cwd;
+  const target = attribution.targetDir(ev.command, start);
+  const ctx = attribution.owner(path.resolve(target) === path.resolve(ev.cwd) ? base : context.load(target), target).ctx;
+  if (!ctx || !ctx.sprint) return allow();
   try {
     evidence.append(ctx, { source: 'collector', platform: ev.platform, command: ev.command, kind, exit: ev.exit_code, tree_sha: tree(ctx), ignore: reviewIgnore(ctx) });
   } catch (error) {

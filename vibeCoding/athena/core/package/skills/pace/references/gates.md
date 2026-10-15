@@ -48,3 +48,5 @@ reason 字段写明原因；照 reason 改写命令后重跑。
 安全单调限制：NODE_ENV 和 *RC（含 DATA_SRC）仍沿用基线不可证明判定；本轮不增加豁免。它们可能只影响业务行为，但改为可证明将放宽基线。
 
 monorepo **按包分跑**：进入各包子目录分别 `athena run --covers ACn -- npm test`；记录 `cwd`（相对源码仓根）供重放。`--workspaces` 的任一包或嵌套 suite 出现 runner 的零用例/全跳过摘要，整体均不可证明；非空的后续摘要不抵消先前零执行。
+
+证据归属（按 worktree，不按主仓活跃 sprint）：`athena run` 与 hook 采集器看命令实际作用的目录（cwd，前置 `cd X &&`，检查命令自己的 `--prefix` / `-C` / `--dir` / `--cwd` / `--manifest-path`）。主仓 checkout → `_index` 活跃 sprint；独立 worktree → 依次按 ① 该 sprint design frontmatter `worktree:`（绝对路径或相对主仓）/ `branch:` ② `sprints/<slug>/external-writer.json` ③ 分支名或 worktree 目录名以整词含 `<slug>`（或去掉 `YYYY-MM-DD-` 前缀的 slug）映射到热层 sprint（暂停中的也算）；映射不到：嵌套在主仓目录内的 worktree 仍记活跃 sprint，主仓目录外的不记（stderr 写明原因）。H1 对 worktree 内写入同样按映射到的 sprint 的 design 判定，映射不到才按活跃 sprint。

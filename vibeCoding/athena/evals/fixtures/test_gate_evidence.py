@@ -103,7 +103,8 @@ class AthenaRun(unittest.TestCase):
     def test_worktree_run_lands_in_main_checkout(self):
         tmp = tmpdir(self)
         root = project(tmp, design=GOOD_DESIGN)
-        git(root, 'worktree', 'add', '-q', str(tmp / 'wt'))
+        # quantum-links G-008: a sibling worktree is attributed by its branch / design `worktree:`
+        git(root, 'worktree', 'add', '-q', '-b', 'feat/2026-09-24-s', str(tmp / 'wt'))
         green(root, cwd=tmp / 'wt')
         self.assertEqual(len(records(root)), 1)
         self.assertFalse((tmp / 'wt/.ai_state/.runtime').exists())

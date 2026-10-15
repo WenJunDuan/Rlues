@@ -24,6 +24,13 @@ def staged(root):
     return git(root, 'diff', '--cached', '--name-only').stdout
 
 
+def committed(root):
+    """What the agent's `git add -A .ai_state` puts into its commit (athena itself never stages)."""
+    assert staged(root) == '', staged(root)
+    git(root, 'add', '-A', '.ai_state')
+    return staged(root)
+
+
 class YamlWriters(unittest.TestCase):
     def test_set_item_replaces_nested_blocks_and_ignores_nested_ids(self):
         tmp = tmpdir(self)
@@ -73,7 +80,7 @@ class ShipAtomicAndStaging(unittest.TestCase):
         ship_ready(self, root, 's-x')
         ok(self, athena('ship', cwd=root))
         self.assertTrue((root / f'.ai_state/archive/sprints/{MONTH}/s-x/scratch/secret.env').is_file())
-        self.assertNotIn('secret.env', staged(root))
+        self.assertNotIn('secret.env', committed(root))
 
     def test_ship_prechecks_leave_nothing_half_written(self):
         root = v2project(tmpdir(self))
@@ -144,6 +151,7 @@ class MigrationSafety(unittest.TestCase):
     def test_v2_remigrate_keeps_the_current_sprint_and_reports_the_real_tag(self):
         root = v2project(tmpdir(self))
         ok(self, athena('sprint', 'start', 'r/x', '--slug', 's-x', cwd=root))
+        git(root, 'add', '-A', '.ai_state')
         git(root, 'commit', '-qm', 'start')
         git(root, 'tag', 'pre-athena-10.1-state')
         out = ok(self, athena('migrate', '--to', '10.1', cwd=root)).stdout
@@ -193,9 +201,10 @@ class Round2(unittest.TestCase):
         (root / '.ai_state/sprints/s-x/scratch/secret.env').write_text('TOKEN=1\n')
         ship_ready(self, root, 's-x')
         ok(self, athena('ship', cwd=root))
-        self.assertIn(f'.ai_state/archive/sprints/{MONTH}/s-x/review.json', staged(root))
         self.assertNotIn('secret.env', git(root, 'status', '--porcelain', '--untracked-files=all').stdout, 'still ignored at the new path')
-        self.assertIn('.ai_state/archive/.gitignore', staged(root))
+        out = committed(root)
+        self.assertIn(f'.ai_state/archive/sprints/{MONTH}/s-x/review.json', out)
+        self.assertIn('.ai_state/archive/.gitignore', out)
 
     def test_duplicate_destinations_block_before_anything_moves(self):
         root = Migration().v1repo(tmpdir(self))

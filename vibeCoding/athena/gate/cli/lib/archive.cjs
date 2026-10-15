@@ -1,8 +1,9 @@
 'use strict';
 // Archive mechanics (ai-state-v2 §3.5): runtime-read check, move a sprint into
 // archive/sprints/YYYY-MM/, pack months outside the retention window, redirect table.
-// Staging rule: only files git already tracked are staged at their new paths — untracked or
-// ignored files travel on disk but never become tracked (review S4 P0/P1).
+// Staging: only `athena migrate` stages (its moves must be in the index before packing). Every other
+// command leaves the index alone so a plain `git merge` works; ignored files keep being ignored at
+// their new paths (keepIgnored), so the agent's `git add -A .ai_state` never picks them up.
 const fs = require('fs');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');

@@ -37,3 +37,5 @@ Git worktree 不带未提交内容：先提交或传递增量并校验。写者�
 ## 整合
 
 主 agent 是唯一整合者；共享 schema、锁文件、索引指定单一写者。多个 worktree 各自通过不等于整合通过：在最终代码上重跑 `athena run` 再交 review。跨机器交接给可访问的基线、commit 与校验值。
+
+记账与合并：athena 的 sprint / ship / review / issue / exemption / tidy 只写 `.ai_state`、不 stage（只有 migrate 会）；主 agent 在提交实现时 `git add -A .ai_state` 一并提交。合并写者分支要把账并入合并提交：`git merge --no-ff --no-commit <branch> && git add -A .ai_state && git commit --no-edit`。

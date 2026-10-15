@@ -41,7 +41,7 @@ class ReviewFlow(unittest.TestCase):
         review = json.loads((root / '.ai_state/sprints/s-x/review.json').read_text())
         self.assertEqual((review['run'], review['verdict'], review['reviewer']['family']), (run, 'PASS', 'openai'))
         self.assertEqual(review['findings'], [{'sev': 'P3', 'loc': 'app.js:1', 'text': 'naming nit'}])
-        self.assertIn('.ai_state/sprints/s-x/review.json', git(root, 'diff', '--cached', '--name-only').stdout)
+        self.assertIn('.ai_state/sprints/s-x/review.json', git(root, 'status', '--porcelain', '--untracked-files=all').stdout)
         self.assertIn('current', ok(self, athena('review', 'show', cwd=root)).stdout)
         ok(self, athena('ship', cwd=root))
 

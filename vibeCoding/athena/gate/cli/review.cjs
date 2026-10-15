@@ -228,7 +228,6 @@ function accept(argv, io) {
   fs.writeFileSync(path.join(ctx.sprintDir, 'review.json'), `${JSON.stringify(record, null, 2)}\n`);
   fs.appendFileSync(ledger, `${JSON.stringify({ run, output_sha: outputSha, at: record.accepted_at })}\n`);
   fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${today()} review ${run.slice(0, 8)}: ${parsed.verdict} (${parsed.findings.length} findings)\n`);
-  archive.stage(ctx, [`sprints/${ctx.sprint}/review.json`, `sprints/${ctx.sprint}/log.md`]);
   io.stdout.write(`review ${run}: ${parsed.verdict}, ${parsed.findings.length} finding(s) → sprints/${ctx.sprint}/review.json\n`);
   if (parsed.verdict === 'PASS') return 0;
   io.stderr.write(`next: athena review show   # resolve each finding, re-run evidence (athena run --rebind), then ${PREPARE}\n`);

@@ -1,24 +1,22 @@
 'use strict';
 // athena run [--covers AC1,AC2] [--env K=V] -- <cmd…>: run a check, record its real exit code as evidence (design §8, D5).
-// athena run --rebind: after an edit, re-RUN the sprint's latest provable PASS test/typecheck
-// commands (same argv, env, cwd, covers) on the current tree; never copies an old PASS.
-// One argument = a shell line (bash -o pipefail -c); several = argv, executed without a shell.
-// kind comes from the command words only (no override); a wrapped or shell argv[0], or a
-// source tree that changed while the command ran, is recorded as unprovable.
-// argv `ssh [opts] user@host <remote…>` to a VM in ~/.athena/vm.json (host+user+port match)
-// is judged by the remote command under the local rules (G-002); any other ssh stays unprovable.
+// --rebind: after an edit, re-RUN the sprint's latest provable PASS test/typecheck commands (same argv,
+// env, cwd, covers) on the current tree; never copies an old PASS. One argument = a shell line (bash -o
+// pipefail -c); several = argv, no shell. kind comes from the command words only; a wrapped or shell
+// argv[0], or a tree changed during the run, is unprovable. argv `ssh [opts] user@host <remote…>` to a VM
+// in ~/.athena/vm.json (host+user+port) is judged by the remote command (G-002); other ssh: unprovable.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const context = require('../lib/context.cjs');
+const attribution = require('../lib/attribution.cjs');
 const words = require('../lib/shell-words.cjs');
 const evidence = require('../lib/evidence.cjs');
 const { treeSha, treeFiles } = require('../lib/tree-sha.cjs');
 const { reviewIgnore } = require('../core.cjs');
 
-// Explicit overrides can replace runners, inject code or alter collection/plugins.
-const { EXECUTION_ENV } = evidence;
+const { EXECUTION_ENV } = evidence; // explicit overrides can replace runners or inject code
 const WRAPPERS = /^(?:(?:ba|z|da|k)?sh|eval|env|sudo|xargs|timeout|nice|nohup|time|exec|stdbuf|command|fish|pwsh|powershell|cmd)$/;
 const REBIND_KINDS = new Set(['test', 'typecheck']);
 const quote = (w) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(w) ? w : `'${w.replace(/'/g, "'\\''")}'`);
@@ -207,7 +205,10 @@ function execute(opts, io) {
   const assignments = Object.entries(opts.env).map(([k, v]) => `${k}=${quote(v)}`).join(' ');
   // For a shell line the env must cover all segments, and replay must retain pipefail.
   const command = assignments ? `env ${assignments} ${shell ? `bash -o pipefail -c ${quote(rawCommand)}` : rawCommand}` : rawCommand;
-  const ctx = context.load(io.cwd);
+  // Charged to the sprint owning the worktree the check runs against, not the active one (G-008/G-013).
+  const target = attribution.targetDir(rawCommand, io.cwd);
+  const owned = attribution.owner(context.load(target), target);
+  const ctx = owned.ctx && { ...owned.ctx, cwd: path.resolve(io.cwd) };
   const recording = Boolean(ctx && ctx.sprint);
   const ignore = recording ? reviewIgnore(ctx) : [];
   const before = recording ? treeSha(ctx.root, ignore) : null;
@@ -219,7 +220,7 @@ function execute(opts, io) {
   const signal = child.signal ? (os.constants.signals[child.signal] || 0) : 0;
   const exit = Number.isInteger(child.status) ? child.status : (child.signal ? 128 + signal : 127);
   if (!recording) {
-    io.stderr.write('[athena run] no active sprint: evidence not recorded\n');
+    io.stderr.write(`[athena run] ${owned.worktree ? owned.why : 'no active sprint'}: evidence not recorded\n`);
     return { exit, record: null };
   }
   const after = treeSha(ctx.root, ignore);
@@ -246,7 +247,7 @@ function execute(opts, io) {
 // Re-run commands with a historical PASS, carrying covers. Skip only if the latest attempt
 // is already a provable PASS on this tree; any failed/unprovable replay makes rebind exit 1.
 function rebind(io) {
-  const ctx = context.load(io.cwd);
+  const ctx = attribution.owner(context.load(io.cwd), io.cwd).ctx;
   if (!ctx || !ctx.sprint) { io.stderr.write('[athena run] --rebind: no active sprint, nothing to rebind\n'); return 2; }
   const ignore = reviewIgnore(ctx);
   const tree = treeSha(ctx.root, ignore);

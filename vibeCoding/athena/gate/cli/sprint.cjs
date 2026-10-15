@@ -61,7 +61,6 @@ function start(argv, io) {
     next_action: route === 'Hotfix' ? 'fix, then athena run the check' : 'write design.md acceptance lines (- ACn:)',
     route_push: `${today()} ${route} ${roadmap ? `${roadmap}/${item}` : slug}`,
   });
-  archive.stage(ctx, ['_index.md', `sprints/${slug}/design.md`, `sprints/${slug}/log.md`, ...created, ...(roadmap ? [`roadmap/${roadmap}/items.yaml`] : [])]);
   io.stdout.write(`sprint ${slug} started: path=${route} stage=${stage}\n  design: .ai_state/sprints/${slug}/design.md\n`);
   return 0;
 }
@@ -96,7 +95,6 @@ function pause(argv, io) {
   fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${today()} paused at ${actualStage} (head ${head}): resume when ${f['resume-when']}\n`);
   if (fm.roadmap && fm.item) state.setItem(state.itemsFile(ctx.aiState, fm.roadmap), fm.item, { status: 'paused', deferred: { reason: 'paused', resume_when: f['resume-when'] } });
   state.setFields(path.join(ctx.aiState, '_index.md'), { path: '', stage: '', sprint: '', next_action: `paused ${ctx.sprint}` });
-  archive.stage(ctx, ['_index.md', `sprints/${ctx.sprint}/design.md`, `sprints/${ctx.sprint}/log.md`, ...(itemsPath ? [`roadmap/${fm.roadmap}/items.yaml`] : [])]);
   io.stdout.write(`paused ${ctx.sprint}\n`);
   return 0;
 }
@@ -129,13 +127,10 @@ function drop(argv, io) {
   if (itemsPath && (!fs.existsSync(itemsPath) || !state.readItems(itemsPath).items.some(it => it.slug === fm.item))) problems.push(`no item ${fm.roadmap}/${fm.item}`);
   if (problems.length) throw new UsageError(`refused — ${problems.join('; ')}`);
   fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${today()} dropped: ${f.reason}\n`);
-  git(ctx.mainRoot, ['add', '--', archive.stateRel(ctx, `sprints/${slug}/log.md`)]);
   if (itemsPath) state.setItem(itemsPath, fm.item, { status: 'dropped', dropped: f.reason });
   const moved = archive.archiveSprint(ctx, slug);
   state.queueRemove(ctx.aiState, slug, itemsPath ? `${fm.roadmap}/${fm.item}` : '');
   state.setFields(path.join(ctx.aiState, '_index.md'), { path: '', stage: '', sprint: '', next_action: '', route_push: `${today()} dropped ${slug}: ${f.reason}` });
-  archive.stage(ctx, ['_index.md', 'queue.md', ...(itemsPath ? [`roadmap/${fm.roadmap}/items.yaml`] : [])]);
-  archive.stagePaths(ctx, moved.stage);
   io.stdout.write(`dropped ${slug} → ${moved.rel}\n`);
   return 0;
 }

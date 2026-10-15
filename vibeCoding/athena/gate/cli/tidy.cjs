@@ -4,13 +4,13 @@
 const fs = require('fs');
 const path = require('path');
 const { requireCtx, flags, today } = require('./lib/common.cjs');
-const state = require('./lib/state.cjs');
 const archive = require('./lib/archive.cjs');
 const issues = require('../lib/issues.cjs');
 const frontmatter = require('../lib/frontmatter.cjs');
 const advisory = require('../rules/advisory.cjs');
 
 const HOT_MAX = 3;
+const FINISHED = new Set(['shipped', 'dropped', 'done']);
 const KEEP_MS = 14 * 24 * 3600 * 1000;
 const CAP = 50 * 1024 * 1024;
 // Never aged out: probe/baselines, migration keep-sakes, archived evidence and snapshots (review S4 P2).
@@ -33,30 +33,33 @@ function closeMonth(ctx, dry, report, touched) {
   touched.push(archive.stateRel(ctx, 'issues.md'), archive.stateRel(ctx, path.relative(ctx.aiState, target)));
 }
 
+/**
+ * Hot layer > HOT_MAX: archive only finished sprints left in sprints/ (design status shipped /
+ * dropped / done). Paused sprints are in flight — waiting on their resume_when — and are never
+ * archived or deferred here (quantum-links G-011); they are only listed.
+ */
 function hotLimit(ctx, dry, report, touched) {
   let dirs = [];
   try { dirs = fs.readdirSync(path.join(ctx.aiState, 'sprints'), { withFileTypes: true }).filter(d => d.isDirectory() && d.name !== 'archive').map(d => d.name).sort(); } catch (_) { return; }
-  const paused = dirs.filter(slug => slug !== ctx.sprint).filter(slug => {
-    try { return frontmatter.parse(fs.readFileSync(path.join(ctx.aiState, 'sprints', slug, 'design.md'), 'utf8')).status === 'paused'; } catch (_) { return false; }
-  });
+  if (dirs.length <= HOT_MAX) return;
+  const status = (slug) => {
+    try { return String(frontmatter.parse(fs.readFileSync(path.join(ctx.aiState, 'sprints', slug, 'design.md'), 'utf8')).status || ''); } catch (_) { return ''; }
+  };
+  const finished = dirs.filter(slug => slug !== ctx.sprint && FINISHED.has(status(slug)));
   let excess = dirs.length - HOT_MAX;
-  for (const slug of paused) {
+  for (const slug of finished) {
     if (excess <= 0) break;
     const blockers = [...archive.archiveProblems(ctx, slug), ...archive.runtimeReads(ctx, `sprints/${slug}`).map(h => `read by ${h}`)];
     if (blockers.length) { report.push(`hot layer: cannot archive ${slug}: ${blockers.join('; ')}`); continue; }
     excess -= 1;
-    report.push(`hot layer > ${HOT_MAX}: archive paused ${slug} (item → deferred)`);
+    report.push(`hot layer > ${HOT_MAX}: archive ${status(slug)} ${slug}`);
     if (dry) continue;
-    const fm = frontmatter.parse(fs.readFileSync(path.join(ctx.aiState, 'sprints', slug, 'design.md'), 'utf8'));
-    const itemsPath = fm.roadmap && fm.item ? state.itemsFile(ctx.aiState, fm.roadmap) : null;
-    const moved = archive.archiveSprint(ctx, slug);
-    touched.push(...moved.stage);
-    if (itemsPath && fs.existsSync(itemsPath) && state.readItems(itemsPath).items.some(it => it.slug === fm.item)) {
-      state.setItem(itemsPath, fm.item, { status: 'deferred', deferred: { reason: `paused sprint archived: ${moved.rel}/design.md`, resume_when: fm.resume_when || '' } });
-      touched.push(archive.stateRel(ctx, `roadmap/${fm.roadmap}/items.yaml`));
-    }
+    touched.push(...archive.archiveSprint(ctx, slug).stage);
   }
-  if (excess > 0) report.push(`hot layer still ${dirs.length} > ${HOT_MAX}: ship or pause more (non-paused sprints are never auto-archived)`);
+  if (excess > 0) {
+    const paused = dirs.filter(slug => slug !== ctx.sprint && status(slug) === 'paused');
+    report.push(`hot layer still ${dirs.length} > ${HOT_MAX}: in-flight sprints are never auto-archived${paused.length ? ` (paused: ${paused.join(', ')} — resume and ship, or \`athena sprint resume <slug>\` then \`athena sprint drop\`)` : ''}`);
+  }
 }
 
 function runtimeRetention(ctx, dry, report) {
@@ -103,7 +106,6 @@ function main(argv, io) {
   hotLimit(ctx, dry, report, touched);
   runtimeRetention(ctx, dry, report);
   for (const w of advisory.run(ctx, { platform: 'cli' }, ['A6', 'A7', 'A8'])) report.push(`advisory ${w.rule}: ${w.message}`);
-  if (!dry) archive.stagePaths(ctx, touched); // only what tidy itself changed
   io.stdout.write(`${report.length ? report.join('\n') : 'tidy: nothing to do'}${dry ? '\n(dry-run: nothing changed)' : ''}\n`);
   return 0;
 }

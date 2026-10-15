@@ -173,8 +173,10 @@ class ExemptionCLI(unittest.TestCase):
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertEqual(entries(self.root), [])
         self.assertIn('h4_worktree', (wt / '.ai_state/_index.md').read_text())
-        staged = git(self.root, 'diff', '--cached', '--name-only').stdout.splitlines()
-        self.assertEqual(staged, ['.ai_state/_index.md', '.ai_state/issues.md'])
+        # state is written, never staged (a staged index makes a plain `git merge` refuse)
+        self.assertEqual(git(self.root, 'diff', '--cached', '--name-only').stdout, '')
+        changed = git(self.root, 'diff', '--name-only').stdout.splitlines()
+        self.assertEqual(changed, ['.ai_state/_index.md', '.ai_state/issues.md'])
 
     def test_audit_failure_rolls_back_add_and_remove(self):
         self.assertEqual(self.add().returncode, 0)

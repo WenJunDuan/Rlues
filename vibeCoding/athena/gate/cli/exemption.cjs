@@ -31,7 +31,6 @@ function write(ctx, entries, action, entry) {
     fs.writeFileSync(file, before);
     throw error;
   }
-  archive.stage(ctx, ['_index.md', 'issues.md']);
 }
 
 function add(argv, io) {

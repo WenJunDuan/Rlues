@@ -161,11 +161,9 @@ class WriterCollect(unittest.TestCase):
         head, before = git(root, 'rev-parse', 'HEAD').stdout, snapshot(root)
         run = refused(self, athena('writer', 'collect', cwd=root))
         self.assertIn(f'git -C {root} merge --no-ff writer/s-x-grok', run.stderr)
-        self.assertIn(f'next: git -C {root} status', run.stderr)  # sprint state is staged: git would refuse the merge
-        self.assertIn('commit staged state together with implementation', run.stderr)
+        # athena leaves state unstaged, so the printed merge runs as is (quantum-links merge pit)
+        self.assertIn(f'next: git -C {root} merge --no-ff writer/s-x-grok', run.stderr)
         self.assertEqual((git(root, 'rev-parse', 'HEAD').stdout, snapshot(root)), (head, before))  # no merge commit made
-        git(root, 'commit', '-qm', 'chore: athena state')
-        self.assertIn(f'next: git -C {root} merge --no-ff writer/s-x-grok', refused(self, athena('writer', 'collect', cwd=root)).stderr)
         git(root, 'merge', '--no-ff', '-qm', 'merge writer', 'writer/s-x-grok')
         ok(self, athena('writer', 'collect', cwd=root))
         rec = record(root)
@@ -212,7 +210,7 @@ class WriterCollect(unittest.TestCase):
         root, wt = self.root, self.wt
         writer_commit(wt)
         (root / 'main.js').write_text('module.exports = 3;\n')
-        git(root, 'add', 'main.js')  # commit the staged sprint state with implementation
+        git(root, 'add', 'main.js', '.ai_state')  # commit the sprint state with implementation
         git(root, 'commit', '-qm', 'main implementation and state')
         head = git(root, 'rev-parse', 'HEAD').stdout.strip()
         git(wt, 'rebase', head)
