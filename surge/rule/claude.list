@@ -1,3 +1,4 @@
+# Anthropic / Claude
 DOMAIN-SUFFIX,anthropic.com
 DOMAIN-SUFFIX,claude.ai
 DOMAIN-SUFFIX,claude.com
@@ -6,25 +7,32 @@ DOMAIN-SUFFIX,ant.dev
 DOMAIN-SUFFIX,claudemcpclient.com
 DOMAIN-SUFFIX,claudemcpcontent.com
 DOMAIN-SUFFIX,claudeusercontent.com
-
+# 桌面客户端
+PROCESS-NAME,Claude
+PROCESS-NAME,Claude Helper
+# CDN / 静态资源
 DOMAIN,servd-anthropic-website.b-cdn.net
 DOMAIN-SUFFIX,anthropic.com.cdn.cloudflare.net
+# 认证 / 内容
 DOMAIN,anthropic.auth0.com
 DOMAIN,anthropic-com.ghost.io
 DOMAIN,claude.fedstart.com
 DOMAIN,claude-staging.fedstart.com
-
+DOMAIN-SUFFIX,challenges.cloudflare.com
+# 监控 / 遥测 / 风控
 DOMAIN-SUFFIX,statsigapi.net
 DOMAIN-SUFFIX,statsig.com
+DOMAIN-SUFFIX,featuregates.org
 DOMAIN,browser-intake-us5-datadoghq.com
 DOMAIN-KEYWORD,datadog
 DOMAIN-SUFFIX,sentry.io
 DOMAIN-SUFFIX,sift.com
 DOMAIN-SUFFIX,siftscience.com
+# 客服 / 统计
 DOMAIN-SUFFIX,intercom.io
 DOMAIN-SUFFIX,intercomcdn.com
-DOMAIN,cdn.usefathom.com
-
+DOMAIN-SUFFIX,usefathom.com
+# IP 段 / ASN 兜底
 IP-CIDR,160.79.104.0/21,no-resolve
 IP-CIDR6,2607:6bc0::/32,no-resolve
 IP-ASN,399358,no-resolve
