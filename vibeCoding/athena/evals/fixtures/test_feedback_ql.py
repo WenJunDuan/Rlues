@@ -199,7 +199,9 @@ class ReviewR3(Fixture):
                  f'(cd {wt} && node --test {t} > /dev/null &) ; git diff --check',
                  f'( (cd {wt} && node --test {t}) ) ; git diff --check',
                  f'((cd {wt}) ) ; node --test {t}',
-                 f'cd {wt} && node --test {t} &\nnode --test {t}')
+                 f'cd {wt} && node --test {t} &\nnode --test {t}',
+                 f'out=$(cd {wt} && node --test {t}) && echo "$out"',
+                 f'out=`cd {wt} && node --test {t}` && echo done')
         for line in lines:
             with self.subTest(line=line):
                 run = athena('run', '--', line, cwd=self.root)

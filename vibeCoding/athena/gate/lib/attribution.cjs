@@ -67,7 +67,8 @@ function optionDir(name, values, base) {
 /**
  * Directory the validation in `command` runs against (see header); null = target_unresolved.
  * Conservative rule (review r3): a background `&` (anywhere, newlines included) or a subshell paren
- * together with any directory move (cd / pushd / popd / a tool directory option) → null. Only simple
+ * together with any directory move (cd / pushd / popd / a tool directory option), or a move inside
+ * a command substitution ($(…) / backticks) → null. Only simple
  * `cd X &&|; …` chains are resolved, so the segment evidence.classify judges (shell-lex) and the one
  * located here (shell-words) cannot diverge in a way that moves the evidence to another worktree.
  */
@@ -83,7 +84,9 @@ function targetDir(command, cwd) {
   const background = ops.includes('&') || items.some(item => item.segment.after === '&' || item.segment.before === '&');
   const paren = items.some(item => [item.segment.before, item.segment.after].some(op => op === '(' || op === ')'));
   const moved = items.some(item => moves(item) || optionDir(item.name, values(item), cwd) !== undefined);
-  if ((background || paren) && moved) return null;
+  // a directory move inside $(…) / backticks is one word to shell-words but split by shell-lex
+  const substitutedMove = /\$\(|`/.test(line) && /(^|[\s;&|(`])(cd|pushd|popd)\s/.test(line);
+  if (((background || paren) && moved) || substitutedMove) return null;
   let hit = items.findIndex(item => !moves(item) && classifySegment(text(item)));
   if (hit < 0) hit = items.findIndex(item => !moves(item));
   let base = cwd;
@@ -117,7 +120,7 @@ const VALUED = {
   bun: ['--filter'],
   go: [],
   cargo: [],
-  git: ['-c', '--config-env', '--namespace', '--git-dir', '--work-tree', '--exec-path'],
+  git: ['-c', '--config-env', '--namespace', '--git-dir', '--work-tree'],
 };
 
 const str = (v) => (v === undefined || v === null ? '' : String(v).trim());
