@@ -160,6 +160,36 @@ class ReviewR1(Fixture):
                 self.assertFalse(call(platform, 'write', other, file=other / 'app.js').blocked)
 
 
+class ReviewR2(Fixture):
+    """Review r2 on 2868f9e: the target follows the deciding (foreground) check; subshells restore."""
+
+    def test_background_cd_does_not_move_the_foreground_check(self):
+        wt = self.worktree('proj-x', 'feat/x-feat')
+        t = check_file(self.root)
+        for line in (f'cd {wt} && node --test {t} > /dev/null & git diff --check',
+                     f'(cd {wt} && node --test {t} > /dev/null) & git diff --check'):
+            with self.subTest(line=line):
+                before = len(evidence(self.root, 'y-bug'))
+                athena('run', '--', line, cwd=self.root)
+                self.assertEqual(evidence(self.root, 'x-feat'), [], line)
+                self.assertEqual(len(evidence(self.root, 'y-bug')), before + 1, line)
+
+    def test_closed_subshell_restores_the_outer_directory(self):
+        wt = self.worktree('proj-x', 'feat/x-feat')
+        t = check_file(self.root)
+        for line in (f'(cd {wt}); node --test {t}', f'(cd {wt} && true) ; node --test {t}'):
+            with self.subTest(line=line):
+                self.assertNotIn('not recorded', athena('run', '--', line, cwd=self.root).stderr)
+        self.assertEqual(len(evidence(self.root, 'y-bug')), 2)
+        self.assertEqual(evidence(self.root, 'x-feat'), [])
+
+    def test_valued_leading_options_are_skipped(self):
+        wt = self.worktree('proj-x', 'feat/x-feat')
+        ok(self, athena('run', '--', 'git', '-c', 'core.pager=cat', '-C', str(wt), 'diff', '--check', cwd=self.root))
+        self.assertEqual(len(evidence(self.root, 'x-feat')), 1)
+        self.assertEqual(evidence(self.root, 'y-bug'), [])
+
+
 class H1ByWorktree(Fixture):
     def test_mapped_worktree_is_judged_by_its_own_design(self):
         wt = self.worktree('proj-x', 'feat/x-feat')

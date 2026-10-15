@@ -50,6 +50,7 @@ function optionDir(name, values, base) {
     for (let i = from; i < vals.length; i += 1) {
       const [flag, inline] = vals[i].startsWith('--') ? vals[i].split(/=(.*)/s) : [vals[i], undefined];
       if (names.includes(flag)) return resolveDir(inline !== undefined ? inline : vals[i + 1], base, file);
+      if (VALUED.has(flag) && inline === undefined) { i += 1; continue; }
       if (leading && !vals[i].startsWith('-')) return undefined;
     }
     return undefined;
@@ -72,15 +73,33 @@ function targetDir(command, cwd) {
   const { classifySegment } = require('./evidence.cjs');
   const text = (item) => item.segment.words.map(w => w.value).join(' ');
   const moves = (item) => ['cd', 'pushd'].includes(item.name);
-  let hit = items.findIndex(item => !moves(item) && classifySegment(text(item)));
-  if (hit < 0) hit = items.findIndex(item => !moves(item));
+  // the same deciding check as evidence.classify: a backgrounded list never decides (review r2)
+  // `(… check) & next`: the list ends at the operator after the closing paren (next item's before)
+  const CONT = ['&&', '||', '|', '|&'];
+  const background = (i) => {
+    for (let j = i; j < items.length; j += 1) {
+      let op = items[j].segment.after;
+      if (op === ')') op = items[j + 1] ? items[j + 1].segment.before : null;
+      if (op === '&') return true;
+      if (!CONT.includes(op)) return false;
+    }
+    return false;
+  };
+  const checks = items.map((item, i) => (!moves(item) && classifySegment(text(item)) ? i : -1)).filter(i => i >= 0);
+  let hit = [...checks.filter(i => !background(i)), ...checks][0];
+  if (hit === undefined) hit = items.findIndex(item => !moves(item));
   let base = cwd;
+  let listBase = cwd;
   const outer = [];
   for (let i = 0; i < items.length && i <= hit; i += 1) {
     const item = items[i];
-    if (item.segment.before === '(') outer.push(base);
+    const before = item.segment.before;
+    // a new and-or list: one after `&` starts where the backgrounded list started
+    if (before === '&') base = listBase;
+    if (!['&&', '||', '|', '|&'].includes(before)) listBase = base;
+    if (before === '(') outer.push(base);
     if (moves(item)) {
-      if (!['&&', ';'].includes(item.segment.after) || item.segment.before === '||') return null;
+      if (!['&&', ';', ')', '&'].includes(item.segment.after) || before === '||') return null;
       base = resolveDir(item.args.length ? item.args[0].value : '~', base);
       if (!base) return null;
     } else if (i === hit) {
@@ -99,6 +118,9 @@ function readFm(file) {
 function readJson(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return null; }
 }
+
+// Leading options that take a value (skipped with it while looking for the directory option).
+const VALUED = new Set(['--filter', '-F', '-c', '--config-env', '--namespace', '--workspace', '-w', '--reporter']);
 
 const str = (v) => (v === undefined || v === null ? '' : String(v).trim());
 const token = (hay, key) => {
