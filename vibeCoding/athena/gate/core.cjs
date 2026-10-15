@@ -69,7 +69,13 @@ function preTool(ev, ctx) {
     if (verdict) return block(verdict);
     return allow({ warnings: emptyCatHeredoc(ev.command) });
   }
-  if (!ctx || context.idle(ctx)) return allow();
+  if (!ctx) return allow();
+  if (ev.tool === 'write' && context.idle(ctx)) {
+    // idle: the ledger stays athena-only; a mapped linked worktree is judged by its own sprint (review r1)
+    const verdict = hard('H2', () => ledgerWrite(ev, ctx)) || hard('H1', () => h1.check(ev, ctx, { mappedOnly: true }));
+    return verdict ? block(verdict) : allow();
+  }
+  if (context.idle(ctx)) return allow();
   if (ev.tool === 'write') {
     const verdict = hard('H2', () => ledgerWrite(ev, ctx)) || hard('H1', () => h1.check(ev, ctx));
     return verdict ? block(verdict) : allow();
@@ -92,6 +98,7 @@ function postTool(ev, base) {
   // Charged to the sprint owning the worktree the command ran in / aimed at (G-012/G-013).
   const start = ev.workdir ? path.resolve(ev.cwd, ev.workdir) : ev.cwd;
   const target = attribution.targetDir(ev.command, start);
+  if (!target) return allow(); // target_unresolved: never charged to the active sprint
   const ctx = attribution.owner(path.resolve(target) === path.resolve(ev.cwd) ? base : context.load(target), target).ctx;
   if (!ctx || !ctx.sprint) return allow();
   try {

@@ -21,7 +21,6 @@ const context = require('./context.cjs');
 const frontmatter = require('./frontmatter.cjs');
 const words = require('./shell-words.cjs');
 
-const DIR_OPTIONS = new Set(['--prefix', '-C', '--dir', '--cwd', '--manifest-path', '--rootdir']);
 
 function realpath(p) { try { return fs.realpathSync(p); } catch (_) { return path.resolve(p); } }
 
@@ -39,30 +38,56 @@ function resolveDir(raw, base, fileOk = false) {
   } catch (_) { return null; }
 }
 
-/** Directory the validation in `command` runs against (see header). Unresolvable parts keep cwd. */
+/**
+ * A tool's own directory option, per tool (review r1): npm --prefix; pnpm/yarn/bun -C/--dir/--cwd
+ * before the script name; go -C after the subcommand; cargo --manifest-path; git -C before the
+ * subcommand. Scanning stops at `--`. undefined = none, null = present but unresolvable.
+ */
+function optionDir(name, values, base) {
+  const stop = values.indexOf('--');
+  const vals = stop < 0 ? values : values.slice(0, stop);
+  const scan = (names, { from = 0, leading = false, file = false } = {}) => {
+    for (let i = from; i < vals.length; i += 1) {
+      const [flag, inline] = vals[i].startsWith('--') ? vals[i].split(/=(.*)/s) : [vals[i], undefined];
+      if (names.includes(flag)) return resolveDir(inline !== undefined ? inline : vals[i + 1], base, file);
+      if (leading && !vals[i].startsWith('-')) return undefined;
+    }
+    return undefined;
+  };
+  if (name === 'npm') return scan(['--prefix']);
+  if (['pnpm', 'yarn', 'bun'].includes(name)) return scan(['-C', '--dir', '--cwd'], { leading: true });
+  if (name === 'go') return scan(['-C'], { from: 1, leading: true });
+  if (name === 'cargo') return scan(['--manifest-path'], { file: true });
+  if (name === 'git') return scan(['-C'], { leading: true });
+  return undefined;
+}
+
+/**
+ * Directory the validation in `command` runs against (see header); null = it moves somewhere that
+ * cannot be resolved without running the shell ($VAR, missing dir, conditional cd) → not attributable.
+ */
 function targetDir(command, cwd) {
   let items;
-  try { items = words.parse(String(command || '')); } catch (_) { return cwd; }
+  try { items = words.parse(String(command || '')); } catch (_) { return null; }
   const { classifySegment } = require('./evidence.cjs');
+  const text = (item) => item.segment.words.map(w => w.value).join(' ');
+  const moves = (item) => ['cd', 'pushd'].includes(item.name);
+  let hit = items.findIndex(item => !moves(item) && classifySegment(text(item)));
+  if (hit < 0) hit = items.findIndex(item => !moves(item));
   let base = cwd;
-  for (const item of items) {
-    const values = item.args.map(t => t.value);
-    if (item.name === 'cd') {
-      if (!['&&', ';'].includes(item.segment.after) || ['(', ')', '||'].includes(item.segment.before)) return base;
-      base = resolveDir(values[0], base) || base;
-      continue;
+  const outer = [];
+  for (let i = 0; i < items.length && i <= hit; i += 1) {
+    const item = items[i];
+    if (item.segment.before === '(') outer.push(base);
+    if (moves(item)) {
+      if (!['&&', ';'].includes(item.segment.after) || item.segment.before === '||') return null;
+      base = resolveDir(item.args.length ? item.args[0].value : '~', base);
+      if (!base) return null;
+    } else if (i === hit) {
+      const dir = optionDir(item.name, item.args.map(t => t.value), base);
+      return dir === undefined ? base : dir;
     }
-    const text = item.segment.words.map(w => w.value).join(' ');
-    // the validation segment; a command without one is judged by its first command
-    if (!classifySegment(text) && items.some(o => o.name !== 'cd' && classifySegment(o.segment.words.map(w => w.value).join(' ')))) continue;
-    for (let i = 0; i < values.length; i += 1) {
-      const [flag, inline] = values[i].startsWith('--') ? values[i].split(/=(.*)/s) : [values[i], undefined];
-      if (!DIR_OPTIONS.has(flag)) continue;
-      const raw = inline !== undefined ? inline : values[i + 1];
-      const dir = resolveDir(raw, base, flag === '--manifest-path');
-      if (dir) return dir;
-    }
-    return base;
+    if (item.segment.after === ')') base = outer.length ? outer.pop() : cwd;
   }
   return base;
 }

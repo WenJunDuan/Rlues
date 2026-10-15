@@ -207,7 +207,7 @@ function execute(opts, io) {
   const command = assignments ? `env ${assignments} ${shell ? `bash -o pipefail -c ${quote(rawCommand)}` : rawCommand}` : rawCommand;
   // Charged to the sprint owning the worktree the check runs against, not the active one (G-008/G-013).
   const target = attribution.targetDir(rawCommand, io.cwd);
-  const owned = attribution.owner(context.load(target), target);
+  const owned = target ? attribution.owner(context.load(target), target) : { worktree: '-', why: 'target_unresolved (cd/pushd/option to a $VAR or missing dir)' };
   const ctx = owned.ctx && { ...owned.ctx, cwd: path.resolve(io.cwd) };
   const recording = Boolean(ctx && ctx.sprint);
   const ignore = recording ? reviewIgnore(ctx) : [];

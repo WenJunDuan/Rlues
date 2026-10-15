@@ -112,6 +112,54 @@ class BackgroundLoad(unittest.TestCase):
         self.assertIn('provable=false', self.verdict('node --test {t} && true & sleep 0'))
 
 
+class ReviewR1(Fixture):
+    """Review r1 on 9010704: kind from the deciding segment; unresolved targets; per-tool options; idle writes."""
+
+    def test_background_test_with_foreground_lint_is_not_a_test_pass(self):
+        root = project(tmpdir(self), design=GOOD_DESIGN)
+        t = check_file(root)
+        run = athena('run', '--', f'node --test {t} > /dev/null & git diff --check', cwd=root)
+        self.assertNotIn('kind=test provable=true', run.stderr)
+        self.assertTrue('provable=false' in run.stderr or 'kind=lint' in run.stderr, run.stderr)
+
+    def test_unresolved_cd_is_not_charged_to_the_active_sprint(self):
+        t = check_file(self.root)
+        for line in (f'cd "$NOPE_WT" && node --test {t}', f'cd ../does-not-exist && node --test {t}',
+                     f'pushd "$NOPE_WT" && node --test {t}', f'(cd "$NOPE_WT" && node --test {t})'):
+            with self.subTest(line=line):
+                run = athena('run', '--', line, cwd=self.root)
+                self.assertIn('not recorded', run.stderr)
+        self.assertEqual(evidence(self.root, 'y-bug'), [])
+
+    def test_subshell_and_pushd_resolve(self):
+        wt = self.worktree('proj-x', 'feat/x-feat')
+        t = check_file(self.root)
+        ok(self, athena('run', '--', f'(cd {wt} && node --test {t})', cwd=self.root))
+        ok(self, athena('run', '--', f'pushd {wt} && node --test {t}', cwd=self.root))
+        self.assertEqual(len(evidence(self.root, 'x-feat')), 2)
+        self.assertEqual(evidence(self.root, 'y-bug'), [])
+
+    def test_directory_options_are_per_tool_and_stop_at_double_dash(self):
+        other = self.worktree('proj-other', 'misc')
+        t = check_file(self.root)
+        # options after `--` or after the script name, and --rootdir, are not the tool's directory
+        for line in (f'node --test {t} -- --prefix {other}', f'node --test --rootdir {other} {t}'):
+            with self.subTest(line=line):
+                athena('run', '--', line, cwd=self.root)
+        self.assertEqual(len(evidence(self.root, 'y-bug')), 2)
+
+    def test_idle_still_guards_ledger_and_mapped_worktree_design(self):
+        wt = self.worktree('proj-y', 'fix/y-bug-2')
+        ok(self, athena('sprint', 'pause', '--resume-when', 'later', cwd=self.root))
+        for platform in PLATFORMS:
+            with self.subTest(platform=platform):
+                forged = call(platform, 'write', self.root, file=self.root / '.ai_state/.runtime/evidence/x-feat.jsonl')
+                self.assertTrue(forged.blocked, 'idle: the ledger is still written only by athena')
+                self.assertTrue(call(platform, 'write', wt, file=wt / 'app.js').blocked, 'mapped paused sprint without AC')
+                other = self.worktree(f'proj-free-{platform}', f'free-{platform}')
+                self.assertFalse(call(platform, 'write', other, file=other / 'app.js').blocked)
+
+
 class H1ByWorktree(Fixture):
     def test_mapped_worktree_is_judged_by_its_own_design(self):
         wt = self.worktree('proj-x', 'feat/x-feat')

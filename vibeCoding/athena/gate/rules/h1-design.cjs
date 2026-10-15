@@ -57,7 +57,8 @@ function implementationTargets(ev, ctx) {
  * G-010: a write inside a linked worktree that maps to a sprint (lib/attribution.cjs) is judged by
  * that sprint's design, active or paused; other writes by the main checkout's active sprint.
  */
-function check(ev, ctx) {
+function check(ev, ctx, { mappedOnly = false } = {}) {
+  if (mappedOnly && (!ctx || ctx.invalid || !ev.paths || !ev.paths.length)) return null;
   if (!ctx || ctx.invalid || !ev.paths || !ev.paths.length) return checkOne(ev, ctx);
   const groups = new Map();
   for (const file of ev.paths) {
@@ -71,6 +72,7 @@ function check(ev, ctx) {
     groups.set(key, [...(groups.get(key) || []), file]);
   }
   for (const [key, paths] of groups) {
+    if (!key && mappedOnly) continue; // idle: unmapped paths stay free
     const sub = { ...ev, paths };
     const verdict = key ? checkOne(sub, attribution.sprintCtx(ctx, ...JSON.parse(key))) : checkOne(sub, ctx);
     if (verdict) return verdict;

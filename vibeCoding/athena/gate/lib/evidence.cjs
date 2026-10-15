@@ -41,15 +41,28 @@ function classifySegment(text) {
   return hit ? hit[0] : null;
 }
 
-/** test | lint | typecheck | build | null — the first classified segment of the command. */
+/**
+ * Indexes of the checks that decide the exit code: G-002 (quantum-links) — a check inside a
+ * backgrounded list (`load > log & npm test`) never reports its status, so only foreground checks
+ * count while there is one; all backgrounded → every check (judged unprovable later).
+ */
+function decidingHits(segments) {
+  const all = segments.map((s, i) => (classifySegment(s.text) ? i : -1)).filter(i => i >= 0);
+  const background = (i) => {
+    let j = i;
+    while (j < segments.length && ['&&', '||', '|', '|&'].includes(segments[j].op)) j += 1;
+    return j < segments.length && segments[j].op === '&';
+  };
+  const foreground = all.filter(i => !background(i));
+  return foreground.length ? foreground : all;
+}
+
+/** test | lint | typecheck | build | null — the first deciding classified segment (review r1: never a backgrounded one). */
 function classify(command) {
   let segments;
   try { segments = lex.scan(String(command || '')); } catch (_) { return null; }
-  for (const segment of segments) {
-    const kind = classifySegment(segment.text);
-    if (kind) return kind;
-  }
-  return null;
+  const hits = decidingHits(segments);
+  return hits.length ? classifySegment(segments[hits[0]].text) : null;
 }
 
 /** true / false when a segment is `set -o pipefail` / `set +o pipefail`, else null. */
@@ -78,17 +91,8 @@ function pipefailDelta(text) {
 function policy(command) {
   let segments;
   try { segments = lex.scan(command); } catch (_) { return { provable: false, reason: 'validation_status_not_reported' }; }
-  const all = segments.map((s, i) => (classifySegment(s.text) ? i : -1)).filter(i => i >= 0);
-  if (!all.length) return { provable: true, reason: null };
-  // G-002 (quantum-links): a check inside a backgrounded list (`load > log & npm test`) never
-  // reports its status; only foreground checks decide. All backgrounded → judged as before.
-  const background = (i) => {
-    let j = i;
-    while (j < segments.length && ['&&', '||', '|', '|&'].includes(segments[j].op)) j += 1;
-    return j < segments.length && segments[j].op === '&';
-  };
-  const foreground = all.filter(i => !background(i));
-  const hits = foreground.length ? foreground : all;
+  const hits = decidingHits(segments);
+  if (!hits.length) return { provable: true, reason: null };
   if (segments[segments.length - 1].op === '&') return { provable: false, reason: 'validation_backgrounded' };
   // 10.1 addition: exit 0 must imply the validation ran — no `||` before it, no earlier exit/exec/return.
   const first = hits[0];
