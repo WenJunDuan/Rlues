@@ -134,9 +134,10 @@ class ReviewR1(Fixture):
     def test_subshell_and_pushd_resolve(self):
         wt = self.worktree('proj-x', 'feat/x-feat')
         t = check_file(self.root)
-        ok(self, athena('run', '--', f'(cd {wt} && node --test {t})', cwd=self.root))
+        # r3: a subshell plus a directory move is target_unresolved; a plain pushd resolves
+        self.assertIn('target_unresolved', athena('run', '--', f'(cd {wt} && node --test {t})', cwd=self.root).stderr)
         ok(self, athena('run', '--', f'pushd {wt} && node --test {t}', cwd=self.root))
-        self.assertEqual(len(evidence(self.root, 'x-feat')), 2)
+        self.assertEqual(len(evidence(self.root, 'x-feat')), 1)
         self.assertEqual(evidence(self.root, 'y-bug'), [])
 
     def test_directory_options_are_per_tool_and_stop_at_double_dash(self):
@@ -169,23 +170,46 @@ class ReviewR2(Fixture):
         for line in (f'cd {wt} && node --test {t} > /dev/null & git diff --check',
                      f'(cd {wt} && node --test {t} > /dev/null) & git diff --check'):
             with self.subTest(line=line):
-                before = len(evidence(self.root, 'y-bug'))
-                athena('run', '--', line, cwd=self.root)
-                self.assertEqual(evidence(self.root, 'x-feat'), [], line)
-                self.assertEqual(len(evidence(self.root, 'y-bug')), before + 1, line)
+                run = athena('run', '--', line, cwd=self.root)
+                self.assertIn('target_unresolved', run.stderr, line)  # r3: `&` / parens + a move
+                self.assertEqual(evidence(self.root, 'x-feat') + evidence(self.root, 'y-bug'), [], line)
 
     def test_closed_subshell_restores_the_outer_directory(self):
         wt = self.worktree('proj-x', 'feat/x-feat')
         t = check_file(self.root)
         for line in (f'(cd {wt}); node --test {t}', f'(cd {wt} && true) ; node --test {t}'):
             with self.subTest(line=line):
-                self.assertNotIn('not recorded', athena('run', '--', line, cwd=self.root).stderr)
-        self.assertEqual(len(evidence(self.root, 'y-bug')), 2)
-        self.assertEqual(evidence(self.root, 'x-feat'), [])
+                self.assertIn('target_unresolved', athena('run', '--', line, cwd=self.root).stderr, line)
+        self.assertEqual(evidence(self.root, 'y-bug') + evidence(self.root, 'x-feat'), [])
 
     def test_valued_leading_options_are_skipped(self):
         wt = self.worktree('proj-x', 'feat/x-feat')
         ok(self, athena('run', '--', 'git', '-c', 'core.pager=cat', '-C', str(wt), 'diff', '--check', cwd=self.root))
+        self.assertEqual(len(evidence(self.root, 'x-feat')), 1)
+        self.assertEqual(evidence(self.root, 'y-bug'), [])
+
+
+class ReviewR3(Fixture):
+    """Review r3 on 9ac3d5f: `&` or parens together with any directory move → target_unresolved."""
+
+    def test_review_commands_never_land_in_another_worktree(self):
+        wt = self.worktree('proj-x', 'feat/x-feat')
+        t = check_file(self.root)
+        lines = (f'cd {wt} && node --test {t} > /dev/null &\ngit diff --check',
+                 f'(cd {wt} && node --test {t} > /dev/null &) ; git diff --check',
+                 f'( (cd {wt} && node --test {t}) ) ; git diff --check',
+                 f'((cd {wt}) ) ; node --test {t}',
+                 f'cd {wt} && node --test {t} &\nnode --test {t}')
+        for line in lines:
+            with self.subTest(line=line):
+                run = athena('run', '--', line, cwd=self.root)
+                self.assertIn('target_unresolved', run.stderr, line)
+        self.assertEqual(evidence(self.root, 'x-feat') + evidence(self.root, 'y-bug'), [])
+
+    def test_valued_options_are_per_tool(self):
+        wt = self.worktree('proj-x', 'feat/x-feat')
+        # pnpm -w takes no value: the -C after it is the directory (pnpm itself may be missing: exit is irrelevant)
+        athena('run', '--', f'pnpm -w -C {wt} run test', cwd=self.root)
         self.assertEqual(len(evidence(self.root, 'x-feat')), 1)
         self.assertEqual(evidence(self.root, 'y-bug'), [])
 

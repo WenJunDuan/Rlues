@@ -20,6 +20,7 @@ const path = require('path');
 const context = require('./context.cjs');
 const frontmatter = require('./frontmatter.cjs');
 const words = require('./shell-words.cjs');
+const lex = require('./shell-lex.cjs');
 
 
 function realpath(p) { try { return fs.realpathSync(p); } catch (_) { return path.resolve(p); } }
@@ -50,7 +51,7 @@ function optionDir(name, values, base) {
     for (let i = from; i < vals.length; i += 1) {
       const [flag, inline] = vals[i].startsWith('--') ? vals[i].split(/=(.*)/s) : [vals[i], undefined];
       if (names.includes(flag)) return resolveDir(inline !== undefined ? inline : vals[i + 1], base, file);
-      if (VALUED.has(flag) && inline === undefined) { i += 1; continue; }
+      if ((VALUED[name] || []).includes(flag) && inline === undefined) { i += 1; continue; }
       if (leading && !vals[i].startsWith('-')) return undefined;
     }
     return undefined;
@@ -64,49 +65,38 @@ function optionDir(name, values, base) {
 }
 
 /**
- * Directory the validation in `command` runs against (see header); null = it moves somewhere that
- * cannot be resolved without running the shell ($VAR, missing dir, conditional cd) → not attributable.
+ * Directory the validation in `command` runs against (see header); null = target_unresolved.
+ * Conservative rule (review r3): a background `&` (anywhere, newlines included) or a subshell paren
+ * together with any directory move (cd / pushd / popd / a tool directory option) → null. Only simple
+ * `cd X &&|; …` chains are resolved, so the segment evidence.classify judges (shell-lex) and the one
+ * located here (shell-words) cannot diverge in a way that moves the evidence to another worktree.
  */
 function targetDir(command, cwd) {
+  const line = String(command || '');
   let items;
-  try { items = words.parse(String(command || '')); } catch (_) { return null; }
+  let ops;
+  try { items = words.parse(line); ops = lex.scan(line).map(s => s.op); } catch (_) { return null; }
   const { classifySegment } = require('./evidence.cjs');
   const text = (item) => item.segment.words.map(w => w.value).join(' ');
-  const moves = (item) => ['cd', 'pushd'].includes(item.name);
-  // the same deciding check as evidence.classify: a backgrounded list never decides (review r2)
-  // `(… check) & next`: the list ends at the operator after the closing paren (next item's before)
-  const CONT = ['&&', '||', '|', '|&'];
-  const background = (i) => {
-    for (let j = i; j < items.length; j += 1) {
-      let op = items[j].segment.after;
-      if (op === ')') op = items[j + 1] ? items[j + 1].segment.before : null;
-      if (op === '&') return true;
-      if (!CONT.includes(op)) return false;
-    }
-    return false;
-  };
-  const checks = items.map((item, i) => (!moves(item) && classifySegment(text(item)) ? i : -1)).filter(i => i >= 0);
-  let hit = [...checks.filter(i => !background(i)), ...checks][0];
-  if (hit === undefined) hit = items.findIndex(item => !moves(item));
+  const moves = (item) => ['cd', 'pushd', 'popd'].includes(item.name);
+  const values = (item) => item.args.map(t => t.value);
+  const background = ops.includes('&') || items.some(item => item.segment.after === '&' || item.segment.before === '&');
+  const paren = items.some(item => [item.segment.before, item.segment.after].some(op => op === '(' || op === ')'));
+  const moved = items.some(item => moves(item) || optionDir(item.name, values(item), cwd) !== undefined);
+  if ((background || paren) && moved) return null;
+  let hit = items.findIndex(item => !moves(item) && classifySegment(text(item)));
+  if (hit < 0) hit = items.findIndex(item => !moves(item));
   let base = cwd;
-  let listBase = cwd;
-  const outer = [];
   for (let i = 0; i < items.length && i <= hit; i += 1) {
     const item = items[i];
-    const before = item.segment.before;
-    // a new and-or list: one after `&` starts where the backgrounded list started
-    if (before === '&') base = listBase;
-    if (!['&&', '||', '|', '|&'].includes(before)) listBase = base;
-    if (before === '(') outer.push(base);
     if (moves(item)) {
-      if (!['&&', ';', ')', '&'].includes(item.segment.after) || before === '||') return null;
+      if (item.name === 'popd' || !['&&', ';'].includes(item.segment.after) || item.segment.before === '||') return null;
       base = resolveDir(item.args.length ? item.args[0].value : '~', base);
       if (!base) return null;
     } else if (i === hit) {
-      const dir = optionDir(item.name, item.args.map(t => t.value), base);
+      const dir = optionDir(item.name, values(item), base);
       return dir === undefined ? base : dir;
     }
-    if (item.segment.after === ')') base = outer.length ? outer.pop() : cwd;
   }
   return base;
 }
@@ -119,8 +109,16 @@ function readJson(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return null; }
 }
 
-// Leading options that take a value (skipped with it while looking for the directory option).
-const VALUED = new Set(['--filter', '-F', '-c', '--config-env', '--namespace', '--workspace', '-w', '--reporter']);
+// Options that take a value, per tool (skipped with their value while looking for the directory option).
+const VALUED = {
+  npm: ['--workspace', '-w'],
+  pnpm: ['--filter', '-F', '--filter-prod'],
+  yarn: [],
+  bun: ['--filter'],
+  go: [],
+  cargo: [],
+  git: ['-c', '--config-env', '--namespace', '--git-dir', '--work-tree', '--exec-path'],
+};
 
 const str = (v) => (v === undefined || v === null ? '' : String(v).trim());
 const token = (hay, key) => {
