@@ -197,7 +197,6 @@ function docsAssertion(command, cwd, ctx, tree) {
     });
   });
 }
-
 /** Run opts.cmd in io.cwd and record it. Returns { exit, record } (record null without a sprint). */
 function execute(opts, io) {
   const shell = opts.cmd.length === 1;
@@ -213,6 +212,7 @@ function execute(opts, io) {
   const recording = Boolean(ctx && ctx.sprint);
   const ignore = recording ? reviewIgnore(ctx) : [];
   const before = recording ? treeSha(ctx.root, ignore) : null;
+  const targetBefore = recording && !targetCtx ? attribution.gitState(target) : null;
   const options = { cwd: io.cwd, env: { ...(io.env || process.env), ...opts.env }, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 };
   const child = shell ? spawnSync('bash', ['-o', 'pipefail', '-c', rawCommand], options) : spawnSync(opts.cmd[0], opts.cmd.slice(1), options);
   if (child.stdout) io.stdout.write(child.stdout);
@@ -225,6 +225,7 @@ function execute(opts, io) {
     return { exit, record: null };
   }
   const after = treeSha(ctx.root, ignore);
+  const targetAfter = targetBefore && attribution.gitState(target);
   const ssh = shell ? null : sshVm(opts.cmd, options.env);
   const docs = !ssh && docsAssertion(rawCommand, io.cwd, ctx, before);
   const kind = docs ? 'docs' : (evidence.classify(ssh ? ssh.remote : rawCommand) || 'other');
@@ -234,10 +235,10 @@ function execute(opts, io) {
   if (ssh) policy = evidence.policy(ssh.remote);
   if (Object.keys(opts.env).some(name => EXECUTION_ENV.test(name))) policy = { provable: false, reason: 'validation_shadowable' };
   if (exit === 0 && kind === 'test' && zeroTests(output)) policy = { provable: false, reason: 'zero_tests: 零用例执行' };
-  if (before !== after) policy = { provable: false, reason: 'tree_changed_during_run' };
+  if (before !== after || JSON.stringify(targetBefore) !== JSON.stringify(targetAfter)) policy = { provable: false, reason: 'tree_changed_during_run' };
   const record = evidence.append(ctx, {
     source: 'run', command, kind, exit, policy, covers: opts.covers, env: opts.env, argv: opts.cmd,
-    tree_sha: after, ignore, output, target, ...(ssh || {}),
+    tree_sha: after, ignore, output, target, target_state: targetAfter, ...(ssh || {}),
   });
   io.stderr.write(`[athena run] exit=${exit} kind=${record.kind} provable=${record.provable}${record.reason ? ` (${record.reason})` : ''} tree=${String(after).slice(0, 12)} → evidence ${record.id}\n`);
   const fix = form(record, opts.cmd);
@@ -291,7 +292,6 @@ function rebind(io) {
   if (failed.length) io.stderr.write('next: fix the failure, then `athena run --rebind`\n');
   return failed.length ? 1 : 0;
 }
-
 function main(argv, io) {
   const opts = parse(argv);
   return opts.rebind ? rebind(io) : execute(opts, io).exit;

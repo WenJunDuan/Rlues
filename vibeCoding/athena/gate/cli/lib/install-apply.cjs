@@ -84,7 +84,7 @@ function apply(home, p, platforms) {
     const current = path.join(home, '.athena/current');
     try { fs.unlinkSync(current); } catch (_) { /* first install */ }
     fs.symlinkSync(p.release, current);
-    const files = p.actions.filter(a => a.action !== 'retire').map(a => ({ path: a.dest, sha256: sha(a.content), kind: a.kind, merged: a.action === 'merge' }));
+    const files = p.actions.filter(a => a.action !== 'retire').map(a => ({ path: a.dest, sha256: sha(a.content), kind: a.kind, merged: a.action === 'merge', ...(a.package_content !== undefined ? { package_content: a.package_content } : {}) }));
     write(STATE, `${JSON.stringify({ version: p.version, release: p.release, platforms, installed_at: new Date().toISOString(),
       backup: path.relative(home, backup), files, hooks: p.hooks || {} }, null, 2)}\n`, 0o644);
     return record;

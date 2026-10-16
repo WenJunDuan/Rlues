@@ -29,6 +29,12 @@ class ExternalEvidence(unittest.TestCase):
         self.assertEqual((rows[0]['target'], rows[0]['kind'], rows[0]['provable'], rows[0]['covers']),
                          (str(target), 'test', True, ['AC1']))
         self.assertFalse((target / '.ai_state').exists())
+        self.assertEqual(rows[0]['target_head'], git(target, 'rev-parse', 'HEAD').stdout.strip())
+        self.assertFalse(rows[0]['target_dirty'])
+        (target / 'unchanged-dirty.txt').write_text('dirty\n')
+        ok(self, athena('run', '--', 'npm', 'test', '--prefix', str(target), cwd=self.root))
+        row = evidence(self.root, 'links-sprint')[-1]
+        self.assertEqual((row['target_dirty'], row['provable']), (True, True))
         ok(self, athena('run', '--', 'npm', '--prefix', str(target), '--version', cwd=self.root))
         self.assertEqual((evidence(self.root, 'links-sprint')[-1]['kind'],
                           evidence(self.root, 'links-sprint')[-1]['provable']), ('other', False))
@@ -45,3 +51,40 @@ class ExternalEvidence(unittest.TestCase):
         ok(self, run)
         self.assertIn('no active sprint', run.stderr)
         self.assertEqual(evidence(self.root, 'links-sprint'), [])
+
+    def probe(self, target, body):
+        (target / 'check.test.cjs').write_text("require('node:test')('external', () => {" + body + '});\n')
+        git(target, 'add', '-A')
+        git(target, 'commit', '-qm', 'probe')
+
+    def test_target_head_change_during_run_is_unprovable(self):
+        target = self.target(stage=None)
+        self.probe(target, "require('child_process').execFileSync('git', ['commit', '--allow-empty', '-qm', 'during'], {cwd: __dirname});")
+        before = git(target, 'rev-parse', 'HEAD').stdout.strip()
+        ok(self, athena('run', '--', 'npm', 'test', '--prefix', str(target), cwd=self.root))
+        row = evidence(self.root, 'links-sprint')[-1]
+        self.assertNotEqual(before, git(target, 'rev-parse', 'HEAD').stdout.strip())
+        self.assertEqual((row['provable'], row['reason']), (False, 'tree_changed_during_run'))
+        self.assertEqual(row['target_head'], git(target, 'rev-parse', 'HEAD').stdout.strip())
+        self.assertFalse(row['target_dirty'])
+
+    def test_target_porcelain_change_during_run_is_unprovable(self):
+        for change in ('clean_to_dirty', 'dirty_to_clean', 'dirty_to_dirty'):
+            with self.subTest(change=change):
+                target = self.target(name=change, stage=None)
+                body = "require('fs').unlinkSync('before.txt');" if change == 'dirty_to_clean' else "require('fs').writeFileSync('after.txt', 'changed');"
+                self.probe(target, body)
+                if change != 'clean_to_dirty':
+                    (target / 'before.txt').write_text('before\n')
+                ok(self, athena('run', '--', 'npm', 'test', '--prefix', str(target), cwd=self.root))
+                row = evidence(self.root, 'links-sprint')[-1]
+                self.assertEqual((row['provable'], row['reason']), (False, 'tree_changed_during_run'))
+                self.assertEqual(row['target_dirty'], change != 'dirty_to_clean')
+
+    def test_non_git_target_records_null_git_state(self):
+        target = self.tmp / 'plain'
+        target.mkdir()
+        (target / 'check.test.cjs').write_text("require('node:test')('plain', () => {});\n")
+        ok(self, athena('run', '--', f'cd {target} && node --test check.test.cjs', cwd=self.root))
+        row = evidence(self.root, 'links-sprint')[-1]
+        self.assertEqual((row['target_head'], row['target_dirty'], row['provable']), (None, None, True))

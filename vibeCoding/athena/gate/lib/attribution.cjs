@@ -204,4 +204,9 @@ function owner(ctx, dir) {
   return { ctx: sprintCtx(ctx, slug, wt), worktree: wt, branch, why: `worktree ${wt} → ${slug}` };
 }
 
-module.exports = { targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints };
+/** Git state of a no-ledger target; null values also cover non-Git directories. */
+function gitState(dir) {
+  return { head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']) };
+}
+
+module.exports = { gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints };

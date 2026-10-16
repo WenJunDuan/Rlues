@@ -92,7 +92,7 @@ function pause(argv, io) {
   }
   const head = git(ctx.root, ['rev-parse', 'HEAD']) || '';
   state.setFields(file, { status: 'paused', resume_when: f['resume-when'], paused_stage: actualStage });
-  fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${new Date().toISOString()} paused at ${actualStage} (head ${head}): resume when ${f['resume-when']}\n`);
+  fs.appendFileSync(path.join(ctx.sprintDir, 'log.md'), `- ${today()} paused at ${actualStage} (head ${head}): resume when ${f['resume-when']}\n`);
   if (fm.roadmap && fm.item) state.setItem(state.itemsFile(ctx.aiState, fm.roadmap), fm.item, { status: 'paused', deferred: { reason: 'paused', resume_when: f['resume-when'] } });
   state.setFields(path.join(ctx.aiState, '_index.md'), { path: '', stage: '', sprint: '', next_action: `paused ${ctx.sprint}` });
   io.stdout.write(`paused ${ctx.sprint}\n`);
@@ -110,7 +110,7 @@ function resume(argv, io) {
   state.setFields(file, { status: 'active' });
   if (fm.roadmap && fm.item) state.setItem(state.itemsFile(ctx.aiState, fm.roadmap), fm.item, { status: 'active' });
   state.setFields(path.join(ctx.aiState, '_index.md'), { path: fm.path, stage, sprint: slug, roadmap: fm.roadmap || undefined, next_action: `resumed ${slug}` });
-  fs.appendFileSync(path.join(ctx.aiState, 'sprints', slug, 'log.md'), `- ${new Date().toISOString()} resumed at ${stage} (head ${git(ctx.root, ['rev-parse', 'HEAD']) || ''})\n`);
+  fs.appendFileSync(path.join(ctx.aiState, 'sprints', slug, 'log.md'), `- ${today()} resumed at ${stage} (head ${git(ctx.root, ['rev-parse', 'HEAD']) || ''})\n`);
   io.stdout.write(`resumed ${slug} at stage ${stage}\n`);
   return 0;
 }
