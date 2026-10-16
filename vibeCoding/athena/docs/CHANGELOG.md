@@ -1,5 +1,13 @@
 # Athena CHANGELOG
 
+## 10.1.6 — quantum-links 门禁反馈修复（2026-10-16）
+
+- G-003：review prepare 按提交者时间排除暂停期提交，避免晚合入的其他 sprint 提交混入 Changes；merge 仅呈现其自身解决改动；旧日期日志保留 HEAD 区间行为。
+- G-004：暂停/恢复日志记录精确时间，恢复后 cherry-pick 的返工按提交者时间保留，不受作者时间影响；Git 同秒边界仍按 HEAD 判定。
+- G-014：install 合并 `~/.claude/rules/_index.md`，保留用户自加的表格行，仅更新发行版行。
+- G-015：run 的目标仓无 Athena 账本时，证据归调用目录账本的活跃 sprint 并记录 target；目标仓有账本时归属不变，kind / provability 判定不变。
+- G-016：纯无账本外仓改动的 sprint 可用上述跨仓检查证据通过 H2，无需为目标仓新建账本。
+
 ## 未发布 — 证据按 worktree 归属（quantum-links 反馈）
 
 ### 修复

@@ -205,9 +205,10 @@ function execute(opts, io) {
   const assignments = Object.entries(opts.env).map(([k, v]) => `${k}=${quote(v)}`).join(' ');
   // For a shell line the env must cover all segments, and replay must retain pipefail.
   const command = assignments ? `env ${assignments} ${shell ? `bash -o pipefail -c ${quote(rawCommand)}` : rawCommand}` : rawCommand;
-  // Charged to the sprint owning the worktree the check runs against, not the active one (G-008/G-013).
   const target = attribution.targetDir(rawCommand, io.cwd);
-  const owned = target ? attribution.owner(context.load(target), target) : { worktree: '-', why: 'target_unresolved (a directory move with & / a subshell, or to a $VAR / missing dir)' };
+  const targetCtx = target && context.load(target);
+  // No ledger at the target: the caller's sprint owns this cross-repo check (G-015/G-016).
+  const owned = target ? attribution.owner(targetCtx || context.load(io.cwd), targetCtx ? target : io.cwd) : { worktree: '-', why: 'target_unresolved (a directory move with & / a subshell, or to a $VAR / missing dir)' };
   const ctx = owned.ctx && { ...owned.ctx, cwd: path.resolve(io.cwd) };
   const recording = Boolean(ctx && ctx.sprint);
   const ignore = recording ? reviewIgnore(ctx) : [];
@@ -236,14 +237,13 @@ function execute(opts, io) {
   if (before !== after) policy = { provable: false, reason: 'tree_changed_during_run' };
   const record = evidence.append(ctx, {
     source: 'run', command, kind, exit, policy, covers: opts.covers, env: opts.env, argv: opts.cmd,
-    tree_sha: after, ignore, output, ...(ssh || {}),
+    tree_sha: after, ignore, output, target, ...(ssh || {}),
   });
   io.stderr.write(`[athena run] exit=${exit} kind=${record.kind} provable=${record.provable}${record.reason ? ` (${record.reason})` : ''} tree=${String(after).slice(0, 12)} → evidence ${record.id}\n`);
   const fix = form(record, opts.cmd);
   if (fix) io.stderr.write(`[athena run] provable form: ${fix}\n`);
   return { exit, record };
 }
-
 // Re-run commands with a historical PASS, carrying covers. Skip only if the latest attempt
 // is already a provable PASS on this tree; any failed/unprovable replay makes rebind exit 1.
 function rebind(io) {

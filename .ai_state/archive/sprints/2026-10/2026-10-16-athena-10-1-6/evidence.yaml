@@ -1,0 +1,11 @@
+sprint: "2026-10-16-athena-10-1-6"
+shipped: "2026-10-16T07:23:29.424Z"
+tree_sha: "1abfe0be599f24301a94cd6ab58ba08d9aa15269"
+review: {run: "c33b4e44-d0a8-44b2-9ddc-9b2073db03b7", verdict: "PASS"}
+final: {id: "0b452533f1fa", command: "unset GIT_DIR GIT_WORK_TREE && cd vibeCoding/athena/evals/fixtures && python3 -m unittest -q", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "G-003 测试先红后绿，暂停期提交按 committer date 排除，保留本 sprint 的已提交和未提交改动。", evidence: ["cb214a9cdcd3","0b452533f1fa"]}
+  - {id: AC2, text: "G-004 测试先红后绿，恢复后 cherry-pick 不因暂停期作者时间被排除；新暂停日志含精确时间，旧 HEAD 日志回归通过。", evidence: ["cb214a9cdcd3","0b452533f1fa"]}
+  - {id: AC3, text: "G-014 临时 HOME 安装保留 models.md 行、更新发行版行、重复安装不重复，rollback 可恢复。", evidence: ["cb214a9cdcd3","0b452533f1fa"]}
+  - {id: AC4, text: "G-015 无账本目标证据回落并记录 target，有账本活跃/空闲目标保持原归属，kind 与 provability 不变。", evidence: ["cb214a9cdcd3","0b452533f1fa"]}
+  - {id: AC5, text: "G-016 纯无账本外仓修改可经真实检查证据通过 H2；全量 unittest 通过，VERSION 与 CHANGELOG 为 10.1.6（五条）。", evidence: ["cb214a9cdcd3","0b452533f1fa"]}

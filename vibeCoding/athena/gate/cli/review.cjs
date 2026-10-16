@@ -60,21 +60,28 @@ function changed(ctx, base, tree, ignore) {
   };
 }
 
-// Commits made while this sprint is paused belong to the other active slice. Legacy
-// logs without HEAD boundaries keep the inclusive diff: unknown ownership is never hidden.
+// Precise pause intervals use committer time: cherry-picks keep the writer's author date.
+// Old date-only logs (and same-second Git timestamps) retain their HEAD boundaries.
 function excludedCommits(ctx, base) {
   let log = '';
   try { log = fs.readFileSync(path.join(ctx.sprintDir, 'log.md'), 'utf8'); } catch (_) { return []; }
-  const range = new Set((git(ctx.root, ['rev-list', `${base}..HEAD`]) || '').split('\n').filter(Boolean));
+  const commits = (git(ctx.root, ['log', '--format=%H %ct', `${base}..HEAD`]) || '').split('\n').filter(Boolean)
+    .map(line => { const [hash, time] = line.split(' '); return { hash, time: Number(time) }; });
   const excluded = new Set();
   let paused = null;
   for (const line of log.split('\n')) {
-    const m = line.match(/ (paused|resumed) at .*?\(head ([0-9a-f]{40,64})\)/);
+    const m = line.match(/^- (\S+) (paused|resumed) at /);
     if (!m) continue;
-    if (m[1] === 'paused') paused = m[2];
+    const head = (line.match(/\(head ([0-9a-f]{40,64})\)/) || [])[1];
+    const time = m[1].includes('T') ? Math.floor(Date.parse(m[1]) / 1000) : NaN;
+    if (m[2] === 'paused') paused = { head, time };
     else if (paused) {
-      const commits = git(ctx.root, ['rev-list', `${paused}..${m[2]}`]);
-      for (const commit of (commits || '').split('\n')) if (range.has(commit)) excluded.add(commit);
+      const heads = new Set(paused.head && head ? (git(ctx.root, ['rev-list', `${paused.head}..${head}`]) || '').split('\n') : []);
+      const timed = Number.isFinite(paused.time) && Number.isFinite(time);
+      for (const commit of commits) {
+        const boundary = commit.time === paused.time || commit.time === time;
+        if (timed && !boundary ? commit.time > paused.time && commit.time < time : heads.has(commit.hash)) excluded.add(commit.hash);
+      }
       paused = null;
     }
   }
@@ -84,16 +91,18 @@ function excludedCommits(ctx, base) {
 function sprintChanges(ctx, base, tree, ignore, excluded) {
   if (!excluded.length) return changed(ctx, base, tree, ignore);
   const omit = new Set(excluded);
-  const commits = (git(ctx.root, ['rev-list', '--reverse', '--first-parent', `${base}..HEAD`]) || '').split('\n').filter(c => c && !omit.has(c));
+  const commits = (git(ctx.root, ['rev-list', '--reverse', `${base}..HEAD`]) || '').split('\n').filter(c => c && !omit.has(c));
   const spec = ['--', ...pathspec(ignore)];
   const stats = [], names = new Set();
   // Per-commit patches retain this sprint's edits even when another slice touched the same file.
-  const pairs = commits.map(c => [c + '^', c]);
+  const pairs = commits.map(c => [c]);
   pairs.push(['HEAD', tree]); // staged, unstaged and untracked source are still reviewed
-  for (const [from, to] of pairs) {
-    const stat = git(ctx.root, ['diff-tree', '-r', '--stat=120', from, to, ...spec]);
-    if (stat) stats.push(`${from} → ${to}\n${stat}`);
-    for (const name of (git(ctx.root, ['diff-tree', '-r', '--name-status', from, to, ...spec]) || '').split('\n')) if (name) names.add(name);
+  for (const pair of pairs) {
+    // A merge contributes its resolution, not another copy of its parents' changes.
+    const args = pair.length === 1 ? ['show', '--format=', '--remerge-diff', ...pair] : ['diff-tree', '-r', ...pair];
+    const stat = git(ctx.root, [...args, '--stat=120', ...spec]);
+    if (stat) stats.push(`${pair.join(' → ')}\n${stat}`);
+    for (const name of (git(ctx.root, [...args, '--name-status', ...spec]) || '').split('\n')) if (name) names.add(name);
   }
   return { stat: stats.join('\n') || '(no changes)', names: [...names] };
 }

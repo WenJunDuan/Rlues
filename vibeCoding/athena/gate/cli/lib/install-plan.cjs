@@ -95,6 +95,17 @@ function mergeSettings(currentText, proposedText, version) {
   return `${JSON.stringify(out, null, 2)}\n`;
 }
 
+/** Update package rows while keeping table rows the user added to the rules index. */
+function mergeRulesIndex(currentText, proposedText) {
+  const key = line => (line.match(/^\s*\|\s*([^|]+?)\s*\|/) || [])[1];
+  const lines = proposedText.split('\n');
+  const managed = new Set(lines.map(key).filter(Boolean));
+  const custom = currentText.split('\n').filter(line => key(line) && !managed.has(key(line)));
+  const lastRow = lines.findLastIndex(line => key(line));
+  lines.splice(lastRow + 1, 0, ...custom);
+  return lines.join('\n');
+}
+
 function mergeHooksFile(currentText, proposedText) {
   const current = currentText ? parseJson(currentText, '~/.codex/hooks.json') : {};
   const proposed = JSON.parse(proposedText);
@@ -167,6 +178,7 @@ function plan(home, platforms, dist) {
       if (!dest) continue;
       const read = () => { try { return fs.readFileSync(path.join(home, dest), 'utf8'); } catch (_) { return ''; } };
       if (dest === '.claude/settings.json') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeSettings(read(), f.content.toString('utf8'), version)), mode: 0o600 });
+      else if (dest === '.claude/rules/_index.md') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeRulesIndex(read(), f.content.toString('utf8'))), mode: f.mode });
       else if (dest === '.codex/hooks.json') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeHooksFile(read(), f.content.toString('utf8'))), mode: 0o644 });
       else if (dest === '.codex/config.toml') {
         const merged = mergeToml(read(), f.content.toString('utf8'), home, version);

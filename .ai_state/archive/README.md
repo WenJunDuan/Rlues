@@ -72,3 +72,4 @@
 | sprints/2026-10-04-athena-10-1-5-review/ | archive/sprints/2026-10/2026-10-04-athena-10-1-5-review/ |
 | archive/sprints/2026-08/ | archive/2026-08.tar.zst |
 | sprints/2026-10-05-athena-10-1-5-release-gates/ | archive/sprints/2026-10/2026-10-05-athena-10-1-5-release-gates/ |
+| sprints/2026-10-16-athena-10-1-6/ | archive/sprints/2026-10/2026-10-16-athena-10-1-6/ |

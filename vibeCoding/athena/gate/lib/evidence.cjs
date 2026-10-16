@@ -162,6 +162,7 @@ function append(ctx, fields) {
     cwd: path.relative(ctx.root, ctx.cwd) || '.',
     covers: Array.isArray(fields.covers) ? fields.covers : [],
   };
+  if (fields.target) record.target = fields.target;
   if (explicitEnv) record.env = Object.fromEntries(Object.entries(fields.env).map(([k, v]) => [k, redact(v, { bounded: false })]));
   // Exact replay input for `athena run --rebind`; left out when redaction would alter it.
   if (Array.isArray(fields.argv) && JSON.stringify(fields.argv).length <= 4000
