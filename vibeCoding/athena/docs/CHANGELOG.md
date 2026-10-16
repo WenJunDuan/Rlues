@@ -1,13 +1,12 @@
 # Athena CHANGELOG
 
-## 未发布 — 证据按 worktree 归属（quantum-links 反馈）
+## 10.1.6 — 证据按 worktree 归属（quantum-links 反馈）
 
 ### 修复
+- G-014：install 仅合并同表头、且不属于新旧发行版的用户索引行；只删除有上一版发行内容证明的退役行。安装清单保存原发行版索引；旧清单缺少发行内容时保留未知行，不将用户备份视作发行版。其他用户表格与段落原样追加，表头不匹配时保留自加内容。
+- G-015/G-016：run 的目标无 Athena 账本时，证据回落调用方所属 sprint；有账本目标维持原归属。run 记录解析后的目标目录 `target`；仅在无账本回落时额外记录目标运行后的 `target_head` / `target_dirty` / `target_tree`（非 Git 目录均为 null），前后 HEAD、porcelain 或内容树变化标记为 tree_changed_during_run；H2/ship 同时核对目标当前内容树，目标改动后旧证据失效；kind/provability 判定维持原规则。
 - G-008/G-009/G-012/G-013：`athena run` 与 CC/CX/Pi 采集器不再把命令记到「主仓当前活跃 sprint」。目标目录 = cwd，经前置 `cd X &&` 与检查命令自己的 `--prefix`/`-C`/`--dir`/`--cwd`/`--manifest-path` 移动；目标在独立 worktree 时按 design frontmatter `worktree:`/`branch:` → `external-writer.json` → 分支名/目录名整词含 slug（或去日期前缀的 slug）映射到热层 sprint（暂停中的也记给它）；映射不到且不在主仓目录内 → 不记并在 stderr 说明。新增 `gate/lib/attribution.cjs`。
 - G-010：H1 对 worktree 内写入按该 worktree 映射到的 sprint（含暂停）的 design 判 AC；映射不到才回落主仓活跃 sprint。
-- 合并坑：sprint start/pause/drop、ship、review accept、issue、exemption、tidy 不再 `git add`（只有 migrate 仍 stage）。暂存区为空，普通 `git merge` 可直接执行；账随实现提交：`git add -A .ai_state`，合并时 `git merge --no-ff --no-commit <b> && git add -A .ai_state && git commit --no-edit`。
-- G-011：`athena tidy` 热层 > 3 时只归档 design `status` 为 shipped/dropped/done 的残留 sprint；暂停中的在飞 sprint 不归档、不改 item 为 deferred，只列出。
-- G-002：`load > log & npm test` 这类「后台负载 + 前台检查」可证明：后台列表里的检查不参与判定，只要还有前台检查；全部检查都在后台仍不可证明。
 
 ## 10.1.5 — 安装器形态收尾 + 插件壳 experimental（候选，2026-10-04）
 

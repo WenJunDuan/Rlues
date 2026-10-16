@@ -95,6 +95,40 @@ function mergeSettings(currentText, proposedText, version) {
   return `${JSON.stringify(out, null, 2)}\n`;
 }
 
+/** Only recorded package content proves ownership; old user backups do not. */
+function installedRulesIndex(home) {
+  try {
+    const installed = JSON.parse(fs.readFileSync(path.join(home, '.athena/installed.json'), 'utf8'));
+    const file = installed.files.find(f => f.path === '.claude/rules/_index.md');
+    return file && file.package_content || '';
+  } catch (_) { return ''; }
+}
+
+/** Merge the package table and append the remaining user content. */
+function mergeRulesIndex(currentText, proposedText, previousText) {
+  const lines = proposedText.split('\n');
+  const normalize = line => line.trim().split('|').map(cell => cell.trim()).join('|');
+  const header = normalize(lines.find(line => /^\s*\|/.test(line)));
+  const rows = text => {
+    const table = text.split(/\r?\n/);
+    const start = table.findIndex(line => normalize(line) === header);
+    const body = [];
+    for (let i = start + 2; start >= 0 && i < table.length && /^\s*\|/.test(table[i]); i += 1) body.push(table[i]);
+    return body;
+  };
+  const key = line => line.split('|')[1].trim();
+  const managed = new Set([...rows(proposedText), ...rows(previousText)].map(key));
+  const custom = rows(currentText).filter(line => !managed.has(key(line)));
+  const current = currentText.split('\n');
+  const start = current.findIndex(line => normalize(line) === header);
+  if (start >= 0) current.splice(start, rows(currentText).length + 2);
+  const packageProse = new Set([...proposedText.split('\n'), ...previousText.split('\n')].filter(line => line.trim() && !/^\s*\|/.test(line)));
+  const remainder = current.filter(line => !packageProse.has(line)).join('\n').replace(/^\n+|\n+$/g, '');
+  const lastRow = lines.findIndex(line => normalize(line) === header) + 1 + rows(proposedText).length;
+  lines.splice(lastRow + 1, 0, ...custom);
+  return lines.join('\n') + (remainder ? `\n${remainder}\n` : '');
+}
+
 function mergeHooksFile(currentText, proposedText) {
   const current = currentText ? parseJson(currentText, '~/.codex/hooks.json') : {};
   const proposed = JSON.parse(proposedText);
@@ -167,6 +201,7 @@ function plan(home, platforms, dist) {
       if (!dest) continue;
       const read = () => { try { return fs.readFileSync(path.join(home, dest), 'utf8'); } catch (_) { return ''; } };
       if (dest === '.claude/settings.json') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeSettings(read(), f.content.toString('utf8'), version)), mode: 0o600 });
+      else if (dest === '.claude/rules/_index.md') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeRulesIndex(read(), f.content.toString('utf8'), installedRulesIndex(home))), package_content: f.content.toString('utf8'), mode: f.mode });
       else if (dest === '.codex/hooks.json') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeHooksFile(read(), f.content.toString('utf8'))), mode: 0o644 });
       else if (dest === '.codex/config.toml') {
         const merged = mergeToml(read(), f.content.toString('utf8'), home, version);

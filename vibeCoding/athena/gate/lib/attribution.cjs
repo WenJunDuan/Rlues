@@ -18,6 +18,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const context = require('./context.cjs');
+const { treeSha } = require('./tree-sha.cjs');
 const frontmatter = require('./frontmatter.cjs');
 const words = require('./shell-words.cjs');
 const lex = require('./shell-lex.cjs');
@@ -204,4 +205,15 @@ function owner(ctx, dir) {
   return { ctx: sprintCtx(ctx, slug, wt), worktree: wt, branch, why: `worktree ${wt} → ${slug}` };
 }
 
-module.exports = { targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints };
+/** Hash the whole target repository, even when the command runs in a subdirectory. */
+function targetTree(dir) {
+  const root = context.git(dir, ['rev-parse', '--show-toplevel']);
+  return root ? treeSha(root) : null;
+}
+
+/** Git state of a no-ledger target; null values also cover non-Git directories. */
+function gitState(dir) {
+  return { head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: targetTree(dir) };
+}
+
+module.exports = { targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints };

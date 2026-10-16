@@ -197,7 +197,6 @@ function docsAssertion(command, cwd, ctx, tree) {
     });
   });
 }
-
 /** Run opts.cmd in io.cwd and record it. Returns { exit, record } (record null without a sprint). */
 function execute(opts, io) {
   const shell = opts.cmd.length === 1;
@@ -205,13 +204,15 @@ function execute(opts, io) {
   const assignments = Object.entries(opts.env).map(([k, v]) => `${k}=${quote(v)}`).join(' ');
   // For a shell line the env must cover all segments, and replay must retain pipefail.
   const command = assignments ? `env ${assignments} ${shell ? `bash -o pipefail -c ${quote(rawCommand)}` : rawCommand}` : rawCommand;
-  // Charged to the sprint owning the worktree the check runs against, not the active one (G-008/G-013).
   const target = attribution.targetDir(rawCommand, io.cwd);
-  const owned = target ? attribution.owner(context.load(target), target) : { worktree: '-', why: 'target_unresolved (a directory move with & / a subshell, or to a $VAR / missing dir)' };
+  const targetCtx = target && context.load(target);
+  // No ledger at the target: the caller's sprint owns this cross-repo check (G-015/G-016).
+  const owned = target ? attribution.owner(targetCtx || context.load(io.cwd), targetCtx ? target : io.cwd) : { worktree: '-', why: 'target_unresolved (a directory move with & / a subshell, or to a $VAR / missing dir)' };
   const ctx = owned.ctx && { ...owned.ctx, cwd: path.resolve(io.cwd) };
   const recording = Boolean(ctx && ctx.sprint);
   const ignore = recording ? reviewIgnore(ctx) : [];
   const before = recording ? treeSha(ctx.root, ignore) : null;
+  const targetBefore = recording && !targetCtx ? attribution.gitState(target) : null;
   const options = { cwd: io.cwd, env: { ...(io.env || process.env), ...opts.env }, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 };
   const child = shell ? spawnSync('bash', ['-o', 'pipefail', '-c', rawCommand], options) : spawnSync(opts.cmd[0], opts.cmd.slice(1), options);
   if (child.stdout) io.stdout.write(child.stdout);
@@ -224,6 +225,7 @@ function execute(opts, io) {
     return { exit, record: null };
   }
   const after = treeSha(ctx.root, ignore);
+  const targetAfter = targetBefore && attribution.gitState(target);
   const ssh = shell ? null : sshVm(opts.cmd, options.env);
   const docs = !ssh && docsAssertion(rawCommand, io.cwd, ctx, before);
   const kind = docs ? 'docs' : (evidence.classify(ssh ? ssh.remote : rawCommand) || 'other');
@@ -233,17 +235,16 @@ function execute(opts, io) {
   if (ssh) policy = evidence.policy(ssh.remote);
   if (Object.keys(opts.env).some(name => EXECUTION_ENV.test(name))) policy = { provable: false, reason: 'validation_shadowable' };
   if (exit === 0 && kind === 'test' && zeroTests(output)) policy = { provable: false, reason: 'zero_tests: 零用例执行' };
-  if (before !== after) policy = { provable: false, reason: 'tree_changed_during_run' };
+  if (before !== after || JSON.stringify(targetBefore) !== JSON.stringify(targetAfter)) policy = { provable: false, reason: 'tree_changed_during_run' };
   const record = evidence.append(ctx, {
     source: 'run', command, kind, exit, policy, covers: opts.covers, env: opts.env, argv: opts.cmd,
-    tree_sha: after, ignore, output, ...(ssh || {}),
+    tree_sha: after, ignore, output, target, target_state: targetAfter, ...(ssh || {}),
   });
   io.stderr.write(`[athena run] exit=${exit} kind=${record.kind} provable=${record.provable}${record.reason ? ` (${record.reason})` : ''} tree=${String(after).slice(0, 12)} → evidence ${record.id}\n`);
   const fix = form(record, opts.cmd);
   if (fix) io.stderr.write(`[athena run] provable form: ${fix}\n`);
   return { exit, record };
 }
-
 // Re-run commands with a historical PASS, carrying covers. Skip only if the latest attempt
 // is already a provable PASS on this tree; any failed/unprovable replay makes rebind exit 1.
 function rebind(io) {
@@ -271,7 +272,7 @@ function rebind(io) {
   let rerun = 0, kept = 0;
   for (const { row, covers, passed } of latest.values()) {
     if (passed && row.tree_sha === tree && JSON.stringify(row.ignore || []) === JSON.stringify(ignore)
-        && covers.every(ac => (row.covers || []).includes(ac))) { kept += 1; continue; }
+        && (row.target_tree === undefined || (row.target_tree && row.target_tree === attribution.targetTree(row.target))) && covers.every(ac => (row.covers || []).includes(ac))) { kept += 1; continue; }
     const cwd = path.resolve(ctx.root, row.cwd || '.');
     if (!Array.isArray(row.argv) || !row.argv.length || !fs.existsSync(cwd)) {
       // No exact argv (recorded before 10.1.5, or redacted) or its cwd is gone: never guess a replay.
@@ -291,7 +292,6 @@ function rebind(io) {
   if (failed.length) io.stderr.write('next: fix the failure, then `athena run --rebind`\n');
   return failed.length ? 1 : 0;
 }
-
 function main(argv, io) {
   const opts = parse(argv);
   return opts.rebind ? rebind(io) : execute(opts, io).exit;
