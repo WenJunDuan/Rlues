@@ -8,7 +8,7 @@ const path = require('path');
 const crypto = require('crypto');
 const lex = require('./shell-lex.cjs');
 const words = require('./shell-words.cjs');
-const { treeSha } = require('./tree-sha.cjs');
+const { targetTree } = require('./attribution.cjs');
 
 // Anchored at the start of a quote-aware segment (shell-lex.scan): a validation word inside
 // quotes ("echo '; pytest'") is data, not a command (review S2 P1).
@@ -145,6 +145,7 @@ function append(ctx, fields) {
   if (!ctx.sprint) return null;
   const kind = fields.kind || classify(fields.command) || 'other';
   const verdict = fields.policy || policy(fields.command || '');
+  const targetUnknown = fields.target_state && !fields.target_state.tree;
   const explicitEnv = fields.env && Object.keys(fields.env).length > 0;
   const record = {
     schema: 1,
@@ -156,8 +157,8 @@ function append(ctx, fields) {
     command: explicitEnv ? redact(fields.command, { bounded: false }) : redact(fields.command).slice(0, 500),
     kind,
     exit: Number.isInteger(fields.exit) ? fields.exit : null,
-    provable: PROVABLE_KINDS.has(kind) && verdict.provable && Number.isInteger(fields.exit),
-    reason: verdict.reason || (Number.isInteger(fields.exit) ? null : 'exit_code_unknown'),
+    provable: !targetUnknown && PROVABLE_KINDS.has(kind) && verdict.provable && Number.isInteger(fields.exit),
+    reason: targetUnknown ? 'target_tree_unknown' : verdict.reason || (Number.isInteger(fields.exit) ? null : 'exit_code_unknown'),
     tree_sha: fields.tree_sha || null,
     ignore: Array.isArray(fields.ignore) ? fields.ignore : [],
     cwd: path.relative(ctx.root, ctx.cwd) || '.',
@@ -192,7 +193,7 @@ function read(ctx, sprint = ctx.sprint) {
 function valid(ctx, tree, { anyProvableKind = false, ignore = [] } = {}) {
   const key = JSON.stringify(ignore);
   return read(ctx).filter(row => row.exit === 0 && row.tree_sha === tree && JSON.stringify(row.ignore || []) === key
-    && (row.target_tree === undefined || row.target_tree === treeSha(row.target))
+    && (row.target_tree === undefined || (row.target_tree && row.target_tree === targetTree(row.target)))
     && (row.provable === true || (anyProvableKind && row.kind === 'lint' && row.reason === null)));
 }
 

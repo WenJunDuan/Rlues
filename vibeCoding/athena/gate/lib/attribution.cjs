@@ -205,9 +205,15 @@ function owner(ctx, dir) {
   return { ctx: sprintCtx(ctx, slug, wt), worktree: wt, branch, why: `worktree ${wt} → ${slug}` };
 }
 
-/** Git state of a no-ledger target; null values also cover non-Git directories. */
-function gitState(dir) {
-  return { head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: treeSha(dir) };
+/** Hash the whole target repository, even when the command runs in a subdirectory. */
+function targetTree(dir) {
+  const root = context.git(dir, ['rev-parse', '--show-toplevel']);
+  return root ? treeSha(root) : null;
 }
 
-module.exports = { gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints };
+/** Git state of a no-ledger target; null values also cover non-Git directories. */
+function gitState(dir) {
+  return { head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: targetTree(dir) };
+}
+
+module.exports = { targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints };

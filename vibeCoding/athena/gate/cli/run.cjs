@@ -272,7 +272,7 @@ function rebind(io) {
   let rerun = 0, kept = 0;
   for (const { row, covers, passed } of latest.values()) {
     if (passed && row.tree_sha === tree && JSON.stringify(row.ignore || []) === JSON.stringify(ignore)
-        && (row.target_tree === undefined || row.target_tree === treeSha(row.target)) && covers.every(ac => (row.covers || []).includes(ac))) { kept += 1; continue; }
+        && (row.target_tree === undefined || (row.target_tree && row.target_tree === attribution.targetTree(row.target))) && covers.every(ac => (row.covers || []).includes(ac))) { kept += 1; continue; }
     const cwd = path.resolve(ctx.root, row.cwd || '.');
     if (!Array.isArray(row.argv) || !row.argv.length || !fs.existsSync(cwd)) {
       // No exact argv (recorded before 10.1.5, or redacted) or its cwd is gone: never guess a replay.

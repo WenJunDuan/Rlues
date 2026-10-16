@@ -91,10 +91,26 @@ class ExternalEvidence(unittest.TestCase):
         row = evidence(self.root, 'links-sprint')[-1]
         self.assertEqual((row['provable'], row['reason']), (False, 'tree_changed_during_run'))
 
-    def test_non_git_target_records_null_git_state(self):
+    def test_subdirectory_run_detects_dirty_rewrite_outside_subdirectory(self):
+        target = self.target(stage=None)
+        subdir = target / 'tests'
+        subdir.mkdir()
+        (subdir / 'check.test.cjs').write_text("require('node:test')('external', () => { require('fs').writeFileSync('../app.js', 'after dirty rewrite\\n'); });\n")
+        git(target, 'add', '-A')
+        git(target, 'commit', '-qm', 'subdirectory probe')
+        (target / 'app.js').write_text('before dirty rewrite\n')
+        before = git(target, 'status', '--porcelain').stdout
+        ok(self, athena('run', '--', f'cd {subdir} && node --test check.test.cjs', cwd=self.root))
+        self.assertEqual(git(target, 'status', '--porcelain').stdout, before)
+        row = evidence(self.root, 'links-sprint')[-1]
+        self.assertEqual((row['provable'], row['reason']), (False, 'tree_changed_during_run'))
+
+    def test_non_git_target_is_unprovable(self):
         target = self.tmp / 'plain'
         target.mkdir()
         (target / 'check.test.cjs').write_text("require('node:test')('plain', () => {});\n")
         ok(self, athena('run', '--', f'cd {target} && node --test check.test.cjs', cwd=self.root))
         row = evidence(self.root, 'links-sprint')[-1]
-        self.assertEqual((row['target_head'], row['target_dirty'], row['provable']), (None, None, True))
+        self.assertEqual((row['target_tree'], row['target_head'], row['target_dirty'], row['provable']),
+                         (None, None, None, False))
+        self.assertEqual(row['reason'], 'target_tree_unknown')
