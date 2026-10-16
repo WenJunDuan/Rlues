@@ -104,7 +104,7 @@ function installedRulesIndex(home) {
   } catch (_) { return ''; }
 }
 
-/** Keep user rows from the same table, excluding both old and new package rows. */
+/** Merge the package table and append the remaining user content. */
 function mergeRulesIndex(currentText, proposedText, previousText) {
   const lines = proposedText.split('\n');
   const normalize = line => line.trim().split('|').map(cell => cell.trim()).join('|');
@@ -119,9 +119,14 @@ function mergeRulesIndex(currentText, proposedText, previousText) {
   const key = line => line.split('|')[1].trim();
   const managed = new Set([...rows(proposedText), ...rows(previousText)].map(key));
   const custom = rows(currentText).filter(line => !managed.has(key(line)));
+  const current = currentText.split('\n');
+  const start = current.findIndex(line => normalize(line) === header);
+  if (start >= 0) current.splice(start, rows(currentText).length + 2);
+  const packageProse = new Set([...proposedText.split('\n'), ...previousText.split('\n')].filter(line => line.trim() && !/^\s*\|/.test(line)));
+  const remainder = current.filter(line => !packageProse.has(line)).join('\n').replace(/^\n+|\n+$/g, '');
   const lastRow = lines.findIndex(line => normalize(line) === header) + 1 + rows(proposedText).length;
   lines.splice(lastRow + 1, 0, ...custom);
-  return lines.join('\n');
+  return lines.join('\n') + (remainder ? `\n${remainder}\n` : '');
 }
 
 function mergeHooksFile(currentText, proposedText) {

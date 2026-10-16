@@ -8,6 +8,7 @@ const path = require('path');
 const crypto = require('crypto');
 const lex = require('./shell-lex.cjs');
 const words = require('./shell-words.cjs');
+const { treeSha } = require('./tree-sha.cjs');
 
 // Anchored at the start of a quote-aware segment (shell-lex.scan): a validation word inside
 // quotes ("echo '; pytest'") is data, not a command (review S2 P1).
@@ -163,7 +164,7 @@ function append(ctx, fields) {
     covers: Array.isArray(fields.covers) ? fields.covers : [],
   };
   if (fields.target) record.target = fields.target;
-  if (fields.target_state) Object.assign(record, { target_head: fields.target_state.head, target_dirty: fields.target_state.status === null ? null : fields.target_state.status !== '' });
+  if (fields.target_state) Object.assign(record, { target_tree: fields.target_state.tree, target_head: fields.target_state.head, target_dirty: fields.target_state.status === null ? null : fields.target_state.status !== '' });
   if (explicitEnv) record.env = Object.fromEntries(Object.entries(fields.env).map(([k, v]) => [k, redact(v, { bounded: false })]));
   // Exact replay input for `athena run --rebind`; left out when redaction would alter it.
   if (Array.isArray(fields.argv) && JSON.stringify(fields.argv).length <= 4000
@@ -191,6 +192,7 @@ function read(ctx, sprint = ctx.sprint) {
 function valid(ctx, tree, { anyProvableKind = false, ignore = [] } = {}) {
   const key = JSON.stringify(ignore);
   return read(ctx).filter(row => row.exit === 0 && row.tree_sha === tree && JSON.stringify(row.ignore || []) === key
+    && (row.target_tree === undefined || row.target_tree === treeSha(row.target))
     && (row.provable === true || (anyProvableKind && row.kind === 'lint' && row.reason === null)));
 }
 

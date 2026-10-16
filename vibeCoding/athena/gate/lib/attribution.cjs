@@ -18,6 +18,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const context = require('./context.cjs');
+const { treeSha } = require('./tree-sha.cjs');
 const frontmatter = require('./frontmatter.cjs');
 const words = require('./shell-words.cjs');
 const lex = require('./shell-lex.cjs');
@@ -206,7 +207,7 @@ function owner(ctx, dir) {
 
 /** Git state of a no-ledger target; null values also cover non-Git directories. */
 function gitState(dir) {
-  return { head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']) };
+  return { head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: treeSha(dir) };
 }
 
 module.exports = { gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints };

@@ -81,6 +81,16 @@ class ExternalEvidence(unittest.TestCase):
                 self.assertEqual((row['provable'], row['reason']), (False, 'tree_changed_during_run'))
                 self.assertEqual(row['target_dirty'], change != 'dirty_to_clean')
 
+    def test_already_dirty_file_rewritten_during_run_is_unprovable(self):
+        target = self.target(stage=None)
+        self.probe(target, "require('fs').writeFileSync('app.js', 'after dirty rewrite\\n');")
+        (target / 'app.js').write_text('before dirty rewrite\n')
+        before = git(target, 'status', '--porcelain').stdout
+        ok(self, athena('run', '--', 'npm', 'test', '--prefix', str(target), cwd=self.root))
+        self.assertEqual(git(target, 'status', '--porcelain').stdout, before)
+        row = evidence(self.root, 'links-sprint')[-1]
+        self.assertEqual((row['provable'], row['reason']), (False, 'tree_changed_during_run'))
+
     def test_non_git_target_records_null_git_state(self):
         target = self.tmp / 'plain'
         target.mkdir()

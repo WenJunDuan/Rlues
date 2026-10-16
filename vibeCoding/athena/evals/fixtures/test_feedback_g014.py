@@ -65,8 +65,28 @@ class RulesIndexMerge(unittest.TestCase):
                         self.assertNotIn('retired.md', text)
                     else:
                         self.assertIn('retired.md', text)  # Unknown ownership in an old user backup.
-                    self.assertNotIn('unrelated.md', text)
+                    self.assertIn('| 项目 | 描述 |\n|---|---|\n| unrelated.md | other table |\n', text)
                     self.assertEqual(text.count(custom), 1)
                     entry = next(f for f in json.loads(state.read_text())['files']
                                  if f['path'] == '.claude/rules/_index.md')
                     self.assertEqual(entry['package_content'], proposed)
+
+    def test_install_preserves_other_content_and_mismatched_table(self):
+        tmp = tmpdir(self)
+        dist = build(tmp / 'dist')
+        proposed = (dist / f'claude/{RELEASE}/.claude/rules/_index.md').read_text()
+        for same_header in (True, False):
+            with self.subTest(same_header=same_header):
+                home = tmp / str(same_header)
+                index = home / '.claude/rules/_index.md'
+                index.parent.mkdir(parents=True)
+                user = '# My notes\n\n  Preserve this paragraph.\n\n| 项目 | 描述 |\n|---|---|\n| unrelated.md | other table |\n'
+                index.write_text((proposed if same_header else '') + '\n' + user)
+                for _ in range(2):
+                    ok = athena('install', '--platform', 'cc', '--dist', str(dist),
+                                cwd=home, env={**ENV, 'HOME': str(home)})
+                    self.assertEqual(ok.returncode, 0, ok.stderr)
+                    text = index.read_text()
+                    self.assertIn(user, text)
+                    self.assertEqual(text.count('# My notes'), 1)
+                    self.assertTrue(text.startswith(proposed))
