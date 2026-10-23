@@ -14,6 +14,10 @@
 //     Rules are tried in order; within a rule several sprints → the longest key, a tie → none.
 //   no match → a worktree nested inside the main checkout keeps the active sprint; any other
 //   (sibling) worktree → null: evidence is not recorded (never charged to the active sprint).
+//   another repository (G-015/G-016/G-025): a target without a ledger, or whose ledger belongs to
+//   another main checkout, is the caller's check — owned by the caller's cwd under the rules above
+//   and bound to the target repository's tree (target_repo/target_head/target_tree); never charged
+//   to the target repository's sprint.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -205,15 +209,41 @@ function owner(ctx, dir) {
   return { ctx: sprintCtx(ctx, slug, wt), worktree: wt, branch, why: `worktree ${wt} → ${slug}` };
 }
 
+/** Is targetCtx (loaded from the command's target) another project than callerCtx? (G-025) */
+function crossRepo(callerCtx, targetCtx) {
+  return Boolean(callerCtx && targetCtx && realpath(callerCtx.mainRoot) !== realpath(targetCtx.mainRoot));
+}
+
+/**
+ * Owner of an `athena run` check aimed at `target` from `cwd`: owner() plus bind (record the target's
+ * git state). `sprint` (--sprint) = that hot sprint of the caller's project; an unknown slug throws.
+ */
+function runOwner(cwd, target, sprint) {
+  const caller = context.load(cwd);
+  const hot = caller ? hotSprints(caller) : [];
+  if (sprint !== null && sprint !== undefined && !hot.includes(sprint)) {
+    throw new Error(`run: --sprint ${sprint}: no hot sprint .ai_state/sprints/${sprint}/design.md here (hot: ${hot.join(', ') || 'none'}). sample: athena run --sprint <slug> -- <cmd…>`);
+  }
+  if (!target) return { ctx: null, worktree: '-', why: 'target_unresolved (a directory move with & / a subshell, or to a $VAR / missing dir)' };
+  const targetCtx = context.load(target);
+  const external = !targetCtx || crossRepo(caller, targetCtx);
+  if (sprint) {
+    const ctx = sprintCtx(caller, sprint, caller.root);
+    return { ctx, worktree: null, why: `--sprint ${sprint}`, bind: external || !context.inside(target, ctx.root) };
+  }
+  return { ...owner(external ? caller : targetCtx, external ? cwd : target), bind: external };
+}
+
 /** Hash the whole target repository, even when the command runs in a subdirectory. */
 function targetTree(dir) {
   const root = context.git(dir, ['rev-parse', '--show-toplevel']);
   return root ? treeSha(root) : null;
 }
 
-/** Git state of a no-ledger target; null values also cover non-Git directories. */
+/** Git state of an external (no-ledger or other-repository) target; null values also cover non-Git directories. */
 function gitState(dir) {
-  return { head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: targetTree(dir) };
+  const root = context.git(dir, ['rev-parse', '--show-toplevel']);
+  return { repo: root ? realpath(root) : null, head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: targetTree(dir) };
 }
 
-module.exports = { targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints, token };
+module.exports = { runOwner, crossRepo, targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints, token };

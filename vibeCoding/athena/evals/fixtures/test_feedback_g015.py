@@ -39,18 +39,17 @@ class ExternalEvidence(unittest.TestCase):
         self.assertEqual((evidence(self.root, 'links-sprint')[-1]['kind'],
                           evidence(self.root, 'links-sprint')[-1]['provable']), ('other', False))
 
-    def test_target_with_ledger_keeps_its_active_sprint(self):
+    def test_target_with_ledger_is_the_callers_evidence(self):
+        # G-025 supersedes "a ledger target keeps its active sprint".
         target = self.target(name='agent', sprint='agent-sprint')
         ok(self, athena('run', '--', 'npm', 'test', '--prefix', str(target), cwd=self.root))
-        self.assertEqual(evidence(self.root, 'links-sprint'), [])
-        self.assertEqual(len(evidence(target, 'agent-sprint')), 1)
+        self.assertEqual(len(evidence(self.root, 'links-sprint')), 1)
+        self.assertEqual(evidence(target, 'agent-sprint'), [])
 
-    def test_idle_target_with_ledger_does_not_fall_back(self):
+    def test_idle_target_with_ledger_falls_back(self):
         target = self.target(name='agent', path='', stage='', sprint='')
-        run = athena('run', '--', 'npm', 'test', '--prefix', str(target), cwd=self.root)
-        ok(self, run)
-        self.assertIn('no active sprint', run.stderr)
-        self.assertEqual(evidence(self.root, 'links-sprint'), [])
+        ok(self, athena('run', '--', 'npm', 'test', '--prefix', str(target), cwd=self.root))
+        self.assertEqual(len(evidence(self.root, 'links-sprint')), 1)
 
     def probe(self, target, body):
         (target / 'check.test.cjs').write_text("require('node:test')('external', () => {" + body + '});\n')

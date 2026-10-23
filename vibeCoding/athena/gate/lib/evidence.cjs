@@ -165,7 +165,7 @@ function append(ctx, fields) {
     covers: Array.isArray(fields.covers) ? fields.covers : [],
   };
   if (fields.target) record.target = fields.target;
-  if (fields.target_state) Object.assign(record, { target_tree: fields.target_state.tree, target_head: fields.target_state.head, target_dirty: fields.target_state.status === null ? null : fields.target_state.status !== '' });
+  if (fields.target_state) Object.assign(record, { target_repo: fields.target_state.repo, target_tree: fields.target_state.tree, target_head: fields.target_state.head, target_dirty: fields.target_state.status === null ? null : fields.target_state.status !== '' });
   if (explicitEnv) record.env = Object.fromEntries(Object.entries(fields.env).map(([k, v]) => [k, redact(v, { bounded: false })]));
   // Exact replay input for `athena run --rebind`; left out when redaction would alter it.
   if (Array.isArray(fields.argv) && JSON.stringify(fields.argv).length <= 4000

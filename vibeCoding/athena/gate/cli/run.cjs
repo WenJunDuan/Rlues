@@ -1,5 +1,5 @@
 'use strict';
-// athena run [--covers AC1,AC2] [--env K=V] -- <cmd…>: run a check, record its real exit code as evidence (design §8, D5).
+// athena run [--sprint <slug>] [--covers AC1,AC2] [--env K=V] -- <cmd…>: run a check, record its real exit code as evidence (design §8, D5).
 // --rebind: after an edit, re-RUN the sprint's latest provable PASS test/typecheck commands (same argv,
 // env, cwd, covers) on the current tree; never copies an old PASS. One argument = a shell line (bash -o
 // pipefail -c); several = argv, no shell. kind comes from the command words only; a wrapped or shell
@@ -66,14 +66,14 @@ function sshVm(argv, env) {
   return vm ? { vm: String(vm.name || vm.host), remote } : null;
 }
 
-const USAGE = 'run: usage: athena run [--covers AC1,AC2] [--env K=V] -- <cmd…> | athena run --rebind';
+const USAGE = 'run: usage: athena run [--sprint <slug>] [--covers AC1,AC2] [--env K=V] -- <cmd…> | athena run --rebind';
 
 function parse(argv) {
-  const opts = { covers: [], env: Object.create(null), cmd: [], rebind: false };
+  const opts = { covers: [], env: Object.create(null), cmd: [], rebind: false, sprint: null };
   const dash = argv.indexOf('--');
   const head = dash < 0 ? argv : argv.slice(0, dash);
   if (head.includes('--rebind')) {
-    if (dash >= 0 || head.length !== 1) throw new Error('run: --rebind re-runs the recorded commands; it takes no --covers, --env or -- <cmd…>. sample: athena run --rebind');
+    if (dash >= 0 || head.length !== 1) throw new Error('run: --rebind re-runs the recorded commands; it takes no --sprint, --covers, --env or -- <cmd…>. sample: athena run --rebind');
     return { ...opts, rebind: true };
   }
   if (dash < 0) throw new Error(USAGE);
@@ -83,6 +83,8 @@ function parse(argv) {
     if (head[i] === '--covers') {
       rawCovers = String(head[++i] || '');
       opts.covers = rawCovers.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (head[i] === '--sprint') {
+      opts.sprint = String(head[++i] || ''); // checked against the hot sprints in attribution.runOwner
     } else if (head[i] === '--env') {
       const match = String(head[++i] || '').match(/^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/);
       if (!match) throw new Error('run: --env takes K=V. sample: athena run --env FOO=1 -- <cmd…>');
@@ -205,14 +207,12 @@ function execute(opts, io) {
   // For a shell line the env must cover all segments, and replay must retain pipefail.
   const command = assignments ? `env ${assignments} ${shell ? `bash -o pipefail -c ${quote(rawCommand)}` : rawCommand}` : rawCommand;
   const target = attribution.targetDir(rawCommand, io.cwd);
-  const targetCtx = target && context.load(target);
-  // No ledger at the target: the caller's sprint owns this cross-repo check (G-015/G-016).
-  const owned = target ? attribution.owner(targetCtx || context.load(io.cwd), targetCtx ? target : io.cwd) : { worktree: '-', why: 'target_unresolved (a directory move with & / a subshell, or to a $VAR / missing dir)' };
+  const owned = attribution.runOwner(io.cwd, target, opts.sprint); // cross-repo → caller, target-bound (G-025)
   const ctx = owned.ctx && { ...owned.ctx, cwd: path.resolve(io.cwd) };
   const recording = Boolean(ctx && ctx.sprint);
   const ignore = recording ? reviewIgnore(ctx) : [];
   const before = recording ? treeSha(ctx.root, ignore) : null;
-  const targetBefore = recording && !targetCtx ? attribution.gitState(target) : null;
+  const targetBefore = recording && owned.bind ? attribution.gitState(target) : null;
   const options = { cwd: io.cwd, env: { ...(io.env || process.env), ...opts.env }, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 };
   const child = shell ? spawnSync('bash', ['-o', 'pipefail', '-c', rawCommand], options) : spawnSync(opts.cmd[0], opts.cmd.slice(1), options);
   if (child.stdout) io.stdout.write(child.stdout);

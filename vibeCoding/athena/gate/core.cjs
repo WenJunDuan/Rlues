@@ -99,7 +99,10 @@ function postTool(ev, base) {
   const start = ev.workdir ? path.resolve(ev.cwd, ev.workdir) : ev.cwd;
   const target = attribution.targetDir(ev.command, start);
   if (!target) return allow(); // target_unresolved: never charged to the active sprint
-  const ctx = attribution.owner(path.resolve(target) === path.resolve(ev.cwd) ? base : context.load(target), target).ctx;
+  const targetCtx = path.resolve(target) === path.resolve(ev.cwd) ? base : context.load(target);
+  // Another project's ledger (G-025): not that project's evidence, and the collector has no target binding.
+  if (attribution.crossRepo(base, targetCtx)) return allow();
+  const ctx = attribution.owner(targetCtx, target).ctx;
   if (!ctx || !ctx.sprint) return allow();
   try {
     evidence.append(ctx, { source: 'collector', platform: ev.platform, command: ev.command, kind, exit: ev.exit_code, tree_sha: tree(ctx), ignore: reviewIgnore(ctx) });
