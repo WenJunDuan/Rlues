@@ -11,6 +11,7 @@ const { git } = require('../lib/context.cjs');
 const { treeSha, treeFiles, pathspec } = require('../lib/tree-sha.cjs');
 const { reviewIgnore } = require('../core.cjs');
 const h1 = require('../rules/h1-design.cjs');
+const attribution = require('../lib/attribution.cjs');
 
 const USAGE = `usage:
   athena review prepare [--scope implementation|design]
@@ -60,13 +61,38 @@ function changed(ctx, base, tree, ignore) {
   };
 }
 
-// Commits made while this sprint is paused belong to the other active slice. Legacy
+/** Hot sprints whose slug (or slug without its date prefix) is a whole token of `text`. */
+function sprintsNamed(slugs, text) {
+  return slugs.filter(slug => [slug, slug.replace(/^\d{4}-\d{2}-\d{2}-/, '')].some(key => attribution.token(text, key)));
+}
+
+// Another sprint owns a paused-interval commit when its message, a merged branch (by name or via
+// sprintForWorktree) or the merged side's messages name it, or the commit only touches its state;
+// anything naming this sprint, or nothing, stays (G-021/G-024).
+function otherSprintCommit(ctx, commit, slugs) {
+  const owners = new Set(sprintsNamed(slugs, git(ctx.root, ['log', '-1', '--format=%B', commit]) || ''));
+  const parents = (git(ctx.root, ['rev-list', '--parents', '-n', '1', commit]) || '').split(' ').slice(1);
+  if (parents.length > 1) {
+    for (const s of sprintsNamed(slugs, git(ctx.root, ['log', '--format=%B', `${parents[0]}..${parents[1]}`]) || '')) owners.add(s);
+    const branch = ((git(ctx.root, ['log', '-1', '--format=%s', commit]) || '').match(/^Merge (?:remote-tracking )?branch '([^']+)'/) || [])[1];
+    const mapped = branch && attribution.sprintForWorktree(ctx, '', branch);
+    if (mapped) owners.add(mapped);
+  } else if (!owners.size) {
+    const files = (git(ctx.root, ['diff-tree', '--no-commit-id', '--name-only', '-r', commit]) || '').split('\n').filter(Boolean);
+    const dirs = new Set(files.map(f => (f.match(/^\.ai_state\/sprints\/([^/]+)\//) || [])[1]));
+    if (files.length && dirs.size === 1 && slugs.includes([...dirs][0])) owners.add([...dirs][0]);
+  }
+  return !owners.has(ctx.sprint) && owners.size > 0;
+}
+
+// Commits made while this sprint is paused that belong to another sprint. Legacy
 // logs without HEAD boundaries keep the inclusive diff: unknown ownership is never hidden.
 function excludedCommits(ctx, base) {
   let log = '';
   try { log = fs.readFileSync(path.join(ctx.sprintDir, 'log.md'), 'utf8'); } catch (_) { return []; }
   const range = new Set((git(ctx.root, ['rev-list', `${base}..HEAD`]) || '').split('\n').filter(Boolean));
   const excluded = new Set();
+  const slugs = attribution.hotSprints(ctx).concat(ctx.sprint).filter((s, i, a) => s && a.indexOf(s) === i);
   let paused = null;
   for (const line of log.split('\n')) {
     const m = line.match(/ (paused|resumed) at .*?\(head ([0-9a-f]{40,64})\)/);
@@ -74,7 +100,7 @@ function excludedCommits(ctx, base) {
     if (m[1] === 'paused') paused = m[2];
     else if (paused) {
       const commits = git(ctx.root, ['rev-list', `${paused}..${m[2]}`]);
-      for (const commit of (commits || '').split('\n')) if (range.has(commit)) excluded.add(commit);
+      for (const commit of (commits || '').split('\n')) if (range.has(commit) && otherSprintCommit(ctx, commit, slugs)) excluded.add(commit);
       paused = null;
     }
   }
@@ -194,12 +220,14 @@ function accept(argv, io) {
     if (error instanceof UsageError) error.next = `${acceptCmd(run)}   # after the reviewer re-emits its output in the format above`;
     throw error;
   }
-  // replay guard: one reviewer output is accepted for one run only (review S3 P1)
+  // replay guard: one reviewer output is accepted for one run only (review S3 P1). A findings-free
+  // output is the same bytes every time; given as a --file newer than this run's packet (checked
+  // above) it is not a replay (G-019). Stdin carries no such proof and keeps the guard.
   const outputSha = sha(text);
   const ledger = path.join(runsDir(ctx), 'accepted.jsonl');
   const used = (() => { try { return fs.readFileSync(ledger, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch (_) { return []; } })();
-  const reuse = used.find(u => u.output_sha === outputSha && u.run !== run);
-  if (reuse) throw refuse(`this reviewer output was already accepted for run ${reuse.run}; a new run needs a new review`, again);
+  const reuse = !(f.file && !parsed.findings.length) && used.find(u => u.output_sha === outputSha && u.run !== run);
+  if (reuse) throw refuse(`this reviewer output was already accepted for run ${reuse.run}; a new run needs a new review${parsed.findings.length ? '' : ' (a findings-free output is accepted again only as a --file written after this run\'s packet)'}`, again);
   const ignore = reviewIgnore(ctx);
   const tree = treeSha(ctx.root, ignore);
   if (tree !== saved.tree_sha || JSON.stringify(ignore) !== JSON.stringify(saved.ignore)) {

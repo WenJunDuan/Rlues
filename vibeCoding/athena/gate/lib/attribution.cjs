@@ -216,4 +216,4 @@ function gitState(dir) {
   return { head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: targetTree(dir) };
 }
 
-module.exports = { targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints };
+module.exports = { targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints, token };

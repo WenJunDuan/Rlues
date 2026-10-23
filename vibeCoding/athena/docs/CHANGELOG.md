@@ -1,5 +1,11 @@
 # Athena CHANGELOG
 
+## 10.1.7 — hotfix4：review 门禁（quantum-links G-019 / G-021 / G-024）
+
+### 修复
+- G-019：`review accept` 重放保护对无发现输出放宽。无发现的 `VERDICT: PASS` 每次同文；以 `--file` 给出且文件晚于本 run 的 packet（原有 mtime 检查）时不按同文判重放。带发现的输出、或经 stdin 给出的无发现输出，仍按输出全文 sha 只接受一次。
+- G-021/G-024：`review prepare` 不再把暂停区间内的全部提交排除。只排除可归属到另一个热层 sprint 的提交：提交信息整词含其 slug（或去日期前缀的 slug）；合并提交的分支名（直接或经 `sprintForWorktree` 的 design `branch:` / `external-writer.json` 映射）或第二父链提交信息指向它；或提交只改动 `.ai_state/sprints/<其 slug>/`。提交信息、合并分支或第二父链命名本 sprint 的，以及归属不明的，一律保留在 Changes。
+
 ## 10.1.6 — 证据按 worktree 归属（quantum-links 反馈）
 
 ### 修复

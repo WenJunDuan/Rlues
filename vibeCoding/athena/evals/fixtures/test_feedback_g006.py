@@ -20,7 +20,7 @@ class SprintRotation(unittest.TestCase):
         ok(self, athena('sprint', 'pause', '--resume-when', 'after y', cwd=root))
         ok(self, athena('sprint', 'start', 'r/y', '--slug', 's-y', cwd=root))
         (root / 'other.js').write_text('other\n')
-        git(root, 'add', '-A'); git(root, 'commit', '-qm', 'implement y')
+        git(root, 'add', '-A'); git(root, 'commit', '-qm', 'implement s-y')  # G-024: only commits attributable to another sprint are excluded
         excluded = git(root, 'rev-parse', 'HEAD').stdout.strip()
         ok(self, athena('sprint', 'pause', '--resume-when', 'after x', cwd=root))
         ok(self, athena('sprint', 'resume', 's-x', cwd=root))
