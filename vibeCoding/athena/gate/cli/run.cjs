@@ -1,6 +1,6 @@
 'use strict';
 // athena run [--sprint <slug>] [--covers AC1,AC2] [--env K=V] -- <cmd…>: run a check, record its real exit code as evidence (design §8, D5).
-// --rebind: after an edit, re-RUN the sprint's latest provable PASS test/typecheck commands (same argv,
+// --rebind [--sprint <slug>]: after an edit, re-RUN the sprint's latest provable PASS test/typecheck commands (same argv,
 // env, cwd, covers) on the current tree; never copies an old PASS. One argument = a shell line (bash -o
 // pipefail -c); several = argv, no shell. kind comes from the command words only; a wrapped or shell
 // argv[0], or a tree changed during the run, is unprovable. argv `ssh [opts] user@host <remote…>` to a VM
@@ -66,15 +66,16 @@ function sshVm(argv, env) {
   return vm ? { vm: String(vm.name || vm.host), remote } : null;
 }
 
-const USAGE = 'run: usage: athena run [--sprint <slug>] [--covers AC1,AC2] [--env K=V] -- <cmd…> | athena run --rebind';
+const USAGE = 'run: usage: athena run [--sprint <slug>] [--covers AC1,AC2] [--env K=V] -- <cmd…> | athena run --rebind [--sprint <slug>]';
 
 function parse(argv) {
   const opts = { covers: [], env: Object.create(null), cmd: [], rebind: false, sprint: null };
   const dash = argv.indexOf('--');
   const head = dash < 0 ? argv : argv.slice(0, dash);
   if (head.includes('--rebind')) {
-    if (dash >= 0 || head.length !== 1) throw new Error('run: --rebind re-runs the recorded commands; it takes no --sprint, --covers, --env or -- <cmd…>. sample: athena run --rebind');
-    return { ...opts, rebind: true };
+    const rest = head.filter(w => w !== '--rebind');
+    if (dash >= 0 || head.length - rest.length !== 1 || (rest.length && (rest.length !== 2 || rest[0] !== '--sprint'))) throw new Error('run: --rebind re-runs the recorded commands; it takes only --sprint <slug> (no --covers, --env or -- <cmd…>). sample: athena run --rebind');
+    return { ...opts, rebind: true, sprint: rest.length ? rest[1] : null };
   }
   if (dash < 0) throw new Error(USAGE);
   opts.cmd = argv.slice(dash + 1);
@@ -83,8 +84,7 @@ function parse(argv) {
     if (head[i] === '--covers') {
       rawCovers = String(head[++i] || '');
       opts.covers = rawCovers.split(',').map(s => s.trim()).filter(Boolean);
-    } else if (head[i] === '--sprint') {
-      opts.sprint = String(head[++i] || ''); // checked against the hot sprints in attribution.runOwner
+    } else if (head[i] === '--sprint') { opts.sprint = String(head[++i] || ''); // hot-sprint check: attribution.runOwner
     } else if (head[i] === '--env') {
       const match = String(head[++i] || '').match(/^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/);
       if (!match) throw new Error('run: --env takes K=V. sample: athena run --env FOO=1 -- <cmd…>');
@@ -247,8 +247,8 @@ function execute(opts, io) {
 }
 // Re-run commands with a historical PASS, carrying covers. Skip only if the latest attempt
 // is already a provable PASS on this tree; any failed/unprovable replay makes rebind exit 1.
-function rebind(io) {
-  const ctx = attribution.owner(context.load(io.cwd), io.cwd).ctx;
+function rebind(io, sprint) {
+  const ctx = (sprint === null ? attribution.owner(context.load(io.cwd), io.cwd) : attribution.runOwner(io.cwd, io.cwd, sprint)).ctx;
   if (!ctx || !ctx.sprint) { io.stderr.write('[athena run] --rebind: no active sprint, nothing to rebind\n'); return 2; }
   const ignore = reviewIgnore(ctx);
   const tree = treeSha(ctx.root, ignore);
@@ -281,7 +281,7 @@ function rebind(io) {
       continue;
     }
     io.stderr.write(`[athena run] rebind ${row.id} (${row.kind}${covers.length ? `, covers ${covers.join(',')}` : ''}): ${row.command}\n`);
-    const { exit, record } = execute({ cmd: row.argv, env: { ...(row.env || {}) }, covers }, { ...io, cwd });
+    const { exit, record } = execute({ cmd: row.argv, env: { ...(row.env || {}) }, covers, sprint }, { ...io, cwd });
     rerun += 1;
     if (exit !== 0 || !record || record.provable !== true) {
       io.stderr.write(`[athena run] rebind FAILED (exit=${exit}${record ? ` provable=${record.provable}` : ''}; no PASS recorded): ${row.command}\n`);
@@ -294,7 +294,7 @@ function rebind(io) {
 }
 function main(argv, io) {
   const opts = parse(argv);
-  return opts.rebind ? rebind(io) : execute(opts, io).exit;
+  return opts.rebind ? rebind(io, opts.sprint) : execute(opts, io).exit;
 }
 
 module.exports = { main, parse, sshVm, zeroTests, form };

@@ -209,9 +209,21 @@ function owner(ctx, dir) {
   return { ctx: sprintCtx(ctx, slug, wt), worktree: wt, branch, why: `worktree ${wt} → ${slug}` };
 }
 
+/** Repository identity of ctx: the git common dir (one per repository, bare layouts too), else the main root. */
+function repoKey(ctx) {
+  const common = context.git(ctx.cwd, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
+  return realpath(common || ctx.mainRoot);
+}
+
 /** Is targetCtx (loaded from the command's target) another project than callerCtx? (G-025) */
 function crossRepo(callerCtx, targetCtx) {
-  return Boolean(callerCtx && targetCtx && realpath(callerCtx.mainRoot) !== realpath(targetCtx.mainRoot));
+  return Boolean(callerCtx && targetCtx && repoKey(callerCtx) !== repoKey(targetCtx));
+}
+
+/** Toplevel of dir (realpath), or null outside git. */
+function toplevel(dir) {
+  const top = context.git(dir, ['rev-parse', '--show-toplevel']);
+  return top ? realpath(top) : null;
 }
 
 /**
@@ -229,21 +241,22 @@ function runOwner(cwd, target, sprint) {
   const external = !targetCtx || crossRepo(caller, targetCtx);
   if (sprint) {
     const ctx = sprintCtx(caller, sprint, caller.root);
-    return { ctx, worktree: null, why: `--sprint ${sprint}`, bind: external || !context.inside(target, ctx.root) };
+    // Another worktree (sibling or nested in caller.root) is not in ctx.root's tree: bind it (review P2).
+    const top = toplevel(target);
+    return { ctx, worktree: null, why: `--sprint ${sprint}`, bind: external || (top ? top !== realpath(ctx.root) : !context.inside(target, ctx.root)) };
   }
   return { ...owner(external ? caller : targetCtx, external ? cwd : target), bind: external };
 }
 
 /** Hash the whole target repository, even when the command runs in a subdirectory. */
 function targetTree(dir) {
-  const root = context.git(dir, ['rev-parse', '--show-toplevel']);
+  const root = toplevel(dir);
   return root ? treeSha(root) : null;
 }
 
 /** Git state of an external (no-ledger or other-repository) target; null values also cover non-Git directories. */
 function gitState(dir) {
-  const root = context.git(dir, ['rev-parse', '--show-toplevel']);
-  return { repo: root ? realpath(root) : null, head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: targetTree(dir) };
+  return { repo: toplevel(dir), head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: targetTree(dir) };
 }
 
 module.exports = { runOwner, crossRepo, targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints, token };

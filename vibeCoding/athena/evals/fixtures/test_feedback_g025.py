@@ -125,6 +125,80 @@ class SprintOverride(Fixture):
         self.assertNotIn('target_repo', rows[0])
         self.assertEqual(evidence(self.root, 'y-bug'), [])
 
+    def test_override_into_nested_worktree_binds_its_tree(self):
+        # review P2: a nested worktree is inside caller.root; its edits are not in the main tree.
+        nested = self.root / '.claude/worktrees/w'
+        git(self.root, 'worktree', 'add', '-q', str(nested), '-b', 'misc-nested')
+        (nested / 'check.test.cjs').write_text("require('node:test')('nested', () => {});\n")
+        ok(self, athena('run', '--sprint', 'x-feat', '--', f'cd {nested} && node --test check.test.cjs', cwd=self.root))
+        row = evidence(self.root, 'x-feat')[-1]
+        self.assertEqual((row['provable'], row['target_repo']), (True, str(nested)))
+        self.assertRegex(row['target_tree'], r'^[0-9a-f]{40,64}$')
+        self.assertEqual(evidence(self.root, 'y-bug'), [])
+        kept = athena('run', '--rebind', '--sprint', 'x-feat', cwd=self.root)
+        self.assertIn('0 re-run, 1 already on this tree', kept.stderr)
+        (nested / 'check.test.cjs').write_text("require('node:test')('nested edited', () => {});\n")
+        run = athena('run', '--rebind', '--sprint', 'x-feat', cwd=self.root)
+        self.assertIn('1 re-run, 0 already on this tree', run.stderr, 'the nested edit invalidates the evidence')
+
+    def test_override_into_sibling_worktree_binds_its_tree(self):
+        wt = self.worktree('proj-x', 'feat/x-feat')
+        ok(self, athena('run', '--sprint', 'y-bug', '--', f'cd {wt} && node --test {check_file(self.root)}', cwd=self.root))
+        rows = evidence(self.root, 'y-bug')
+        self.assertEqual((len(rows), rows[0]['target_repo']), (1, str(wt)))
+        self.assertEqual(evidence(self.root, 'x-feat'), [])
+
+    def test_rebind_with_sprint_replays_override_evidence(self):
+        # review P3: --sprint evidence sits in a non-attributed ledger; --rebind --sprint replays it.
+        ok(self, athena('run', '--sprint', 'x-feat', '--covers', 'AC1', '--', 'node', '--test', check_file(self.root), cwd=self.root))
+        (self.root / 'app.js').write_text('module.exports = 3;\n')
+        run = athena('run', '--rebind', '--sprint', 'x-feat', cwd=self.root)
+        ok(self, run)
+        self.assertIn('1 re-run, 0 already on this tree', run.stderr)
+        rows = evidence(self.root, 'x-feat')
+        self.assertEqual((len(rows), rows[-1]['provable'], rows[-1]['covers']), (2, True, ['AC1']))
+        self.assertEqual(evidence(self.root, 'y-bug'), [])
+        self.assertNotEqual(athena('run', '--rebind', '--sprint', 'nope', cwd=self.root).returncode, 0)
+
+
+class Layouts(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tmpdir(self)
+
+    def test_symlinked_target_path_records_real_repo(self):
+        caller = project(self.tmp, name='harness', sprint='harness-sprint')
+        target = node_target(self.tmp, sprint='agent-sprint')
+        link = self.tmp / 'agent-link'
+        link.symlink_to(target)
+        ok(self, athena('run', '--', 'npm', 'test', '--prefix', str(link), cwd=caller))
+        row = evidence(caller, 'harness-sprint')[-1]
+        self.assertEqual((row['target_repo'], row['provable']), (str(target), True))
+        self.assertEqual(evidence(target, 'agent-sprint'), [])
+
+    def test_bare_repo_worktrees_are_one_repository(self):
+        # review P3: with a bare common dir each worktree is its own toplevel, but one repository.
+        seed = project(self.tmp, name='seed', sprint='s-one')
+        bare = self.tmp / 'repo.git'
+        git(self.tmp, 'clone', '-q', '--bare', str(seed), str(bare))
+        one, two = self.tmp / 'one', self.tmp / 'two'
+        git(bare, 'worktree', 'add', '-q', str(one), '-b', 'one')
+        git(bare, 'worktree', 'add', '-q', str(two), '-b', 'two')
+        (two / 'check.test.cjs').write_text("require('node:test')('two', () => {});\n")
+        ok(self, athena('run', '--', f'cd {two} && node --test check.test.cjs', cwd=one))
+        self.assertTrue(all('target_repo' not in row for row in evidence(one, 's-one')))
+
+    def test_non_git_projects_are_cross_repo_and_unprovable(self):
+        caller, target = self.tmp / 'a', self.tmp / 'b'
+        for root, slug in ((caller, 'a-sprint'), (target, 'b-sprint')):
+            (root / '.ai_state/sprints' / slug).mkdir(parents=True)
+            (root / '.ai_state/_index.md').write_text(
+                f'---\nversion: "10.1"\npath: "Feature"\nstage: "impl"\ncurrent_sprint_slug: "{slug}"\n---\n')
+        (target / 'check.test.cjs').write_text("require('node:test')('b', () => {});\n")
+        ok(self, athena('run', '--', f'cd {target} && node --test check.test.cjs', cwd=caller))
+        self.assertEqual(evidence(target, 'b-sprint'), [])
+        row = evidence(caller, 'a-sprint')[-1]
+        self.assertEqual((row['provable'], row['reason'], row['target_repo']), (False, 'target_tree_unknown', None))
+
 
 if __name__ == '__main__':
     unittest.main()

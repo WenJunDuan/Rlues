@@ -10,7 +10,7 @@ const USAGE = `usage: athena <command> [args]
   status [--json]                      route, hot sprints, queue, waiting items, issues, exemptions
   sprint start|stage|pause|resume|drop open and move sprints (athena sprint for details)
   run [--sprint S] [--covers AC1,AC2] [--env K=V] -- <cmd…>  run a check; record explicit env and exit code
-  run --rebind                         re-run the latest PASS test/typecheck evidence on the current tree
+  run --rebind [--sprint S]            re-run the latest PASS test/typecheck evidence on the current tree
   review prepare|accept|show           bind an independent review to the source tree
   ship [--dry-run]                     H2/H3, archive, items done, _index idle (stages, never commits)
   writer dispatch|collect|status       external writer window: worktree, record, conflict probe, ff

@@ -4,7 +4,9 @@
 
 ### 修复
 - G-025：`athena run` 的目标目录落在另一个有 Athena 账本的 Git 仓（主仓不同；同仓 linked / 内嵌 worktree 不算）时，证据记给发起方 cwd 按原规则归属的 sprint，不再记进目标仓的活跃 sprint；发起方无活跃 sprint 则不记。与 G-015/G-016 无账本目标同一路径：证据行带 `target_repo`（目标仓顶层绝对路径，无账本目标也带）/ `target_head` / `target_dirty` / `target_tree`，运行前后变化判 tree_changed_during_run；H2/ship 核对发起仓树并核对目标仓当前内容树，目标改动后证据失效。发起方 cwd 无账本时维持按目标归属。post_tool 采集器对这类命令不记（不再记进目标仓 sprint；采集器无目标树绑定）。
-- 新增 `athena run --sprint <slug> -- <cmd…>`：证据记给发起方项目的热层 sprint（active 或 paused）；slug 不是热层 sprint 时报错退出 2，不运行命令。目标在所记 sprint 的根之外时同样绑定目标树。
+- 新增 `athena run --sprint <slug> -- <cmd…>`：证据记给发起方项目的热层 sprint（active 或 paused）；slug 不是热层 sprint 时报错退出 2，不运行命令。目标的 git toplevel 不是所记 sprint 的根（兄弟 worktree，或主仓内嵌的 `.claude/worktrees/*`）时同样绑定目标树，目标 worktree 改动后证据失效。`--rebind` 默认只重放 cwd 归属 sprint 的账本；`--sprint` 记进其他 sprint 的证据用 `athena run --rebind --sprint <slug>` 重放（重放仍记给该 sprint）。
+- 同仓判定按 git common dir（`rev-parse --git-common-dir` realpath）：bare 仓的多个 worktree 是同一仓，按原 worktree 规则归属，不算跨仓。非 Git 项目回落主根目录比较：两个非 Git 的 Athena 项目互跑算跨仓，证据记给发起方，`target_repo`/`target_tree` 为 null，`provable=false`（`target_tree_unknown`）。
+- 已知限制：`target_repo` 是目标仓 toplevel 的 realpath（符号链接路径会被解析）；bare 布局下各 worktree 的 `.ai_state` 仍各自加载（`mainRoot` 退化为各自 toplevel，G-025 之前即如此）。
 
 ## 10.1.7 — hotfix4：review 门禁（quantum-links G-019 / G-021 / G-024）
 
