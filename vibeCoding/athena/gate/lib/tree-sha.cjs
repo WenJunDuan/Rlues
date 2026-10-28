@@ -65,7 +65,7 @@ function treeSha(root, ignore = []) {
 /** Per-file blob shas of a tree (for review rejection messages, S3). */
 function treeFiles(root, tree) {
   const out = {};
-  const listing = execFileSync('git', ['-C', root, 'ls-tree', '-r', '-z', tree], { encoding: 'utf8', timeout: 60000 });
+  const listing = execFileSync('git', ['-C', root, 'ls-tree', '-r', '-z', tree], { encoding: 'utf8', timeout: 60000, maxBuffer: 64 * 1024 * 1024 });
   for (const entry of listing.split('\0').filter(Boolean)) {
     const tab = entry.indexOf('\t');
     out[entry.slice(tab + 1)] = entry.slice(0, tab).split(' ')[2];

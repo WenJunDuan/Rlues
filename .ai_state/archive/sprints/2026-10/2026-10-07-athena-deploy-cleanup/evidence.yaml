@@ -1,0 +1,10 @@
+sprint: "2026-10-07-athena-deploy-cleanup"
+shipped: "2026-10-07T12:11:40.278Z"
+tree_sha: "23aa85b65af6a5ec4af4b365d2c3443e9947c928"
+review: {run: "", verdict: ""}
+final: {id: "62fe20f77c6e", command: "python3 -m unittest discover -s /private/tmp/athena-deploy-20261007 -p test_deployment.py -q", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "系统 CC/CX 安装记录为 10.1.5，托管文件与本次源码构建一致，doctor 无漂移，CLI 可从登录 shell 调用。", evidence: ["62fe20f77c6e"]}
+  - {id: AC2, text: "安装计划与清理清单不触及会话/历史/数据库；既有会话文件旧内容摘要一致，数据库文件原 inode 保留，用户配置与 hook 保留。", evidence: ["62fe20f77c6e"]}
+  - {id: AC3, text: "清理清单内确认无效且未使用的缓存被移除，最新回滚备份保留，报告删除数量与体积。", evidence: ["62fe20f77c6e"]}
+  - {id: AC4, text: "本地及 origin 的 pre-athena-10.1-state 均不存在，正式 v10.1.0/v10.1.5 标签保留。", evidence: ["62fe20f77c6e"]}
