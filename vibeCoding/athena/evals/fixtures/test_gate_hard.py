@@ -164,6 +164,17 @@ class H4Isolation(unittest.TestCase):
                 self.assertFalse(call(platform, 'agent', root, type='generator', task=task).blocked)
                 bogus = f'worktree: {tmp}/not-a-worktree\nimplement'
                 self.assertTrue(call(platform, 'agent', root, type='generator', task=bogus).blocked)
+        other = tmp / 'other-repo'
+        other.mkdir()
+        git(other, 'init', '-q')
+        git(other, 'commit', '-q', '--allow-empty', '-m', 'init')
+        git(other, 'worktree', 'add', '-q', str(tmp / 'other-wt'))
+        for platform in ('cc', 'cx'):
+            with self.subTest(platform=platform, declared='cross-repo worktree'):
+                cross = f'worktree: {tmp / "other-wt"}\nimplement AC1'
+                self.assertFalse(call(platform, 'agent', root, type='generator', task=cross).blocked)
+                main_checkout = f'worktree: {other}\nimplement AC1'
+                self.assertTrue(call(platform, 'agent', root, type='generator', task=main_checkout).blocked)
 
     def test_yellow_zone_needs_isolation_only_with_parallel_writers(self):
         root = project(tmpdir(self), path='Feature', stage='impl', design=GOOD_DESIGN)

@@ -17,11 +17,19 @@ function linkedWorktrees(cwd) {
   return [...out.matchAll(/^worktree (.+)$/gm)].map(m => path.resolve(m[1])).slice(1);
 }
 
+/** A linked worktree of any repository: its git dir differs from the common dir (cross-repo writers, G-027). */
+function isLinkedWorktree(dir) {
+  const out = git(dir, ['rev-parse', '--path-format=absolute', '--git-dir', '--git-common-dir']);
+  if (!out) return false;
+  const [gitDir, commonDir] = out.split('\n');
+  return Boolean(gitDir && commonDir) && path.resolve(gitDir) !== path.resolve(commonDir);
+}
+
 function declaredIsolation(task, cwd) {
   const m = String(task || '').match(DECLARATION);
   if (!m) return false;
   const declared = path.resolve(m[1].replace(/^~(?=\/)/, process.env.HOME || '~'));
-  return linkedWorktrees(cwd).some(root => inside(declared, root));
+  return linkedWorktrees(cwd).some(root => inside(declared, root)) || isLinkedWorktree(declared);
 }
 
 /** writer: true | false. A definition (ev.agent.def) decides; without one only known read-only built-ins are exempt. */
@@ -62,4 +70,4 @@ function check(ev, ctx) {
   };
 }
 
-module.exports = { check, isWriter, declaredIsolation, linkedWorktrees };
+module.exports = { check, isWriter, declaredIsolation, isLinkedWorktree, linkedWorktrees };

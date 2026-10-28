@@ -1,5 +1,10 @@
 # Athena CHANGELOG
 
+## 10.1.9 — H4 认跨仓 linked worktree（quantum-links G-027）
+
+### 修复
+- G-027：写者任务声明的 `worktree: /abs/path` 只要是**任一**仓库的 linked worktree（`git rev-parse --git-dir` ≠ `--git-common-dir`）即算隔离，不再只认当前仓 `git worktree list`。跨仓写者（如 links 账本下在 `../quantum-agent-*` 施工）不再依赖 `h4_worktree` 豁免；声明别的仓的主检出仍拦。
+
 ## 10.1.8 — 跨仓证据归发起仓（quantum-links G-025）
 
 ### 修复
