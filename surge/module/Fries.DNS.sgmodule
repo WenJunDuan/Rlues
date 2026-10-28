@@ -1,5 +1,5 @@
-#!name=🍟 Fries: 🌐 DNS (Mac 定制)
-#!desc=基于 GetSomeFries DNS.sgmodule 改写：国内大厂域名交给自家 DNS 解析（CDN 调度更准）；路由器管理域名走系统解析。不改主配置 DNS 四项。
+#!name=🍟 Fries: 🌐 DNS (定制)
+#!desc=(Mac/iOS 通用) 基于 GetSomeFries DNS.sgmodule 改写：国内大厂域名交给自家 DNS 解析（CDN 调度更准）；路由器管理域名走系统解析。不改主配置 DNS 四项。
 #!author=VirgilClyne (upstream), adapted
 #!homepage=https://github.com/VirgilClyne/GetSomeFries/wiki/🌐-DNS
 #!icon=https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png
