@@ -1,22 +1,21 @@
-#!name=🍟 Fries: 🌐 General (Mac 定制)
-#!desc=基于 GetSomeFries General.mac 改写：全部改为 %APPEND% 增量，不覆盖主配置 skip-proxy（保留 192.168.31.0/24 走 Surge 的切分设计）
+#!name=🍟 Fries: 🌐 General (定制)
+#!desc=(Mac/iOS 通用) 基于 GetSomeFries General / General.mac 改写：全部 %APPEND% 增量，不覆盖主配置；剔除会破坏 192.168.31.0/24 Ponte 切分的条目
 #!author=VirgilClyne (upstream), adapted
 #!homepage=https://github.com/VirgilClyne/GetSomeFries/wiki/🌐-通用
 #!icon=https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bypass.png
-#!system=mac
 #!category=🍟 Fries
 
-[General]
-# > 跳过代理（仅增量）
-# 上游原版无 %INSERT%，会整体覆盖主配置 skip-proxy；且含 192.168.0.0/16（破坏 192.168.31.0/24 Ponte 切分）、
-# 193.168.0.1（公网 IP，上游笔误）、::ffff:0:0:0:0/1 + ::ffff:128:0:0:0/1（覆盖全部 IPv4-mapped），均已剔除
-skip-proxy = %APPEND% sequoia.apple.com, seed-sequoia.siri.apple.com, e.crashlytics.com, www.baidu.com, gate.lagou.com, login-service.mobile-bank.psbc.com, mobile-bank.psbc.com, 169.254.0.0/16, 224.0.0.0/4, 240.0.0.0/4, 255.255.255.255/32, ::1/128, ff00::/8
+# 与上游差异：
+# - 上游 Mac 版 skip-proxy 无 %INSERT%，会整体覆盖主配置；本模块统一 %APPEND%，与主配置重复的项无害
+# - 剔除 192.168.0.0/16、192.168.122.1/32（192.168.31.0/24 需经 Surge → DEVICE:TV-1010）
+# - 剔除 193.168.0.1/32（公网 IP，上游笔误）、::ffff:0:0:0:0/1 + ::ffff:128:0:0:0/1（覆盖全部 IPv4-mapped）、2001::/32 等 IPv6 过渡段（ipv6=false 无意义）
+# - always-real-ip 剔除 proxy.golang.org（需代理）、*.xiami.com（已停服）
 
-# > Always Real IP（仅增量，已去除与主配置重复项）
-# 剔除：proxy.golang.org（需代理的域名不应返回真实 IP）、*.xiami.com（服务已停）
+[General]
+skip-proxy = %APPEND% localhost, captive.apple.com, sequoia.apple.com, seed-sequoia.siri.apple.com, e.crashlytics.com, www.baidu.com, passenger.t3go.cn, yunbusiness.ccb.com, wxh.wo.cn, gate.lagou.com, www.abchina.com.cn, login-service.mobile-bank.psbc.com, mobile-bank.psbc.com, 10.0.0.0/8, 127.0.0.1/32, 169.254.0.0/16, 172.16.0.0/12, 224.0.0.0/4, 240.0.0.0/4, 255.255.255.255/32, ::1/128, fe80::/10, ff00::/8
+
 always-real-ip = %APPEND% *.lan, *.direct, cable.auth.com, network-test.debian.org, detectportal.firefox.com, resolver1.opendns.com, stun.*, global.turn.twilio.com, global.stun.twilio.com, app.yinxiang.com, injections.adguard.org, local.adguard.org, localhost.*.qq.com, localhost.*.weixin.qq.com, music.163.com, *.music.163.com, *.126.net, musicapi.taihe.com, music.taihe.com, songsearch.kugou.com, trackercdn.kugou.com, *.kuwo.cn, api-jooxtt.sanook.com, api.joox.com, joox.com, y.qq.com, *.y.qq.com, streamoc.music.tc.qq.com, mobileoc.music.tc.qq.com, isure.stream.qqmusic.qq.com, dl.stream.qqmusic.qq.com, aqqmusic.tc.qq.com, amobile.music.tc.qq.com, *.music.migu.cn, music.migu.cn, *.mcdn.bilivideo.cn, *.cmpassport.com, id6.me, open.e.189.cn, opencloud.wostore.cn, id.mail.wo.cn, mdn.open.wo.cn, hmrz.wo.cn, nishub1.10010.com, enrichgw.10010.com, *.wosms.cn, *.jegotrip.com.cn, *.icitymobile.mobi, *.pingan.com.cn, *.10099.com.cn, *.microdone.cn, pool.ntp.org, *.pool.ntp.org, ntp.*.com, time.*.com, ntp?.*.com, time?.*.com, time.*.gov, time.*.edu.cn, *.ntp.org.cn, PDC._msDCS.*.*, DC._msDCS.*.*, GC._msDCS.*.*
 
 [MITM]
-# 不可 MitM / 不应被打断连接的域名
 hostname = %APPEND% -*.facebook.com, -*.instagram.com, -*.twitter.com, -*.snssdk.com, -*.pstatp.com
 hostname-disabled = %APPEND% gateway.icloud.com, gateway.icloud.com.cn, weather-data.apple.com, buy.itunes.apple.com, ios.chat.openai.com
