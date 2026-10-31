@@ -1,6 +1,6 @@
 # quantum-links UI 一致性规则（已定稿）
 
-UI-01–UI-12 已于 2026-10-28 定稿到 quantum-links `.claude/rules/ui-links.md`（项目内路径：`<quantum-links>/.claude/rules/ui-links.md`）。links 规则为现行权威；以下保留规则来源快照，不新建门禁。
+UI-01–UI-12 已于 2026-10-28 定稿（UI-13 / UI-14 于 2026-10-31 补入）到 quantum-links `.claude/rules/ui-links.md`（项目内路径：`<quantum-links>/.claude/rules/ui-links.md`）。links 规则为现行权威；以下保留规则来源快照，不新建门禁。
 
 适用：links 前端页面及其公共 UI。下面路径均相对 links 仓根。来源「用户 cc-9」指 2026-10-23 / 10-24 要求，由本次任务原文提供。P0 为主题 / 可操作性合同，P1 为页面一致性，P2 为细节；分级是本草案建议，不能将 P1/P2 当成可忽略项。旧页面命中时登记到第二阶段审查，不声称已修复。
 
@@ -36,6 +36,8 @@ UI-01–UI-12 已于 2026-10-28 定稿到 quantum-links `.claude/rules/ui-links.
   来由：用户 cc-9 的 SpaceX 方向；[Apple Layout](https://developer.apple.com/design/human-interface-guidelines/layout)；`apps/web/src/styles/index.css`、`apps/web/src/themes/terracotta.json`。SpaceX 的具体像素与动效未实测，不能据此强推新常量。删除条件：用户批准新的视觉方向与令牌体系，并替换本条用途。
 - **UI-12：动作图标沿用现有图标体系与尺寸档，动效只解释状态或回应操作。** 先用 `lucide-react` / 既有品牌组件和 `icon-inline`，不逐页加 emoji、私有 SVG 尺寸或负边距；不新添循环背景、逐行入场、弹簧引擎。已存在的全局背景 / 助手动效按现有开关检查，不以本条擅删。
   来由：用户 cc-9 的克制动效与保留已有体系；[Apple Motion](https://developer.apple.com/design/human-interface-guidelines/motion)；`apps/web/src/components/ui/button.tsx`、`apps/web/src/styles/index.css`。删除条件：统一图标 / 动效系统已替代并承担上述约束，或用户为特定场景明确改变表现策略。
+- **UI-13：动效要流畅。** 只过渡 transform / opacity，过渡期间不逐帧重排 / 重渲染（尺寸观察合帧、过渡结束结算一次；非破坏性菜单非模态）；进出场引用统一动效常量，页面层不写时长 / 曲线魔法值；以帧测（每次交互掉帧中位数 ≤2、p95 ≤20ms）为准，改前后各测。来由：用户 2026-10-31（参照 Antigravity，全局）。links 权威文本见 `.claude/rules/ui-links.md` UI-13。
+- **UI-14：图标统一细描边、尺寸档与颜色。** 全局描边 1.5（选中 2），自绘动作图标同值；尺寸档 size-4 / 3.5 / icon-inline / 5 / 6 / 10；默认 muted、悬停选中 foreground、危险 warn；页面层不写私有尺寸与局部描边。来由同上，links 权威文本见 UI-14。
 
 ## 证据要求
 
