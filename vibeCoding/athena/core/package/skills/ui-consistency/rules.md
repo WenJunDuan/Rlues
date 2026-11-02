@@ -2,6 +2,8 @@
 
 UI-01–UI-12 已于 2026-10-28 定稿（UI-13 / UI-14 于 2026-10-31 补入）到 quantum-links `.claude/rules/ui-links.md`（项目内路径：`<quantum-links>/.claude/rules/ui-links.md`）。links 规则为现行权威；以下保留规则来源快照，不新建门禁。
 
+参考分层（11-02）：本文件 UI-01..UI-14 最先；会话 / agent 交互行为再看 [open-claude-ui](references/open-claude-ui.md)；布局与视觉（间距、层级、材质、字体、元素）再看 [Apple design](references/apple-design.md)。UI-09 的滚动参考链接已换到 `2d56ab41`（该文件与 `c1f923ae` 逐字相同）。
+
 适用：links 前端页面及其公共 UI。下面路径均相对 links 仓根。来源「用户 cc-9」指 2026-10-23 / 10-24 要求，由本次任务原文提供。P0 为主题 / 可操作性合同，P1 为页面一致性，P2 为细节；分级是本草案建议，不能将 P1/P2 当成可忽略项。旧页面命中时登记到第二阶段审查，不声称已修复。
 
 ## P0：合同与可操作性
@@ -26,7 +28,7 @@ UI-01–UI-12 已于 2026-10-28 定稿（UI-13 / UI-14 于 2026-10-31 补入）�
 - **UI-08：数字展示一律 tabular-nums；字体和字号用现有角色。** 日期、时长、计数、容量、用量、进度允许从外层继承等宽数字。代码按 `font-mono`，界面不为“科技感”全改等宽；不改写用户文本 / 编辑器内容。
   来由：用户 cc-9 的等宽数字方向；`apps/web/src/styles/index.css` 字体角色、`apps/web/src/components/layout/top-bar.tsx` 的时钟。删除条件：数字排版已由统一基础样式覆盖且所有展示组件有验证，或用户明确更改数字策略。
 - **UI-09：不新增 6px 滚动条，不用隐藏内容冒充隐藏轨道。** 保留滚动容器的滚轮 / 触控 / 键盘能力；使用已有 `ScrollArea` 时不把轨道重写成 6px。长会话上滚查看历史时不被流式输出强拉回底部，应有回到最新入口。
-  来由：用户 cc-9；`apps/web/src/styles/index.css` 全局隐藏原生轨道、`apps/web/src/components/ui/scroll-area.tsx` 自绘轨道；[open-claude-ui 滚动参考](https://github.com/Caho1/open-claude-ui/blob/c1f923ae0051a871941b98a0e2e3183a545e6a85/code-examples/useClaudeScrollPinning.ts)。删除条件：用户批准新滚动策略并完成各输入方式验证；消息滚动行为由等效规则接管。
+  来由：用户 cc-9；`apps/web/src/styles/index.css` 全局隐藏原生轨道、`apps/web/src/components/ui/scroll-area.tsx` 自绘轨道；[open-claude-ui 滚动参考](https://github.com/Caho1/open-claude-ui/blob/2d56ab417f888e8c77f5d5090f53c1f65a05ab0b/code-examples/useClaudeScrollPinning.ts)。删除条件：用户批准新滚动策略并完成各输入方式验证；消息滚动行为由等效规则接管。
 - **UI-10：无数据、无匹配、加载、失败分别呈现。** `EmptyState` 简短说明原因和下一步，`Skeleton` 只表示等待；不能请求未结束就显示“暂无”，不能错误时无限转圈。无框页面的空态覆盖默认虚线外框。文案不重复标题，不展示无助于选择的实现细节；必要权限、风险说明保留。
   来由：用户 cc-9 的少文字要求；`apps/web/src/components/patterns/empty-state.tsx`、`apps/web/src/components/ui/skeleton.tsx`、`apps/web/src/features/catalog/skills/index.tsx` 的差异空态。删除条件：统一异步状态组件已完整承担这些分支，规则由其合同替代。
 

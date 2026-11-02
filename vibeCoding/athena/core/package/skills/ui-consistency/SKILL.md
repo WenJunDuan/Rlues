@@ -13,7 +13,7 @@ description: 编写、修改或审查 quantum-links 前端页面时，按既有 
 3. 对照下面清单给每项写「通过 / 违例 / 不适用 / 待验证」，附文件位置或运行证据；不适用写原因。只审代码时，截图、实际尺寸、滚动与键盘行为标待验证。
 4. 按 [rules 草案](rules.md) 的 P0 → P1 → P2 修复本次授权范围；跨页面审查按 [全站检查计划](references/audit-plan.md)。不要因审查一个页面就重做全站主题。
 
-取舍：用户明确要求优先；当前 links 组件与令牌决定实现；[open-claude-ui](references/open-claude-ui.md) 提供细节参考；[SpaceX / Apple](references/spacex-style.md) 提供布局与反馈原则。外部参考的色值、尺寸、弹簧参数不直接变成 links 常量，不新增 UI 库或动效引擎。
+取舍：用户明确要求优先；links 组件与令牌决定实现。外部参考分层（11-02），冲突按序：① links 规则 UI-01..UI-14；② Claude-UI [open-claude-ui](references/open-claude-ui.md)（锁 `2d56ab41`）管会话 / agent 交互行为与配方（Composer、消息流、滚动钉底、思考折叠、工具授权、状态指示），MIT 但自述逆向重建，只借思路不抄代码；③ [Apple design](references/apple-design.md)（HIG）管新页面与改版的布局、间距、层级、材质与分层阴影、色彩用法、字体层级及按钮 / 列表 / 侧栏 / 工具栏 / 弹窗 / popover。[SpaceX](references/spacex-style.md) 只给留白 / 少文字方向。用户 11-02 要的分层阴影与玻璃材质只经主题令牌、只用于控件 / 浮层层。外部色值、尺寸、弹簧参数不直接变成 links 常量，不新增 UI 库或动效引擎。
 
 ## 可判定检查清单
 
@@ -26,7 +26,7 @@ description: 编写、修改或审查 quantum-links 前端页面时，按既有 
 | C05 文字 | 无重复页面说明、无把内部实现当产品文案；按钮用动作名。空态至多一条原因及一个主行动，必要说明保留；错误必须给恢复入口。 | 检查可见文案；去掉一句后若不影响选择与操作则删。权限、删除后果、字段格式不能为“少文字”省略。 |
 | C06 字体与数字 | 界面 / 正文 / 代码分别消费现有字体角色；数字展示一律 `tabular-nums`，可继承至计数、用量、时长、日期、进度；不用 `font-mono` 代替等宽数字判据。 | 看 class 与 computed `font-variant-numeric`；计数从 9 → 10、计时更新不挤动邻近按钮。用户原文与编辑器内容不逐字加工。 |
 | C07 色彩 | 背景、文字、分隔、强调、危险态都读语义令牌；不新增页面 hex / 随意中性色。accent 填充搭配对应 foreground，状态有文字或图形，不只靠颜色。 | 明 / 暗 + 极浅 / 较深主题色；文字与图标对比度按主题 ADR 的 4.5:1 / 3:1 检查。 |
-| C08 几何与阴影 | 圆角用 `rounded-sm/md/lg/block/chip/composer/bubble` 等已有角色；分组不加大阴影，浮层用既有组件投影。没有为装饰同时堆 border、ring 和 shadow 外轮廓。 | 对照令牌及组件；焦点环不算装饰轮廓，不能删。不要全站强制直角。 |
+| C08 几何与阴影 | 圆角用 `rounded-sm/md/lg/block/chip/composer/bubble` 等已有角色；分组不加大阴影，阴影档按层级取 `shadow-*` 令牌（静置 → 悬停 → 浮层），玻璃只用材质令牌且只在控件 / 浮层层；页面不写私有 `backdrop-blur-*`。没有为装饰同时堆 border、ring 和 shadow 外轮廓。 | 对照令牌及组件；焦点环不算装饰轮廓，不能删。不要全站强制直角。 |
 | C09 图标 | 全局细描边 1.5、统一尺寸档与颜色（UI-14）；动作图标沿用 `lucide-react` / 现有品牌组件；同一工具栏同档大小。纯图标按钮有可访问名称，键盘聚焦可见；不以 emoji 代替系统动作图标。 | DOM / 可访问树 + Tab；正文行内图标优先 `icon-inline`，不逐页写负 margin。 |
 | C10 输入与按钮 | 用现有 `Input` / `Textarea` / `Button` 或 `features/composer`；静置、hover、focus、disabled、提交中、失败都有明确状态。中文候选确认不会发送，Shift+Enter 换行；提交中不重复触发。 | 输入法实测、空输入、长输入、失败重试；输入不会因撑高遮住发送按钮。业务专用快捷键按页面合同保留。 |
 | C11 侧栏 | 展开 / 收起均有入口，当前项可辨，长名称不挤掉行尾操作；键盘能访问 hover 操作。沿用 shell 的折叠契约，不假设收起宽度为 0。 | 同视口切换，键盘聚焦 / 长标题 / 多条历史；本地规则记载流内收起态占 1px，改契约前须实测。 |
@@ -55,6 +55,6 @@ description: 编写、修改或审查 quantum-links 前端页面时，按既有 
 
 ## 参考截图与证据边界
 
-本阶段未产出或声称查看任何运行截图。外站参考入口、版本、截图应覆盖的状态及取证限制分别列在 [open-claude-ui 摘要](references/open-claude-ui.md#截图来源与待验证项) 和 [SpaceX 风格要点](references/spacex-style.md#截图来源与待验证项)。用户参考图尚未提供。
+本阶段未产出或声称查看任何运行截图。外站参考入口、版本、截图应覆盖的状态及取证限制分别列在 [open-claude-ui 摘要](references/open-claude-ui.md#截图来源与待验证项)、[SpaceX 风格要点](references/spacex-style.md#截图来源与待验证项) 和 [Apple design 待验证](references/apple-design.md#待验证)。用户参考图尚未提供。
 
 后续每张截图记录 URL / 页面、日期、视口、正文容器宽、侧栏状态、明暗主题、动效档、数据状态；脱敏后再入证据。不能把第三方重建截图标为 Claude 官方截图，也不能把网页文字抓取当作视觉验收。
