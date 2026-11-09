@@ -1,0 +1,12 @@
+sprint: "2026-11-09-vibecoding-deploy"
+shipped: "2026-11-09T02:54:16.772Z"
+tree_sha: "d7ff90b1409182b48f9159d3d6a972e8be004ef3"
+review: {run: "", verdict: ""}
+final: {id: "246134da50af", command: "python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -p test_build.py", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "构建、提示词、安装/回滚、H4/tree-sha 回归检查通过。验证: athena run --covers AC1 -- python3 -B -m unittest discover -s vibeCoding/athena/evals/fixtures", evidence: ["246134da50af"]}
+  - {id: AC2, text: "重建 dist 与当前源码一致。验证: athena run --covers AC2 -- node vibeCoding/athena/build.mjs --check", evidence: ["246134da50af"]}
+  - {id: AC3, text: "本机 cc/cx 安装 doctor 无漂移，新增 UI 技能和会话规则已安装，用户配置与 hook 保留。验证: athena run --covers AC3 -- node vibeCoding/dist/athena/10.1/cli.cjs doctor", evidence: []}
+  - {id: AC4, text: "删除最后活动早于 2026-09-09 的会话及可确认无用的缓存/插件残留/旧备份，保留最近会话、当前插件/运行时与最新安装回滚点；清单和释放空间记入 log。", evidence: []}
+  - {id: AC5, text: "合入 origin/main，提交本次 Athena 源码和对应记账并推送 origin/main；远端包含最终提交。", evidence: []}
+  - {id: AC6, text: "汇报 Rlues 开放 issues 数量和条目。", evidence: []}

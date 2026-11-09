@@ -1,1 +1,0 @@
-{"stdout":"----------------------------------------------------------------------\nRan 52 tests in 24.104s\n\nOK","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false}

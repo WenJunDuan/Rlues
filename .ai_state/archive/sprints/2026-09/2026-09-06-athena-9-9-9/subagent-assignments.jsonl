@@ -1,8 +1,0 @@
-{"schema_version": 1, "agent_id": "01a0764d-ed7b-72d0-aaa6-af47b5b7a5c5", "task_name": "athena999_cc_package", "role": "generator", "sprint_slug": "2026-09-06-athena-9-9-9", "timestamp": "2026-09-06T10:40:50.916864+00:00"}
-{"schema_version": 1, "agent_id": "01a0764f-836c-7251-aa28-eb097e3bfa46", "task_name": "athena999_cc_writer", "role": "generator", "sprint_slug": "2026-09-06-athena-9-9-9", "timestamp": "2026-09-06T10:42:15.940153+00:00"}
-{"schema_version": 1, "agent_id": "01a07650-a17f-7d10-b03b-9e5d4fb0930f", "task_name": "athena999_cc_native", "role": "generator", "sprint_slug": "2026-09-06-athena-9-9-9", "timestamp": "2026-09-06T10:43:33.724069+00:00"}
-{"schema_version": 1, "agent_id": "01a07651-b2d0-7f32-9be1-a2d124d3320d", "task_name": "athena999_cx_native", "role": "generator", "sprint_slug": "2026-09-06-athena-9-9-9", "timestamp": "2026-09-06T10:45:03.705903+00:00"}
-{"schema_version": 1, "agent_id": "01a07652-d928-79a0-b44e-b4fbc5822452", "task_name": "athena999_state_hooks", "role": "generator", "sprint_slug": "2026-09-06-athena-9-9-9", "timestamp": "2026-09-06T10:45:53.343667+00:00"}
-{"schema_version": 1, "agent_id": "01a07653-9db0-7b50-a63c-7dde51848e09", "task_name": "athena999_vm_install", "role": "generator", "sprint_slug": "2026-09-06-athena-9-9-9", "timestamp": "2026-09-06T10:46:44.657212+00:00"}
-{"schema_version": 1, "agent_id": "01a07690-89a5-7620-9113-05a24f873596", "task_name": "athena999_llm_verifier", "role": "generator", "sprint_slug": "2026-09-06-athena-9-9-9", "timestamp": "2026-09-06T11:53:32.867777+00:00"}
-{"schema_version":1,"agent_id":"01a07a2d-9963-7bf3-b953-0b12ebcb2164","task_name":"local_cc_cx_migration","role":"generator","sprint_slug":"2026-09-06-athena-9-9-9","timestamp":"2026-09-07T04:43:24.416609Z"}

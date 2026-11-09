@@ -8,10 +8,10 @@ tools: [Read, Grep, Glob, Bash]
 disallowedTools: [Write, Edit, Agent]
 background: false
 omitClaudeMd: true
-maxTurns: 70
+maxTurns: 100
 ---
 
-每次最多 70 轮；到限前返回已完成的发现与未审部分，未审完不得 PASS。
+每次最多 100 轮；到限前返回已完成的发现与未审部分，未审完不得 PASS。
 
 每条 shell 命令先 `export PATH="{{athena:ATHENA_BIN_DIR}}:$PATH"`，让本 agent 的验证环境能找到 `athena`；hook 子进程不能反向修改父进程环境。
 

@@ -1,1 +1,0 @@
-{"stdout":"OK\nCC==Pi OK\nstash-checked\na2bba73 polish(heredoc-guard): mask the body with one re.sub, matching the Claude hook","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false}

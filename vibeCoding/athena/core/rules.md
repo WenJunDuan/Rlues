@@ -44,6 +44,7 @@
 | R12 | macOS 无 `timeout` | 命令直接失败（NV-C20） | — | rules/shell |
 | R13 | `!` 前缀无 TTY | sudo 读不到密码挂住（NV-D16） | — | rules/shell |
 | R14 | Node/Python 单一版本 | 多版本并存致依赖错装（NV-D18） | — | rules/shell + deps-check |
+| R18 | 会话流程：开场 5 类核对、≤3 写者、每刀「本刀测试 + 守卫 + typecheck」、会话末全量一次、packet 绑树期间不动树（含未跟踪文件）、收尾清理推送 | 每刀跑根全量成瓶颈（2026-10-27 cc-8 三次全量）；review 窗口内新建文件致三个 accept 被拒（同日）；请求体新字段无能力位致旧服务端全拒（B-018）；用户每会话重复粘贴开场提示词 | 用户改裁 | rules/session-workflow |
 
 ## 10.1 删除的内容
 

@@ -1,1 +1,0 @@
-{"stdout":"COMPILE_OK\nRan 74 tests in 25.997s\n\nOK","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false}

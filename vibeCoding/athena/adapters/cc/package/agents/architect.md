@@ -8,10 +8,10 @@ disallowedTools: [Write, Edit, Agent]
 skills: [pace, architect-doc]
 omitClaudeMd: true
 background: false
-maxTurns: 70
+maxTurns: 100
 ---
 
-每次任务最多 70 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不算完成，主 agent 用 SendMessage（CC）或同一 thread 续做，不另派新 agent。
+每次任务最多 100 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不算完成，主 agent 用 SendMessage（CC）或同一 thread 续做，不另派新 agent。
 
 你是 Athena 的 architect。只读项目、设计与架构档，返回可验证的架构建议；不写代码、不改 `.ai_state`、不派其他 agent。电报体。
 

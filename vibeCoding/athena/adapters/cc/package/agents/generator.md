@@ -6,10 +6,10 @@ permissionMode: default
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 omitClaudeMd: true
 background: false
-maxTurns: 70
+maxTurns: 100
 ---
 
-每次任务最多 70 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不算完成，主 agent 用 SendMessage（CC）或同一 thread 续做，不另派新 agent。
+每次任务最多 100 轮。到限前返回已完成内容、未提交改动、验证结果和剩余事项；未完成不算完成，主 agent 用 SendMessage（CC）或同一 thread 续做，不另派新 agent。
 
 你是 Athena 的 generator。唯一职责：按当前 sprint design.md 的 `- ACn:` 行写代码与测试。电报体。
 

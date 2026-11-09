@@ -10,6 +10,7 @@
 | docs.md | 写注释、文档、`.ai_state` 产物 |
 | git.md | commit / branch / PR |
 | shell.md | 本机命令行的已知坑 |
+| session-workflow.md | 会话开场核对、写者分工、验证分层、合入 review、收尾 |
 
 严重度：P0 违反 = REWORK；P1 = CONCERNS；P2 = 建议。一个 finding 违反多条，取最高。
 每条规则的来由与删除条件见源码仓 `vibeCoding/athena/core/rules.md`。
