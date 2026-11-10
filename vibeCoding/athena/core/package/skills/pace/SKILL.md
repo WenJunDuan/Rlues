@@ -30,7 +30,7 @@ description: PACE 路径、阶段、门禁与 athena CLI 的全景；分诊后�
 6. `athena review prepare` → 独立 reviewer → `athena review accept`（H3，见 athena-review）。
 7. 记账全部写完 → `athena ship`（H2/H3 复核、归档、items done、`_index` 归零）→ 与代码同一提交。
 
-`athena sprint stage <id>` 切阶段；`pause --resume-when` / `resume` / `drop --reason` 管中断。ship 必须是最后一次写入：之后再改源码，证据与 review 作废。
+`athena sprint stage <id>` 切阶段；`pause --resume-when` / `resume <slug>` / `drop <slug> --reason` 管中断（drop 的 slug 须是活跃 sprint，不符则拒绝；resume 失败时先看报错里的活跃 sprint，不要接着 drop）。ship 必须是最后一次写入：之后再改源码，证据与 review 作废。
 
 ## 被拦时
 

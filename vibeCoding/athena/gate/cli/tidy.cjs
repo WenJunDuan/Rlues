@@ -58,7 +58,7 @@ function hotLimit(ctx, dry, report, touched) {
   }
   if (excess > 0) {
     const paused = dirs.filter(slug => slug !== ctx.sprint && status(slug) === 'paused');
-    report.push(`hot layer still ${dirs.length} > ${HOT_MAX}: in-flight sprints are never auto-archived${paused.length ? ` (paused: ${paused.join(', ')} — resume and ship, or \`athena sprint resume <slug>\` then \`athena sprint drop\`)` : ''}`);
+    report.push(`hot layer still ${dirs.length} > ${HOT_MAX}: in-flight sprints are never auto-archived${paused.length ? ` (paused: ${paused.join(', ')} — resume and ship, or \`athena sprint resume <slug>\` then \`athena sprint drop <slug> --reason …\`)` : ''}`);
   }
 }
 

@@ -1,5 +1,10 @@
 # Athena CHANGELOG
 
+## 10.1.10 — 门禁修复（quantum-links G-026 / G-031 / G-033 / G-037）
+
+### 修复
+- G-031：`athena sprint resume <slug>` 在另一 sprint 活跃时退出 2，报出活跃 sprint 与下一步（先 `pause` 再 `resume <slug>`）。`athena sprint drop` 必须显式带 slug：`athena sprint drop <slug> --reason "…"`；缺 slug 或 slug 不是活跃 sprint 一律拒绝、不归档任何东西。
+
 ## 10.1.9 — H4 认跨仓 linked worktree（quantum-links G-027）
 
 ### 修复
