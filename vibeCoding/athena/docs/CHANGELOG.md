@@ -1,5 +1,13 @@
 # Athena CHANGELOG
 
+## 10.1.10 — 门禁修复（quantum-links G-026 / G-031 / G-033 / G-037）
+
+### 修复
+- G-026：跨仓 sprint 支持 design frontmatter `repo: "<路径>"`（绝对路径或相对主检出；`base_commit` 须为该仓的提交）。设了 `repo:` 时，源码树 sha（`athena run` 证据、`review prepare/accept/show`、H2/H3、`status`、`ship`）按该仓计算；packet 的 Changes 为该仓 `base_commit` → 当前树并多一行 `source repo:`，不做暂停区间排除（log 里的 head 属账本仓）；账本仓源码或 `.ai_state` 改动都不使证据与 review 失效。`repo:` 指向仓内子目录时按其 Git 工作树顶层计算；不是 Git 工作树时 `review prepare` 报错退出 2、H2 拦 ship。
+- G-031：`athena sprint resume <slug>` 在另一 sprint 活跃时退出 2，报出活跃 sprint 与下一步（先 `pause` 再 `resume <slug>`）。`athena sprint drop` 必须显式带 slug：`athena sprint drop <slug> --reason "…"`；缺 slug 或 slug 不是活跃 sprint 一律拒绝、不归档任何东西。
+- G-037：docs 证据（`athena run -- grep -F -q '<text>' <file>.md`）除源码树内的 markdown 外，也认 `.ai_state/docs/**` 下的 `.md`（如 `.ai_state/docs/research/` 调研档）；`.ai_state` 其他文件、经符号链接逃出 `.ai_state/docs` 的目标、以及整个 `.ai_state/docs` 是指向别处的符号链接时，仍不可证明。`docsAssertion` 拆到 `gate/cli/lib/docs-assertion.cjs`。
+- G-033：`review prepare` 的暂停区间排除补一条：sprint 在该次暂停前还没有自己的提交（`base..暂停 head` 内无保留提交）时，区间内只保留命名本 sprint 的提交（提交信息 / 合并分支 / 第二父链），归属不明的也排除并列在 packet「Excluded commits」。原因：开局即暂停的 sprint，暂停期间别的 sprint 已 ship（离开热层），其提交归属不明被 G-024 规则保留，Changes 列出别人的旧提交。已有自己提交后的暂停区间仍按 G-024（归属不明保留）。无暂停时 Changes 仍是 `base_commit` → 当前树（`--no-ff` 合并后同样正确，有夹具）。Changes 计算拆到 `gate/cli/lib/review-changes.cjs`。
+
 ## 10.1.9 — H4 认跨仓 linked worktree（quantum-links G-027）
 
 ### 修复

@@ -26,17 +26,31 @@ function hard(rule, fn) {
   try { return fn(); } catch (error) { return { rule, reason: `${rule} internal fail-closed error: ${error.message}` }; }
 }
 
+function designFm(ctx) {
+  if (!ctx.sprintDir) return {};
+  try { return frontmatter.parse(fs.readFileSync(path.join(ctx.sprintDir, 'design.md'), 'utf8')); } catch (_) { return {}; }
+}
+
 function reviewIgnore(ctx) {
-  if (!ctx.sprintDir) return [];
-  let text = '';
-  try { text = fs.readFileSync(path.join(ctx.sprintDir, 'design.md'), 'utf8'); } catch (_) { return []; }
-  const value = frontmatter.parse(text).review_ignore;
+  const value = designFm(ctx).review_ignore;
   return Array.isArray(value) ? value.filter(usableGlob).map(g => g.trim()).sort() : [];
 }
 
-/** Current source tree sha of ctx.root (memoized per event). */
+/**
+ * Repository whose tree the sprint's evidence and review bind to: design `repo:` (absolute, or relative
+ * to the main checkout) for a cross-repo sprint whose code lives elsewhere (G-026), else ctx.root.
+ */
+function sourceRoot(ctx) {
+  const repo = String(designFm(ctx).repo || '').trim();
+  if (!repo) return ctx.root;
+  // A subdirectory would hash only itself over the copied whole-repo index: bind its work-tree top.
+  const abs = path.resolve(ctx.mainRoot, repo);
+  return context.git(abs, ['rev-parse', '--show-toplevel']) || abs;
+}
+
+/** Current source tree sha of sourceRoot(ctx) (memoized per event). */
 function tree(ctx) {
-  if (ctx.tree === undefined) ctx.tree = treeSha(ctx.root, reviewIgnore(ctx));
+  if (ctx.tree === undefined) ctx.tree = treeSha(sourceRoot(ctx), reviewIgnore(ctx));
   return ctx.tree;
 }
 
@@ -208,4 +222,4 @@ function handle(ev) {
   return result;
 }
 
-module.exports = { handle, tree, reviewIgnore };
+module.exports = { handle, tree, reviewIgnore, sourceRoot };

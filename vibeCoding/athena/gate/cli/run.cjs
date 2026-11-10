@@ -11,10 +11,10 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const context = require('../lib/context.cjs');
 const attribution = require('../lib/attribution.cjs');
-const words = require('../lib/shell-words.cjs');
 const evidence = require('../lib/evidence.cjs');
-const { treeSha, treeFiles } = require('../lib/tree-sha.cjs');
-const { reviewIgnore } = require('../core.cjs');
+const { treeSha } = require('../lib/tree-sha.cjs');
+const { reviewIgnore, sourceRoot } = require('../core.cjs');
+const { docsAssertion } = require('./lib/docs-assertion.cjs');
 
 const { EXECUTION_ENV } = evidence; // explicit overrides can replace runners or inject code
 const WRAPPERS = /^(?:(?:ba|z|da|k)?sh|eval|env|sudo|xargs|timeout|nice|nohup|time|exec|stdbuf|command|fish|pwsh|powershell|cmd)$/;
@@ -117,7 +117,7 @@ const FORMS = {
   tree_changed_during_run: 'the source tree changed while the command ran (build output, snapshot, cache, or another writer): add generated paths to .gitignore, then run again on a quiet tree',
 };
 const SSH_FORM = 'ssh proves only in argv form, with a remote command, to a VM registered in ~/.athena/vm.json (host + user + port): `athena run -- ssh user@host \'npm run build && npm test\'`';
-const KIND_FORM = 'only test / typecheck / build / docs commands are evidence, recognized by their first words: `athena run -- npm test`, `athena run -- python3 -m pytest -q`, `athena run -- npx tsc --noEmit`, `athena run -- npm run build`; docs: `athena run -- grep -F -q \'<text>\' docs/<file>.md`';
+const KIND_FORM = 'only test / typecheck / build / docs commands are evidence, recognized by their first words: `athena run -- npm test`, `athena run -- python3 -m pytest -q`, `athena run -- npx tsc --noEmit`, `athena run -- npm run build`; docs: `athena run -- grep -F -q \'<text>\' docs/<file>.md` (or .ai_state/docs/**/<file>.md)';
 
 /** The provable-form line for an unprovable record, or null. */
 function form(record, cmd) {
@@ -162,43 +162,6 @@ function zeroTests(output) {
   return false;
 }
 
-// Narrow read-only assertion grammar; all expanded targets must belong to the source tree.
-function docsAssertion(command, cwd, ctx, tree) {
-  const segments = words.commandSegments(command);
-  if (segments.length !== 1 || segments[0].after || /[$`<>]/.test(command)) return false;
-  const tokens = segments[0].words.map(t => t.value);
-  if (!['grep', 'rg'].includes(tokens.shift())) return false;
-  let fixed = false, pattern = null, endOptions = false;
-  const files = [];
-  for (let i = 0; i < tokens.length; i += 1) {
-    const token = tokens[i];
-    if (!endOptions && token === '--') { endOptions = true; continue; }
-    if (!endOptions && ['-e', '--regexp'].includes(token)) { if (pattern !== null || !tokens[i + 1]) return false; pattern = tokens[++i]; continue; }
-    if (!endOptions && token.startsWith('-')) {
-      if (/^-[Fqlni]+$/.test(token)) { fixed ||= token.includes('F'); continue; }
-      if (['--fixed-strings', '--quiet', '--files-with-matches', '--line-number', '--ignore-case'].includes(token)) { fixed ||= token === '--fixed-strings'; continue; }
-      return false;
-    }
-    if (pattern === null) pattern = token;
-    else files.push(token);
-  }
-  if (!fixed || !pattern || !files.length) return false;
-  const source = new Set(Object.keys(treeFiles(ctx.root, tree)));
-  return files.every(file => {
-    const abs = path.resolve(cwd, file);
-    let targets = [abs];
-    if (file.includes('*')) {
-      if (!/^\*\.md$/.test(path.basename(file)) || path.dirname(file).includes('*')) return false;
-      try { targets = fs.readdirSync(path.dirname(abs)).filter(n => n.endsWith('.md')).map(n => path.join(path.dirname(abs), n)); } catch (_) { return false; }
-    }
-    return targets.length > 0 && targets.every(target => {
-      try {
-        return target.endsWith('.md') && context.inside(target, ctx.root) && source.has(path.relative(ctx.root, target))
-          && source.has(path.relative(ctx.root, fs.realpathSync(target))) && fs.statSync(target).isFile();
-      } catch (_) { return false; }
-    });
-  });
-}
 /** Run opts.cmd in io.cwd and record it. Returns { exit, record } (record null without a sprint). */
 function execute(opts, io) {
   const shell = opts.cmd.length === 1;
@@ -211,7 +174,8 @@ function execute(opts, io) {
   const ctx = owned.ctx && { ...owned.ctx, cwd: path.resolve(io.cwd) };
   const recording = Boolean(ctx && ctx.sprint);
   const ignore = recording ? reviewIgnore(ctx) : [];
-  const before = recording ? treeSha(ctx.root, ignore) : null;
+  const root = recording ? sourceRoot(ctx) : null;
+  const before = recording ? treeSha(root, ignore) : null;
   const targetBefore = recording && owned.bind ? attribution.gitState(target) : null;
   const options = { cwd: io.cwd, env: { ...(io.env || process.env), ...opts.env }, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 };
   const child = shell ? spawnSync('bash', ['-o', 'pipefail', '-c', rawCommand], options) : spawnSync(opts.cmd[0], opts.cmd.slice(1), options);
@@ -224,10 +188,10 @@ function execute(opts, io) {
     io.stderr.write(`[athena run] ${owned.worktree ? owned.why : 'no active sprint'}: evidence not recorded\n`);
     return { exit, record: null };
   }
-  const after = treeSha(ctx.root, ignore);
+  const after = treeSha(root, ignore);
   const targetAfter = targetBefore && attribution.gitState(target);
   const ssh = shell ? null : sshVm(opts.cmd, options.env);
-  const docs = !ssh && docsAssertion(rawCommand, io.cwd, ctx, before);
+  const docs = !ssh && docsAssertion(rawCommand, io.cwd, ctx, root, before);
   const kind = docs ? 'docs' : (evidence.classify(ssh ? ssh.remote : rawCommand) || 'other');
   const output = `${child.stdout || ''}${child.stderr || ''}`;
   let policy = shell ? evidence.policy(`set -o pipefail; ${rawCommand}`) : { provable: true, reason: null };
@@ -251,7 +215,7 @@ function rebind(io, sprint) {
   const ctx = (sprint === null ? attribution.owner(context.load(io.cwd), io.cwd) : attribution.runOwner(io.cwd, io.cwd, sprint)).ctx;
   if (!ctx || !ctx.sprint) { io.stderr.write('[athena run] --rebind: no active sprint, nothing to rebind\n'); return 2; }
   const ignore = reviewIgnore(ctx);
-  const tree = treeSha(ctx.root, ignore);
+  const tree = treeSha(sourceRoot(ctx), ignore);
   const latest = new Map();
   for (const row of evidence.read(ctx)) {
     if (row.source !== 'run') continue;
@@ -288,7 +252,7 @@ function rebind(io, sprint) {
       failed.push(row.command);
     }
   }
-  io.stderr.write(`[athena run] rebind: ${rerun} re-run, ${kept} already on this tree, ${failed.length} failed → tree ${String(treeSha(ctx.root, ignore)).slice(0, 12)}\n`);
+  io.stderr.write(`[athena run] rebind: ${rerun} re-run, ${kept} already on this tree, ${failed.length} failed → tree ${String(treeSha(sourceRoot(ctx), ignore)).slice(0, 12)}\n`);
   if (failed.length) io.stderr.write('next: fix the failure, then `athena run --rebind`\n');
   return failed.length ? 1 : 0;
 }

@@ -15,7 +15,7 @@ const USAGE = `usage:
   athena sprint stage <stage>
   athena sprint pause --resume-when "<condition>"      (e.g. "after athena-10-1/s3")
   athena sprint resume <slug>
-  athena sprint drop --reason "<why>"`;
+  athena sprint drop <slug> --reason "<why>"   (slug must be the active sprint)`;
 
 function designFm(ctx, slug) {
   const file = path.join(ctx.aiState, 'sprints', slug, 'design.md');
@@ -103,7 +103,8 @@ function resume(argv, io) {
   const slug = argv[0];
   const ctx = requireCtx(io);
   if (!slug || !SAFE_SLUG.test(slug)) throw new UsageError('resume <slug>');
-  if (!idle(ctx)) throw new UsageError(`sprint ${ctx.sprint} is in flight; pause or ship it first`);
+  // G-031: name the active sprint and the next step; a bare `drop` here used to hit the active one.
+  if (!idle(ctx)) throw new UsageError(`sprint ${ctx.sprint || '?'} is in flight (stage ${ctx.stage || '?'}); ${slug} was not resumed\nnext: athena sprint pause --resume-when "<condition>"   # then athena sprint resume ${slug}`);
   if (!fs.existsSync(path.join(ctx.aiState, 'sprints', slug, 'design.md'))) throw new UsageError(`sprints/${slug}/design.md not found (archived sprints: move it back first)`);
   const { file, fm } = designFm(ctx, slug);
   const stage = STAGES.has(String(fm.paused_stage)) ? fm.paused_stage : 'impl';
@@ -116,10 +117,12 @@ function resume(argv, io) {
 }
 
 function drop(argv, io) {
-  const { flags: f } = flags(argv, { reason: 'str' });
-  if (!f.reason) throw new UsageError('drop needs --reason');
+  const { flags: f, rest } = flags(argv, { reason: 'str' });
+  if (!rest[0] || !f.reason) throw new UsageError('drop <slug> --reason "<why>"');
   const ctx = requireCtx(io);
   if (!ctx.sprint) throw new UsageError('no sprint in flight');
+  // G-031: the slug is explicit so a failed resume cannot turn into dropping the active sprint.
+  if (rest[0] !== ctx.sprint) throw new UsageError(`${rest[0]} is not the active sprint (active: ${ctx.sprint}); nothing dropped\nnext: athena sprint pause --resume-when "<condition>" && athena sprint resume ${rest[0]}   # then drop it`);
   const slug = ctx.sprint;
   const { fm } = designFm(ctx, slug);
   const itemsPath = fm.roadmap && fm.item ? state.itemsFile(ctx.aiState, fm.roadmap) : null;

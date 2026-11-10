@@ -105,7 +105,7 @@ class ShipAtomicAndStaging(unittest.TestCase):
         root = v2project(tmpdir(self))
         ok(self, athena('sprint', 'start', 'r/x', '--slug', 's-x', cwd=root))
         (root / 'load.js').write_text("read('.ai_state/sprints/s-x/data.json')\n")
-        run = athena('sprint', 'drop', '--reason', 'x', cwd=root)
+        run = athena('sprint', 'drop', 's-x', '--reason', 'x', cwd=root)
         self.assertEqual(run.returncode, 2)
         self.assertIn('load.js', run.stderr)
         self.assertTrue((root / '.ai_state/sprints/s-x').is_dir())

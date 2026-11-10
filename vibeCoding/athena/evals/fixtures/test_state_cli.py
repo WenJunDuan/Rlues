@@ -172,7 +172,7 @@ class SprintLifecycle(unittest.TestCase):
         ok(self, athena('sprint', 'resume', 's-x', cwd=root))
         index = fm(root / '.ai_state/_index.md')
         self.assertEqual((index['stage'], index['sprint']), ('impl', 's-x'))
-        ok(self, athena('sprint', 'drop', '--reason', 'superseded', cwd=root))
+        ok(self, athena('sprint', 'drop', 's-x', '--reason', 'superseded', cwd=root))
         self.assertTrue((root / f'.ai_state/archive/sprints/{MONTH}/s-x/log.md').is_file())
         self.assertEqual(item(root, 'x')['status'], '"dropped"')
         status = json.loads(ok(self, athena('status', '--json', cwd=root)).stdout)

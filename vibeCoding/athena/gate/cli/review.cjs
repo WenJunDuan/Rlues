@@ -7,11 +7,10 @@ const { requireCtx, flags, today, UsageError } = require('./lib/common.cjs');
 const archive = require('./lib/archive.cjs');
 const evidence = require('../lib/evidence.cjs');
 const frontmatter = require('../lib/frontmatter.cjs');
-const { git } = require('../lib/context.cjs');
-const { treeSha, treeFiles, pathspec } = require('../lib/tree-sha.cjs');
-const { reviewIgnore } = require('../core.cjs');
+const { treeSha, treeFiles } = require('../lib/tree-sha.cjs');
+const { reviewIgnore, sourceRoot } = require('../core.cjs');
 const h1 = require('../rules/h1-design.cjs');
-const attribution = require('../lib/attribution.cjs');
+const { excludedCommits, sprintChanges } = require('./lib/review-changes.cjs');
 
 const USAGE = `usage:
   athena review prepare [--scope implementation|design]
@@ -48,82 +47,6 @@ function resolveRun(ctx, id) {
   return id;
 }
 
-// The current tree omits .ai_state and review_ignore; diff the base through the same pathspec
-// or every tracked .ai_state file reads as deleted (G-003).
-function changed(ctx, base, tree, ignore) {
-  if (!base) return { stat: '(design.md has no base_commit)', names: [] };
-  const baseTree = git(ctx.root, ['rev-parse', `${base}^{tree}`]);
-  if (!baseTree) return { stat: `(base_commit ${base} not found)`, names: [] };
-  const spec = ['--', ...pathspec(ignore)];
-  return {
-    stat: git(ctx.root, ['diff-tree', '-r', '--stat=120', baseTree, tree, ...spec]) || '(no changes)',
-    names: (git(ctx.root, ['diff-tree', '-r', '--name-status', baseTree, tree, ...spec]) || '').split('\n').filter(Boolean),
-  };
-}
-
-/** Hot sprints whose slug (or slug without its date prefix) is a whole token of `text`. */
-function sprintsNamed(slugs, text) {
-  return slugs.filter(slug => [slug, slug.replace(/^\d{4}-\d{2}-\d{2}-/, '')].some(key => attribution.token(text, key)));
-}
-
-// Another sprint owns a paused-interval commit when its message, a merged branch (by name or via
-// sprintForWorktree) or the merged side's messages name it, or the commit only touches its state;
-// anything naming this sprint, or nothing, stays (G-021/G-024).
-function otherSprintCommit(ctx, commit, slugs) {
-  const owners = new Set(sprintsNamed(slugs, git(ctx.root, ['log', '-1', '--format=%B', commit]) || ''));
-  const parents = (git(ctx.root, ['rev-list', '--parents', '-n', '1', commit]) || '').split(' ').slice(1);
-  if (parents.length > 1) {
-    for (const s of sprintsNamed(slugs, git(ctx.root, ['log', '--format=%B', `${parents[0]}..${parents[1]}`]) || '')) owners.add(s);
-    const branch = ((git(ctx.root, ['log', '-1', '--format=%s', commit]) || '').match(/^Merge (?:remote-tracking )?branch '([^']+)'/) || [])[1];
-    const mapped = branch && attribution.sprintForWorktree(ctx, '', branch);
-    if (mapped) owners.add(mapped);
-  } else if (!owners.size) {
-    const files = (git(ctx.root, ['diff-tree', '--no-commit-id', '--name-only', '-r', commit]) || '').split('\n').filter(Boolean);
-    const dirs = new Set(files.map(f => (f.match(/^\.ai_state\/sprints\/([^/]+)\//) || [])[1]));
-    if (files.length && dirs.size === 1 && slugs.includes([...dirs][0])) owners.add([...dirs][0]);
-  }
-  return !owners.has(ctx.sprint) && owners.size > 0;
-}
-
-// Commits made while this sprint is paused that belong to another sprint. Legacy
-// logs without HEAD boundaries keep the inclusive diff: unknown ownership is never hidden.
-function excludedCommits(ctx, base) {
-  let log = '';
-  try { log = fs.readFileSync(path.join(ctx.sprintDir, 'log.md'), 'utf8'); } catch (_) { return []; }
-  const range = new Set((git(ctx.root, ['rev-list', `${base}..HEAD`]) || '').split('\n').filter(Boolean));
-  const excluded = new Set();
-  const slugs = attribution.hotSprints(ctx).concat(ctx.sprint).filter((s, i, a) => s && a.indexOf(s) === i);
-  let paused = null;
-  for (const line of log.split('\n')) {
-    const m = line.match(/ (paused|resumed) at .*?\(head ([0-9a-f]{40,64})\)/);
-    if (!m) continue;
-    if (m[1] === 'paused') paused = m[2];
-    else if (paused) {
-      const commits = git(ctx.root, ['rev-list', `${paused}..${m[2]}`]);
-      for (const commit of (commits || '').split('\n')) if (range.has(commit) && otherSprintCommit(ctx, commit, slugs)) excluded.add(commit);
-      paused = null;
-    }
-  }
-  return [...excluded];
-}
-
-function sprintChanges(ctx, base, tree, ignore, excluded) {
-  if (!excluded.length) return changed(ctx, base, tree, ignore);
-  const omit = new Set(excluded);
-  const commits = (git(ctx.root, ['rev-list', '--reverse', '--first-parent', `${base}..HEAD`]) || '').split('\n').filter(c => c && !omit.has(c));
-  const spec = ['--', ...pathspec(ignore)];
-  const stats = [], names = new Set();
-  // Per-commit patches retain this sprint's edits even when another slice touched the same file.
-  const pairs = commits.map(c => [c + '^', c]);
-  pairs.push(['HEAD', tree]); // staged, unstaged and untracked source are still reviewed
-  for (const [from, to] of pairs) {
-    const stat = git(ctx.root, ['diff-tree', '-r', '--stat=120', from, to, ...spec]);
-    if (stat) stats.push(`${from} → ${to}\n${stat}`);
-    for (const name of (git(ctx.root, ['diff-tree', '-r', '--name-status', from, to, ...spec]) || '').split('\n')) if (name) names.add(name);
-  }
-  return { stat: stats.join('\n') || '(no changes)', names: [...names] };
-}
-
 function prepare(argv, io) {
   const { flags: f } = flags(argv, { scope: 'str' });
   const scope = f.scope || 'implementation';
@@ -133,19 +56,24 @@ function prepare(argv, io) {
   const design = fs.readFileSync(path.join(ctx.sprintDir, 'design.md'), 'utf8');
   const base = String(frontmatter.parse(design).base_commit || '');
   const ignore = reviewIgnore(ctx);
-  const tree = treeSha(ctx.root, ignore);
+  const root = sourceRoot(ctx);
+  const tree = treeSha(root, ignore);
+  if (!tree) throw new UsageError(`cannot compute the source tree of ${root} (not a git work tree; check design \`repo:\`)`);
   const run = crypto.randomUUID();
   const dir = path.join(runsDir(ctx), run);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'files.json'), `${JSON.stringify({ run, scope, sprint: ctx.sprint, base_commit: base, tree_sha: tree, ignore, ac_sha: acSha(design), files: treeFiles(ctx.root, tree) })}\n`);
+  fs.writeFileSync(path.join(dir, 'files.json'), `${JSON.stringify({ run, scope, sprint: ctx.sprint, base_commit: base, tree_sha: tree, ignore, ac_sha: acSha(design), files: treeFiles(root, tree) })}\n`);
   const ac = h1.criteria(design);
-  const excluded = excludedCommits(ctx, base);
-  const diff = sprintChanges(ctx, base, tree, ignore, excluded);
+  // A cross-repo sprint (design `repo:`, G-026): base_commit and Changes are in that repository; the
+  // pause/resume heads in log.md are the ledger's, so no paused-interval exclusion applies.
+  const excluded = root === ctx.root ? excludedCommits(ctx, base) : [];
+  const diff = sprintChanges({ ...ctx, root }, base, tree, ignore, excluded);
   const valid = evidence.valid(ctx, tree, { ignore });
   const claims = design.split('\n').filter(l => /转录|transcribed/i.test(l)).slice(0, 20);
   const packet = [
     `# Review packet — ${ctx.sprint} (${scope})`, '',
     `- source tree: ${tree} (base ${base || '—'}); .ai_state excluded`,
+    ...(root === ctx.root ? [] : [`- source repo: ${root} (design \`repo:\`; the ledger repo's tree is not reviewed)`]),
     `- review_ignore (also excluded from the tree — challenge it if it hides source): ${ignore.length ? ignore.join(', ') : 'none'}`,
     `- design: .ai_state/sprints/${ctx.sprint}/design.md`, '',
     ...(excluded.length ? ['## Excluded commits (paused intervals)', '', ...excluded.map(c => `- ${c} (committed while ${ctx.sprint} was paused)`), ''] : []),
@@ -229,9 +157,10 @@ function accept(argv, io) {
   const reuse = !(f.file && !parsed.findings.length) && used.find(u => u.output_sha === outputSha && u.run !== run);
   if (reuse) throw refuse(`this reviewer output was already accepted for run ${reuse.run}; a new run needs a new review${parsed.findings.length ? '' : ' (a findings-free output is accepted again only as a --file written after this run\'s packet)'}`, again);
   const ignore = reviewIgnore(ctx);
-  const tree = treeSha(ctx.root, ignore);
+  const root = sourceRoot(ctx);
+  const tree = treeSha(root, ignore);
   if (tree !== saved.tree_sha || JSON.stringify(ignore) !== JSON.stringify(saved.ignore)) {
-    const now = treeFiles(ctx.root, tree);
+    const now = treeFiles(root, tree);
     const lines = [];
     for (const file of [...new Set([...Object.keys(saved.files), ...Object.keys(now)])].sort()) {
       if (saved.files[file] !== now[file]) lines.push(`  ${file}: expected ${saved.files[file] ? saved.files[file].slice(0, 12) : '(absent)'} actual ${now[file] ? now[file].slice(0, 12) : '(absent)'}`);
@@ -273,7 +202,7 @@ function show(argv, io) {
   const file = ctx.sprintDir && path.join(ctx.sprintDir, 'review.json');
   if (!file || !fs.existsSync(file)) { io.stdout.write('no review.json for the current sprint\n'); return 0; }
   const r = JSON.parse(fs.readFileSync(file, 'utf8'));
-  const current = treeSha(ctx.root, reviewIgnore(ctx));
+  const current = treeSha(sourceRoot(ctx), reviewIgnore(ctx));
   const acNow = acSha(fs.readFileSync(path.join(ctx.sprintDir, 'design.md'), 'utf8'));
   const state = r.tree_sha !== current ? 'STALE: source changed' : (r.ac_sha && r.ac_sha !== acNow ? 'STALE: acceptance lines changed' : 'current');
   io.stdout.write(`${r.verdict} run ${r.run} tree ${String(r.tree_sha).slice(0, 12)} (${state}) reviewer ${r.reviewer && r.reviewer.family}\n`);
