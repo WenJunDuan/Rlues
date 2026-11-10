@@ -4,6 +4,7 @@
 
 ### 修复
 - G-031：`athena sprint resume <slug>` 在另一 sprint 活跃时退出 2，报出活跃 sprint 与下一步（先 `pause` 再 `resume <slug>`）。`athena sprint drop` 必须显式带 slug：`athena sprint drop <slug> --reason "…"`；缺 slug 或 slug 不是活跃 sprint 一律拒绝、不归档任何东西。
+- G-037：docs 证据（`athena run -- grep -F -q '<text>' <file>.md`）除源码树内的 markdown 外，也认 `.ai_state/docs/**` 下的 `.md`（如 `.ai_state/docs/research/` 调研档）；`.ai_state` 其他文件、经符号链接逃出 `.ai_state/docs` 的目标仍不可证明。`docsAssertion` 拆到 `gate/cli/lib/docs-assertion.cjs`。
 
 ## 10.1.9 — H4 认跨仓 linked worktree（quantum-links G-027）
 
