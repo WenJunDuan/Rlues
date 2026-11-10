@@ -8,7 +8,7 @@ const archive = require('./lib/archive.cjs');
 const evidence = require('../lib/evidence.cjs');
 const frontmatter = require('../lib/frontmatter.cjs');
 const { treeSha, treeFiles } = require('../lib/tree-sha.cjs');
-const { reviewIgnore } = require('../core.cjs');
+const { reviewIgnore, sourceRoot } = require('../core.cjs');
 const h1 = require('../rules/h1-design.cjs');
 const { excludedCommits, sprintChanges } = require('./lib/review-changes.cjs');
 
@@ -56,19 +56,24 @@ function prepare(argv, io) {
   const design = fs.readFileSync(path.join(ctx.sprintDir, 'design.md'), 'utf8');
   const base = String(frontmatter.parse(design).base_commit || '');
   const ignore = reviewIgnore(ctx);
-  const tree = treeSha(ctx.root, ignore);
+  const root = sourceRoot(ctx);
+  const tree = treeSha(root, ignore);
+  if (!tree) throw new UsageError(`cannot compute the source tree of ${root} (not a git work tree; check design \`repo:\`)`);
   const run = crypto.randomUUID();
   const dir = path.join(runsDir(ctx), run);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'files.json'), `${JSON.stringify({ run, scope, sprint: ctx.sprint, base_commit: base, tree_sha: tree, ignore, ac_sha: acSha(design), files: treeFiles(ctx.root, tree) })}\n`);
+  fs.writeFileSync(path.join(dir, 'files.json'), `${JSON.stringify({ run, scope, sprint: ctx.sprint, base_commit: base, tree_sha: tree, ignore, ac_sha: acSha(design), files: treeFiles(root, tree) })}\n`);
   const ac = h1.criteria(design);
-  const excluded = excludedCommits(ctx, base);
-  const diff = sprintChanges(ctx, base, tree, ignore, excluded);
+  // A cross-repo sprint (design `repo:`, G-026): base_commit and Changes are in that repository; the
+  // pause/resume heads in log.md are the ledger's, so no paused-interval exclusion applies.
+  const excluded = root === ctx.root ? excludedCommits(ctx, base) : [];
+  const diff = sprintChanges({ ...ctx, root }, base, tree, ignore, excluded);
   const valid = evidence.valid(ctx, tree, { ignore });
   const claims = design.split('\n').filter(l => /转录|transcribed/i.test(l)).slice(0, 20);
   const packet = [
     `# Review packet — ${ctx.sprint} (${scope})`, '',
     `- source tree: ${tree} (base ${base || '—'}); .ai_state excluded`,
+    ...(root === ctx.root ? [] : [`- source repo: ${root} (design \`repo:\`; the ledger repo's tree is not reviewed)`]),
     `- review_ignore (also excluded from the tree — challenge it if it hides source): ${ignore.length ? ignore.join(', ') : 'none'}`,
     `- design: .ai_state/sprints/${ctx.sprint}/design.md`, '',
     ...(excluded.length ? ['## Excluded commits (paused intervals)', '', ...excluded.map(c => `- ${c} (committed while ${ctx.sprint} was paused)`), ''] : []),
@@ -152,9 +157,10 @@ function accept(argv, io) {
   const reuse = !(f.file && !parsed.findings.length) && used.find(u => u.output_sha === outputSha && u.run !== run);
   if (reuse) throw refuse(`this reviewer output was already accepted for run ${reuse.run}; a new run needs a new review${parsed.findings.length ? '' : ' (a findings-free output is accepted again only as a --file written after this run\'s packet)'}`, again);
   const ignore = reviewIgnore(ctx);
-  const tree = treeSha(ctx.root, ignore);
+  const root = sourceRoot(ctx);
+  const tree = treeSha(root, ignore);
   if (tree !== saved.tree_sha || JSON.stringify(ignore) !== JSON.stringify(saved.ignore)) {
-    const now = treeFiles(ctx.root, tree);
+    const now = treeFiles(root, tree);
     const lines = [];
     for (const file of [...new Set([...Object.keys(saved.files), ...Object.keys(now)])].sort()) {
       if (saved.files[file] !== now[file]) lines.push(`  ${file}: expected ${saved.files[file] ? saved.files[file].slice(0, 12) : '(absent)'} actual ${now[file] ? now[file].slice(0, 12) : '(absent)'}`);
@@ -196,7 +202,7 @@ function show(argv, io) {
   const file = ctx.sprintDir && path.join(ctx.sprintDir, 'review.json');
   if (!file || !fs.existsSync(file)) { io.stdout.write('no review.json for the current sprint\n'); return 0; }
   const r = JSON.parse(fs.readFileSync(file, 'utf8'));
-  const current = treeSha(ctx.root, reviewIgnore(ctx));
+  const current = treeSha(sourceRoot(ctx), reviewIgnore(ctx));
   const acNow = acSha(fs.readFileSync(path.join(ctx.sprintDir, 'design.md'), 'utf8'));
   const state = r.tree_sha !== current ? 'STALE: source changed' : (r.ac_sha && r.ac_sha !== acNow ? 'STALE: acceptance lines changed' : 'current');
   io.stdout.write(`${r.verdict} run ${r.run} tree ${String(r.tree_sha).slice(0, 12)} (${state}) reviewer ${r.reviewer && r.reviewer.family}\n`);

@@ -14,6 +14,8 @@
 
 源码树 sha 不含 `.ai_state` 和 design 的 `review_ignore`。改了源码，旧证据和旧 review 就不再对得上——这是设计，不是误拦。
 
+跨仓 sprint（代码在另一个仓、账本在本仓）：design frontmatter 写 `repo: "<路径>"`（绝对路径或相对主检出），并把 `base_commit` 改成该仓的提交；证据与 review 都绑定该仓的源码树，packet 的 Changes 列该仓的改动，账本仓改动不再使它们失效。docs 证据（`grep -F … <file>.md`）认源码树内的 markdown 与 `.ai_state/docs/**` 下的 markdown。
+
 ## 证据可证明性（H2）
 
 `athena run [--env K=V] -- <cmd>` 记录 exit 与 tree_sha。`--env` 可多次，注入子进程并写进 command 与独立 env 字段；显式 env 的重放内容保留完整长度（仍脱敏），不采集调用时的隐式 env。变量名任意位置含 KEY、TOKEN、SECRET、PASSWORD、PASSWD、PWD、CREDENTIAL、AUTH、DATABASEURL/DATABASE_URL，或以 PASS 结尾、含 PASS_ 时拒收；仅精确名称 TOKENIZERS_PARALLELISM、MAX_TOKENS、KEYBOARD_LAYOUT、MONKEY 作为误报白名单。白名单也须通过序列化赋值的基线凭据脱敏检查，凭据改走 env 文件。以下判为 unprovable：

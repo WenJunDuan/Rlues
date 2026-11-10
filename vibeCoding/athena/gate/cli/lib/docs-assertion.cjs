@@ -13,7 +13,7 @@ function stateDocs(ctx) {
 }
 
 // Narrow read-only assertion grammar; all expanded targets must belong to the source tree or .ai_state/docs/.
-function docsAssertion(command, cwd, ctx, tree) {
+function docsAssertion(command, cwd, ctx, root, tree) {
   const segments = words.commandSegments(command);
   if (segments.length !== 1 || segments[0].after || /[$`<>]/.test(command)) return false;
   const tokens = segments[0].words.map(t => t.value);
@@ -33,7 +33,7 @@ function docsAssertion(command, cwd, ctx, tree) {
     else files.push(token);
   }
   if (!fixed || !pattern || !files.length) return false;
-  const source = new Set(Object.keys(treeFiles(ctx.root, tree)));
+  const source = new Set(Object.keys(treeFiles(root, tree)));
   return files.every(file => {
     const abs = path.resolve(cwd, file);
     let targets = [abs];
@@ -46,8 +46,8 @@ function docsAssertion(command, cwd, ctx, tree) {
         if (!target.endsWith('.md') || !fs.statSync(target).isFile()) return false;
         // G-037: research notes under .ai_state/docs/ are outside the source tree but are docs evidence too.
         if (stateDocs(ctx).some(dir => context.inside(target, dir))) return true;
-        return context.inside(target, ctx.root) && source.has(path.relative(ctx.root, target))
-          && source.has(path.relative(ctx.root, fs.realpathSync(target)));
+        return context.inside(target, root) && source.has(path.relative(root, target))
+          && source.has(path.relative(root, fs.realpathSync(target)));
       } catch (_) { return false; }
     });
   });

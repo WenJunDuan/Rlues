@@ -13,7 +13,7 @@ const context = require('../lib/context.cjs');
 const attribution = require('../lib/attribution.cjs');
 const evidence = require('../lib/evidence.cjs');
 const { treeSha } = require('../lib/tree-sha.cjs');
-const { reviewIgnore } = require('../core.cjs');
+const { reviewIgnore, sourceRoot } = require('../core.cjs');
 const { docsAssertion } = require('./lib/docs-assertion.cjs');
 
 const { EXECUTION_ENV } = evidence; // explicit overrides can replace runners or inject code
@@ -174,7 +174,8 @@ function execute(opts, io) {
   const ctx = owned.ctx && { ...owned.ctx, cwd: path.resolve(io.cwd) };
   const recording = Boolean(ctx && ctx.sprint);
   const ignore = recording ? reviewIgnore(ctx) : [];
-  const before = recording ? treeSha(ctx.root, ignore) : null;
+  const root = recording ? sourceRoot(ctx) : null;
+  const before = recording ? treeSha(root, ignore) : null;
   const targetBefore = recording && owned.bind ? attribution.gitState(target) : null;
   const options = { cwd: io.cwd, env: { ...(io.env || process.env), ...opts.env }, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 };
   const child = shell ? spawnSync('bash', ['-o', 'pipefail', '-c', rawCommand], options) : spawnSync(opts.cmd[0], opts.cmd.slice(1), options);
@@ -187,10 +188,10 @@ function execute(opts, io) {
     io.stderr.write(`[athena run] ${owned.worktree ? owned.why : 'no active sprint'}: evidence not recorded\n`);
     return { exit, record: null };
   }
-  const after = treeSha(ctx.root, ignore);
+  const after = treeSha(root, ignore);
   const targetAfter = targetBefore && attribution.gitState(target);
   const ssh = shell ? null : sshVm(opts.cmd, options.env);
-  const docs = !ssh && docsAssertion(rawCommand, io.cwd, ctx, before);
+  const docs = !ssh && docsAssertion(rawCommand, io.cwd, ctx, root, before);
   const kind = docs ? 'docs' : (evidence.classify(ssh ? ssh.remote : rawCommand) || 'other');
   const output = `${child.stdout || ''}${child.stderr || ''}`;
   let policy = shell ? evidence.policy(`set -o pipefail; ${rawCommand}`) : { provable: true, reason: null };
@@ -214,7 +215,7 @@ function rebind(io, sprint) {
   const ctx = (sprint === null ? attribution.owner(context.load(io.cwd), io.cwd) : attribution.runOwner(io.cwd, io.cwd, sprint)).ctx;
   if (!ctx || !ctx.sprint) { io.stderr.write('[athena run] --rebind: no active sprint, nothing to rebind\n'); return 2; }
   const ignore = reviewIgnore(ctx);
-  const tree = treeSha(ctx.root, ignore);
+  const tree = treeSha(sourceRoot(ctx), ignore);
   const latest = new Map();
   for (const row of evidence.read(ctx)) {
     if (row.source !== 'run') continue;
@@ -251,7 +252,7 @@ function rebind(io, sprint) {
       failed.push(row.command);
     }
   }
-  io.stderr.write(`[athena run] rebind: ${rerun} re-run, ${kept} already on this tree, ${failed.length} failed → tree ${String(treeSha(ctx.root, ignore)).slice(0, 12)}\n`);
+  io.stderr.write(`[athena run] rebind: ${rerun} re-run, ${kept} already on this tree, ${failed.length} failed → tree ${String(treeSha(sourceRoot(ctx), ignore)).slice(0, 12)}\n`);
   if (failed.length) io.stderr.write('next: fix the failure, then `athena run --rebind`\n');
   return failed.length ? 1 : 0;
 }
