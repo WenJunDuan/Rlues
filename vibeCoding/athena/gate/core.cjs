@@ -42,7 +42,10 @@ function reviewIgnore(ctx) {
  */
 function sourceRoot(ctx) {
   const repo = String(designFm(ctx).repo || '').trim();
-  return repo ? path.resolve(ctx.mainRoot, repo) : ctx.root;
+  if (!repo) return ctx.root;
+  // A subdirectory would hash only itself over the copied whole-repo index: bind its work-tree top.
+  const abs = path.resolve(ctx.mainRoot, repo);
+  return context.git(abs, ['rev-parse', '--show-toplevel']) || abs;
 }
 
 /** Current source tree sha of sourceRoot(ctx) (memoized per event). */

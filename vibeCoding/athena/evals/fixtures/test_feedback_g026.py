@@ -75,6 +75,21 @@ class RepoField(unittest.TestCase):
         self.ledger_edit()
         ok(self, athena('ship', cwd=self.root))
 
+    def test_subdirectory_repo_binds_the_whole_work_tree(self):
+        (self.target / 'docs').mkdir()
+        (self.target / 'docs/readme.md').write_text('docs\n')
+        git(self.target, 'add', '-A')
+        git(self.target, 'commit', '-qm', 'docs dir')
+        design = self.root / '.ai_state/sprints/cross/design.md'
+        design.write_text(design.read_text().replace('repo: "../plugins"', 'repo: "../plugins/docs"'))
+        ok(self, athena('run', '--covers', 'AC1', '--', 'npm', 'test', '--prefix', str(self.target), cwd=self.root))
+        self.assertIn(f'source repo: {self.target} ', self.prepare())
+        ok(self, accept(self.root, 'VERDICT: PASS\n'))
+        (self.target / 'skill.js').write_text('module.exports = "edited outside docs/";\n')
+        run = athena('ship', cwd=self.root)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn('H2', run.stderr)
+
     def test_missing_repo_is_refused(self):
         design = self.root / '.ai_state/sprints/cross/design.md'
         design.write_text(design.read_text().replace('repo: "../plugins"', 'repo: "../nowhere"'))

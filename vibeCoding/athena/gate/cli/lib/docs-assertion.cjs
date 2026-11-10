@@ -7,9 +7,13 @@ const context = require('../../lib/context.cjs');
 const words = require('../../lib/shell-words.cjs');
 const { treeFiles } = require('../../lib/tree-sha.cjs');
 
-/** The governing .ai_state/docs and the checked-out copy in this worktree. */
+/** The governing .ai_state/docs and the checked-out copy in this worktree, if they really live in their .ai_state. */
 function stateDocs(ctx) {
-  return [...new Set([path.join(ctx.aiState, 'docs'), path.join(ctx.root, '.ai_state', 'docs')])];
+  const roots = [...new Set([ctx.aiState, path.join(ctx.root, '.ai_state')])];
+  // A docs dir symlinked out of .ai_state would carry outside markdown in with it.
+  return roots.filter(state => {
+    try { return path.relative(fs.realpathSync(state), fs.realpathSync(path.join(state, 'docs'))) === 'docs'; } catch (_) { return false; }
+  }).map(state => path.join(state, 'docs'));
 }
 
 // Narrow read-only assertion grammar; all expanded targets must belong to the source tree or .ai_state/docs/.

@@ -41,5 +41,19 @@ class StateDocs(unittest.TestCase):
                 self.assertFalse(row['provable'])
 
 
+    def test_docs_root_symlinked_out_of_the_repo_is_unprovable(self):
+        outside = self.root.parent / 'outside-docs'
+        outside.mkdir()
+        (outside / 'note.md').write_text('benchmark verdict\n')
+        docs = self.root / '.ai_state/docs'
+        for p in sorted(docs.rglob('*'), reverse=True):
+            p.unlink() if p.is_file() else p.rmdir()
+        docs.rmdir()
+        docs.symlink_to(outside)
+        run, row = self.last('grep', '-F', '-q', 'benchmark verdict', '.ai_state/docs/note.md')
+        self.assertEqual(run.returncode, 0)
+        self.assertFalse(row['provable'])
+
+
 if __name__ == '__main__':
     unittest.main()
