@@ -1,6 +1,6 @@
 ---
 name: ui-consistency
-description: 编写、修改或审查 quantum-links 前端页面时，按既有 shadcn、主题令牌与两档动效检查 UI 一致性，给出组件级修复配方。用于会话、目录、设置及业务页面；不替代功能验收，不为其他产品套用本规范。
+description: 编写、修改或审查 quantum-links 前端页面时，按既有 shadcn、主题令牌与三档动效检查 UI 一致性，给出组件级修复配方。用于会话、目录、设置及业务页面；不替代功能验收，不为其他产品套用本规范。
 ---
 # links UI 一致性
 
@@ -11,9 +11,10 @@ description: 编写、修改或审查 quantum-links 前端页面时，按既有 
 1. 确定涉及的路由、页面状态和现有公共组件。先读 [links 令牌速查](references/links-tokens.md)，再定位当前 links 源码；速查记录的是 2026-10-24 快照，不覆盖后续代码变更。
 2. 新页面对照技能目录的工具栏顺序和交互，使用已有 `Page` / `ContentColumn` / `ListToolbar` / `SettingsSection`。**技能页是局部参照，不是已通过本清单的样板**，其正文标题等仍需检查。
 3. 对照下面清单给每项写「通过 / 违例 / 不适用 / 待验证」，附文件位置或运行证据；不适用写原因。只审代码时，截图、实际尺寸、滚动与键盘行为标待验证。
-4. 按 [rules 草案](rules.md) 的 P0 → P1 → P2 修复本次授权范围；跨页面审查按 [全站检查计划](references/audit-plan.md)。不要因审查一个页面就重做全站主题。
+4. 改动涉及开合、按压、拖拽、滚动、浮层、轮询或订阅时，先读 [动效 / 手感 / 流畅度参考](references/motion-feel.md)，找到对应技术及其裁定，再逐项判 C17–C24；按 UI-13 用 `node tools/perf/frames.mjs` 在改前、改后各测一次，关闭档加 `--reduce`。C19 / C20 / C21 / C22 只审源码时标「运行待验证」或「计数待验证」。
+5. 按 [rules 草案](rules.md) 的 P0 → P1 → P2 修复本次授权范围；跨页面审查按 [全站检查计划](references/audit-plan.md)。不要因审查一个页面就重做全站主题。
 
-取舍：用户明确要求优先；links 组件与令牌决定实现。外部参考分层（11-02），冲突按序：① links 规则 UI-01..UI-14；② Claude-UI [open-claude-ui](references/open-claude-ui.md)（锁 `2d56ab41`）管会话 / agent 交互行为与配方（Composer、消息流、滚动钉底、思考折叠、工具授权、状态指示），MIT 但自述逆向重建，只借思路不抄代码；③ [Apple design](references/apple-design.md)（HIG）管新页面与改版的布局、间距、层级、材质与分层阴影、色彩用法、字体层级及按钮 / 列表 / 侧栏 / 工具栏 / 弹窗 / popover。[SpaceX](references/spacex-style.md) 只给留白 / 少文字方向。用户 11-02 要的分层阴影与玻璃材质只经主题令牌、只用于控件 / 浮层层。外部色值、尺寸、弹簧参数不直接变成 links 常量，不新增 UI 库或动效引擎。
+取舍：用户明确要求优先；links 组件与令牌决定实现。外部参考分层（11-02），冲突按序：① links 规则 UI-01..UI-15；② Claude-UI [open-claude-ui](references/open-claude-ui.md)（锁 `be395eb4`）管会话 / agent 交互行为与配方（Composer、消息流、滚动钉底、思考折叠、工具授权、状态指示），MIT 但自述逆向重建，只借思路不抄代码；③ [Apple design](references/apple-design.md)（HIG）管新页面与改版的布局、间距、层级、材质与分层阴影、色彩用法、字体层级及按钮 / 列表 / 侧栏 / 工具栏 / 弹窗 / popover。[SpaceX](references/spacex-style.md) 只给留白 / 少文字方向。动效、手感、流畅度另见 [motion-feel](references/motion-feel.md)（来源 open-claude-ui / cindy / PI-Desktop / DEEIX / pizza / Octop，各自锁定提交，逐条给出采纳 / 改造 / 拒绝）；它排在 ①② 之后，不覆盖 Apple 的布局判断。用户 11-02 要的分层阴影与玻璃材质只经主题令牌、只用于控件 / 浮层层。外部色值、尺寸、弹簧参数不直接变成 links 常量，不新增 UI 库或动效引擎。
 
 ## 可判定检查清单
 
@@ -32,9 +33,17 @@ description: 编写、修改或审查 quantum-links 前端页面时，按既有 
 | C11 侧栏 | 展开 / 收起均有入口，当前项可辨，长名称不挤掉行尾操作；键盘能访问 hover 操作。沿用 shell 的折叠契约，不假设收起宽度为 0。 | 同视口切换，键盘聚焦 / 长标题 / 多条历史；本地规则记载流内收起态占 1px，改契约前须实测。 |
 | C12 消息流 | 助手正文无需另套整块卡片；流式更新时用户上滚不被抢回底部；有回到最新入口，输入区和末条消息不互相遮挡。失败可重试、复制有结果反馈。 | 长会话流式生成中上滚、返回最新、停止、重试；代码块局部横向滚动不带动整页。 |
 | C13 空与加载 | 首次无数据、筛选无结果、加载、错误是不同状态。用 `EmptyState` / `Skeleton`，不在请求未结束时显示“暂无”；关闭动效后仍有静态状态文字。 | 四种状态分别检查；加载完成主操作位置无明显跳变，失败不会永久转圈。 |
-| C14 动效 | 流畅优先（UI-13：只过渡合成属性、过渡期不逐帧重排、帧测 ≤2 / 20ms）；界面仅「开启 / 关闭」两档，不跟随系统。CSS 走现有 `motion-safe` / `motion-reduce`，JS 走 `useReducedMotion` / `reducedMotion`；关闭后无动画、过渡、平滑滚动，结果仍可见。 | 两档 × 系统减少动态开 / 关；新增效果只回应状态或操作，不新增整页循环装饰。流式数据仍正常到达。 |
+| C14 动效 | 流畅优先（UI-13：只过渡合成属性、过渡期不逐帧重排、帧测 ≤2 / 20ms）；界面三档「关闭 / 开启 / 高级」（UI-03），不跟随系统。CSS 走现有 `motion-safe` / `motion-reduce`，JS 走 `useReducedMotion` / `reducedMotion`；关闭后无动画、过渡、平滑滚动，结果仍可见；高级只多一层 WebGL 背景。 | 三档 × 系统减少动态开 / 关；新增效果只回应状态或操作，不新增整页循环装饰。流式数据仍正常到达。 |
 | C15 滚动 | 不新增 6px 自绘滚动条或页面级滚动条补丁。沿用现有滚动容器；滚轮、触控与键盘可到最后一项，无多层滚动困住用户。 | 查看 CSS 和 `ScrollArea` 用法；隐藏轨道不等于禁用滚动，不能用 `overflow-hidden` 代替。 |
 | C16 交互反馈 | Tab 顺序可用、焦点不被裁切；浮层关闭后焦点返回入口；保存 / 复制 / 安装 / 连接反馈与实际结果一致，错误保留输入与恢复动作。 | 键盘完整走一次主操作；模拟失败；菜单内操作不误触整行导航。 |
+| C17 按压反馈 | 按下后 ≤100ms 内（首个渲染帧）出现可见变化；只动 scale / opacity / 颜色；热区与文字不位移；关闭档仍有颜色或状态反馈。按下到松开之间按钮动作若已改变（发送↔停止），这次按压不触发新动作。 | `button-press` / `icon-motion` / `active:*` 源码；Performance 记录 pointerdown 后的首个样式变化帧；Composer 流式开始瞬间快速点击。 |
+| C18 开合 | 浮层、模态、抽屉、侧栏的开合只过渡 transform / opacity（折叠用 `grid-collapse`）；退场时长 ≤ 入场；首次挂载直接落位，不从未测量的位置飞入；跟随几何的指示物不过冲。 | rg `transition-all`、`transition-\[(width|height|top|left)`；看 computed `transition-property`；`frames.mjs` 掉帧中位数 ≤2、p95 ≤20ms。 |
+| C19 跟手拖拽 | 拖动中无缓动、无读写交错：rect 在 pointerdown 时缓存，pointermove 每帧最多写一次（rAF 合帧，写 ref / CSS 变量 / transform），pointerup 才提交 store 或持久化；视觉和命中判定读同一个坐标。 | Performance trace 中拖动段无 Forced reflow；每帧 React commit ≤1；帧测拖动场景。 |
+| C20 滚动锚定 | 分页补历史、侧栏 / 右栏开合、折叠展开、流式结束后，正在阅读的文字屏幕位置偏移 ≤1px；贴底时保持贴底。修正发生在绘制前（`useLayoutEffect` / ResizeObserver 回调），不留到下一帧 rAF。 | 上滚阅读 → 开合侧栏 / 展开代码块 → 记录锚点字符 top 的差值；同视口内侧栏开合（UI-02）。 |
+| C21 浮层身份稳定 | 浮层、抽屉、面板宿主的元素引用和回调在父级刷新时保持稳定；外层无关刷新时，浮层内列表重渲染 0 次；定位完成前不可见、不可点。 | React Profiler 或渲染计数用例（外层刷新、打开、关闭各记一次）；查自绘浮层的首帧。 |
+| C22 单一在途读取 | 同一个 key 同时只有 1 个读取在途；通知风暴中，合并窗口内的读取次数不随通知数增长；在途时只记 1 笔待刷新；失败不自己反复重读；最后一次变化一定读到。 | 测试中计数 fetch / queryFn 调用；Network 面板记录突发事件下的请求数。 |
+| C23 隐藏即停 | 标签页 / 窗口隐藏、面板折叠、离屏或卸载后：轮询 0 次，infinite 动画用 `animation-play-state: paused` 冻结（不用 `animation:none`），WebGL 停帧；恢复可见时最多补读 1 次。 | 在 hidden 状态下录 Performance：无帧、无请求；查 `refetchIntervalInBackground` 和自写定时器的可见性判断；桌面壳要另外确认窗口隐藏信号。 |
+| C24 循环动效宿主 | 常驻 / 循环动画只放在 HTML 包裹层的 transform / opacity 上，不挂在 svg 上；状态记号只播有限次或由事件触发；关闭档下的静态形态仍能看出状态。 | rg `animate-spin` 等是否直接写在 lucide 组件上；Rendering 面板的 Paint flashing 检查有无每帧重绘。 |
 
 ## 修复配方
 

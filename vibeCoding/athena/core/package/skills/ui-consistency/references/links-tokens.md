@@ -65,10 +65,10 @@ ADR 10-13：主题填充前景在白与 `#141413` 中取对比更高者，文字
 
 | 能力 | 既有实现 | 用法 |
 |---|---|---|
-| 两档开关 | `config/theme.ts`：`开启 → full`，存储 `减少 → reduce`，显示「关闭」 | 旧「跟随系统」归一为开启；颜色明暗的系统模式与动效是两回事。 |
+| 三档开关（11-13 更新） | `config/motion.ts`：存储 `减少 / 开启 / 高级` → `data-motion` `reduce / full / advanced`，界面显示「关闭 / 开启 / 高级」 | 旧「跟随系统」归一为开启；高级 = 开启 + WebGL 背景；颜色明暗的系统模式与动效是两回事。 |
 | CSS 守卫 | `styles/index.css` 重定义 `motion-safe` / `motion-reduce`；`html[data-motion='reduce']` 下禁用 animation / transition（含伪元素） | 不自行读系统媒体查询。 |
 | JS 守卫 | `lib/hooks/use-reduced-motion.ts` | `useReducedMotion()` 订阅，`reducedMotion()` 即时读取；平滑滚动和字形效果也要尊重。 |
-| 时长 | `duration-fast/snap/base/sheet/slow` = 60 / 120 / 200 / 300 / 450ms；composer 220、segment 150ms | 只为新增同类效果选择既有角色；不机械重写成熟组件内已有时长。 |
+| 时长 / 曲线（11-13 更新） | `duration-fast/snap/base/sheet/slow` = 60 / 120 / 200 / 300 / 450ms；composer 220、segment 150、press 360、card 465ms；弹簧 `--ease-spring-press/card/bouncy/drag`（`linear()`），档位曲线 `--motion-panel-ease`（开启 card、高级 press）；进出场类集中在 `components/ui/motion.ts` | 只为新增同类效果选择既有角色；不机械重写成熟组件内已有时长。手感 / 流畅度对照见 [motion-feel](motion-feel.md)。 |
 | 交互效果 | `button-press`、`grid-collapse`、`scroll-fade`、`icon-inline`；`ToggleGroup` 的 `data-segment-slider` | 复用组件和工具类，不移植外站引擎。scroll-fade 有能力检测且关闭动效时取消遮罩。 |
 | 原生轨道 | 全局 `scrollbar-width:none`、WebKit width/height 0 | 仍允许滚动；不加 6px 覆盖。 |
 | 显式自绘轨道 | `components/ui/scroll-area.tsx` 默认 `w-2.5` / `h-2.5` | 自绘轨道与原生隐藏策略不同；是否使用由现有页面决定，不能宣称全站无轨道。 |
