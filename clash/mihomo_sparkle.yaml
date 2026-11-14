@@ -1,19 +1,30 @@
 # ==========================================
-# 🚀 Mihomo 配置 · v5.2 · 2026-07-21
+# 🚀 Mihomo 配置 · v5.3 · 2026-11-06
 # ==========================================
 # 更新记录
-# v5.2: 完整修复 TUN + Tailscale 共存 (exclude-interface / MagicDNS / 规则)
+# v5.5: 修 baidu 打不开（厂商 DNS 单点无兜底）；国内 DoH 扩到 4 个 IP；dns-mode 恢复留空（native 改 Linux 宿主机 DNS）
+# v5.4: 新增韩国策略（select + 自动/散列/轮询），并入节点选择/故障转移/AI/社交/测速，冷门节点排除韩国
+# v5.3: 对齐 Surge + Fries 通用模块；适配 mihomo v1.19.33
+#       - 修 cdn_non_ip / download_non_ip behavior 错误（classical 写成 domain，规则集实际为空）
+#       - cdn 改走代理（与 Surge 一致）；中段规则集统一 no-resolve，IP 类集中到末尾
+#       - 节点筛选正则加词边界（修 Australia/Russia/Business→美国、德州/西雅图→欧盟、信息节点混入冷门）
+#       - DNS 全 IP 化（兑现设计原则 2）；去 AdGuard（会过滤广告域名）；proxy-server-nameserver 去直连 1.1.1.1
+#       - 移植 Fries：厂商分 DNS（nameserver-policy + inline 规则集）、always-real-ip → fake-ip-filter、HTTPDNS 阻断
+#       - 移植 Surge：AWAvenue 广告、apple_intelligence、ai/ip、reject/ip、个人域名、Claude 规则统一用 Rlues/claude.list
+#       - tun.dns-mode: native（v5.5 已撤回为留空，见 TUN 段）
+#       - allow-lan 加 lan-allowed-ips，防公共 Wi-Fi 下被他人白嫖代理
+# v5.2: 完整修复 TUN + Tailscale 共存
 # v5.1: 跨平台 TUN 基础层; Tailscale/私网绕过; 删除平台专属 TUN 参数
 # v5.0: 修正 Windows TUN 与 Tailscale 路由、DNS、进程冲突
 # v4.9: 修正 GUI 延迟测试; GeoIP 改用 lite 数据
 # v4.8: Speedtest 优先于 QUIC 阻断并补充测速域名
 # v4.7: 适配 mihomo v1.19.27; 收紧控制器; 优化 geodata/DNS
-# v4.6: Speedtest 改为独立手动出口组; 恢复通用组默认策略
-# v4.4: 安全、健康检查、规则源和海外 QUIC 优化
+#
+# 内核要求: mihomo ≥ v1.19.31（ts 出站方案 B）；其余 v1.19.2x 可用
 #
 # 平台说明
 # Linux 可本地启用 auto-redirect/gso; Windows 使用客户端覆盖接口名
-# macOS 由客户端分配 utun; iOS/Android 无法同时运行两个独立 VPN
+# macOS 由客户端分配 utun; iOS/Android 无法同时运行两个独立 VPN → 见 Proxy 段 Tailscale 出站方案 B
 #
 # Tailscale 共存要点
 # 1) 先连 Tailscale，再开 Mihomo TUN
@@ -25,10 +36,13 @@
 # 🏗️ 设计原则
 #
 #    1️⃣ DIRECT vs 🏠 国内流量
-#         DIRECT      = 基础设施 / CDN / 确定性直连 (不可被误切)
+#         DIRECT      = 基础设施 / 确定性直连 (不可被误切)
 #         🏠 国内流量 = 仅 GEOIP,CN 兜底 (保留手动切换)
 #    2️⃣ 🌐 DNS: respect-rules + direct-nameserver, 全 IP 形式 DoH, 无 fallback
-#    3️⃣ 🎛️ 策略组: 节点选择(select) → 故障转移(fallback) → 地区策略(select) → 地区自动(url-test)
+#         与 Surge 分工差异：fake-ip 下代理流量远端解析，本地 nameserver 只服务规则匹配，
+#         故默认走境外 DoH（经节点）防污染；直连出站由 direct-nameserver（国内 DoH）解析
+#    3️⃣ 📏 规则: 域名类在前且带 no-resolve；需要解析的 IP 类集中在末尾（同 Surge）
+#    4️⃣ 🎛️ 策略组: 节点选择(select) → 故障转移(fallback) → 地区策略(select) → 地区自动(url-test)
 # ==========================================
 
 # ⚓ ==================== 锚点配置 ====================
@@ -37,7 +51,7 @@ BaseFB:
     type: fallback,
     interval: 300,
     lazy: true,
-    url: "http://www.gstatic.com/generate_204",
+    url: "https://www.gstatic.com/generate_204",
     timeout: 5000,
     expected-status: 204,
   }
@@ -46,7 +60,7 @@ BaseCH:
     type: load-balance,
     interval: 300,
     lazy: true,
-    url: "http://www.gstatic.com/generate_204",
+    url: "https://www.gstatic.com/generate_204",
     strategy: consistent-hashing,
     timeout: 5000,
     expected-status: 204,
@@ -56,7 +70,7 @@ BaseCR:
     type: load-balance,
     interval: 300,
     lazy: true,
-    url: "http://www.gstatic.com/generate_204",
+    url: "https://www.gstatic.com/generate_204",
     strategy: round-robin,
     timeout: 5000,
     expected-status: 204,
@@ -67,26 +81,27 @@ BaseUT:
     interval: 300,
     tolerance: 50,
     lazy: true,
-    url: "http://www.gstatic.com/generate_204",
+    url: "https://www.gstatic.com/generate_204",
     timeout: 5000,
     expected-status: 204,
   }
 
-# 节点筛选正则
-FilterHK: &FilterHK "^(?=.*(?i)(港|🇭🇰|HK|Hong|HKG))(?!.*(游戏|GAME|5x)).*$"
-FilterSG: &FilterSG "^(?=.*(?i)(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(游戏|GAME|5x)).*$"
-FilterJP: &FilterJP "^(?=.*(?i)(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(游戏|GAME|5x)).*$"
-FilterUS: &FilterUS "^(?=.*(?i)(美|🇺🇸|US|USA|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(游戏|GAME|5x)).*$"
-FilterTW: &FilterTW "^(?=.*(?i)(台|臺|🇹🇼|TW|Taiwan|Taipei|Taichung|Tainan|Kaohsiung|TPE|TSA|KHH|RMQ|TNN|新竹|桃园|桃園|彰化|高雄|台北|台中|台南|Hsinchu|Taoyuan))(?!.*(游戏|GAME|5x)).*$"
-FilterEU: &FilterEU "^(?=.*(?i)(英|法|德|荷|意|西|瑞|芬|丹|挪|波|🇬🇧|🇫🇷|🇩🇪|🇳🇱|🇮🇹|🇪🇸|🇨🇭|CDG|FRA|AMS|LHR|MUC))(?!.*(游戏|GAME|5x)).*$"
-FilterOT: &FilterOT "^(?!.*(DIRECT|直连|美|港|坡|台|臺|新|日|英|法|德|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇺🇸|🇬🇧|HK|TW|SG|JP|US|GB|Taiwan|Taipei))"
-FilterAL: &FilterAL "^(?!.*(DIRECT|直连|群|邀请|返利|循环|官网|客服|网站|过期|到期|流量|USE|USED|TOTAL|EXPIRE))"
+# 节点筛选正则（regexp2；英文缩写加词边界，避免 US 命中 Australia/Russia/Business）
+FilterHK: &FilterHK "(?i)^(?=.*(港|🇭🇰|Hong ?Kong|(?<![A-Za-z])(HK|HKG)(?![A-Za-z])))(?!.*(游戏|GAME|5x|剩余|到期|流量|官网|套餐|Expire|Traffic)).*$"
+FilterSG: &FilterSG "(?i)^(?=.*(新加坡|坡|狮城|🇸🇬|Singapore|(?<![A-Za-z])(SG|SGP|SIN|XSP)(?![A-Za-z])))(?!.*(游戏|GAME|5x|剩余|到期|流量|官网|套餐|Expire|Traffic)).*$"
+FilterJP: &FilterJP "(?i)^(?=.*(日本|东京|大阪|🇯🇵|Japan|Tokyo|Osaka|(?<![A-Za-z])(JP|JPN|NRT|HND|KIX|CTS|FUK)(?![A-Za-z])))(?!.*(游戏|GAME|5x|剩余|到期|流量|官网|套餐|Expire|Traffic)).*$"
+FilterUS: &FilterUS "(?i)^(?=.*(美|🇺🇸|United States|America|洛杉矶|圣何塞|西雅图|硅谷|纽约|芝加哥|达拉斯|(?<![A-Za-z])(US|USA|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD)(?![A-Za-z])))(?!.*(游戏|GAME|5x|剩余|到期|流量|官网|套餐|Expire|Traffic)).*$"
+FilterTW: &FilterTW "(?i)^(?=.*(台|臺|🇹🇼|Taiwan|Taipei|Taichung|Tainan|Kaohsiung|Hsinchu|Taoyuan|新竹|桃园|桃園|彰化|高雄|(?<![A-Za-z])(TW|TWN|TPE|TSA|KHH|RMQ|TNN)(?![A-Za-z])))(?!.*(游戏|GAME|5x|剩余|到期|流量|官网|套餐|Expire|Traffic)).*$"
+FilterKR: &FilterKR "(?i)^(?=.*(韩国|韓國|韓国|南韩|南韓|首尔|首爾|春川|🇰🇷|South ?Korea|Korea|Seoul|(?<![A-Za-z])(KR|KOR|ICN|SEL)(?![A-Za-z])))(?!.*(游戏|GAME|5x|剩余|到期|流量|官网|套餐|Expire|Traffic)).*$"
+FilterEU: &FilterEU "(?i)^(?=.*(英国|英國|法国|德国|荷兰|意大利|西班牙|瑞士|瑞典|芬兰|丹麦|挪威|波兰|爱尔兰|奥地利|比利时|葡萄牙|伦敦|巴黎|法兰克福|阿姆斯特丹|🇬🇧|🇫🇷|🇩🇪|🇳🇱|🇮🇹|🇪🇸|🇨🇭|🇸🇪|🇫🇮|🇩🇰|🇳🇴|🇵🇱|🇮🇪|🇦🇹|🇧🇪|🇪🇺|United Kingdom|France|Germany|Netherlands|London|Paris|Frankfurt|Amsterdam|(?<![A-Za-z])(UK|GB|FR|DE|NL|CDG|FRA|AMS|LHR|MUC)(?![A-Za-z])))(?!.*(游戏|GAME|5x|剩余|到期|流量|官网|套餐|Expire|Traffic)).*$"
+FilterOT: &FilterOT "(?i)^(?!.*(DIRECT|直连|韩国|韓國|韓国|南韩|南韓|首尔|首爾|春川|🇰🇷|South ?Korea|Korea|Seoul|(?<![A-Za-z])(KR|KOR|ICN|SEL)(?![A-Za-z])|港|🇭🇰|Hong ?Kong|(?<![A-Za-z])(HK|HKG)(?![A-Za-z])|新加坡|坡|狮城|🇸🇬|Singapore|(?<![A-Za-z])(SG|SGP|SIN|XSP)(?![A-Za-z])|日本|东京|大阪|🇯🇵|Japan|Tokyo|Osaka|(?<![A-Za-z])(JP|JPN|NRT|HND|KIX|CTS|FUK)(?![A-Za-z])|美|🇺🇸|United States|America|洛杉矶|圣何塞|西雅图|硅谷|纽约|芝加哥|达拉斯|(?<![A-Za-z])(US|USA|SJC|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD)(?![A-Za-z])|台|臺|🇹🇼|Taiwan|Taipei|Taichung|Tainan|Kaohsiung|Hsinchu|Taoyuan|新竹|桃园|桃園|彰化|高雄|(?<![A-Za-z])(TW|TWN|TPE|TSA|KHH|RMQ|TNN)(?![A-Za-z])|英国|英國|法国|德国|荷兰|意大利|西班牙|瑞士|瑞典|芬兰|丹麦|挪威|波兰|爱尔兰|奥地利|比利时|葡萄牙|伦敦|巴黎|法兰克福|阿姆斯特丹|🇬🇧|🇫🇷|🇩🇪|🇳🇱|🇮🇹|🇪🇸|🇨🇭|🇸🇪|🇫🇮|🇩🇰|🇳🇴|🇵🇱|🇮🇪|🇦🇹|🇧🇪|🇪🇺|United Kingdom|France|Germany|Netherlands|London|Paris|Frankfurt|Amsterdam|(?<![A-Za-z])(UK|GB|FR|DE|NL|CDG|FRA|AMS|LHR|MUC)(?![A-Za-z])))(?!.*(游戏|GAME|5x|剩余|到期|流量|官网|套餐|Expire|Traffic)).*$"
+FilterAL: &FilterAL "(?i)^(?!.*(DIRECT|直连|群|邀请|返利|循环|官网|客服|网站|过期|到期|剩余|流量|套餐|(?<![A-Za-z])(USE|USED|TOTAL|EXPIRE)(?![A-Za-z]))).*$"
 
 # 策略组代理列表模板
 SelectFB:
   &SelectFB {
     type: select,
-    url: "http://www.gstatic.com/generate_204",
+    url: "https://www.gstatic.com/generate_204",
     proxies:
       [
         故障转移,
@@ -95,6 +110,7 @@ SelectFB:
         日本策略,
         美国策略,
         台湾策略,
+        韩国策略,
         欧盟策略,
         冷门节点,
         全部节点,
@@ -104,7 +120,7 @@ SelectFB:
 SelectPY:
   &SelectPY {
     type: select,
-    url: "http://www.gstatic.com/generate_204",
+    url: "https://www.gstatic.com/generate_204",
     proxies:
       [
         🎯 节点选择,
@@ -114,6 +130,7 @@ SelectPY:
         日本策略,
         美国策略,
         台湾策略,
+        韩国策略,
         欧盟策略,
         冷门节点,
         全部节点,
@@ -123,26 +140,27 @@ SelectPY:
 SelectDC:
   &SelectDC {
     type: select,
-    url: "http://www.gstatic.com/generate_204",
+    url: "https://www.gstatic.com/generate_204",
     proxies:
       [DIRECT, 🎯 节点选择, 故障转移, 香港策略, 狮城策略, 日本策略, 美国策略],
   }
 SelectSG:
   &SelectSG {
     type: select,
-    url: "http://www.gstatic.com/generate_204",
-    proxies: [狮城策略, 日本策略, 美国策略, 欧盟策略],
+    url: "https://www.gstatic.com/generate_204",
+    proxies: [狮城策略, 日本策略, 美国策略, 韩国策略, 欧盟策略],
   }
 SelectSM:
   &SelectSM {
     type: select,
-    url: "http://www.gstatic.com/generate_204",
+    url: "https://www.gstatic.com/generate_204",
     proxies:
       [
         🎯 节点选择,
         美国策略,
         日本策略,
         狮城策略,
+        韩国策略,
         欧盟策略,
         冷门节点,
         全部节点,
@@ -150,19 +168,27 @@ SelectSM:
       ],
   }
 
-RulesetDomain:
-  &RulesetDomain {
+RulesetDomainMRS:
+  &RulesetDomainMRS {
     type: http,
     behavior: domain,
     format: mrs,
     interval: 86400,
     proxy: 🎯 节点选择,
   }
-RulesetIP:
-  &RulesetIP {
+RulesetDomainText:
+  &RulesetDomainText {
+    type: http,
+    behavior: domain,
+    format: text,
+    interval: 86400,
+    proxy: 🎯 节点选择,
+  }
+RulesetIPText:
+  &RulesetIPText {
     type: http,
     behavior: ipcidr,
-    format: mrs,
+    format: text,
     interval: 86400,
     proxy: 🎯 节点选择,
   }
@@ -186,10 +212,19 @@ RulesetYaml:
 # ⚙️ ============================= 核心配置 =============================
 port: 7893
 socks-port: 7891
-redir-port: 7892
+redir-port: 7892 # 仅 Linux/macOS pf 生效
 mixed-port: 7890
-tproxy-port: 7894
+tproxy-port: 7894 # 仅 Linux 生效
 allow-lan: true
+# 仅放行私网来源；默认 0.0.0.0/0 时公共 Wi-Fi 下任何人可直连你的代理端口
+lan-allowed-ips:
+  - 127.0.0.0/8
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+  - 100.64.0.0/10
+  - fc00::/7
+  - fe80::/10
 mode: rule
 bind-address: "*"
 ipv6: false
@@ -205,10 +240,7 @@ keep-alive-interval: 30
 keep-alive-idle: 600
 
 skip-auth-prefixes:
-  - 127.0.0.1/8
-  - 192.168.0.0/16
-  - 10.0.0.0/8
-  - 100.64.0.0/10
+  - 0.0.0.0/0
 
 external-controller: 127.0.0.1:9090
 secret: "SdlYQeCNR1K+LsdE23456789sdfghjklOKjSjP4LKm6yVf3"
@@ -229,9 +261,10 @@ geox-url:
   geoip: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.dat"
   geosite: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
   mmdb: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
-  asn: "https://cdn.jsdelivr.net/gh/xishang0128/geoip@release/GeoLite2-ASN.mmdb"
+  asn: "https://cdn.jsdelivr.net/gh/xishang0128/geoip@release/GeoLite2-ASN.mmdb" # claude.list 含 IP-ASN，需要此库
 
 # 👃 ============================= 域名嗅探 =============================
+# v1.19.30+ 已内置 H2C / QUICv2 嗅探，无需额外配置
 sniffer:
   enable: true
   force-dns-mapping: true
@@ -243,7 +276,7 @@ sniffer:
     - fd7a:115c:a1e0::/48
   sniff:
     HTTP:
-      ports: [80, 8080, 8443, 8888]
+      ports: [80, 8080-8880]
       override-destination: true
     TLS:
       ports: [443, 8443]
@@ -269,15 +302,17 @@ tun:
   auto-route: true
   auto-detect-interface: true
   strict-route: false
+  # v1.19.33 新增 dns-mode。留空 = 旧行为：Linux/Windows 开 auto-route 时默认 hijack，macOS 默认 disabled
+  # 不写死：native 在 Linux 会改宿主机系统 DNS（旁路由/服务器上副作用大）
+  # 仅 macOS 需要：在客户端覆写里加 dns-mode: native，或开客户端自带的「接管系统 DNS」
+  # dns-mode: native
   dns-hijack:
     - any:53
     - tcp://any:53
   udp-timeout: 300
-  # 排除 Tailscale 虚拟网卡（与 include-interface 互斥，只能二选一）
   exclude-interface:
-    - Tailscale # Windows
-    - tailscale0 # Linux
-    # macOS 多为 utunX，用 ifconfig / 网络面板确认后自行添加
+    - Tailscale
+    - tailscale0
   route-exclude-address:
     - 10.0.0.0/8
     - 100.64.0.0/10
@@ -285,9 +320,12 @@ tun:
     - 169.254.0.0/16
     - 172.16.0.0/12
     - 192.168.0.0/16
+    - 224.0.0.0/4 # 组播（mDNS/AirPlay/投屏），同 Surge tun-excluded-routes
+    - 255.255.255.255/32
     - fd7a:115c:a1e0::/48
     - fc00::/7
     - fe80::/10
+    - ff00::/8
 
 # 🌐 ============================= DNS 配置 =============================
 dns:
@@ -301,101 +339,106 @@ dns:
   use-system-hosts: true
   cache-algorithm: arc
 
+  # ≈ Surge always-real-ip（主配置 + Fries General 模块合并），列表见 rule-providers.fakeip_filter
   fake-ip-filter:
-    - "*.lan"
-    - "localhost.ptlogin2.qq.com"
-    - "+.srv.nintendo.net"
-    - "+.stun.playstation.net"
-    - "+.msftconnecttest.com"
-    - "+.msftncsi.com"
-    - "+.xboxlive.com"
-    - "msftconnecttest.com"
-    - "xbox.*.microsoft.com"
-    - "*.battlenet.com.cn"
-    - "*.battlenet.com"
-    - "*.blzstatic.cn"
-    - "*.battle.net"
-    # Tailscale / MagicDNS
-    - "*.ts.net"
-    - "+.ts.net"
-    - "tailscale.com"
-    - "+.tailscale.com"
-    - "+.tailscale.io"
-    - "controlplane.tailscale.com"
-    - "log.tailscale.com"
-    - "login.tailscale.com"
-    - "+.local"
-    - "+.home.arpa"
-    - "time.*.com"
-    - "time.*.gov"
-    - "time.*.edu.cn"
-    - "ntp.*.com"
-    - "+.pool.ntp.org"
-    - "time.nist.gov"
-    - "+.stun.l.google.com"
-    - "stun.stunprotocol.org"
-    - "+.stun.cloudflare.com"
-    - "+.stun.syncthing.net"
-    - "+.stun.playstation.net"
-    - "+.stun.xboxlive.com"
+    - "rule-set:fakeip_filter"
+    - "geosite:private"
 
-  # ≈ Surge dns-server：只做 bootstrap / 连通，必须是 IP（或可达加密 DNS）
+  # ≈ Surge dns-server：只做 bootstrap，纯 IP
   default-nameserver:
     - 223.5.5.5
+    - 223.6.6.6
     - 119.29.29.29
 
-  # 解析代理节点域名：优先国内 DoH，稳定、不依赖节点
+  # 解析代理节点域名：国内 DoH 直连，不依赖节点（原 1.1.1.1 直连在国内不稳定，已去掉）
   proxy-server-nameserver:
-    - https://dns.alidns.com/dns-query
-    - https://doh.pub/dns-query
-    - https://1.1.1.1/dns-query
+    - https://223.5.5.5/dns-query
+    - https://223.6.6.6/dns-query
+    - https://1.12.12.12/dns-query
+    - https://120.53.53.53/dns-query
 
-  # 国际加密 DNS（走节点）≈ Surge 列表中的 1.1.1.1 + AdGuard
-  # #🎯 节点选择 ≈ encrypted-dns-follow-outbound-mode 生效后的代理出站
+  # 默认：境外 DoH 走节点（只服务规则匹配 / 末尾 IP 规则解析；代理流量本身远端解析）
+  # 原 AdGuard DNS 默认过滤广告域名，会让未被规则拦截的域名莫名解析失败 → 换 Google
   nameserver:
     - "https://1.1.1.1/dns-query#🎯 节点选择"
-    - "https://dns.adguard-dns.com/dns-query#🎯 节点选择"
-    - "quic://dns.adguard-dns.com#🎯 节点选择"
+    - "https://8.8.8.8/dns-query#🎯 节点选择"
 
-  # 直连域名用的加密 DNS ≈ Surge 列表中的阿里 / DNSPod
+  # 直连出站解析 ≈ Surge encrypted-dns-server（国内 DoH）
   direct-nameserver:
-    - https://dns.alidns.com/dns-query
-    - https://doh.pub/dns-query
-  direct-nameserver-follow-policy: true
+    - https://223.5.5.5/dns-query
+    - https://223.6.6.6/dns-query
+    - https://1.12.12.12/dns-query
+    - https://120.53.53.53/dns-query
+  direct-nameserver-follow-policy: true # 直连也走下方厂商分 DNS
 
+  # 有序，自上而下首个命中生效
   nameserver-policy:
     # Tailscale MagicDNS（保持）
     "+.ts.net":
       - 100.100.100.100
-    "tailscale.com":
-      - 100.100.100.100
-      - system
-    "+.tailscale.com":
+    "tailscale.com,+.tailscale.com":
       - 100.100.100.100
       - system
     "+.tailscale.io":
       - system
 
-    # 国内 / 私有：强制国内加密 DNS（直连）
-    "geosite:cn,private":
-      - https://dns.alidns.com/dns-query
-      - https://doh.pub/dns-query
+    # 路由器管理页 ≈ Fries DNS 模块 server:syslib（取常用子集）
+    "+.home.arpa,miwifi.com,www.miwifi.com,router.asus.com,routerlogin.net,router.synology.com,tplogin.cn,tplinkwifi.net,melogin.cn,falogin.cn,tendawifi.com,mediarouter.home":
+      - system
 
-    # 常见国际站：强制国际加密 DNS 走节点
+    "rule-set:dns_alibaba":
+      - quic://223.5.5.5
+      - https://223.5.5.5/dns-query
+      - https://223.6.6.6/dns-query
+    "rule-set:dns_tencent":
+      - https://1.12.12.12/dns-query
+      - https://120.53.53.53/dns-query
+      - https://223.5.5.5/dns-query
+    "rule-set:dns_baidu":
+      - 180.76.76.76
+      - https://223.5.5.5/dns-query
+      - https://1.12.12.12/dns-query
+    "rule-set:dns_bytedance":
+      - 180.184.1.1
+      - https://223.5.5.5/dns-query
+      - https://1.12.12.12/dns-query
+
+    # 国内 / 私有：国内加密 DNS（直连）
+    "geosite:cn,private":
+      - https://223.5.5.5/dns-query
+      - https://223.6.6.6/dns-query
+      - https://1.12.12.12/dns-query
+      - https://120.53.53.53/dns-query
+
+    # 常见国际站：显式走境外（与默认一致，保留以防默认被改）
     "geosite:google,youtube,telegram,twitter":
       - "https://1.1.1.1/dns-query#🎯 节点选择"
-      - "https://dns.adguard-dns.com/dns-query#🎯 节点选择"
+      - "https://8.8.8.8/dns-query#🎯 节点选择"
+
+# 🔗 ============================= 出站 =============================
+# 方案 B（v1.19.31+ 内置 Tailscale 出站，≈ Surge 的 ts-home）：
+#   不装 Tailscale 客户端也能访问 tailnet；适合 iOS/Android（不能同时跑两个 VPN）
+#   启用后：取消下方注释 → 规则段 100.64.0.0/10 / ts.net 改指向 ts-home → nameserver-policy "+.ts.net" 改为 ts://ts-home
+#   注意：会作为独立设备登录 tailnet（hostname 勿与 Surge 的 surge-mac/surge-ios 重名）；与系统 Tailscale 客户端二选一
+# proxies:
+#   - name: ts-home
+#     type: tailscale
+#     hostname: mihomo-desktop
+#     # auth-key: tskey-auth-xxxx   # 不填则首次启动日志输出登录 URL
+#     state-dir: ./tailscale
+#     udp: true
+#     accept-routes: true
 
 # 📡 ============================= 代理提供者 =============================
 proxy-providers:
   Airport:
     type: http
-    url: "http://192.168.31.2:3331/1234QWer/download/collection/multAirport?target=ClashMeta"
+    url: "http://192.168.31.2:3331/Hglld6HeaFxUIGg4DOjcpXrjBHk76W2iGMfh5aTK/download/collection/multAirport?target=ClashMeta"
     path: ./proxy_providers/airport.yaml
     interval: 3600
     health-check:
       enable: true
-      url: "http://www.gstatic.com/generate_204"
+      url: "https://www.gstatic.com/generate_204"
       interval: 300
       timeout: 5000
       lazy: true
@@ -420,6 +463,7 @@ proxy-groups:
           日本策略,
           美国策略,
           台湾策略,
+          韩国策略,
           欧盟策略,
           冷门节点,
           DIRECT,
@@ -495,7 +539,7 @@ proxy-groups:
   - {
       name: speedtest,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       proxies:
         [
           DIRECT,
@@ -504,6 +548,7 @@ proxy-groups:
           日本策略,
           美国策略,
           台湾策略,
+          韩国策略,
           欧盟策略,
           全部节点,
         ],
@@ -514,7 +559,7 @@ proxy-groups:
   - {
       name: 香港策略,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       proxies: [香港自动, 香港均衡-散列, 香港均衡-轮询],
       include-all: true,
       filter: *FilterHK,
@@ -523,7 +568,7 @@ proxy-groups:
   - {
       name: 台湾策略,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       proxies: [台湾自动, 台湾均衡-散列, 台湾均衡-轮询],
       include-all: true,
       filter: *FilterTW,
@@ -532,7 +577,7 @@ proxy-groups:
   - {
       name: 狮城策略,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       proxies: [狮城自动, 狮城均衡-散列, 狮城均衡-轮询],
       include-all: true,
       filter: *FilterSG,
@@ -541,7 +586,7 @@ proxy-groups:
   - {
       name: 日本策略,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       proxies: [日本自动, 日本均衡-散列, 日本均衡-轮询],
       include-all: true,
       filter: *FilterJP,
@@ -550,16 +595,25 @@ proxy-groups:
   - {
       name: 美国策略,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       proxies: [美国自动, 美国均衡-散列, 美国均衡-轮询],
       include-all: true,
       filter: *FilterUS,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png",
     }
   - {
+      name: 韩国策略,
+      type: select,
+      url: "https://www.gstatic.com/generate_204",
+      proxies: [韩国自动, 韩国均衡-散列, 韩国均衡-轮询],
+      include-all: true,
+      filter: *FilterKR,
+      icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png",
+    }
+  - {
       name: 欧盟策略,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       proxies: [欧盟自动, 欧盟均衡-散列, 欧盟均衡-轮询],
       include-all: true,
       filter: *FilterEU,
@@ -568,7 +622,7 @@ proxy-groups:
   - {
       name: 冷门节点,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       include-all: true,
       filter: *FilterOT,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/World_Map.png",
@@ -576,7 +630,7 @@ proxy-groups:
   - {
       name: 全部节点,
       type: select,
-      url: "http://www.gstatic.com/generate_204",
+      url: "https://www.gstatic.com/generate_204",
       include-all: true,
       filter: *FilterAL,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Rocket.png",
@@ -616,6 +670,13 @@ proxy-groups:
       <<: *BaseUT,
       include-all: true,
       filter: *FilterUS,
+      hidden: true,
+    }
+  - {
+      name: 韩国自动,
+      <<: *BaseUT,
+      include-all: true,
+      filter: *FilterKR,
       hidden: true,
     }
   - {
@@ -663,6 +724,13 @@ proxy-groups:
       hidden: true,
     }
   - {
+      name: 韩国均衡-散列,
+      <<: *BaseCH,
+      include-all: true,
+      filter: *FilterKR,
+      hidden: true,
+    }
+  - {
       name: 欧盟均衡-散列,
       <<: *BaseCH,
       include-all: true,
@@ -707,6 +775,13 @@ proxy-groups:
       hidden: true,
     }
   - {
+      name: 韩国均衡-轮询,
+      <<: *BaseCR,
+      include-all: true,
+      filter: *FilterKR,
+      hidden: true,
+    }
+  - {
       name: 欧盟均衡-轮询,
       <<: *BaseCR,
       include-all: true,
@@ -716,18 +791,275 @@ proxy-groups:
 
 # 📚 ============================= 规则提供者 =============================
 rule-providers:
-  # AI 服务
+  # ---------- 本地 inline（无需下载）----------
+  # ≈ Surge always-real-ip + Fries General 模块（已剔除 proxy.golang.org、*.xiami.com）
+  fakeip_filter:
+    type: inline
+    behavior: domain
+    payload:
+      - "+.lan"
+      - "+.local"
+      - "+.arpa"
+      - "+.direct"
+      - "localhost.ptlogin2.qq.com"
+      - "localhost.*.qq.com"
+      - "localhost.*.weixin.qq.com"
+      # 连通性检测
+      - "+.msftconnecttest.com"
+      - "+.msftncsi.com"
+      - "cable.auth.com"
+      - "network-test.debian.org"
+      - "detectportal.firefox.com"
+      - "resolver1.opendns.com"
+      # Tailscale
+      - "+.ts.net"
+      - "+.tailscale.com"
+      - "+.tailscale.io"
+      # 游戏 / P2P / STUN
+      - "+.srv.nintendo.net"
+      - "+.stun.playstation.net"
+      - "xbox.*.microsoft.com"
+      - "+.xboxlive.com"
+      - "+.battlenet.com.cn"
+      - "+.battlenet.com"
+      - "+.battle.net"
+      - "+.blzstatic.cn"
+      - "stun.*.*"
+      - "stun.*.*.*"
+      - "+.stun.l.google.com"
+      - "stun.stunprotocol.org"
+      - "+.stun.cloudflare.com"
+      - "+.stun.syncthing.net"
+      - "global.turn.twilio.com"
+      - "global.stun.twilio.com"
+      # NTP
+      - "time.*.com"
+      - "time.*.gov"
+      - "time.*.edu.cn"
+      - "ntp.*.com"
+      - "+.pool.ntp.org"
+      - "+.ntp.org.cn"
+      - "time.nist.gov"
+      - "musicapi.taihe.com"
+      - "music.taihe.com"
+      - "songsearch.kugou.com"
+      - "trackercdn.kugou.com"
+      - "+.kuwo.cn"
+      - "api-jooxtt.sanook.com"
+      - "api.joox.com"
+      - "joox.com"
+      - "+.y.qq.com"
+      - "streamoc.music.tc.qq.com"
+      - "mobileoc.music.tc.qq.com"
+      - "isure.stream.qqmusic.qq.com"
+      - "dl.stream.qqmusic.qq.com"
+      - "aqqmusic.tc.qq.com"
+      - "amobile.music.tc.qq.com"
+      - "+.music.migu.cn"
+      - "+.mcdn.bilivideo.cn"
+      - "+.cmpassport.com"
+      - "id6.me"
+      - "open.e.189.cn"
+      - "opencloud.wostore.cn"
+      - "id.mail.wo.cn"
+      - "mdn.open.wo.cn"
+      - "hmrz.wo.cn"
+      - "nishub1.10010.com"
+      - "enrichgw.10010.com"
+      - "+.wosms.cn"
+      - "+.jegotrip.com.cn"
+      - "+.icitymobile.mobi"
+      - "+.10099.com.cn"
+      - "+.microdone.cn"
+      - "app.yinxiang.com"
+      - "injections.adguard.org"
+      - "local.adguard.org"
+      - "+.abchina.com"
+      - "+.abchina.com.cn"
+      - "+.95599.cn"
+      - "+.icbc.com.cn"
+      - "+.ccb.com"
+      - "+.ccb.cn"
+      - "+.boc.cn"
+      - "+.cmbchina.com"
+      - "+.pingan.com.cn"
+
+  dns_alibaba:
+    type: inline
+    behavior: domain
+    payload:
+      - "+.alibaba.cn"
+      - "+.alibaba.com.cn"
+      - "+.china.alibaba.com"
+      - "+.1688.com"
+      - "+.taobao.com"
+      - "+.tbcache.com"
+      - "+.tmall.com"
+      - "+.alicdn.com"
+      - "+.alikunlun.com"
+      - "+.aliapp.com"
+      - "+.aliapp.org"
+      - "+.alibabausercontent.com"
+      - "+.mmstat.com"
+      - "tb.cn"
+      - "+.aliyuncs.com"
+      - "+.aliyundrive.com"
+      - "+.aliyundun.com"
+      - "+.aliyundunwaf.com"
+      - "+.aliyun-inc.com"
+      - "+.antgroup.com"
+      - "+.antfin.com"
+      - "+.antfinancial.com"
+      - "+.alipay.com"
+      - "+.alipay.com.cn"
+      - "+.alipaydns.com"
+      - "+.alipayeshop.com"
+      - "+.alipaylog.com"
+      - "+.alipayobjects.com"
+      - "+.alipay-eco.com"
+      - "+.aliyun.com"
+      - "+.aliyun.cn"
+      - "+.aliyuncdn.com"
+      - "+.aliyuncdn.net"
+  dns_tencent:
+    type: inline
+    behavior: domain
+    payload:
+      - "+.tencent.com"
+      - "+.qcloud.com"
+      - "+.qcloudcdn.cn"
+      - "+.qcloudcdn.com"
+      - "+.qcloudcos.com"
+      - "+.qcloudimg.com"
+      - "+.qcloudcjgj.com"
+      - "+.qcloudwzgj.com"
+      - "+.qcloudzygj.com"
+      - "+.myqcloud.com"
+      - "+.tencent-cloud.net"
+      - "+.tencentcloud-aiot.com"
+      - "+.tencentcloudapi.com"
+      - "+.tencentcloudcr.com"
+      - "+.tencentcloudmarket.com"
+      - "+.qq.com"
+      - "+.qlogo.cn"
+      - "+.qpic.cn"
+      - "+.weixin.qq.com"
+      - "+.wx.qq.com"
+      - "+.weixin.com"
+      - "+.weixinbridge.com"
+      - "+.wechat.com"
+      - "+.servicewechat.com"
+      - "+.weiyun.com"
+      - "+.gtimg.cn"
+      - "+.idqqimg.com"
+      - "+.cdn-go.cn"
+      - "+.smtcdns.com"
+      - "+.smtcdns.net"
+      - "url.cn"
+  dns_baidu:
+    type: inline
+    behavior: domain
+    payload:
+      - "+.baidu"
+      - "+.baidu.com"
+      - "+.bdimg.com"
+      - "+.bdstatic.com"
+      - "+.bdysite.com"
+      - "+.bdysites.com"
+      - "+.bcebos.com"
+      - "+.bcevod.com"
+      - "+.bceimg.com"
+      - "+.bcehost.com"
+      - "+.bcehosts.com"
+      - "dwz.cn"
+      - "+.baidupcs.com"
+      - "+.baidupcs.net"
+      - "+.baiduyuncdn.com"
+      - "+.baiduyundns.com"
+      - "+.bdydns.com"
+      - "+.bdydns.cn"
+      - "+.bdycdn.cn"
+      - "+.baidubce.com"
+      - "+.bcedns.com"
+      - "+.bcedns.cn"
+  dns_bytedance:
+    type: inline
+    behavior: domain
+    payload:
+      - "+.amemv.com"
+      - "+.bdxiguaimg.com"
+      - "+.bdxiguastatic.com"
+      - "+.byted-static.com"
+      - "+.bytedns.net"
+      - "+.bytednsdoc.com"
+      - "+.bytegoofy.com"
+      - "+.byteimg.com"
+      - "+.bytescm.com"
+      - "+.bytetos.com"
+      - "+.bytexservice.com"
+      - "+.douyin.com"
+      - "+.douyinpic.com"
+      - "+.douyinstatic.com"
+      - "+.douyinvod.com"
+      - "+.feelgood.cn"
+      - "+.feiliao.com"
+      - "+.huoshan.com"
+      - "+.huoshanzhibo.com"
+      - "+.ibytedapm.com"
+      - "+.iesdouyin.com"
+      - "+.ixigua.com"
+      - "+.pstatp.com"
+      - "+.snssdk.com"
+      - "+.toutiao.com"
+      - "+.toutiao13.com"
+      - "+.toutiaocloud.cn"
+      - "+.toutiaocloud.com"
+      - "+.toutiaopage.com"
+      - "+.wukong.com"
+      - "+.zijieapi.com"
+      - "+.zijieimg.com"
+      - "+.zjbyte.com"
+      - "+.zjcdn.com"
+      - "+.bytedance.com"
+      - "+.bytedance.net"
+      - "+.toutiaostatic.com"
+      - "+.toutiaoimg.com"
+
+  # ---------- 拦截 ----------
+  # Fries：常见 App 自带 HTTPDNS（绕过本地 DNS 导致分流失效）。仅规则部分；URL Rewrite 依赖 MITM，mihomo 无此能力
+  httpdns_block:
+    {
+      <<: *RulesetYaml,
+      url: "https://raw.githubusercontent.com/VirgilClyne/GetSomeFries/main/ruleset/HTTPDNS.Block.yaml",
+      path: ./ruleset/httpdns_block.yaml,
+    }
+  # 与 Surge 同源广告规则（mrs 二进制，加载快）
+  awavenue_ads:
+    {
+      <<: *RulesetDomainMRS,
+      url: "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.mrs",
+      path: ./ruleset/awavenue_ads.mrs,
+    }
+  reject_ip:
+    {
+      <<: *RulesetClassical,
+      url: "https://ruleset.skk.moe/Clash/ip/reject.txt",
+      path: ./ruleset/reject_ip.txt,
+    }
+
+  # ---------- AI ----------
+  # 与 Surge 共用 Rlues/claude.list（Surge 语法与 mihomo classical text 兼容，含 PROCESS-NAME / IP-ASN）
+  claude:
+    {
+      <<: *RulesetClassical,
+      url: "https://raw.githubusercontent.com/WenJunDuan/Rlues/refs/heads/main/surge/rule/claude.list",
+      path: ./ruleset/claude.list,
+    }
   OpenAi:
     {
       <<: *RulesetYaml,
       url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml",
       path: ./ruleset/OpenAi.yaml,
-    }
-  Claude:
-    {
-      <<: *RulesetYaml,
-      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Claude/Claude.yaml",
-      path: ./ruleset/Claude.yaml,
     }
   Gemini:
     {
@@ -741,17 +1073,23 @@ rule-providers:
       url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Copilot/Copilot.yaml",
       path: ./ruleset/Copilot.yaml,
     }
-  Anthropic:
+  apple_intelligence:
     {
-      <<: *RulesetYaml,
-      url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Anthropic/Anthropic.yaml",
-      path: ./ruleset/Anthropic.yaml,
+      <<: *RulesetClassical,
+      url: "https://ruleset.skk.moe/Clash/non_ip/apple_intelligence.txt",
+      path: ./ruleset/apple_intelligence.txt,
     }
   ai_non_ip:
     {
       <<: *RulesetClassical,
       url: "https://ruleset.skk.moe/Clash/non_ip/ai.txt",
       path: ./ruleset/ai_non_ip.txt,
+    }
+  ai_ip:
+    {
+      <<: *RulesetClassical,
+      url: "https://ruleset.skk.moe/Clash/ip/ai.txt",
+      path: ./ruleset/ai_ip.txt,
     }
 
   # Ookla 测速
@@ -777,17 +1115,17 @@ rule-providers:
     }
 
   # 电报
-  telegram_ip:
-    {
-      <<: *RulesetClassical,
-      url: "https://ruleset.skk.moe/Clash/ip/telegram.txt",
-      path: ./ruleset/telegram_ip.txt,
-    }
   telegram_non_ip:
     {
       <<: *RulesetClassical,
       url: "https://ruleset.skk.moe/Clash/non_ip/telegram.txt",
       path: ./ruleset/telegram_non_ip.txt,
+    }
+  telegram_ip:
+    {
+      <<: *RulesetClassical,
+      url: "https://ruleset.skk.moe/Clash/ip/telegram.txt",
+      path: ./ruleset/telegram_ip.txt,
     }
 
   # 流媒体
@@ -881,10 +1219,7 @@ rule-providers:
     }
   apple_cdn:
     {
-      type: http,
-      behavior: domain,
-      format: text,
-      interval: 86400,
+      <<: *RulesetDomainText,
       url: "https://ruleset.skk.moe/Clash/domainset/apple_cdn.txt",
       path: ./ruleset/apple_cdn.txt,
     }
@@ -898,37 +1233,25 @@ rule-providers:
   # CDN & 下载
   cdn_domainset:
     {
-      type: http,
-      behavior: domain,
-      format: text,
-      interval: 86400,
+      <<: *RulesetDomainText,
       url: "https://ruleset.skk.moe/Clash/domainset/cdn.txt",
       path: ./ruleset/cdn_domainset.txt,
     }
   cdn_non_ip:
     {
-      type: http,
-      behavior: domain,
-      format: text,
-      interval: 86400,
+      <<: *RulesetClassical,
       url: "https://ruleset.skk.moe/Clash/non_ip/cdn.txt",
       path: ./ruleset/cdn_non_ip.txt,
     }
   download_domainset:
     {
-      type: http,
-      behavior: domain,
-      format: text,
-      interval: 86400,
+      <<: *RulesetDomainText,
       url: "https://ruleset.skk.moe/Clash/domainset/download.txt",
       path: ./ruleset/download_domainset.txt,
     }
   download_non_ip:
     {
-      type: http,
-      behavior: domain,
-      format: text,
-      interval: 86400,
+      <<: *RulesetClassical,
       url: "https://ruleset.skk.moe/Clash/non_ip/download.txt",
       path: ./ruleset/download_non_ip.txt,
     }
@@ -946,12 +1269,6 @@ rule-providers:
       url: "https://ruleset.skk.moe/Clash/ip/lan.txt",
       path: ./ruleset/lan_ip.txt,
     }
-  domestic_ip:
-    {
-      <<: *RulesetClassical,
-      url: "https://ruleset.skk.moe/Clash/ip/domestic.txt",
-      path: ./ruleset/domestic_ip.txt,
-    }
   domestic_non_ip:
     {
       <<: *RulesetClassical,
@@ -964,23 +1281,28 @@ rule-providers:
       url: "https://ruleset.skk.moe/Clash/non_ip/direct.txt",
       path: ./ruleset/direct_non_ip.txt,
     }
-  china_ip:
-    {
-      type: http,
-      behavior: ipcidr,
-      format: text,
-      interval: 86400,
-      url: "https://ruleset.skk.moe/Clash/ip/china_ip.txt",
-      path: ./ruleset/china_ip.txt,
-    }
   global_non_ip:
     {
       <<: *RulesetClassical,
       url: "https://ruleset.skk.moe/Clash/non_ip/global.txt",
       path: ./ruleset/global_non_ip.txt,
     }
+  domestic_ip:
+    {
+      <<: *RulesetClassical,
+      url: "https://ruleset.skk.moe/Clash/ip/domestic.txt",
+      path: ./ruleset/domestic_ip.txt,
+    }
+  china_ip:
+    {
+      <<: *RulesetIPText,
+      url: "https://ruleset.skk.moe/Clash/ip/china_ip.txt",
+      path: ./ruleset/china_ip.txt,
+    }
 
 # 🧭 ============================= 分流规则 =============================
+# 约定：除第 16 段外，所有 RULE-SET 带 no-resolve —— fake-ip 下连接只带域名，
+#       中段若有不带 no-resolve 的 IP 规则，每个未命中域名都会被提前解析（多一次 DNS + 延迟 + 泄漏面）
 rules:
   # 🔌 ===== 1. Tailscale / 私网 / 基础设施 =====
   - PROCESS-NAME,tailscaled.exe,DIRECT
@@ -1000,9 +1322,9 @@ rules:
   - DOMAIN-SUFFIX,tailscale.io,DIRECT
   - DOMAIN-KEYWORD,tailscale,DIRECT
   - RULE-SET,lan_non_ip,DIRECT
-  - RULE-SET,lan_ip,DIRECT
+  - RULE-SET,lan_ip,DIRECT,no-resolve
 
-  # 🚀 ===== 1b. Ookla / Speedtest =====
+  # 🚀 ===== 1b. Ookla / Speedtest（先于 QUIC 阻断）=====
   - DOMAIN-SUFFIX,speedtest.net,speedtest
   - DOMAIN-SUFFIX,speedtestcustom.com,speedtest
   - DOMAIN-SUFFIX,ooklaserver.net,speedtest
@@ -1010,13 +1332,13 @@ rules:
   - DOMAIN-SUFFIX,speed.cloudflare.com,speedtest
   - DOMAIN-KEYWORD,speedtest,speedtest
   - DOMAIN-KEYWORD,ookla,speedtest
-  - RULE-SET,Speedtest,speedtest
+  - RULE-SET,Speedtest,speedtest,no-resolve
 
-  # 🚫 ===== 1c. 阻断海外 QUIC =====
+  # 🚫 ===== 1c. 阻断海外 QUIC ≈ Surge block-quic = all-proxy =====
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
 
-  # 🛡️ ===== 2. 加密 DNS 出站 =====
-  # 国内 DoH → DIRECT
+  # 🛡️ ===== 2. 加密 DNS 出站（respect-rules 下 DNS 连接也按此匹配）=====
+  # 国内 DNS → DIRECT（含 Fries 厂商 DNS：百度 180.76.76.76 / 火山 180.184.1.1）
   - DOMAIN-SUFFIX,alidns.com,DIRECT
   - DOMAIN-SUFFIX,doh.pub,DIRECT
   - DOMAIN-SUFFIX,dns.pub,DIRECT
@@ -1024,21 +1346,25 @@ rules:
   - IP-CIDR,223.6.6.6/32,DIRECT,no-resolve
   - IP-CIDR,1.12.12.12/32,DIRECT,no-resolve
   - IP-CIDR,120.53.53.53/32,DIRECT,no-resolve
+  - IP-CIDR,119.29.29.29/32,DIRECT,no-resolve
+  - IP-CIDR,180.76.76.76/32,DIRECT,no-resolve
+  - IP-CIDR,180.184.1.1/32,DIRECT,no-resolve
 
-  # 国际 DoH / DoQ → 节点
-  - DOMAIN-SUFFIX,adguard-dns.com,🎯 节点选择
-  - DOMAIN-SUFFIX,adguard.com,🎯 节点选择
+  # 国际 DoH → 节点
   - DOMAIN-SUFFIX,cloudflare-dns.com,🎯 节点选择
+  - DOMAIN,dns.google,🎯 节点选择
   - IP-CIDR,1.1.1.1/32,🎯 节点选择,no-resolve
   - IP-CIDR,1.0.0.1/32,🎯 节点选择,no-resolve
   - IP-CIDR,8.8.8.8/32,🎯 节点选择,no-resolve
   - IP-CIDR,8.8.4.4/32,🎯 节点选择,no-resolve
   - IP-CIDR,9.9.9.9/32,🎯 节点选择,no-resolve
-  # AdGuard 常见 Anycast
-  - IP-CIDR,94.140.14.14/32,🎯 节点选择,no-resolve
-  - IP-CIDR,94.140.15.15/32,🎯 节点选择,no-resolve
 
-  # 🏠 ===== 3. 用户自定义直连 =====
+  # 🛑 ===== 2.5 拦截（同 Surge 2.5 + Fries HTTPDNS）=====
+  - RULE-SET,httpdns_block,REJECT,no-resolve
+  - RULE-SET,awavenue_ads,REJECT
+
+  # 🏠 ===== 3. 用户自定义直连（合并 Surge 第 3 段）=====
+  - IP-CIDR,47.80.24.122/32,DIRECT,no-resolve
   - DOMAIN-SUFFIX,juejin.cn,DIRECT
   - DOMAIN-SUFFIX,guoker.org,DIRECT
   - DOMAIN-SUFFIX,gying.net,DIRECT
@@ -1047,11 +1373,18 @@ rules:
   - DOMAIN-SUFFIX,right.codes,DIRECT
   - DOMAIN-SUFFIX,codex-for.me,DIRECT
   - DOMAIN-SUFFIX,acemcp.heroman.wtf,DIRECT
+  - DOMAIN-SUFFIX,akarid.top,DIRECT
+  - DOMAIN-SUFFIX,pijxgx.cn,DIRECT
+  - DOMAIN-SUFFIX,ouonet.org,DIRECT
+  - DOMAIN-SUFFIX,gov.cn,DIRECT
+  - DOMAIN-SUFFIX,duolingo.cn,DIRECT
+  - DOMAIN-SUFFIX,ouonetwork.com,DIRECT
 
-  # 🌍 ===== 4. 用户自定义代理 =====
-  - DOMAIN-SUFFIX,anyrouter.top,🌍 全球加速
+  # 🌍 ===== 4. 用户自定义代理（合并 Surge 第 3.5 段）=====
+  - DOMAIN-SUFFIX,themoviedb.org,🌍 全球加速
+  - DOMAIN,artworks.thetvdb.com,🌍 全球加速
+  - DOMAIN-SUFFIX,tmdb.org,🌍 全球加速
   - DOMAIN-SUFFIX,coze.com,🌍 全球加速
-  - DOMAIN-SUFFIX,ouonetwork.com,🌍 全球加速
   - DOMAIN-SUFFIX,linux.do,🌍 全球加速
   - DOMAIN-SUFFIX,ldstatic.com,🌍 全球加速
   - DOMAIN-SUFFIX,dgbmc.top,🌍 全球加速
@@ -1061,15 +1394,15 @@ rules:
   - DOMAIN-SUFFIX,openlist.team,🌍 全球加速
   - DOMAIN-SUFFIX,qinzhiai.com,🌍 全球加速
   - DOMAIN-SUFFIX,biubiusub001.top,🌍 全球加速
-
-  # 🛑 ===== 5. 广告拦截 (按需启用) =====
-  # - RULE-SET,reject_non_ip,REJECT
-  # - RULE-SET,reject_domainset,REJECT
-  # - RULE-SET,reject_non_ip_drop,REJECT-DROP
-  # - RULE-SET,reject_non_ip_no_drop,REJECT
-  # - RULE-SET,reject_ip,REJECT
+  - DOMAIN-SUFFIX,pages.dev,🌍 全球加速
+  - DOMAIN-SUFFIX,vercel.app,🌍 全球加速
+  - DOMAIN-SUFFIX,indevs.in,🌍 全球加速
+  - DOMAIN-SUFFIX,cnqq.de,🌍 全球加速
+  - DOMAIN-SUFFIX,ecosia.org,🌍 全球加速
 
   # 🤖 ===== 6. AI 服务 =====
+  - PROCESS-NAME,claude,🤖 人工智能
+  - PROCESS-NAME,claude.exe,🤖 人工智能
   - DOMAIN-SUFFIX,openrouter.ai,🤖 人工智能
   - DOMAIN-SUFFIX,cici.com,🤖 人工智能
   - DOMAIN-SUFFIX,trae.ai,🤖 人工智能
@@ -1085,37 +1418,34 @@ rules:
   - DOMAIN-SUFFIX,bolt.new,🤖 人工智能
   - DOMAIN-SUFFIX,lovable.dev,🤖 人工智能
   - DOMAIN-SUFFIX,notebooklm.google.com,🔍 谷歌服务
-  - RULE-SET,Gemini,🔍 谷歌服务
-  - RULE-SET,Anthropic,🤖 人工智能
-  - RULE-SET,Claude,🤖 人工智能
+  - RULE-SET,claude,🤖 人工智能,no-resolve
+  - RULE-SET,Gemini,🔍 谷歌服务,no-resolve
+  - RULE-SET,apple_intelligence,🤖 人工智能
   - RULE-SET,OpenAi,🤖 人工智能
-  - RULE-SET,Copilot,🤖 人工智能
-
-  # 📱 ===== 7. 社交媒体 =====
-  # X / Twitter / Grok / Discord
-  - RULE-SET,Twitter,📱 社交媒体
+  - RULE-SET,Copilot,🤖 人工智能,no-resolve
   - RULE-SET,ai_non_ip,🤖 人工智能
-  - RULE-SET,Discord,📱 社交媒体
 
-  # ✈️ ===== 8. 电报 =====
+  # 📱 ===== 7. 社交媒体（X / Grok / Discord）=====
+  - RULE-SET,Twitter,📱 社交媒体,no-resolve
+  - RULE-SET,Discord,📱 社交媒体,no-resolve
+
+  # ✈️ ===== 8. 电报（IP 部分在第 16 段）=====
   - RULE-SET,telegram_non_ip,✈️ 电报消息
-  - RULE-SET,telegram_ip,✈️ 电报消息
 
   # 🐙 ===== 9. GitHub =====
-  - RULE-SET,Github,🌍 全球加速
+  - RULE-SET,Github,🌍 全球加速,no-resolve
 
   # 🎬 ===== 10. 流媒体服务 =====
-  - RULE-SET,YouTube,🎬 国际媒体
-  - RULE-SET,YouTubeMusic,🎬 国际媒体
-  - RULE-SET,Bahamut,🎬 国际媒体
-  - RULE-SET,Netflix,🎬 国际媒体
+  - RULE-SET,YouTube,🎬 国际媒体,no-resolve
+  - RULE-SET,YouTubeMusic,🎬 国际媒体,no-resolve
+  - RULE-SET,Bahamut,🎬 国际媒体,no-resolve
+  - RULE-SET,Netflix,🎬 国际媒体,no-resolve
   - RULE-SET,stream_non_ip,🎬 国际媒体
-  - RULE-SET,stream_ip,🎬 国际媒体
 
   # 🎮 ===== 11. 游戏 / 支付 / 加密货币 =====
-  - RULE-SET,Game,🎮 游戏平台
-  - RULE-SET,PayPal,💳 PayPal
-  - RULE-SET,Crypto,🪙 加密货币
+  - RULE-SET,Game,🎮 游戏平台,no-resolve
+  - RULE-SET,PayPal,💳 PayPal,no-resolve
+  - RULE-SET,Crypto,🪙 加密货币,no-resolve
 
   # 🍎 ===== 12. 微软与苹果 =====
   - RULE-SET,apple_cdn,DIRECT
@@ -1125,22 +1455,27 @@ rules:
   - RULE-SET,microsoft_non_ip,Ⓜ️ 微软服务
 
   # 🔍 ===== 13. 谷歌服务 =====
-  - RULE-SET,Google,🔍 谷歌服务
+  - RULE-SET,Google,🔍 谷歌服务,no-resolve
 
   # 📦 ===== 14. 下载与 CDN =====
-  - RULE-SET,cdn_domainset,DIRECT
-  - RULE-SET,cdn_non_ip,DIRECT
+  # Sukka cdn = 境外静态 CDN（国内直连可达但慢/不稳），与 Surge 一致走代理
+  - RULE-SET,cdn_domainset,🌍 全球加速
+  - RULE-SET,cdn_non_ip,🌍 全球加速
   - RULE-SET,download_domainset,DIRECT
   - RULE-SET,download_non_ip,DIRECT
 
-  # 🇨🇳 ===== 15. 国内流量 =====
+  # 🌐 ===== 15. 境外兜底 → 国内直连（同 Surge 13/14）=====
   - RULE-SET,global_non_ip,🌍 全球加速
   - RULE-SET,domestic_non_ip,DIRECT
   - RULE-SET,direct_non_ip,DIRECT
+
+  # 🔢 ===== 16. IP 类规则（集中末尾，允许解析）=====
+  - RULE-SET,ai_ip,🤖 人工智能
+  - RULE-SET,telegram_ip,✈️ 电报消息
+  - RULE-SET,stream_ip,🎬 国际媒体
+  - RULE-SET,reject_ip,REJECT-DROP
   - RULE-SET,domestic_ip,DIRECT
   - RULE-SET,china_ip,DIRECT
-
-  # 🐟 ===== 16. 兜底规则 =====
   - GEOIP,private,DIRECT,no-resolve
-  - GEOIP,CN,🏠 国内流量,no-resolve
+  - GEOIP,CN,🏠 国内流量
   - MATCH,🐟 兜底分流
