@@ -77,6 +77,19 @@
 | D10 | 常驻动画只挂在 HTML 包裹层的 transform / opacity 上，不挂在 SVG 上；图标旋转放在外层 span | [cindy §7][cindy-eng] | 不会每帧重绘、持续占用 CPU | `animate-spin` 现在直接加在 lucide svg 上（sonner、process-trace-steps、board-todo、steps-plan、harness-status、recheck） | **采纳**（检查项 C24） |
 | D11 | 动效令牌是唯一来源，守卫禁止渲染层写死时长和曲线 | [cindy DESIGN §14.4][cindy-design] | 全站节奏一致 | links 已有 `motion-magic` 守卫 | 已具备，不新增 |
 
+## 检查项 C17–C24
+
+| ID | 通过条件 | 检查方式 |
+|---|---|---|
+| C17 按压反馈 | 按下后 ≤100ms 内（首个渲染帧）出现可见变化；只动 scale / opacity / 颜色；热区与文字不位移；关闭档仍有颜色或状态反馈。按下到松开之间按钮动作若已改变（发送↔停止），这次按压不触发新动作。 | `button-press` / `icon-motion` / `active:*` 源码；Performance 记录 pointerdown 后的首个样式变化帧；Composer 流式开始瞬间快速点击。 |
+| C18 开合 | 浮层、模态、抽屉、侧栏的开合只过渡 transform / opacity（折叠用 `grid-collapse`）；退场时长 ≤ 入场；首次挂载直接落位，不从未测量的位置飞入；跟随几何的指示物不过冲。 | rg `transition-all`、`transition-\[(width|height|top|left)`；看 computed `transition-property`；`frames.mjs` 掉帧中位数 ≤2、p95 ≤20ms。 |
+| C19 跟手拖拽 | 拖动中无缓动、无读写交错：rect 在 pointerdown 时缓存，pointermove 每帧最多写一次（rAF 合帧，写 ref / CSS 变量 / transform），pointerup 才提交 store 或持久化；视觉和命中判定读同一个坐标。 | Performance trace 中拖动段无 Forced reflow；每帧 React commit ≤1；帧测拖动场景。 |
+| C20 滚动锚定 | 分页补历史、侧栏 / 右栏开合、折叠展开、流式结束后，正在阅读的文字屏幕位置偏移 ≤1px；贴底时保持贴底。修正发生在绘制前（`useLayoutEffect` / ResizeObserver 回调），不留到下一帧 rAF。 | 上滚阅读 → 开合侧栏 / 展开代码块 → 记录锚点字符 top 的差值；同视口内侧栏开合（UI-02）。 |
+| C21 浮层身份稳定 | 浮层、抽屉、面板宿主的元素引用和回调在父级刷新时保持稳定；外层无关刷新时，浮层内列表重渲染 0 次；定位完成前不可见、不可点。 | React Profiler 或渲染计数用例（外层刷新、打开、关闭各记一次）；查自绘浮层的首帧。 |
+| C22 单一在途读取 | 同一个 key 同时只有 1 个读取在途；通知风暴中，合并窗口内的读取次数不随通知数增长；在途时只记 1 笔待刷新；失败不自己反复重读；最后一次变化一定读到。 | 测试中计数 fetch / queryFn 调用；Network 面板记录突发事件下的请求数。 |
+| C23 隐藏即停 | 标签页 / 窗口隐藏、面板折叠、离屏或卸载后：轮询 0 次，infinite 动画用 `animation-play-state: paused` 冻结（不用 `animation:none`），WebGL 停帧；恢复可见时最多补读 1 次。 | 在 hidden 状态下录 Performance：无帧、无请求；查 `refetchIntervalInBackground` 和自写定时器的可见性判断；桌面壳要另外确认窗口隐藏信号。 |
+| C24 循环动效宿主 | 常驻 / 循环动画只放在 HTML 包裹层的 transform / opacity 上，不挂在 svg 上；状态记号只播有限次或由事件触发；关闭档下的静态形态仍能看出状态。 | rg `animate-spin` 等是否直接写在 lucide 组件上；Rendering 面板的 Paint flashing 检查有无每帧重绘。 |
+
 ## 用法
 
 1. 改动涉及开合、按压、拖拽、滚动、浮层、轮询或订阅时，先在上表找对应技术，再按 C17–C24 判定。

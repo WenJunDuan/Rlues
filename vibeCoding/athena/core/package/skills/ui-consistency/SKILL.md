@@ -36,14 +36,7 @@ description: 编写、修改或审查 quantum-links 前端页面时，按既有 
 | C14 动效 | 流畅优先（UI-13：只过渡合成属性、过渡期不逐帧重排、帧测 ≤2 / 20ms）；界面三档「关闭 / 开启 / 高级」（UI-03），不跟随系统。CSS 走现有 `motion-safe` / `motion-reduce`，JS 走 `useReducedMotion` / `reducedMotion`；关闭后无动画、过渡、平滑滚动，结果仍可见；高级只多一层 WebGL 背景。 | 三档 × 系统减少动态开 / 关；新增效果只回应状态或操作，不新增整页循环装饰。流式数据仍正常到达。 |
 | C15 滚动 | 不新增 6px 自绘滚动条或页面级滚动条补丁。沿用现有滚动容器；滚轮、触控与键盘可到最后一项，无多层滚动困住用户。 | 查看 CSS 和 `ScrollArea` 用法；隐藏轨道不等于禁用滚动，不能用 `overflow-hidden` 代替。 |
 | C16 交互反馈 | Tab 顺序可用、焦点不被裁切；浮层关闭后焦点返回入口；保存 / 复制 / 安装 / 连接反馈与实际结果一致，错误保留输入与恢复动作。 | 键盘完整走一次主操作；模拟失败；菜单内操作不误触整行导航。 |
-| C17 按压反馈 | 按下后 ≤100ms 内（首个渲染帧）出现可见变化；只动 scale / opacity / 颜色；热区与文字不位移；关闭档仍有颜色或状态反馈。按下到松开之间按钮动作若已改变（发送↔停止），这次按压不触发新动作。 | `button-press` / `icon-motion` / `active:*` 源码；Performance 记录 pointerdown 后的首个样式变化帧；Composer 流式开始瞬间快速点击。 |
-| C18 开合 | 浮层、模态、抽屉、侧栏的开合只过渡 transform / opacity（折叠用 `grid-collapse`）；退场时长 ≤ 入场；首次挂载直接落位，不从未测量的位置飞入；跟随几何的指示物不过冲。 | rg `transition-all`、`transition-\[(width|height|top|left)`；看 computed `transition-property`；`frames.mjs` 掉帧中位数 ≤2、p95 ≤20ms。 |
-| C19 跟手拖拽 | 拖动中无缓动、无读写交错：rect 在 pointerdown 时缓存，pointermove 每帧最多写一次（rAF 合帧，写 ref / CSS 变量 / transform），pointerup 才提交 store 或持久化；视觉和命中判定读同一个坐标。 | Performance trace 中拖动段无 Forced reflow；每帧 React commit ≤1；帧测拖动场景。 |
-| C20 滚动锚定 | 分页补历史、侧栏 / 右栏开合、折叠展开、流式结束后，正在阅读的文字屏幕位置偏移 ≤1px；贴底时保持贴底。修正发生在绘制前（`useLayoutEffect` / ResizeObserver 回调），不留到下一帧 rAF。 | 上滚阅读 → 开合侧栏 / 展开代码块 → 记录锚点字符 top 的差值；同视口内侧栏开合（UI-02）。 |
-| C21 浮层身份稳定 | 浮层、抽屉、面板宿主的元素引用和回调在父级刷新时保持稳定；外层无关刷新时，浮层内列表重渲染 0 次；定位完成前不可见、不可点。 | React Profiler 或渲染计数用例（外层刷新、打开、关闭各记一次）；查自绘浮层的首帧。 |
-| C22 单一在途读取 | 同一个 key 同时只有 1 个读取在途；通知风暴中，合并窗口内的读取次数不随通知数增长；在途时只记 1 笔待刷新；失败不自己反复重读；最后一次变化一定读到。 | 测试中计数 fetch / queryFn 调用；Network 面板记录突发事件下的请求数。 |
-| C23 隐藏即停 | 标签页 / 窗口隐藏、面板折叠、离屏或卸载后：轮询 0 次，infinite 动画用 `animation-play-state: paused` 冻结（不用 `animation:none`），WebGL 停帧；恢复可见时最多补读 1 次。 | 在 hidden 状态下录 Performance：无帧、无请求；查 `refetchIntervalInBackground` 和自写定时器的可见性判断；桌面壳要另外确认窗口隐藏信号。 |
-| C24 循环动效宿主 | 常驻 / 循环动画只放在 HTML 包裹层的 transform / opacity 上，不挂在 svg 上；状态记号只播有限次或由事件触发；关闭档下的静态形态仍能看出状态。 | rg `animate-spin` 等是否直接写在 lucide 组件上；Rendering 面板的 Paint flashing 检查有无每帧重绘。 |
+| C17–C24 手感与流畅度 | 按压、开合、拖拽、滚动锚定、浮层身份、单一在途读取、隐藏即停、循环动效宿主，逐项条件见 [motion-feel 检查项](references/motion-feel.md#检查项-c17c24)。 | 同该节「检查方式」列；只审源码时 C19–C22 标运行 / 计数待验证。 |
 
 ## 修复配方
 
@@ -64,6 +57,4 @@ description: 编写、修改或审查 quantum-links 前端页面时，按既有 
 
 ## 参考截图与证据边界
 
-本阶段未产出或声称查看任何运行截图。外站参考入口、版本、截图应覆盖的状态及取证限制分别列在 [open-claude-ui 摘要](references/open-claude-ui.md#截图来源与待验证项)、[SpaceX 风格要点](references/spacex-style.md#截图来源与待验证项) 和 [Apple design 待验证](references/apple-design.md#待验证)。用户参考图尚未提供。
-
-后续每张截图记录 URL / 页面、日期、视口、正文容器宽、侧栏状态、明暗主题、动效档、数据状态；脱敏后再入证据。不能把第三方重建截图标为 Claude 官方截图，也不能把网页文字抓取当作视觉验收。
+本阶段未产出或声称查看运行截图；截图来源、记录字段与取证限制见 [全站检查计划](references/audit-plan.md#截图与证据边界)。
