@@ -113,6 +113,8 @@ class Prompts(unittest.TestCase):
             'key matches nothing': ('cc', 'rename', {'nope/': 'x/'}, 'matches no core file'),
             'core_map with core true': ('cc', 'core_map', {'rules/': 'r/'}, 'core_map is for platforms'),
             'escaping target': ('pi', 'core_map', {'rules/': '../x/'}, 'invalid core_map entry'),
+            'exclude matches nothing': ('cc', 'exclude', ['rules/nope.md'], 'exclude rules/nope.md matches no core file'),
+            'exclude on core_map platform': ('pi', 'exclude', ['rules/_index.md'], 'exclude is for platforms'),
         }
         for label, (platform, key, table, message) in cases.items():
             with self.subTest(case=label), tempfile.TemporaryDirectory() as tmp:
@@ -169,6 +171,45 @@ class Prompts(unittest.TestCase):
             self.assertIn(needle, shell)
         self.assertIn('order_note', (ATHENA / 'core/pace/stages.yaml').read_text(encoding='utf-8'))
         self.assertIn('- AC1:', read('pace/SKILL.md') + (ATHENA / 'core/package/skills/pace/references').joinpath('gates.md').read_text(encoding='utf-8'))
+
+    def test_pd1_resident_rules_budget(self):
+        """CC loads rules without a `paths` header every session: keep them ≤5200 B; no session-workflow, no _index."""
+        rules = self.out('claude') / '.claude/rules'
+        resident = [f for f in sorted(rules.glob('*.md')) if not f.read_text(encoding='utf-8').startswith('---\npaths:')]
+        self.assertLessEqual(sum(f.stat().st_size for f in resident), 5200, [f.name for f in resident])
+        self.assertFalse((rules / 'session-workflow.md').exists())
+        self.assertFalse((rules / '_index.md').exists(), 'CC loads rules by paths; the index is for Codex / Pi')
+        self.assertIn('严重度', (rules / 'coding.md').read_text(encoding='utf-8'))
+        for index in (self.out('codex') / '.codex/standards/_index.md', self.out('pi') / 'config/rules/_index.md'):
+            with self.subTest(index=index.parts[-3]):
+                text = index.read_text(encoding='utf-8')
+                self.assertNotIn('session-workflow', text)
+                self.assertIn('athena-session', text)
+        for p, f in self.constitutions().items():
+            with self.subTest(platform=p):
+                self.assertIn('athena-session', f.read_text(encoding='utf-8'))
+
+    def test_pd1_session_skill_shape(self):
+        refs = ('open', 'writers', 'verify', 'merge-review', 'close', 'collab')
+        for platform, skills in (('claude', '.claude/skills'), ('codex', '.codex/skills'), ('pi', 'plugin/skills'),
+                                 ('claude-plugin', 'skills'), ('codex-plugin', 'skills')):
+            skill = self.out(platform) / skills / 'athena-session'
+            with self.subTest(platform=platform):
+                text = (skill / 'SKILL.md').read_text(encoding='utf-8')
+                self.assertLessEqual(len(text.encode()), 5000)
+                self.assertLessEqual(len(text.splitlines()), 60)
+                self.assertRegex(text, r'(?m)^name: athena-session$')
+                self.assertLessEqual(len(re.search(r'(?m)^description:\s*(.+)$', text).group(1)), 200)
+                self.assertIn('开工', text)
+                for name in refs:
+                    self.assertIn(f'(references/{name}.md)', text)
+                    self.assertTrue((skill / 'references' / f'{name}.md').is_file())
+        refs_text = {n: (self.out('claude') / '.claude/skills/athena-session/references' / f'{n}.md').read_text(encoding='utf-8') for n in refs}
+        # Hard constraints the gate reasons point at must survive the move verbatim.
+        self.assertIn('packet 发出后到 accept 前，主树不提交任何东西', refs_text['merge-review'])
+        self.assertIn('证据命令必须是单条 `athena run --covers ACn -- <cmd>`', refs_text['verify'])
+        self.assertIn('同时 ≤3 个写者', refs_text['writers'])
+        self.assertIn('先用表格和用户核对 5 类', refs_text['open'])
 
     def test_playbooks_match_state_v2(self):
         skills = ATHENA / 'core/package/skills'
