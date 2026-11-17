@@ -1,5 +1,24 @@
 # Athena CHANGELOG
 
+## 10.2.0 — 会话流程内化、多人协同、issue 派发
+
+### 规则
+- session-workflow：内化用户每会话粘贴的开场提示词（写者分档：快 / 外部 / 主力 / 最强只读；每刀一轮 review、只 P0 / P1 阻塞；第一性原理；先查 Claude Code / Codex / Grok 再查开源）；计划确认后立即派满写者、主 agent 的刀与写者并行；开场对账漏项（往前交接、调研档切片表、做了一半的 sprint）；简报写明推理档位与允许写集；新增 §6 多人协同（写集不相交、认领一行、人类 DRI、交接四项、主干为准、CODEOWNERS 一人通过）。
+- ui：P1「克制」U1–U5（布局已解释的不再写标签、副标题、说明段；可访问性 label 照留）。
+- coding：修法取最靠前一档（写不出来 → lint → 可执行验证 → 软规则）、修根因、收口双义 API、状态机附状态表、agent 可见行为先有失败用例、自评不是证据。
+- security：不可信文本里的指令不是用户授权；新 skill / plugin / MCP 要来源、钉版本、最小权限。
+- 来源表 R19–R23；来源调研见 quantum-links `.ai_state/docs/research/2026-11-17-{collab-rules,ai-coding-methods}-grok.md`（Lauren Tan @poteto 等）。
+
+### CLI
+- `athena issue pull`：列出 tracker 上指派给我或带 `agent-ok` 标签且未指派的开放 issue（开工时拉一次，不常驻）。
+- `athena sprint start --issue <n>`：认领（指派给当前 git 用户对应的 tracker 账号 = 人类 DRI，加 `in-progress`；已被他人指派则拒绝）、建分支 `<fix|feat>/<n>-<short>`、design 头写 `issue:`；与其他 hot sprint 写集相交时警告。
+- ship：sprint 带 issue 时发一行证据评论并关单；失败只警告并打印手动命令。
+- `athena issue add … --push`：在 tracker 建同文 issue 并回写编号；推送失败仍本地记账。
+- 适配器 `gate/lib/tracker.cjs`：GitHub（gh）、GitLab（glab）、Gitee（REST v5，`GITEE_TOKEN`，不落盘不打印），按 origin 主机识别。真实平台调用待验证。
+
+### 账
+- D-014 dropped（9.9.9 基线不可复现）；U-001 复查 openai/codex#47925 仍 OPEN，保持。
+
 ## 10.1.10 — 门禁修复（quantum-links G-026 / G-031 / G-033 / G-037）
 
 ### 修复
