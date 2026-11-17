@@ -2,7 +2,7 @@
 // athena status [--json]: the human view, generated on the spot (ai-state-v2 §3.7).
 const fs = require('fs');
 const path = require('path');
-const { requireCtx, flags } = require('./lib/common.cjs');
+const { requireCtx, flags, UsageError } = require('./lib/common.cjs');
 const state = require('./lib/state.cjs');
 const issues = require('../lib/issues.cjs');
 const exemptions = require('../lib/exemptions.cjs');
@@ -123,9 +123,50 @@ function collect(ctx) {
   };
 }
 
+// UTF-8 budgets apply per field and per category, so every category survives long input.
+function clip(value, bytes) {
+  let out = '';
+  for (const ch of String(value).replace(/[\r\n]/g, ' ')) {
+    if (Buffer.byteLength(out + ch) > bytes - 3) return out + '…';
+    out += ch;
+  }
+  return out;
+}
+
+function brief(ctx, limit = 5) {
+  const items = state.allItems(ctx.aiState);
+  const open = issues.list(ctx.aiState).filter(r => !['closed', 'dropped'].includes(r.status));
+  const urgent = open.filter(r => /^P[01]$/i.test(r.sev));
+  const out = [`active: ${clip(ctx.sprint || 'idle', 180)} ${clip(ctx.stage, 60)}`];
+  let queue = [], handoff = '';
+  try { queue = fs.readFileSync(path.join(ctx.aiState, 'queue.md'), 'utf8').split('\n').filter(l => /^\s*(?:\d+[.)]|[-*])\s/.test(l)); } catch (_) { /* optional */ }
+  try { handoff = fs.readFileSync(path.join(ctx.aiState, 'HANDOFF.md'), 'utf8').split('\n').find(l => /^##\s+/.test(l)) || ''; } catch (_) { /* optional */ }
+  out.push(`queue (first ${limit}):`);
+  for (const q of queue.slice(0, limit)) out.push(`  ${clip(q.trim(), Math.floor(420 / Math.max(1, limit)))}`);
+  out.push(`issues: P0 ${urgent.filter(r => /^P0$/i.test(r.sev)).length}, P1 ${urgent.filter(r => /^P1$/i.test(r.sev)).length}`);
+  for (const q of urgent.sort((a, b) => a.sev.localeCompare(b.sev)).slice(0, 3)) out.push(`  ${clip(`${q.id} ${q.sev}: ${q.text}`, 150)}`);
+  const waiting = items.filter(it => ['deferred', 'paused'].includes(String(it.data.status)))
+    .map(it => `${it.roadmap}/${it.slug} — ${(it.data.deferred || {}).resume_when || ''}`);
+  try {
+    for (const d of fs.readdirSync(path.join(ctx.aiState, 'sprints'), { withFileTypes: true }).filter(d => d.isDirectory())) {
+      const fm = frontmatter.parse(fs.readFileSync(path.join(ctx.aiState, 'sprints', d.name, 'design.md'), 'utf8'));
+      if (fm.status === 'paused' && !items.some(it => it.data.sprint === d.name || it.data.sprint_slug === d.name)) waiting.push(`sprint ${d.name} — ${fm.resume_when || ''}`);
+    }
+  } catch (_) { /* optional */ }
+  out.push(`waiting (${waiting.length}):`);
+  for (const w of waiting.slice(0, 3)) out.push(`  ${clip(w, 140)}`);
+  if (waiting.length > 3) out.push('  … athena status');
+  out.push(`HANDOFF: ${clip(handoff || '(none)', 230)}`);
+  return out.join('\n') + '\n';
+}
+
 function main(argv, io) {
-  const { flags: f } = flags(argv, { json: 'bool' });
+  const { flags: f } = flags(argv, { json: 'bool', brief: 'bool', limit: 'value' });
   const ctx = requireCtx(io);
+  if (f.brief && f.json) throw new UsageError('--brief and --json are mutually exclusive');
+  const limit = f.limit === undefined ? 5 : Number(f.limit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 10) throw new UsageError('--limit must be 1..10');
+  if (f.brief) { io.stdout.write(brief(ctx, limit)); return 0; }
   const s = collect(ctx);
   if (f.json) { io.stdout.write(`${JSON.stringify(s, null, 2)}\n`); return 0; }
   const out = [];

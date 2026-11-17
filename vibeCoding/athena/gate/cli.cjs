@@ -7,7 +7,7 @@ const path = require('path');
 
 const USAGE = `usage: athena <command> [args]
   init [--dry-run]                     create .ai_state v2 in a new project
-  status [--json]                      route, hot sprints, queue, waiting items, issues, exemptions
+  status [--json|--brief [--limit N]]                      route, hot sprints, queue, waiting items, issues, exemptions
   sprint start|stage|pause|resume|drop open and move sprints (athena sprint for details)
   sprint start --issue <n> [--path P] [--slug S]  claim a tracker issue and start a sprint
   run [--sprint S] [--covers AC1,AC2] [--env K=V] -- <cmd…>  run a check; record explicit env and exit code
