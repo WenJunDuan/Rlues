@@ -45,4 +45,4 @@ UI-01–UI-12 已于 2026-10-28 定稿（UI-13 / UI-14 于 2026-10-31 补入）�
 
 ## 证据要求
 
-每项发现带规则 ID、页面状态、文件位置、期望 / 实际、修复组件。运行证据须含视口与 content 实宽、侧栏状态、主题、动效档；仅查源码写「运行待验证」。本草案的优先级不替代既有项目门禁。外站研究、截图来源及逐页计划见 Athena 的 `core/package/skills/ui-consistency/references/`。
+每项发现带规则 ID、页面状态、文件位置、期望 / 实际、修复组件。运行证据须含视口与 content 实宽、侧栏状态、主题、动效档；仅查源码写「运行待验证」。本草案的优先级不替代既有项目门禁。外站研究、截图来源及逐页计划见 Athena 的 `core/package/project-packs/quantum/skills/ui-consistency/references/`。

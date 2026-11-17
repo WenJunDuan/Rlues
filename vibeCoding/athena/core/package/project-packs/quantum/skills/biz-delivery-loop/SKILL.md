@@ -13,7 +13,7 @@ description: 用户说「交付业务需求」「全栈闭环」或出现需编�
 
 - 一个业务功能需要 FE/BE/DB/测试/安全/E2E 多环节协同交付。
 - 用户要求 checkpoint、回滚、需求完成度和完整交付报告。
-- 需要调度 `quantum-codegen` (mode=page/module/db/unit/security/e2e) 与 `quantum-data` 等 skill。
+- 需要调度 [quantum-codegen](../quantum-codegen/SKILL.md) (mode=page/module/db/unit/security/e2e) 与 `quantum-data` 等 skill。
 
 ## 何时不使用
 
@@ -32,11 +32,11 @@ description: 用户说「交付业务需求」「全栈闭环」或出现需编�
 ## 工作流
 
 1. 读 `references/orchestration-contract.md`，运行 `python3 scripts/check_delivery_loop_contract.py <biz-delivery-loop-skill-dir>` 核对合同与报告结构。
-2. 按 [PACE 全栈准入](../pace/references/fullstack-contract.md) 在 design 记录真实仓库、角色、环境、测试种子与正常/拒绝/越权/失败断言。缺所需环境保持该切片未完成，继续独立工作。
+2. 按 PACE 全栈准入（定位当前 `pace` skill 后读取其 `references/fullstack-contract.md`） 在 design 记录真实仓库、角色、环境、测试种子与正常/拒绝/越权/失败断言。缺所需环境保持该切片未完成，继续独立工作。
 3. 将可独立验收业务动作拆为 roadmap 切片；复用 blocked_by。先明确规则、API、schema 与适用 checkpoint，已确认内容引用原证据。
 4. 按依赖调度 FE page、DB design + DDL、BE module。mock demo 可用于效果确认，不能替代真实 FE/BE/DB 验收；有收益再并行互斥写集，由主 agent 整合。
 5. 集成后通过 unit、e2e、security 模式真实运行并核对 UI/API/DB/权限/审计。quantum-data 仅在 manifest 声明范围内只读。
-6. 后续阶段只按 [PACE stages](../pace/references/stages.md)：R/S 为 runtime-verify → polish → review；独立 review 走 `athena review`（结果 review.json）。
+6. 后续阶段只按 PACE stages（定位当前 `pace` skill 后读取其 `references/stages.md`）：R/S 为 runtime-verify → polish → review；独立 review 走 `athena review`（结果 review.json）。
 7. 报告复用需求→产物→证据→状态/遗留；保留可空用量兼容字段，缺原生来源为 unavailable，不阻塞功能交付。CP1/CP3/CP5 仅在当前 design/用户要求且尚未确认时请求确认；按有效授权进入 ship。
 
 ## 输出与约束

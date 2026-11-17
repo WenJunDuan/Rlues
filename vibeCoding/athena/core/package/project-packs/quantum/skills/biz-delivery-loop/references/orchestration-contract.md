@@ -48,4 +48,4 @@ does not implement code, own a parallel state machine, or guess project-specific
 
 ## Canonical PACE contracts
 
-Stage order and one independent review: [stages.md](../../pace/references/stages.md). Real project admission and vertical-slice acceptance: [fullstack-contract.md](../../pace/references/fullstack-contract.md). Writer integration and review result binding: [execution.md](../../pace/references/execution.md). CC-only completes the whole chain; other platforms are optional.
+Stage order and one independent review: stages.md（定位当前 `pace` skill 后读取其 `references/stages.md`）. Real project admission and vertical-slice acceptance: fullstack-contract.md（定位当前 `pace` skill 后读取其 `references/fullstack-contract.md`）. Writer integration and review result binding: execution.md（定位当前 `pace` skill 后读取其 `references/execution.md`）. CC-only completes the whole chain; other platforms are optional.

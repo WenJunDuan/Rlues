@@ -14,6 +14,8 @@ review 窗口内（prepare 到 accept 之间）还有并行写者（含文档）
 - 「不带 `model:`（用户点名除外）」——模型继承用户设置。
 - 「commit 署名按你会话的 attribution 规则」。
 
+architect 简报点名本次需要的 pace reference（如 decisions.md / execution.md），不预载 architect-doc；polish-worker 只预载 polish。
+
 子 agent 到轮数上限返回实际进度，不算完成；续做用 SendMessage 发给同一个 agent（CC），不另派新 agent。续派不改变门禁判定。
 
 ## worktree

@@ -24,6 +24,6 @@
     "skills/roadmap/": "plugin/skills/roadmap/",
     "skills/athena-vm/": "plugin/skills/athena-vm/",
     "skills/athena-requirements/": "plugin/skills/athena-requirements/",
-    "skills/ui-consistency/": "plugin/skills/ui-consistency/"
+    "project-packs/": "project-packs/"
   }
 }

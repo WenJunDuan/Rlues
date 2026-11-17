@@ -110,4 +110,4 @@ manual_confirmations:
 列出 CP1/CP3/CP5 及任何额外人工确认项，包括确认人、时间、结论、附加条件。
 同时引用 `checkpoints` 中对应记录；人工确认不得只出现在正文里。
 
-报告的需求、工件和证据引用复用 design/evidence/runtime-verify；真实全栈准入与四类业务状态断言见 [PACE fullstack contract](../../pace/references/fullstack-contract.md)。
+报告的需求、工件和证据引用复用 design/evidence/runtime-verify；真实全栈准入与四类业务状态断言见 PACE fullstack contract（定位当前 `pace` skill 后读取其 `references/fullstack-contract.md`）。

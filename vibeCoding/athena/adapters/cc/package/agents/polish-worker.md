@@ -4,7 +4,7 @@ description: Refactor/System polish 阶段写者：runtime-verify 之后、revie
 model: inherit
 permissionMode: default
 tools: [Read, Write, Edit, Bash, Grep, Glob]
-skills: [polish, architect-doc]
+skills: [polish]
 omitClaudeMd: true
 background: false
 maxTurns: 100

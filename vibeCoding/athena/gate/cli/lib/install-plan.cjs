@@ -268,6 +268,22 @@ function plan(home, platforms, dist) {
     const owner = rel.startsWith('.claude/') ? 'cc' : 'cx';
     if (platforms.includes(owner) && !installing.has(rel) && fs.existsSync(path.join(home, rel))) actions.push({ kind: owner, action: 'retire', dest: rel });
   }
+  // Product skills now ship as inactive project packs. Retire only files recorded
+  // by a previous install; apply stashes them for rollback, including local edits.
+  let previous = [];
+  try { previous = JSON.parse(fs.readFileSync(path.join(home, '.athena/installed.json'), 'utf8')).files || []; } catch (_) {}
+  const retiring = new Set(actions.filter(a => a.action === 'retire').map(a => a.dest));
+  for (const file of previous) {
+    const rel = file.path;
+    if (typeof rel !== 'string' || rel.split('/').includes('..')) continue;
+    const match = /^(\.claude|\.agents|\.codex)\/skills\/(ui-consistency|quantum-codegen|quantum-data|biz-delivery-loop)\//.exec(rel);
+    if (!match) continue;
+    const owner = match[1] === '.claude' ? 'cc' : 'cx';
+    if (platforms.includes(owner) && !installing.has(rel) && !retiring.has(rel) && fs.existsSync(path.join(home, rel))) {
+      actions.push({ kind: owner, action: 'retire', dest: rel });
+      retiring.add(rel);
+    }
+  }
   return { version, release: dist.release, actions, notes, hooks };
 }
 

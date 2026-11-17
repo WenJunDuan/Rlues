@@ -75,13 +75,51 @@ class Prompts(unittest.TestCase):
                 text = skill.read_text(encoding='utf-8')
                 with self.subTest(skill=f'{platform}/{skill.parent.name}'):
                     self.assertLessEqual(len(text.splitlines()), 60)
+                    self.assertLessEqual(len(skill.read_bytes()), 5000)
+                    self.assertEqual(re.search(r'^name:\s*(.+)$', text, re.M).group(1), skill.parent.name)
                     m = re.search(r'^description:\s*(.+)$', text, re.M)
                     self.assertTrue(m)
                     if platform == 'claude':
                         total += len(m.group(1))
-        self.assertLessEqual(total, 6500)
+        self.assertLessEqual(total, 4500)
         stages = self.out('claude') / '.claude/skills/pace/references/stages.md'
         self.assertIn('由 `core/pace/stages.yaml` 生成', stages.read_text(encoding='utf-8'))
+
+    def test_all_skill_entrypoints_budget(self):
+        # Include adapters, project packs, Pi and plugin shells, not only CC/CX.
+        roots = [ATHENA / 'core/package', ATHENA / 'adapters', *self.dist.glob('*/*')]
+        for root in roots:
+            total = 0
+            for skill in sorted(root.rglob('SKILL.md')):
+                text = skill.read_text(encoding='utf-8')
+                with self.subTest(root=str(root), skill=str(skill)):
+                    self.assertLessEqual(len(skill.read_bytes()), 5000)
+                    self.assertLessEqual(len(text.splitlines()), 60)
+                    name = re.search(r'^name:\s*(.+)$', text, re.M)
+                    self.assertIsNotNone(name)
+                    self.assertEqual(name.group(1), skill.parent.name)
+                    description = re.search(r'^description:\s*(.+)$', text, re.M)
+                    self.assertIsNotNone(description)
+                    total += len(description.group(1))
+            self.assertLessEqual(total, 4500, str(root))
+
+    def test_product_pack_scope_and_links(self):
+        products = {'ui-consistency', 'quantum-codegen', 'quantum-data', 'biz-delivery-loop'}
+        for platform, root, global_dir in (
+            ('claude', '.claude', '.claude/skills'), ('codex', '.codex', '.codex/skills'),
+            ('pi', '', 'plugin/skills'), ('claude-plugin', '', 'skills'), ('codex-plugin', '', 'skills')):
+            base = self.out(platform)
+            global_skills = base / global_dir
+            self.assertTrue(products.isdisjoint(p.name for p in global_skills.iterdir()))
+            index = ''.join(p.parent.name + ': ' + re.search(r'^description: (.*)$', p.read_text(), re.M).group(1) + '\n'
+                            for p in global_skills.glob('*/SKILL.md'))
+            self.assertLessEqual(len(index.encode()), 3500)
+            pack = base / root / 'project-packs/quantum/skills'
+            self.assertEqual({p.name for p in pack.iterdir()}, products)
+            for f in pack.rglob('*.md'):
+                for link in re.findall(r'\]\((?!https?:)([^)#\s]+\.md)', f.read_text()):
+                    self.assertTrue((f.parent / link).is_file(), f'{f}: {link}')
+            self.assertIn('../quantum-codegen/SKILL.md', (pack / 'biz-delivery-loop/SKILL.md').read_text())
 
     def test_ac3_no_stale_references_in_dist(self):
         for platform in ('claude', 'codex', 'pi'):
@@ -151,6 +189,11 @@ class Prompts(unittest.TestCase):
             head = (self.out('claude') / '.claude/agents' / f'{name}.md').read_text(encoding='utf-8').split('---')[1]
             with self.subTest(agent=name):
                 self.assertIn('omitClaudeMd: true', head)
+                if name == 'architect':
+                    self.assertNotIn('skills:', head)
+                if name == 'polish-worker':
+                    self.assertIn('skills: [polish]', head)
+                self.assertNotIn('architect-doc', head)
                 self.assertNotRegex(head, r'(?m)^model:(?![ \t]*inherit\b)')
         execution = (self.out('claude') / '.claude/skills/pace/references/execution.md').read_text(encoding='utf-8')
         self.assertIn('不带 `model:`', execution)
@@ -214,7 +257,7 @@ class Prompts(unittest.TestCase):
         self.assertIn('先用表格和用户核对 5 类', refs_text['open'])
 
     def test_playbooks_match_state_v2(self):
-        skills = ATHENA / 'core/package/skills'
+        skills = ATHENA / 'core/package/project-packs/quantum/skills'
         module = (skills / 'quantum-codegen/references/module-playbook.md').read_text(encoding='utf-8')
         page = (skills / 'quantum-codegen/references/page-playbook.md').read_text(encoding='utf-8')
         for playbook in sorted(skills.rglob('*.md')):

@@ -14,7 +14,7 @@ description: 全栈代码生成。用户说生成页面 / 建模块 / 建表 / �
 - **只读约定**: 先读对应 Convention Pack + runtime-env, 不臆造路径/命名.
 - **证据**: 产物 + 校验脚本输出写进 PACE runtime-verify (门禁（H2/H3） 只认落盘证据, 不认对话).
 - **自修复**: 跑 `scripts/check_*.py` → 读失败 → 修 → 复验相关项；同因连续三次失败记录 stderr 和已试方案，阻塞相关依赖并继续独立工作。
-- **全栈准入与整合**: 引用 [PACE fullstack-contract](../pace/references/fullstack-contract.md) 和 [execution](../pace/references/execution.md)；mock/demo 不替代真实 FE/BE/DB/权限链，主 agent 负责最终整合。
+- **全栈准入与整合**: 引用 PACE fullstack-contract（定位当前 `pace` skill 后读取其 `references/fullstack-contract.md`） 和 execution（定位当前 `pace` skill 后读取其 `references/execution.md`）；mock/demo 不替代真实 FE/BE/DB/权限链，主 agent 负责最终整合。
 
 ## mode 选择表
 

@@ -11,7 +11,8 @@
   },
   "core_map": {
     "AGENTS.md": "constitution.md",
-    "skills/": "skills/"
+    "skills/": "skills/",
+    "project-packs/": "project-packs/"
   },
   "adapter_map": {
     "cc": {

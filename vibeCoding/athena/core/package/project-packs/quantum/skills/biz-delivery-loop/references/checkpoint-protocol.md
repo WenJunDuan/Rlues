@@ -1,6 +1,6 @@
 # Checkpoint Protocol
 
-checkpoint 分两类：机器门禁和人工确认。机器门禁由命令、文件、探活、测试报告等证据判定；人工确认由用户明确回复或既有授权记录判定。适用性以当前 design/用户要求为准，已确认事项引用原记录，不重复询问；全栈准入见 [PACE contract](../../pace/references/fullstack-contract.md)。
+checkpoint 分两类：机器门禁和人工确认。机器门禁由命令、文件、探活、测试报告等证据判定；人工确认由用户明确回复或既有授权记录判定。适用性以当前 design/用户要求为准，已确认事项引用原记录，不重复询问；全栈准入见 PACE contract（定位当前 `pace` skill 后读取其 `references/fullstack-contract.md`）。
 
 ## 通用字段
 

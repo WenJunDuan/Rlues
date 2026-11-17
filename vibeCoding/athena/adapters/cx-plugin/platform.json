@@ -8,7 +8,8 @@
     "TEMPLATES_DIR": "${PLUGIN_ROOT}/gate/templates"
   },
   "core_map": {
-    "skills/": "skills/"
+    "skills/": "skills/",
+    "project-packs/": "project-packs/"
   },
   "adapter_map": {
     "cx": {

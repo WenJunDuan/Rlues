@@ -61,6 +61,10 @@ S5 = {
 for _p, _d in S5.items():
     for _k, _entries in _d.items():
         DELTA[_p][_k] = DELTA[_p][_k] + _entries
+# PD S4: inactive product packs are shipped outside global skill discovery.
+for _p, _prefix in {'claude': '.claude/', 'codex': '.codex/', 'pi': ''}.items():
+    DELTA[_p]['added'].append(_prefix + 'project-packs/quantum/skills/')
+
 NEW_DISTS = ('athena',)   # S2: gate core → ~/.athena/<ver>/
 
 

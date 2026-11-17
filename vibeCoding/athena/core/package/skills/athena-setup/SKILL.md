@@ -10,13 +10,13 @@ description: 安装、升级、回滚、体检 Athena（CC/CX/Pi 共用核心 ~/
 | 目的 | 命令 |
 |---|---|
 | 构建 | `node vibeCoding/athena/build.mjs`（Rlues 仓内） |
-| 预演 | `ATHENA_VERSION={{athena:ATHENA_VERSION}}; node vibeCoding/dist/athena/${ATHENA_VERSION%.*}/cli.cjs install --platform cc,cx --dry-run` |
+| 预演 | `ATHENA_VERSION={{athena:ATHENA_VERSION}}; ATHENA_RELEASE=${ATHENA_VERSION%%-*}; ATHENA_RELEASE=${ATHENA_RELEASE%.*}; node vibeCoding/dist/athena/$ATHENA_RELEASE/cli.cjs install --platform cc,cx --dry-run` |
 | 安装 | 同上去掉 `--dry-run`；之后把 `~/.athena/bin` 加进 PATH，即可用 `athena` |
 | 体检 | `athena doctor`（逐文件 sha、current 链接、node、9.9.x 残留、过期豁免） |
 | 回滚 | `athena rollback`（还原上次安装替换/移走/新建的全部文件与 current 链接） |
-| 项目迁移 | `athena migrate --to 10.1 --dry-run` 看报告 → 工作树干净后去掉 `--dry-run`（自动打 tag，回滚 `git reset --hard <tag>`） |
+| 项目迁移（10.1 是状态 schema，非发行版本） | `athena migrate --to 10.1 --dry-run` 看报告 → 工作树干净后去掉 `--dry-run`（自动打 tag，回滚 `git reset --hard <tag>`） |
 
 注意：
 - 安装会**合并**而不是覆盖 `~/.claude/settings.json`、`~/.codex/hooks.json`、`~/.codex/config.toml`：用户键与用户 hook 保留，Athena 旧 hook 条目换成 `~/.athena/current/hook.cjs`。
-- 9.9.x 装过、10.1 不再有的文件移入 `~/.athena/backups/<ts>/`，不直接删除。
+- 9.9.x 装过、当前版本不再有的文件移入 `~/.athena/backups/<ts>/`，不直接删除。
 - 安装、推送、删 `.runtime` 大包都需要用户明确授权。
