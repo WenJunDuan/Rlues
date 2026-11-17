@@ -2,7 +2,7 @@
 
 状态：**已同步至 2026-11-16 基线（HEAD `e231ab723dfb11e6f406415ec05a2bd9153a8d0d`）**。按 links 现行路由、设置导航及组件实现整理。路径以 links 仓根为基准；`src/` 简写指 `apps/web/src/`。
 
-检查 ID 见 [SKILL 清单 C01–C16](../SKILL.md) 与 [motion-feel C17–C24](motion-feel.md)，优先级见 [rules UI-01–UI-15](../rules.md)。执行者先核对当前路由与导航再检查，设置页键可能来自运行时接口，不能只按文件名判定页面可达。
+检查 ID 见 [清单 C01–C16](checklist.md) 与 [motion-feel C17–C24](motion-feel.md)，优先级见 [rules UI-01–UI-15](../rules.md)。执行者先核对当前路由与导航再检查，设置页键可能来自运行时接口，不能只按文件名判定页面可达。
 
 ## 公共场景与证据
 

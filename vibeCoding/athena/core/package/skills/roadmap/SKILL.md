@@ -1,6 +1,6 @@
 ---
 name: roadmap
-description: PACE 可选 stage。至少两个可独立验收交付切片或用户明确要求拆分时触发。
+description: 用户说「拆分」「路线图」「分阶段」或出现至少两个可独立验收交付切片时用；产出 PACE roadmap 与 items。
 ---
 
 # /roadmap — 大需求拆分

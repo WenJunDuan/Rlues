@@ -1,6 +1,6 @@
 ---
 name: biz-delivery-loop
-description: 业务需求走全栈 PACE 闭环的编排入口。只编排现有 skill 与证据，不写代码、不建第二状态机。
+description: 用户说「交付业务需求」「全栈闭环」或出现需编排 FE/BE/DB 的业务切片时用；编排现有 skill 与 PACE 证据，不写代码、不建第二状态机。
 ---
 
 # biz-delivery-loop

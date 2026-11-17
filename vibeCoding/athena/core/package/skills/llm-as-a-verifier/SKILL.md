@@ -1,6 +1,6 @@
 ---
 name: llm-as-a-verifier
-description: 可选 LLM-as-a-Verifier。测试已绿且有多个合格 diff 时做 best-of-N 排序；不是 ship 门禁，不替代 test/review/VM。
+description: 用户说「给候选排序」或出现测试已绿的多个合格 diff 且已启用 LaaV 时用；可选 best-of-N 排序，不替代 test/review/VM 或 ship 门禁。
 ---
 
 # /llm-as-a-verifier — 可选排序器

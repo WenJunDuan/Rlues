@@ -1,5 +1,5 @@
 ---
-name: augment-context-engine
+name: augment
 description: 用自然语言在项目代码里语义检索（有没有已有实现、改动影响哪些调用方）时用；精确字符串用 rg。
 ---
 
