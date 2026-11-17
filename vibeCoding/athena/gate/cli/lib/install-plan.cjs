@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const LEGACY = require('./legacy-999.cjs');
 
 const REQUIRED_CORE = ['hook.cjs', 'core.cjs', 'cli.cjs', 'lib/context.cjs', 'lib/shell-lex.cjs', 'lib/shell-words.cjs',
-  'lib/tree-sha.cjs', 'lib/evidence.cjs', 'platform/cc.cjs', 'platform/cx.cjs', 'platform/pi.cjs', 'templates/_index.md'];
+  'lib/tree-sha.cjs', 'lib/evidence.cjs', 'lib/refs.cjs', 'platform/cc.cjs', 'platform/cx.cjs', 'platform/pi.cjs', 'templates/_index.md'];
 const DIST_DIR = { core: 'athena', cc: 'claude', cx: 'codex', pi: 'pi' };
 const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 const MANAGED_HOOK = /(?:~|\$HOME|\/)\.athena\/current\/hook\.cjs/;

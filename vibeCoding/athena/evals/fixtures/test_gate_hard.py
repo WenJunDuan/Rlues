@@ -127,6 +127,25 @@ class H2H3Ship(unittest.TestCase):
         (root / 'app.js').write_text('module.exports = 1;\n', encoding='utf-8')
         self.assertFalse(self.stop(root, session='g').blocked, '.ai_state edits never invalidate the tree')
 
+    def test_block_reasons_carry_reference_and_hard_constraint(self):
+        """athena-pd-1 AC3: the rule behind H2 / H3 is visible at the block, with the skill reference to read."""
+        root = self.ship_project()
+        set_index(root, stage='ship')
+        for platform in PLATFORMS:
+            with self.subTest(platform=platform, rule='H2'):
+                reason = self.stop(root, platform, session=f'h2-{platform}').reason
+                self.assertIn('athena-session references/verify.md', reason)
+                self.assertIn('one `athena run --covers ACn -- <cmd>`', reason)
+        ship = athena('ship', cwd=root)
+        self.assertEqual(ship.returncode, 1)
+        self.assertIn('athena-session references/verify.md', ship.stderr)
+        self.assertEqual(green(root).returncode, 0)
+        for platform in PLATFORMS:
+            with self.subTest(platform=platform, rule='H3'):
+                reason = self.stop(root, platform, session=f'h3-{platform}').reason
+                self.assertIn('athena-session references/merge-review.md', reason)
+                self.assertIn('no commit and no new untracked file', reason)
+
     def test_quick_and_hotfix_need_no_review(self):
         for path in ('Quick', 'Hotfix'):
             root = self.ship_project(path)

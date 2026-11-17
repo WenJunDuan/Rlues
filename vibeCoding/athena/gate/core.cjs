@@ -17,9 +17,10 @@ const h3 = require('./rules/h3-review.cjs');
 const h4 = require('./rules/h4-isolation.cjs');
 const h5 = require('./rules/h5-shell.cjs');
 const advisory = require('./rules/advisory.cjs');
+const { withRef } = require('./lib/refs.cjs');
 
 const allow = (extra = {}) => ({ decision: 'allow', warnings: [], ...extra });
-const block = (verdict, warnings = []) => ({ decision: 'block', rule: verdict.rule, reason: verdict.reason, warnings });
+const block = (verdict, warnings = []) => ({ decision: 'block', rule: verdict.rule, reason: withRef(verdict).reason, warnings });
 
 /** Hard rules fail closed: an exception is a block naming the rule. */
 function hard(rule, fn) {

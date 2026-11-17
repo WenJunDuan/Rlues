@@ -15,6 +15,7 @@ const { tree, reviewIgnore } = require('../core.cjs');
 const h1 = require('../rules/h1-design.cjs');
 const h2 = require('../rules/h2-evidence.cjs');
 const h3 = require('../rules/h3-review.cjs');
+const { withRef } = require('../lib/refs.cjs');
 const advisory = require('../rules/advisory.cjs');
 
 const yq = (v) => JSON.stringify(v === undefined || v === null ? '' : v);
@@ -42,7 +43,7 @@ async function main(argv, io) {
   if (idle(ctx) || !ctx.sprintDir) { io.stderr.write('athena ship: no sprint in flight\n'); return 1; }
   const ignore = reviewIgnore(ctx);
   const verdict = h2.check({ platform: 'cli' }, ctx, tree(ctx), ignore) || h3.check({ platform: 'cli' }, ctx, tree(ctx), ignore);
-  if (verdict) { io.stderr.write(`athena ship: refused — ${verdict.reason}\n`); return 1; }
+  if (verdict) { io.stderr.write(`athena ship: refused — ${withRef(verdict).reason}\n`); return 1; }
   const reads = archive.runtimeReads(ctx, `sprints/${ctx.sprint}`);
   if (reads.length) {
     io.stderr.write(`athena ship: refused — code outside .ai_state reads this sprint's path; repoint it first:\n${reads.slice(0, 20).map(r => `  ${r}`).join('\n')}\n`);
