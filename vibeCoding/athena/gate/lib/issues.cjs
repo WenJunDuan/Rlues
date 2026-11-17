@@ -48,4 +48,14 @@ function add(aiState, { type, sev, text, found, next, status = 'open' }) {
   return id;
 }
 
-module.exports = { add, list, file, TYPES };
+function link(aiState, id, reference) {
+  const target = file(aiState);
+  const lines = fs.readFileSync(target, 'utf8').split('\n');
+  const at = lines.findIndex(line => line.match(ROW)?.[0].startsWith(`| ${id} |`));
+  const cells = lines[at].split('|');
+  cells[6] = ` ${cells[6].trim() === '—' ? '' : `${cells[6].trim()}; `}${reference} `;
+  lines[at] = cells.join('|');
+  fs.writeFileSync(target, lines.join('\n'), 'utf8');
+}
+
+module.exports = { link, add, list, file, TYPES };
