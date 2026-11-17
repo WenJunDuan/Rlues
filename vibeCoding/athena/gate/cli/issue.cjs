@@ -69,9 +69,13 @@ async function add(argv, io) {
   const ctx = requireCtx(io);
   const id = issues.add(ctx.aiState, { type: f.type, sev: f.sev, text: f.text, found: f.found || ctx.sprint || today(), next: f.next, status: f.status || 'open' });
   if (f.push) {
-    const t = tracker.detect(ctx.root, io.env);
-    const remote = await tracker.create(t, f.text, f.text);
-    issues.link(ctx.aiState, id, `${t.provider}#${remote.number}`);
+    try {
+      const t = tracker.detect(ctx.root, io.env);
+      const remote = await tracker.create(t, f.text, f.text);
+      issues.link(ctx.aiState, id, `${t.provider}#${remote.number}`);
+    } catch (error) {
+      io.stderr.write(`athena issue add: tracker push failed (${error.message}); ${id} is recorded locally\n`);
+    }
   }
   io.stdout.write(`${id}\n`);
   const warning = f.type === 'gate' ? upstream(ctx, io.env || process.env, id, f) : null;
