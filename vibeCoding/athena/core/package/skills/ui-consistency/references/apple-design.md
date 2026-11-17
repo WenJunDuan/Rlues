@@ -6,11 +6,11 @@
 
 | 层 | 管什么 | 不管什么 |
 |---|---|---|
-| 1. links 项目规则 UI-01..UI-14（`<quantum-links>/.claude/rules/ui-links.md`） | 合同：令牌、两档动效、content 容器、标题、嵌套、图标档、帧测 | — |
+| 1. links 项目规则 UI-01..UI-15（`<quantum-links>/.claude/rules/ui-links.md`） | 合同：令牌、三档动效（关闭 / 开启 / 高级）、content 容器、标题、嵌套、图标档、材质系统、帧测 | — |
 | 2. Claude-UI（[open-claude-ui](open-claude-ui.md)） | 会话 / agent 交互行为与配方：Composer、输入法、消息流、滚动钉底、思考折叠、工具授权卡、状态指示 | 页面骨架、间距体系、材质 |
 | 3. Apple design（本文） | 布局、间距、层级、材质与阴影、色彩用法、字体层级、按钮 / 列表 / 侧栏 / 工具栏 / 弹窗 / 浮层元素设计 | 会话交互细节 |
 
-冲突时按 1 → 2 → 3。例：Apple 说跟随系统减少动态，links UI-03 只开 / 关两档 → 按 UI-03；会话区滚动行为按 Claude-UI，会话页留白与浮层层级按本文。
+冲突时按 1 → 2 → 3。例：Apple 说跟随系统减少动态，links UI-03 为关闭 / 开启 / 高级三档 → 按 UI-03；会话区滚动行为按 Claude-UI，会话页留白与浮层层级按本文。
 
 用户 11-02 明确要：**分层阴影与玻璃材质，经令牌实现**。这是对 UI-11「不新增大阴影 / 装饰外框」的方向补充：阴影与材质只能来自主题令牌、只用于有层级含义的面，不是放开页面私加。
 
@@ -50,7 +50,7 @@
 
 - 阴影档按层级分配：静置面 0 或 `sm` → 悬停 / 可拖 `md` → 浮层 `popover` / `lg`；同一面不叠 border + ring + shadow 三重外轮廓（C08）。
 - 只过渡 transform / opacity；需要阴影变化时用伪元素预渲染两档阴影再淡入，不过渡 `box-shadow`（UI-13）。
-- 玻璃材质令牌**尚未存在**：现状是 5 处页面直接写 `backdrop-blur-xl`（`features/chat/components/approval-card.tsx`、`followup-suggestions.tsx`、`message-outputs.tsx`、`features/scenes/step-page/action.tsx`、`features/settings/components/harness-admin-panel.tsx`），`styles/index.css` 在 mesh 动画时统一关掉 `backdrop-blur`。落地需新增主题令牌（建议 `--ql-material-{bar,popover,sheet}`：底色 + 透明度 + 模糊半径 + 不透明回落），经 `themes/types.ts` 校验，再把页面私有 `backdrop-blur-*` 迁到令牌；属 UI-01 范围内的令牌扩展，需主题 ADR 修订，**待实现**。
+- 玻璃材质令牌体系已全面实现（UI-15）：四档材质（关 / 磨砂 / 高透 / 玻璃）由 `<html data-material="off|frost|clear|glass">` 控制。浮层与模态统一消费 `components/ui/surface.ts` 导出的表面基建（`POPUP_SURFACE` / `MODAL_SURFACE` / `CARD_SURFACE` / `COMPOSER_SURFACE` / `DROP_INDICATOR`），底层由 `styles/index.css` 的 `--ql-material-*` 令牌与 `@utility material-region / frost / bar / regular / thick` 工具类承接。严格禁止页面手写私有 `backdrop-blur-*` 与魔法透明度，并由 `tests/guards/material-surfaces.test.ts` 守卫白名单。
 - `backdrop-filter` 每帧重算下层，动态背景下保持现有 `[data-mesh]` 关闭策略；新材质面上线前用 `node tools/perf/frames.mjs` 帧测。
 
 ## 色彩
@@ -120,7 +120,7 @@
 | 动效可选，不作为唯一信息通道 | Motion | 关闭档仍显示状态（UI-03 / UI-04） |
 | 反馈动效简短、准确；高频交互少加动效 | Motion | 用 `components/ui/motion.ts` 常量；列表行 hover 不加位移 |
 | 不让人等动画结束才能操作 | Motion | 过渡期间可继续点击 / 输入 |
-| 跟随系统“减少动态” | Motion、Accessibility | **冲突，按 UI-03**：只开 / 关两档，不加 `prefers-reduced-motion` 分支 |
+| 跟随系统“减少动态” | Motion、Accessibility | **冲突，按 UI-03**：关闭 / 开启 / 高级三档，不加 `prefers-reduced-motion` 分支 |
 
 ## 待验证
 

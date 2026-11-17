@@ -51,7 +51,7 @@ BaseFB:
     type: fallback,
     interval: 300,
     lazy: true,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     timeout: 5000,
     expected-status: 204,
   }
@@ -60,7 +60,7 @@ BaseCH:
     type: load-balance,
     interval: 300,
     lazy: true,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     strategy: consistent-hashing,
     timeout: 5000,
     expected-status: 204,
@@ -70,7 +70,7 @@ BaseCR:
     type: load-balance,
     interval: 300,
     lazy: true,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     strategy: round-robin,
     timeout: 5000,
     expected-status: 204,
@@ -81,7 +81,7 @@ BaseUT:
     interval: 300,
     tolerance: 50,
     lazy: true,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     timeout: 5000,
     expected-status: 204,
   }
@@ -101,7 +101,7 @@ FilterAL: &FilterAL "(?i)^(?!.*(DIRECT|直连|群|邀请|返利|循环|官网|�
 SelectFB:
   &SelectFB {
     type: select,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     proxies:
       [
         故障转移,
@@ -120,7 +120,7 @@ SelectFB:
 SelectPY:
   &SelectPY {
     type: select,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     proxies:
       [
         🎯 节点选择,
@@ -140,20 +140,20 @@ SelectPY:
 SelectDC:
   &SelectDC {
     type: select,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     proxies:
       [DIRECT, 🎯 节点选择, 故障转移, 香港策略, 狮城策略, 日本策略, 美国策略],
   }
 SelectSG:
   &SelectSG {
     type: select,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     proxies: [狮城策略, 日本策略, 美国策略, 韩国策略, 欧盟策略],
   }
 SelectSM:
   &SelectSM {
     type: select,
-    url: "https://www.gstatic.com/generate_204",
+    url: "http://www.gstatic.com/generate_204",
     proxies:
       [
         🎯 节点选择,
@@ -438,7 +438,7 @@ proxy-providers:
     interval: 3600
     health-check:
       enable: true
-      url: "https://www.gstatic.com/generate_204"
+      url: "http://www.gstatic.com/generate_204"
       interval: 300
       timeout: 5000
       lazy: true
@@ -539,7 +539,7 @@ proxy-groups:
   - {
       name: speedtest,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       proxies:
         [
           DIRECT,
@@ -559,7 +559,7 @@ proxy-groups:
   - {
       name: 香港策略,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       proxies: [香港自动, 香港均衡-散列, 香港均衡-轮询],
       include-all: true,
       filter: *FilterHK,
@@ -568,7 +568,7 @@ proxy-groups:
   - {
       name: 台湾策略,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       proxies: [台湾自动, 台湾均衡-散列, 台湾均衡-轮询],
       include-all: true,
       filter: *FilterTW,
@@ -577,7 +577,7 @@ proxy-groups:
   - {
       name: 狮城策略,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       proxies: [狮城自动, 狮城均衡-散列, 狮城均衡-轮询],
       include-all: true,
       filter: *FilterSG,
@@ -586,7 +586,7 @@ proxy-groups:
   - {
       name: 日本策略,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       proxies: [日本自动, 日本均衡-散列, 日本均衡-轮询],
       include-all: true,
       filter: *FilterJP,
@@ -595,7 +595,7 @@ proxy-groups:
   - {
       name: 美国策略,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       proxies: [美国自动, 美国均衡-散列, 美国均衡-轮询],
       include-all: true,
       filter: *FilterUS,
@@ -604,7 +604,7 @@ proxy-groups:
   - {
       name: 韩国策略,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       proxies: [韩国自动, 韩国均衡-散列, 韩国均衡-轮询],
       include-all: true,
       filter: *FilterKR,
@@ -613,7 +613,7 @@ proxy-groups:
   - {
       name: 欧盟策略,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       proxies: [欧盟自动, 欧盟均衡-散列, 欧盟均衡-轮询],
       include-all: true,
       filter: *FilterEU,
@@ -622,7 +622,7 @@ proxy-groups:
   - {
       name: 冷门节点,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       include-all: true,
       filter: *FilterOT,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/World_Map.png",
@@ -630,7 +630,7 @@ proxy-groups:
   - {
       name: 全部节点,
       type: select,
-      url: "https://www.gstatic.com/generate_204",
+      url: "http://www.gstatic.com/generate_204",
       include-all: true,
       filter: *FilterAL,
       icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Rocket.png",
@@ -1338,7 +1338,6 @@ rules:
   - AND,((DST-PORT,443),(NETWORK,UDP),(NOT,((GEOIP,CN)))),REJECT
 
   # 🛡️ ===== 2. 加密 DNS 出站（respect-rules 下 DNS 连接也按此匹配）=====
-  # 国内 DNS → DIRECT（含 Fries 厂商 DNS：百度 180.76.76.76 / 火山 180.184.1.1）
   - DOMAIN-SUFFIX,alidns.com,DIRECT
   - DOMAIN-SUFFIX,doh.pub,DIRECT
   - DOMAIN-SUFFIX,dns.pub,DIRECT
@@ -1458,7 +1457,6 @@ rules:
   - RULE-SET,Google,🔍 谷歌服务,no-resolve
 
   # 📦 ===== 14. 下载与 CDN =====
-  # Sukka cdn = 境外静态 CDN（国内直连可达但慢/不稳），与 Surge 一致走代理
   - RULE-SET,cdn_domainset,🌍 全球加速
   - RULE-SET,cdn_non_ip,🌍 全球加速
   - RULE-SET,download_domainset,DIRECT

@@ -1,12 +1,12 @@
 # links 令牌与组件速查
 
-取证：2026-10-24；只读仓 `/Users/mi_manchi/workspace/quantum/quantum-links`，HEAD `6c3810be7cc8c10d05138d279435702cd9b46cfa`。读取时该仓另有 `.ai_state` 未提交改动，未触碰。以下路径相对该仓；数值是源码值，浏览器计算样式待验证。
+取证：2026-11-16；只读仓 `/Users/mi_manchi/workspace/quantum/quantum-links`，HEAD `e231ab723dfb11e6f406415ec05a2bd9153a8d0d`。以下路径相对该仓；数值是源码值，浏览器计算样式待验证。
 
 ## 入口与契约
 
 | 来源 | 用途 |
 |---|---|
-| `apps/web/src/styles/index.css` | 实际全局入口，导入 `tailwindcss` 和 `tw-animate-css`；L1 映射、L2 结构、全局交互样式。任务所给 `apps/web/src/index.css` 不存在。 |
+| `apps/web/src/styles/index.css` | 实际全局入口，导入 `tailwindcss` 和 `tw-animate-css`；L1 映射、L2 结构、UI-15 材质、窗口外观与全局交互动效。 |
 | `apps/web/src/themes/types.ts`、`serialize.ts`、`registry.ts`、`apply.ts` | 主题 schema / 序列化 / 注册 / 应用；核对新增主题能力时读。 |
 | `apps/web/src/themes/terracotta.json`、`classical.json` | 当前主题 manifest；不是页面可复制的色值表。 |
 | `.ai_state/decisions/2026-10-12-decision-theme-system.md` | 接受的主题契约及 10-13 修订：L0 `--ql-*` 公共主题，L1 Tailwind 内部映射，L2 字体 / 间距 / 字号结构。 |
@@ -14,7 +14,7 @@
 
 主题 manifest 只交经 schema 校验的数据与变体，不收任意 CSS。页面用 Tailwind 语义类或既有映射，不新增局部 `--ql-*` 覆盖。现有 shadcn 风格控件实现在 `components/ui`，内部复用 `radix-ui`；无需安装另一个组件库。
 
-## 颜色和表面
+## 颜色和基础表面
 
 | 角色 | 可用类 / 令牌 | 核对点 |
 |---|---|---|
@@ -26,29 +26,78 @@
 | 状态 / 危险 | `text-ok`、`text-warn`、`bg-warn-fill text-warn-fill-foreground` | 复用 `Button` 的 `warn` / `warn-outline` / `warn-ghost` / `warn-link`；必须有文字或图标语义。 |
 | 焦点 | `ring-ring` / `--ql-ring` | 全局 `:focus-visible` 是 2px outline，按钮另有组件 ring；不因“细线风格”移除焦点。 |
 
-ADR 10-13：主题填充前景在白与 `#141413` 中取对比更高者，文字 ≥4.5:1、图标 ≥3:1；classical 的前景策略有自身 manifest。陶土有 24 色，当前默认色为玉色 `#F0F8FF`，浅色页面可能有已有渐变。cc-9 的低饱和方向不授权撤掉用户主题或全局 Mesh 背景。
+ADR 10-13：主题填充前景在白与 `#141413` 中取对比更高者，文字 ≥4.5:1、图标 ≥3:1；classical 的前景策略有自身 manifest。陶土有 24 色，当前默认色为玉色 `#F0F8FF`。低饱和方向不授权撤掉用户主题或全局 Mesh 背景。
 
-## 字体、字号、空间
+## UI-15 四档材质令牌体系与表面基建
 
-| 用途 | 当前类 / 源码值 | 使用边界 |
-|---|---|---|
-| 界面字族 | `font-sans`：Anthropic Sans → Geist → 中文系统字族 | 不在页面声明字体文件。 |
-| 阅读正文 / 标题字族 | `font-serif`：Anthropic Serif → Source Serif 4 → 中文系统字族 | 中文不等于强制宋体；使用现有正文组件。 |
-| 代码字族 | `font-mono`：JetBrains Maple Mono → Geist Mono → 系统等宽 | 当前实现已不同于旧 ADR 的 Anthropic Mono 首选，不能按旧文档改回。 |
-| 数字 | `tabular-nums` | 这是数字等宽特性，不要求所有文字改 `font-mono`。 |
-| 常见字号 | `text-app` 14px；`text-control` 13px；`text-card-title` 15px；`text-item-title` .90625rem；`text-meta` 11px；`text-note` 11.5px | 用语义档，不为单页新增 `text-[13.2px]`；辅助字号不能承担整段正文。 |
-| 页面标题 | `text-page-title` 28px；`text-page-hero` 38px | 令牌存在不代表每页需要正文大标题；先按 C01 去重。 |
-| 输入 / 正文行高 | `leading-field` 1.7；`leading-reading` 1.75；`leading-composer` 1.8 | 会话 / Markdown 另按现有正文消费者；不要全站统一成一个值。 |
-| 页面边距 | `px-page-x` 36px；`pt-page-top` 34px；`pb-page-bottom` 40px | `Page` 负责，内层不要重复套。首页另有 `page-top-hero` 52px。 |
-| 阅读列 | `max-w-col` 840px，随 content 阈值 896 / 1024 / 1280px 切到 880 / 1040 / 1200px | 封装在 `ContentColumn width="prose"`；页面不重写断点。 |
-| 全宽 / 表单 | `max-w-page-max` 1600px；`max-w-form` 720px | 列表 `width="full"`；单列表单可内收至 form。 |
-| 会话列 | `chat-narrow` 800px；`chat` 924px；`chat-wide` 1080px；自适应映射 `prose` | `CHAT_WIDTHS` 的当前默认是「标准」；max-width 是上限，可用空间不足时要收窄。 |
-| 自适应网格 | `CardGrid min="card"` 280px，`min="tile"` 168px；gap-3.5 | 组件内部 auto-fill / minmax 量自身容器。 |
-| 会务 / 侧栏布局 | `--container-split-at` 832px；`--container-room3-at` 1100px；`--spacing-rail` 288px | 读当前会务布局再决定是否沿用，阈值不是所有页面的固定配方。 |
+全站浮出表面分为 L2 区域与 L3 弹出两层，统一受 `<html data-material="off|frost|clear|glass">` 四档（关 / 磨砂 / 高透 / 玻璃，默认 clear）控制。
 
-### 圆角与阴影
+### 1. 材质变量与四档表现（`styles/index.css`）
 
-| 类 | 映射 | 当前陶土浅色继承值 |
+- **高透（`clear`，默认）**：
+  - 区域玻璃：`--ql-material-region: var(--color-glass-region)`（浅 paper 34% / 深 40%）；顶边高光 `--ql-material-highlight: var(--color-glass-highlight)`。
+  - 会话输入框实时模糊：`--ql-material-frost-blur: 14px`，`--ql-material-frost-saturate: 1.3`。
+  - 浮层（regular）：`--ql-material-regular: color-mix(in srgb, var(--color-overlay) 75%, transparent)`（深色 87%），模糊 24px，饱和度 1.8。
+  - 模态（thick）：`--ql-material-thick: var(--color-glass-panel)`（82% 基准），模糊 40px，饱和度 1.9。
+- **关（`off`）**：
+  - 去掉全站所有 `backdrop-filter`（含输入框 frost）；各层均为实底（区域 `var(--ql-paper)`，浮层 `var(--color-overlay)`，模态 `var(--ql-bg)` / 深色 `var(--ql-paper)`），无顶边高光。
+- **磨砂（`frost`）**：
+  - 区域纸底 58%（深 62%）；浮层 overlay 86%（深 90%）+ 40px 模糊；模态 94% + 40px 模糊。
+- **玻璃（`glass`）**：
+  - 区域纸底 28%（深 34%）+ 顶边高光；浮层 overlay 73%（深 85%）+ 32px 模糊 + 1.9 饱和 + 顶边高光；模态浅 73% / 深 81% + 40px 模糊。
+
+### 2. Tailwind 材质实用类（`@utility`）
+
+- `material-region`：L2 区域玻璃（顶栏、侧栏、右栏、输入框外框），带 1px 细边 + 顶边 1px 高光 + 4% 静态噪点。**除输入框外，任何材质档均不加 backdrop-filter**，避免动态背景逐帧离屏重绘导致掉帧。
+- `material-frost`：会话输入框专用实时模糊，全站唯一常驻实时模糊。
+- `material-bar`：吸底 / 吸顶操作条，底色随浮层档 `var(--ql-material-regular)`，不加 backdrop-filter。
+- `material-regular`：L3 贴触发点浮层（菜单 / 下拉 / 选择 / 贴触发点卡片 / 通知），带 regular 模糊与饱和度。
+- `material-thick`：L3 模态（dialog / alert-dialog / sheet / 设置 / 命令面板），带 thick 模糊与顶边高光。
+
+### 3. 表面基建导出（`components/ui/surface.ts`）
+
+全站浮出表面必须引用 `surface.ts` 集中常量，禁止页面私写底色、透明度或模糊：
+- `POPUP_SURFACE`：`rounded-lg material-regular text-foreground shadow-popover`。用于贴触发点的浮层、下拉、右键菜单、通知与提示卡片。
+- `MODAL_SURFACE`：`border-glass-edge material-thick shadow-modal`。用于居中弹窗（Dialog / AlertDialog）与侧滑抽屉（Sheet）。
+- `CARD_SURFACE`：`rounded-block material-region text-foreground`。用于排在会话流内的审批卡、确认卡、任务卡、文件差异等，不模糊、不加投影。
+- `COMPOSER_SURFACE`：`group/composer-box relative cursor-text rounded-composer material-region material-frost border-0 shadow-composer hover:not-focus-within:shadow-composer-hover focus-within:shadow-composer-focus`。
+- `DROP_INDICATOR`：`pointer-events-none absolute inset-0 rounded-[inherit] ring-2 ring-inset ring-accent-600 opacity-0 transition-opacity duration-segment motion-reduce:transition-none data-[state=ready]:opacity-35 data-[state=over]:opacity-100`。文件拖入仅过渡透明度，不过渡阴影或模糊。
+
+全站材质边界受 `apps/web/tests/guards/material-surfaces.test.ts` 静态白名单守卫。
+
+## 布局与窗口外观令牌
+
+### 1. 窗口与壳层属性
+
+- `data-chrome="float|dock"`（浮动 / 贴合布局，`config/chrome.ts`）：
+  - 默认 `float`：`--ql-region-gap: 8px`、`--ql-region-radius: var(--ql-radius-lg)`（8px）、`--ql-side-panel-edge: 1px`。
+  - `dock`（贴合）：`--ql-region-gap: 0px`、`--ql-region-radius: 0px`、`--ql-side-panel-edge: 0px`。区域玻璃紧贴窗口与彼此，外圈细边去掉，相邻区域只留发丝线，顶边高光取消。
+- `data-window-material="system|app"`（桌面壳窗口材质）：
+  - `system`：macOS vibrancy / Win11 Mica 透出；页面与 body 不铺底，壳层根铺半透明 `glass-window`，不挂 WebGL/色斑 mesh 背景。
+  - `app`：不透明应用窗口，沿用分层玻璃与 mesh 背景。
+- `data-window-controls="start|end"`（窗口控制按钮角）：
+  - `start`：左上按钮区（macOS 红绿灯 / Linux 左置），侧栏头部下移让位，顶栏未停靠时让出左上。
+  - `end`：右上叠加区（Windows / Linux 右置），顶栏横跨两列或右侧会话栏让出顶部。
+- `data-window-active="false"`（窗口失焦）：
+  - 桌面窗口失焦时主题默认按钮与 Logo 填充与文字成对降灰；网页版不挂该属性。
+
+### 2. 角色列宽与正文阶梯（`components/patterns/page.tsx`）
+
+`Page` 统一采用角色宽度（`type PageWidth = 'reading' | 'list' | 'workspace' | 'canvas' | 'prose' | 'form'`），`ContentColumn` 额外支持会话定值列：
+- `list` / `workspace`：`w-full min-w-0`（全宽列表或工作台，无外层限宽）。
+- `reading`：`mx-auto max-w-reading`（768px，单列阅读）。
+- `canvas`：`ql-layout w-full min-w-0 h-full`（全屏画布）。
+- `prose`：随 content 容器宽自适应阶梯（`max-w-col` 840px，容器到达 896 / 1024 / 1280px 时分别阶梯扩至 880 / 1040 / 1200px）。抽屉过渡期间由 `freezeWidthDuringPanelMove` 冻结终态宽度，长列表不逐帧重排。
+- `form`：`mx-auto max-w-form`（720px，单列表单上限）。
+- `chat-narrow`：`mx-auto max-w-chat-narrow`（800px）。
+- `chat`：`mx-auto max-w-chat`（924px，默认标准宽度）。
+- `chat-wide`：`mx-auto max-w-chat-wide`（1080px）。
+- `CardGrid min="card"`：`grid-cols-[repeat(auto-fill,minmax(min(var(--spacing-card-min),100%),1fr))]`（280px）。
+- `CardGrid min="tile"`：`grid-cols-[repeat(auto-fill,minmax(min(var(--spacing-tile-min),100%),1fr))]`（168px）。
+
+### 3. 圆角与阴影
+
+| 类 | 映射 | 陶土浅色继承值 |
 |---|---|---|
 | `rounded-sm/md/lg` | `--ql-radius-sm/md/lg` | 4 / 8 / 12px |
 | `rounded-block` | `--ql-radius-md × 3` | 24px |
@@ -56,41 +105,70 @@ ADR 10-13：主题填充前景在白与 `#141413` 中取对比更高者，文字
 | `rounded-composer` | `--ql-radius-md × 2.5` | 20px |
 | `rounded-bubble` | `--ql-radius-md × 2.25` | 18px |
 | `shadow-sm/md/lg` | 对应 `--ql-shadow-*` | 随主题变化，不在页面复制多层投影公式。 |
-| `shadow-popover` | `--ql-shadow-popover`，回落 lg | 已有浮层边缘与投影，勿再叠装饰 ring。 |
-| `shadow-composer[-hover/-focus]` | 同名 `--ql-shadow-*`，回落 sm / md / md | 常态 / 悬停 / 聚焦三档；由现有 Composer 消费。 |
+| `shadow-popover` | `--ql-shadow-popover`，回落 lg | 浮层投影；不在此基础上再叠装饰 ring。 |
+| `shadow-modal` | `--ql-shadow-modal` | 居中模态与抽屉投影。 |
+| `shadow-composer[-hover/-focus]` | 同名 `--ql-shadow-*` | 常态 / 悬停 / 聚焦三档，由 Composer 消费。 |
 
-`styles/index.css` 有一段旧注释以 md=4 推导“默认 12px / 8px”；当前陶土 md=8，须按 manifest 与公式算，不能引用注释当实测。
+## 动效与指示器基建
 
-## 动效与滚动
+### 1. 三档动效契约（UI-03）
 
-| 能力 | 既有实现 | 用法 |
+- 存储：`减少 / 开启 / 高级` → DOM `<html data-motion="reduce|full|advanced">`。
+- 界面展示：**「关闭 / 开启 / 高级」**。
+- `关闭`：`styles/index.css` 全局重定义 `motion-reduce` 并对 `html[data-motion='reduce']` 强行禁用全部 CSS 动画、过渡与平滑滚动，业务流式数据正常到达。
+- `开启`：启用 CSS 关键帧与 transition，进出场曲线读档位弹簧 `--motion-panel-ease`（card 弹簧）。
+- `高级`：开启档动效 + 换过冲更强的 press 弹簧 + L3 弹出玻璃背景模糊在打开过渡中渐入（`@starting-style`）+ WebGL 背景（`MeshShader`，失败退回 CSS 色斑）。
+
+### 2. 进出场与过渡集中常量（`components/ui/motion.ts`）
+
+| 常量 | 定义 / 规格 | 用途 |
 |---|---|---|
-| 三档开关（11-13 更新） | `config/motion.ts`：存储 `减少 / 开启 / 高级` → `data-motion` `reduce / full / advanced`，界面显示「关闭 / 开启 / 高级」 | 旧「跟随系统」归一为开启；高级 = 开启 + WebGL 背景；颜色明暗的系统模式与动效是两回事。 |
-| CSS 守卫 | `styles/index.css` 重定义 `motion-safe` / `motion-reduce`；`html[data-motion='reduce']` 下禁用 animation / transition（含伪元素） | 不自行读系统媒体查询。 |
-| JS 守卫 | `lib/hooks/use-reduced-motion.ts` | `useReducedMotion()` 订阅，`reducedMotion()` 即时读取；平滑滚动和字形效果也要尊重。 |
-| 时长 / 曲线（11-13 更新） | `duration-fast/snap/base/sheet/slow` = 60 / 120 / 200 / 300 / 450ms；composer 220、segment 150、press 360、card 465ms；弹簧 `--ease-spring-press/card/bouncy/drag`（`linear()`），档位曲线 `--motion-panel-ease`（开启 card、高级 press）；进出场类集中在 `components/ui/motion.ts` | 只为新增同类效果选择既有角色；不机械重写成熟组件内已有时长。手感 / 流畅度对照见 [motion-feel](motion-feel.md)。 |
-| 交互效果 | `button-press`、`grid-collapse`、`scroll-fade`、`icon-inline`；`ToggleGroup` 的 `data-segment-slider` | 复用组件和工具类，不移植外站引擎。scroll-fade 有能力检测且关闭动效时取消遮罩。 |
-| 原生轨道 | 全局 `scrollbar-width:none`、WebKit width/height 0 | 仍允许滚动；不加 6px 覆盖。 |
-| 显式自绘轨道 | `components/ui/scroll-area.tsx` 默认 `w-2.5` / `h-2.5` | 自绘轨道与原生隐藏策略不同；是否使用由现有页面决定，不能宣称全站无轨道。 |
+| `FLOAT_MOTION` | `animate-in fade-in-0 zoom-in-95 duration-card ease-(--motion-panel-ease) data-[side=...]:slide-in-from-... data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-snap data-[state=closed]:ease-out-expo` | 贴触发点浮层（Popover, Select, Dropdown, ContextMenu, Tooltip）。入场弹簧，退场 snap 仅淡出。 |
+| `MODAL_MOTION` | 缩放 98% + 淡入，duration-card；退场 snap + ease-out-expo 仅淡出 | 居中模态（Dialog, AlertDialog）。 |
+| `SCRIM_MOTION` | 遮罩开场 base 淡入，退场 snap 淡出 | 模态遮罩。 |
+| `SHEET_MOTION` | 抽屉平移，开场 duration-sheet + 档位弹簧，关场 base | 侧滑抽屉（Sheet）。 |
+| `PANEL_TRANSITION` | `duration-(--motion-panel-duration) ease-(--motion-panel-ease) motion-reduce:transition-none` | 宽度与开合过渡。 |
+| `SIDEBAR_PEEK_MOTION` | `transition-[translate,opacity] ${PANEL_TRANSITION}` | 侧栏悬停预览。 |
+| `SIDE_PANEL_ENTER` / `SIDE_PANEL_EXIT` | `translate-x-0` / `translate-x-[calc(100%_+_var(--spacing-region))]` | 右侧会话栏平移进出。 |
+| `ICON_SWAP_MOTION` | `animate-icon-swap`（缩放 60% + -60° 旋转淡入） | 状态图标切换。 |
+| `ATTACHMENT_MOTION` | `animate-grow-in`，退场 snap 缩小淡出 | 附件 chip。 |
+| `ATTACHMENT_LIST_MOTION` | `transition-[translate] duration-card ease-(--motion-panel-ease)` | 附件换行补位。 |
+| `CHEVRON_MOTION` | `motion-safe:transition-transform motion-safe:duration-segment motion-safe:ease-(--motion-panel-ease)` | 展开 / 折叠箭头旋转。 |
+| `TAB_ENTER_MOTION` | `animate-in fade-in-0 zoom-in-95 duration-card ease-(--motion-panel-ease)` | 侧栏标签 / 新标签页入口淡入缩放。 |
+| `BROWSER_MARK_MS` | 465ms | agent 浏览器动作标记停留时长。 |
+| `SPINNER_MOTION` | `motion-safe:animate-spin` | 旋转图标只转 HTML 宿主，关闭档静止。 |
+
+### 3. 指示器与工具类
+
+- `@utility animate-out`：配置 `animation-fill-mode: forwards` 与 `@keyframes exit-clean`，保持退场终态直到节点卸载，避免结束帧闪回。
+- `SelectionSlider`（`components/ui/selection-slider.tsx`）：悬停 / 聚焦的中性滑块（侧栏导航、会话右栏磁贴 hover），仅平移跟踪到当前项，离开网格淡出隐藏。
+- `TAB_INDICATOR`（`components/ui/tab-indicator.ts`）：选项卡下划线指示器，仅过渡 opacity / transform。
+- `IconSwap`（`components/ui/icon-swap.tsx`）：状态图标平滑切换组件（复制对勾、播放/暂停、展开/收起、语音状态）。
+- `MeshShader`（`components/layout/mesh-backdrop.tsx`, `mesh-shader.tsx`, `mesh-scenes.ts`）：
+  - 高级动效档按需动态加载的灵动 WebGL 背景。
+  - 包含 9 个场景：`['团', '一缕烟', '云', '快烟', '雨', '墨滴', '极光', '光斑', '浮尘']`，每 50 秒一轮（8 秒交叉淡化）。
+  - 运行上限锁定在 15fps（`MESH_FPS = 15`，`setInterval` 驱动，不占满 rAF 渲染管线）。
+  - 缓冲像素上限 960px（`BUFFER_MAX_WIDTH = 960`，DPR 恒按 1 缩放，节省 GPU 显存）。
+  - 与 CSS 色斑采用 450ms 交叉淡化衔接（`MESH_HANDOFF_MS = 450`），就绪后画布淡入、色斑淡出，离开高级时画布淡出、色斑淡入，平滑无闪烁。
 
 ## 组件定位
 
 均位于 `apps/web/src/`：
 
-- 页面 / 栏宽 / 网格：`components/patterns/page.tsx` 的 `Page`、`PageHeader`、`ContentColumn`、`CardGrid`；页内返回用 `BackLink`。
+- 页面 / 栏宽 / 网格：`components/patterns/page.tsx` 的 `Page`、`PageHeader`、`TopSlotTarget`、`ContentColumn`、`CardGrid`；页内返回用 `BackLink`。
 - 目录：`components/patterns/list-page.tsx`、`list-toolbar.tsx`、`catalog-search.tsx`、`list-layout-toggle.tsx`；参照 `features/catalog/skills/index.tsx`。
-- 分组：`components/patterns/settings-section.tsx` 的 `SettingsSection`、`SettingsRow`、`Section`。区块无闭合外框；`bare` 可避免内容自带分隔时叠线。现有 `progress` 支路有固定 `bg-lime-400`，不作为新增配色模板，登记检查。
-- 状态：`components/patterns/empty-state.tsx`、`components/ui/skeleton.tsx`、`components/layout/toaster.tsx`。EmptyState 默认有虚线框，无框页面需要覆盖。
-- 基础操作：`components/ui/button.tsx`、`input.tsx`、`textarea.tsx`、`toggle-group.tsx`、`dialog.tsx`、`popover.tsx`、`dropdown-menu.tsx`；不要用外部库中的同名组件替换。
-- 会话：`features/composer/composer.tsx` / `keys.ts`、`features/chat/components/chat-message.tsx` / `message-toolbar.tsx`；先找既有状态再修视觉。
+- 分组：`components/patterns/settings-section.tsx` 的 `SettingsSection`、`SettingsRow`、`Section`。
+- 状态与容错：`components/patterns/empty-state.tsx`、`components/ui/skeleton.tsx`、`components/patterns/retryable-lazy.tsx`（`retryableLazy`）。
+- 基础操作：`components/ui/button.tsx`、`input.tsx`、`textarea.tsx`、`toggle-group.tsx`、`dialog.tsx`、`popover.tsx`、`dropdown-menu.tsx`、`alert-dialog.tsx`、`sheet.tsx`。
+- 表面与动效：`components/ui/surface.ts`、`components/ui/motion.ts`、`components/ui/selection-slider.tsx`、`components/ui/icon-swap.tsx`、`components/ui/tab-indicator.ts`。
+- 会话：`features/composer/composer.tsx` / `keys.ts`、`features/chat/components/chat-message.tsx` / `message-toolbar.tsx` / `message-markdown.tsx`。
 
 ## 已知差异，不作为本阶段修复
 
 | 文档 / 现状差异 | 本草案处理 |
 |---|---|
-| 旧 ADR：Claude 默认、752px「主题默认」；当前配置：默认「标准」924px，主题默认档已下线 | manifest 中 prose.width=752 仍存在；不能宣称它就是当前会话宽度。 |
-| 旧 ADR：三槽 Anthropic；当前代码 font-mono 首选 JetBrains Maple Mono | 记录差异，按当前代码复用；历史修订依据由主 agent 核对，不擅改 ADR。 |
+| 主题 manifest 中 `terracotta.json` 仍保留历史字段 `prose.width = 752` | manifest 字段为历史遗留；实际正文与会话宽度已由 `CHAT_WIDTHS`（默认「标准」924px）与 `Page` 角色宽度接管，不依 752px 推断会话宽度。 |
+| 旧 ADR 记载的三槽 Anthropic Mono 字体；当前代码代码字族首选 JetBrains Maple Mono | 记录差异，按当前代码复用；历史修订依据由主 agent 核对，不擅改 ADR。 |
 | 技能页仍有正文 PageHeader；顶栏也有导航名称 / 当前页表达 | 标题计数运行待验证，按照 C01 审查，不能直接整页复制。 |
-| `TopSlotProvider` 当前只返回 children，`TopSlotTarget` 是空槽；top-bar 仍留历史注释 | 不建议不存在的顶栏注入 API。会务按其独立页面壳层检查。 |
 
-可复用的现有检查入口：`apps/web/tests/guards/theme-contract.test.ts`、`responsive.test.ts`、`typography-baseline.json`、`motion-baseline.json`、`apps/web/tests/themes/registry.test.ts`、`apps/web/tests/lib/hooks/use-reduced-motion.test.tsx`。本阶段只确认文件存在与源码约束，未运行 links 测试，不声称这些测试覆盖 cc-9 全部规则。
+可复用的现有检查入口：`apps/web/tests/guards/theme-contract.test.ts`、`material-surfaces.test.ts`、`responsive.test.ts`、`typography-baseline.json`、`motion-baseline.json`、`apps/web/tests/themes/registry.test.ts`、`apps/web/tests/lib/hooks/use-reduced-motion.test.tsx`。
