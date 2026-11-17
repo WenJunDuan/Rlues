@@ -21,7 +21,10 @@ with open(os.environ['TRACKER_LOG'], 'a') as out:
     out.write(json.dumps([sys.argv[0], args, method, endpoint, data]) + '\\n')
 if os.environ.get('FAIL_CLOSE') and data and (data.get('state') == 'closed' or data.get('state_event') == 'close'):
     sys.exit(1)
-print(json.dumps(json.loads(Path(os.environ['TRACKER_DATA']).read_text())['user' if endpoint == 'user' else 'emails' if endpoint in ('emails', 'user/emails') else 'rows' if '?' in endpoint else 'issue']))
+result = json.loads(Path(os.environ['TRACKER_DATA']).read_text())['user' if endpoint == 'user' else 'emails' if endpoint in ('emails', 'user/emails') else 'rows' if '?' in endpoint else 'issue']
+if data and ('assignees' in data or 'assignee_ids' in data) and not os.environ.get('FAIL_CLAIM'):
+    result.update(assignees=[{'login': 'dri', 'username': 'dri'}], labels=['agent-ok', 'in-progress'])
+print(json.dumps(result))
 '''
 
 
@@ -74,7 +77,10 @@ class Dispatch(unittest.TestCase):
                     self.send_response(500 if owner.env.get('FAIL_CLOSE') and data and data.get('state') == 'closed' else 200)
                     self.end_headers()
                     values = json.loads(owner.data.read_text())
-                    self.wfile.write(json.dumps(values['user' if endpoint == 'user' else 'emails' if endpoint in ('emails', 'user/emails') else 'rows' if '?' in endpoint else 'issue']).encode())
+                    result = values['user' if endpoint == 'user' else 'emails' if endpoint in ('emails', 'user/emails') else 'rows' if '?' in endpoint else 'issue']
+                    if data and 'assignee' in data:
+                        result.update(assignee={'login': 'dri'}, assignees=[{'login': 'dri'}], labels=['agent-ok', 'in-progress'])
+                    self.wfile.write(json.dumps(result).encode())
             server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
@@ -153,6 +159,15 @@ class Dispatch(unittest.TestCase):
                 self.assertIn('claimed by other', run.stderr)
                 self.assertEqual(before, git(self.root, 'status', '--porcelain').stdout)
                 self.assertTrue(all(c[2] == 'GET' for c in self.calls()))
+
+    def test_silently_ignored_claim_does_not_start(self):
+        self.setup_provider('github')
+        self.env['FAIL_CLAIM'] = '1'
+        before = git(self.root, 'branch', '--show-current').stdout
+        run = self.run_cli('sprint', 'start', '--issue', '23')
+        self.assertIn('claim was not applied', run.stderr)
+        self.assertEqual(git(self.root, 'branch', '--show-current').stdout, before)
+        self.assertFalse((self.root / '.ai_state/sprints').exists())
 
     def test_close_failure_is_best_effort(self):
         self.setup_provider('github')

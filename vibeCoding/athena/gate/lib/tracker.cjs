@@ -70,7 +70,8 @@ async function claim(t, n) {
   const data = t.provider === 'github' ? { assignees: [user.login], labels }
     : t.provider === 'gitlab' ? { assignee_ids: [user.id], add_labels: 'in-progress' }
       : { repo: t.repo.split('/')[1], assignee: user.login, labels: labels.join(',') };
-  await request(t, t.provider === 'gitlab' ? 'PUT' : 'PATCH', update(t, n), data);
+  const claimed = normalize(t, await request(t, t.provider === 'gitlab' ? 'PUT' : 'PATCH', update(t, n), data));
+  if (!claimed.assignees.includes(user.login) || !claimed.labels.includes('in-progress')) throw new Error(`issue ${n} claim was not applied; check tracker permissions`);
   return issue;
 }
 async function comment(t, n, body) {
