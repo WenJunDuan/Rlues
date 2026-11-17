@@ -166,5 +166,17 @@ class ReviewAcceptRefusals(unittest.TestCase):
         self.assertTrue(self.last(run).startswith(f'next: athena review accept --run {run_id} --file <reviewer output>'), run.stderr)
 
 
+class IssueDispatchUsage(unittest.TestCase):
+    def test_tracker_commands_are_discoverable(self):
+        root = tmpdir(self)
+        for command, needles in ((('--help',), ('sprint start --issue <n> [--path P] [--slug S]', 'issue pull', '--push')),
+                                 (('sprint', '--help'), ('--issue <n>', '--path P', '--slug S')),
+                                 (('issue', '--help'), ('issue pull', '--push', 'GITEE_TOKEN', 'ATHENA_GITLAB_HOSTS'))):
+            with self.subTest(command=command):
+                run = ok(self, athena(*command, cwd=root))
+                for needle in needles:
+                    self.assertIn(needle, run.stdout)
+
+
 if __name__ == '__main__':
     unittest.main()

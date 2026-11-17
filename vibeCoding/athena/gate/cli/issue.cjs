@@ -13,9 +13,12 @@ const tracker = require('../lib/tracker.cjs');
 const archive = require('./lib/archive.cjs');
 
 const USAGE = `usage:
-  athena issue add --type bug|gate|upstream|env|debt|question --text "<一句话>" [--sev P0..P3] [--found <where>] [--next <去向>]
+  athena issue add --type bug|gate|upstream|env|debt|question --text "<一句话>" [--sev P0..P3] [--found <where>] [--next <去向>] [--push]
   athena issue close <id> [--note "<how>"] [--status closed|dropped]
-  athena issue list [--type T] [--all] [--export]`;
+  athena issue list [--type T] [--all] [--export]
+  athena issue pull                       (read-only tracker dispatch list)
+tracker: origin github.com / gitlab.* / gitee.com; self-hosted GitLab: ATHENA_GITLAB_HOSTS=host[,host]
+DRI: authenticated tracker account must match git user.email; Gitee token: GITEE_TOKEN`;
 const OPEN = (row) => !['closed', 'dropped'].includes(row.status);
 
 const cell = (value) => String(value || '—').replace(/\r?\n/g, ' ').replace(/\|/g, '/').trim() || '—';
@@ -124,6 +127,7 @@ async function pull(argv, io) {
 async function main(argv, io) {
   const [sub, ...rest] = argv;
   const table = { add, close, list, pull };
+  if (['--help', '-h'].includes(sub)) { io.stdout.write(`${USAGE}\n`); return 0; }
   if (!table[sub]) { io.stderr.write(`${USAGE}\n`); return 2; }
   try { return await table[sub](rest, io); } catch (error) {
     if (error instanceof UsageError || /unknown issue type/.test(error.message)) { io.stderr.write(`athena issue ${sub}: ${error.message}\n`); return 2; }

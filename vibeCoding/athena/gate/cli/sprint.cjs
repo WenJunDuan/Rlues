@@ -14,6 +14,7 @@ const { git, idle, PATHS, STAGES, SAFE_SLUG } = require('../lib/context.cjs');
 const USAGE = `usage:
   athena sprint start <roadmap>/<item> [--path P] [--slug S]
   athena sprint start --req <file> --path P --slug S
+  athena sprint start --issue <n> [--path P] [--slug S]  (default path: Feature)
   athena sprint stage <stage>
   athena sprint pause --resume-when "<condition>"      (e.g. "after athena-10-1/s3")
   athena sprint resume <slug>
@@ -188,6 +189,7 @@ function drop(argv, io) {
 async function main(argv, io) {
   const [sub, ...rest] = argv;
   const table = { start, stage: stageCmd, pause, resume, drop };
+  if (['--help', '-h'].includes(sub)) { io.stdout.write(`${USAGE}\n`); return 0; }
   if (!table[sub]) { io.stderr.write(`${USAGE}\n`); return 2; }
   try { return await table[sub](rest, io); } catch (error) {
     if (error instanceof UsageError) { io.stderr.write(`athena sprint ${sub}: ${error.message}\n`); return 2; }
