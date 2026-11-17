@@ -21,7 +21,8 @@ const USAGE = `usage: athena <command> [args]
   exemption add|list|remove            audited, time-limited gate exemptions
   tidy [--dry-run]                     month-close, packing, hot-layer limit, .runtime retention
   migrate --to 10.1 [--dry-run]        v1 → v2 state migration
-  install|rollback|doctor              install into ~/.athena and the platform homes; undo; check`;
+  install|rollback|doctor              install into ~/.athena and the platform homes; undo; check
+  doctor --context [--platform cc|cx]  bytes / tokens each context layer loads every session`;
 
 function commands() {
   const dir = path.join(__dirname, 'cli');

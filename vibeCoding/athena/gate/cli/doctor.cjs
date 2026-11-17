@@ -5,6 +5,7 @@
 // ~/.codex/plugins/cache, and a WARN (exit code unchanged) when installer hooks are active too.
 // A platform with only the plugin form is a WARN naming what only the installer carries, not a FAIL;
 // "not installed" fails only when neither form is present.
+// --context [--platform cc|cx]: bytes / tokens each layer loads every session (lib/context-budget.cjs).
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -15,6 +16,7 @@ const { sha } = require('./lib/install-plan.cjs');
 const LEGACY = require('./lib/legacy-999.cjs');
 const context = require('../lib/context.cjs');
 const exemptions = require('../lib/exemptions.cjs');
+const budget = require('./lib/context-budget.cjs');
 
 const INSTALLER_HOOK = /(?:~|\$HOME|\/)\.athena\/current\/hook\.cjs/;
 const PLUGIN_FORMS = [
@@ -70,8 +72,14 @@ function pluginReport(home, installed, notes, warnings) {
 
 function main(argv, io) {
   let f;
-  try { f = flags(argv, { home: 'str' }).flags; } catch (error) { io.stderr.write(`athena doctor: ${error.message}\n`); return 2; }
+  try { f = flags(argv, { home: 'str', context: 'bool', platform: 'str' }).flags; } catch (error) { io.stderr.write(`athena doctor: ${error.message}\n`); return 2; }
   const home = path.resolve(f.home || os.homedir());
+  if (f.context) {
+    const platform = f.platform || 'cc';
+    if (!budget.PLATFORMS[platform]) { io.stderr.write('usage: athena doctor --context [--platform cc|cx] [--home <dir>]\n'); return 2; }
+    io.stdout.write(budget.format(budget.report(home, io.cwd, platform)));
+    return 0;
+  }
   const problems = [];
   const notes = [];
   const warnings = [];

@@ -4,7 +4,8 @@
   "core": false,
   "vars": {
     "SKILLS_DIR": "~/.athena/current/pi/plugin/skills",
-    "TEMPLATES_DIR": "~/.athena/current/pi/plugin/core/gate/templates"
+    "TEMPLATES_DIR": "~/.athena/current/pi/plugin/core/gate/templates",
+    "RULES_DIR": "~/.athena/current/pi/config/rules"
   },
   "gate_root": "plugin/core/gate",
   "core_map": {

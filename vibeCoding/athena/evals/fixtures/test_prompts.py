@@ -35,7 +35,8 @@ class Prompts(unittest.TestCase):
 
     def test_ac1_one_constitution_three_platforms(self):
         texts = {p: f.read_text(encoding='utf-8') for p, f in self.constitutions().items()}
-        normal = {p: re.sub(r'\S*/pace/references/', '<SKILLS>/pace/references/', t) for p, t in texts.items()}
+        normal = {p: re.sub(r'\S*/(?:rules|standards)/', '<RULES>/', re.sub(r'\S*/pace/references/', '<SKILLS>/pace/references/', t))
+                  for p, t in texts.items()}
         self.assertEqual(len(set(normal.values())), 1, 'three constitutions differ beyond SKILLS_DIR')
         for p, t in texts.items():
             with self.subTest(platform=p):
@@ -48,6 +49,7 @@ class Prompts(unittest.TestCase):
                 self.assertIn('收尾前看最后一段', t)           # K3 (10.1.5): named early-stop shapes
                 self.assertIn('不悄悄缩小、扩大或替换', t)     # K12 (10.1.5)
                 self.assertIn('直接执行不用问', t)             # K13 (10.1.5)
+                self.assertRegex(t, r'规范：.*(?:rules|standards)/.*_index\.md')  # pd-1 AC4: index pointer on every platform
 
     def test_ac2_rules_budget_and_provenance(self):
         rules = sorted((ATHENA / 'core/package/rules').glob('*.md'))

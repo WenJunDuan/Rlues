@@ -132,7 +132,7 @@ class PluginShells(unittest.TestCase):
     def test_constitution_is_the_core_agents_md_and_fits_the_injection_cap(self):
         text = (out('claude-plugin') / 'constitution.md').read_text(encoding='utf-8')
         source = (ATHENA / 'core/package/AGENTS.md').read_text(encoding='utf-8')
-        self.assertEqual(text, source.replace('{{athena:SKILLS_DIR}}', '${CLAUDE_PLUGIN_ROOT}/skills'))
+        self.assertEqual(text, source.replace('{{athena:SKILLS_DIR}}', '${CLAUDE_PLUGIN_ROOT}/skills').replace('{{athena:RULES_DIR}}', '~/.claude/rules'))
         self.assertLessEqual(len(text.encode('utf-8')), 4096)
 
     def test_readmes_are_short(self):

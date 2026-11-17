@@ -15,4 +15,5 @@
 - 决策：可逆的实现选择自己定；删数据、发布、付费、推送到别人仓库先确认。
 - 记账：`.ai_state` 改动随代码同一提交，不单独提交记账。
 - 输出：电报体，结论先行，表格优先；不复述过程，不落盘原始推理。长任务在阶段切换处给一行进度。
+- 规范：编码 / 安全 / UI / 文档 / git / shell 规范在 {{athena:RULES_DIR}}/，按其 `_index.md` 需要时读（CC 按文件头 paths 自动加载）。
 - 阶段义务：{{athena:SKILLS_DIR}}/pace/references/stages.md；平台差异：{{athena:SKILLS_DIR}}/pace/references/platform.md。

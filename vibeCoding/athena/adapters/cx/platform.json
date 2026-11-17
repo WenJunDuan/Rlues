@@ -4,7 +4,8 @@
   "core": true,
   "vars": {
     "SKILLS_DIR": "~/.agents/skills",
-    "TEMPLATES_DIR": "~/.athena/current/templates"
+    "TEMPLATES_DIR": "~/.athena/current/templates",
+    "RULES_DIR": "~/.codex/standards"
   },
   "rename": {
     "rules/": "standards/"

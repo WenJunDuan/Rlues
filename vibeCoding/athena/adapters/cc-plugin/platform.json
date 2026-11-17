@@ -6,7 +6,8 @@
   "vars": {
     "SKILLS_DIR": "${CLAUDE_PLUGIN_ROOT}/skills",
     "TEMPLATES_DIR": "${CLAUDE_PLUGIN_ROOT}/gate/templates",
-    "ATHENA_BIN_DIR": "${CLAUDE_PLUGIN_ROOT}/bin"
+    "ATHENA_BIN_DIR": "${CLAUDE_PLUGIN_ROOT}/bin",
+    "RULES_DIR": "~/.claude/rules"
   },
   "core_map": {
     "AGENTS.md": "constitution.md",
