@@ -1,5 +1,7 @@
 'use strict';
 // athena sprint start|stage|pause|resume|drop (design §7.4, ai-state-v2 §3.3/§3.6).
+const { execFileSync } = require('child_process');
+const tracker = require('../lib/tracker.cjs');
 const fs = require('fs');
 const path = require('path');
 const { requireCtx, flags, today, UsageError } = require('./lib/common.cjs');
@@ -17,18 +19,45 @@ const USAGE = `usage:
   athena sprint resume <slug>
   athena sprint drop <slug> --reason "<why>"   (slug must be the active sprint)`;
 
+function declaredPaths(text) {
+  const fm = frontmatter.parse(text);
+  if (Array.isArray(fm.write_set)) return fm.write_set;
+  const section = text.match(/## 允许写集\s*\n([\s\S]*?)(?=\n## |$)/);
+  return section ? section[1].split('\n').map(line => line.match(/^\s*-\s+`?([^`\s]+)`?\s*$/)?.[1]).filter(Boolean) : [];
+}
+
+function warnConflicts(ctx, body, io) {
+  const paths = declaredPaths(body);
+  if (!paths.length) return;
+  const normalize = p => String(p).replace(/^\.\//, '').replace(/\/\*.*$/, '').replace(/\/$/, '');
+  const dir = path.join(ctx.aiState, 'sprints');
+  if (!fs.existsSync(dir)) return;
+  for (const slug of fs.readdirSync(dir)) {
+    const file = path.join(ctx.aiState, 'sprints', slug, 'design.md');
+    if (!fs.existsSync(file)) continue;
+    const text = fs.readFileSync(file, 'utf8');
+    if (['done', 'dropped', 'closed'].includes(frontmatter.parse(text).status)) continue;
+    if (declaredPaths(text).some(a => paths.some(b => {
+      a = normalize(a); b = normalize(b);
+      return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+    }))) io.stderr.write(`warning: write-set conflict with hot sprint ${slug}\n`);
+  }
+}
+
 function designFm(ctx, slug) {
   const file = path.join(ctx.aiState, 'sprints', slug, 'design.md');
   return { file, fm: frontmatter.parse(fs.readFileSync(file, 'utf8')) };
 }
 
-function start(argv, io) {
-  const { flags: f, rest } = flags(argv, { path: 'str', slug: 'str', req: 'str' });
+async function start(argv, io) {
+  const { flags: f, rest } = flags(argv, { path: 'str', slug: 'str', req: 'str', issue: 'str' });
   const ctx = requireCtx(io);
   if (!idle(ctx)) throw new UsageError(`sprint ${ctx.sprint || '?'} is in flight (stage ${ctx.stage || '?'}); pause, drop or ship it first`);
   let roadmap = '';
   let item = '';
   let itemData = {};
+  if (f.issue && (f.req || rest.length)) throw new UsageError('--issue cannot be combined with --req or roadmap/item');
+  if (f.issue && !/^[A-Za-z0-9]+$/.test(f.issue)) throw new UsageError('--issue needs an issue number');
   if (rest[0]) {
     [roadmap, item] = rest[0].split('/');
     if (!roadmap || !item) throw new UsageError('start takes <roadmap>/<item>');
@@ -36,10 +65,10 @@ function start(argv, io) {
     if (!found) throw new UsageError(`roadmap/${roadmap}/items.yaml has no item ${item}`);
     itemData = found.data;
     if (state.DONE.has(String(itemData.status))) throw new UsageError(`${item} is already done`);
-  } else if (!f.req) throw new UsageError(USAGE);
-  const route = f.path || itemData.path;
+  } else if (!f.req && !f.issue) throw new UsageError(USAGE);
+  const route = f.path || itemData.path || (f.issue ? 'Feature' : '');
   if (!PATHS.has(route)) throw new UsageError(`--path must be one of ${[...PATHS].join(', ')}`);
-  const slug = f.slug || `${today()}-${item || path.basename(String(f.req), '.md')}`;
+  const slug = f.slug || `${today()}-${item || (f.issue ? `issue-${f.issue}` : path.basename(String(f.req), '.md'))}`;
   if (!SAFE_SLUG.test(slug)) throw new UsageError(`invalid slug ${slug}`);
   const dir = path.join(ctx.aiState, 'sprints', slug);
   if (fs.existsSync(dir)) throw new UsageError(`sprints/${slug} already exists (resume it instead)`);
@@ -47,8 +76,26 @@ function start(argv, io) {
   if (archived.length) throw new UsageError(`archive/sprints/${archived[0]}/${slug} already exists; pick another --slug`);
   const req = f.req || String(itemData.req || '');
   const fields = { sprint: slug, path: route, date: today(), req, roadmap, item, base_commit: git(ctx.mainRoot, ['rev-parse', '--short', 'HEAD']) || '', title: itemData.title || slug };
+  let issue;
+  let t;
+  if (f.issue) {
+    t = tracker.detect(ctx.root, io.env);
+    const prefix = `${route === 'Bugfix' ? 'fix' : 'feat'}/${f.issue}-`;
+    const short = slug.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'issue';
+    const branch = `${prefix}${short.slice(0, 40 - prefix.length)}`;
+    if (git(ctx.root, ['show-ref', '--verify', `refs/heads/${branch}`])) throw new UsageError(`branch ${branch} already exists`);
+    issue = await tracker.claim(t, f.issue);
+    execFileSync('git', ['switch', '-c', branch], { cwd: ctx.root, stdio: ['ignore', 'pipe', 'pipe'] });
+    warnConflicts(ctx, issue.body, io);
+    fields.title = issue.title;
+  }
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'design.md'), state.render(route === 'Bugfix' ? 'bugfix-design.md' : 'design.md', fields));
+  if (issue) {
+    const file = path.join(dir, 'design.md');
+    state.setFields(file, { issue: `${t.provider}#${f.issue}` });
+    fs.appendFileSync(file, `\n## 背景\n\n${issue.title} — ${issue.url}\n`);
+  }
   fs.writeFileSync(path.join(dir, 'log.md'), state.render('log.md', fields));
   if (roadmap) state.setItem(state.itemsFile(ctx.aiState, roadmap), item, { status: 'active', sprint: slug });
   const created = [];
@@ -138,11 +185,11 @@ function drop(argv, io) {
   return 0;
 }
 
-function main(argv, io) {
+async function main(argv, io) {
   const [sub, ...rest] = argv;
   const table = { start, stage: stageCmd, pause, resume, drop };
   if (!table[sub]) { io.stderr.write(`${USAGE}\n`); return 2; }
-  try { return table[sub](rest, io); } catch (error) {
+  try { return await table[sub](rest, io); } catch (error) {
     if (error instanceof UsageError) { io.stderr.write(`athena sprint ${sub}: ${error.message}\n`); return 2; }
     throw error;
   }

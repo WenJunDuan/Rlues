@@ -39,7 +39,7 @@ function main(argv, io = { cwd: process.cwd(), stdout: process.stdout, stderr: p
 }
 
 if (require.main === module) {
-  try { process.exitCode = main(process.argv.slice(2)); }
-  catch (error) { process.stderr.write(`athena: ${error.message}\n`); process.exitCode = 2; }
+  Promise.resolve().then(() => main(process.argv.slice(2))).then(code => { process.exitCode = code; })
+    .catch(error => { process.stderr.write(`athena: ${error.message}\n`); process.exitCode = 2; });
 }
 module.exports = { main };

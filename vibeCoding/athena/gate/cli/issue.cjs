@@ -9,6 +9,7 @@ const os = require('os');
 const path = require('path');
 const { requireCtx, flags, today, UsageError } = require('./lib/common.cjs');
 const issues = require('../lib/issues.cjs');
+const tracker = require('../lib/tracker.cjs');
 const archive = require('./lib/archive.cjs');
 
 const USAGE = `usage:
@@ -58,12 +59,17 @@ function upstream(ctx, env, id, f) {
   } catch (error) { return `upstream feedback not written (${error.code || error.message})`; }
 }
 
-function add(argv, io) {
-  const { flags: f } = flags(argv, { type: 'str', text: 'str', sev: 'str', found: 'str', next: 'str', status: 'str' });
+async function add(argv, io) {
+  const { flags: f } = flags(argv, { type: 'str', text: 'str', sev: 'str', found: 'str', next: 'str', status: 'str', push: 'bool' });
   if (!f.type || !f.text) throw new UsageError('add needs --type and --text');
   if (f.sev && !/^(P[0-3]|—)$/.test(f.sev)) throw new UsageError('--sev must be P0..P3');
   const ctx = requireCtx(io);
   const id = issues.add(ctx.aiState, { type: f.type, sev: f.sev, text: f.text, found: f.found || ctx.sprint || today(), next: f.next, status: f.status || 'open' });
+  if (f.push) {
+    const t = tracker.detect(ctx.root, io.env);
+    const remote = await tracker.create(t, f.text, f.text);
+    issues.link(ctx.aiState, id, `${t.provider}#${remote.number}`);
+  }
   io.stdout.write(`${id}\n`);
   const warning = f.type === 'gate' ? upstream(ctx, io.env || process.env, id, f) : null;
   if (warning) io.stderr.write(`athena issue add: ${warning}; ${id} is recorded locally\n`);
@@ -106,11 +112,20 @@ function list(argv, io) {
   return 0;
 }
 
-function main(argv, io) {
+async function pull(argv, io) {
+  flags(argv, {});
+  const t = tracker.detect(io.cwd, io.env);
+  const rows = await tracker.list(t);
+  for (const r of rows) io.stdout.write(`#${r.number}  ${r.title}  [${r.labels.join(', ')}]  ${r.assignees.join(', ') || '—'}\n`);
+  if (!rows.length) io.stdout.write('(no matching issues)\n');
+  return 0;
+}
+
+async function main(argv, io) {
   const [sub, ...rest] = argv;
-  const table = { add, close, list };
+  const table = { add, close, list, pull };
   if (!table[sub]) { io.stderr.write(`${USAGE}\n`); return 2; }
-  try { return table[sub](rest, io); } catch (error) {
+  try { return await table[sub](rest, io); } catch (error) {
     if (error instanceof UsageError || /unknown issue type/.test(error.message)) { io.stderr.write(`athena issue ${sub}: ${error.message}\n`); return 2; }
     throw error;
   }

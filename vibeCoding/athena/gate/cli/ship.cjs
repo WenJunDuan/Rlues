@@ -2,6 +2,7 @@
 // athena ship: strict H2/H3 → runtime-read check → evidence.yaml → archive → items done →
 // queue → _index idle → monthly pack. Never stages or commits: the state goes into the agent's
 // commit with `git add -A .ai_state` (a pre-staged index made a plain `git merge` refuse). Nothing is touched on refusal.
+const tracker = require('../lib/tracker.cjs');
 const fs = require('fs');
 const path = require('path');
 const { requireCtx, flags, today, UsageError } = require('./lib/common.cjs');
@@ -32,7 +33,7 @@ function summary(ctx, criteria, valid, review) {
   return { text: `${lines.join('\n')}\n`, uncovered };
 }
 
-function main(argv, io) {
+async function main(argv, io) {
   let opts;
   try { opts = flags(argv, { 'dry-run': 'bool' }).flags; } catch (error) { io.stderr.write(`athena ship: ${error.message}\n`); return 2; }
   let ctx;
@@ -81,6 +82,22 @@ function main(argv, io) {
   state.setFields(path.join(ctx.aiState, '_index.md'), { path: '', stage: '', sprint: '', next_action: '', route_push: `${today()} shipped ${slug}` });
   const packed = months.map(name => archive.pack(ctx, name));
   io.stdout.write(`shipped ${slug} → ${moved.rel}${packed.length ? `; packed ${packed.map(p => p.rel).join(', ')}` : ''}\nstate changed (not staged); commit it with the change: git add -A .ai_state\n`);
+  if (fm.issue) {
+    const [provider, number] = String(fm.issue).split('#');
+    let t;
+    const body = `sprint ${slug}; AC ${h1.criteria(design).length}; evidence ${valid.map(r => r.id).join(',')}; commit ${git(ctx.root, ['rev-parse', '--short', 'HEAD'])}`;
+    try {
+      t = tracker.detect(ctx.root, io.env);
+      if (t.provider !== provider) throw new Error('tracker differs from sprint issue');
+      await tracker.comment(t, number, body);
+      await tracker.close(t, number);
+    } catch (error) {
+      const manual = provider === 'github' ? `gh issue comment ${number} --body '${body}' && gh issue close ${number}`
+        : provider === 'gitlab' ? `glab issue note ${number} --message '${body}' && glab issue close ${number}`
+          : `curl -X PATCH https://gitee.com/api/v5/repos/${t ? t.repo.split('/')[0] : '<owner>'}/issues/${number} -H "Authorization: Bearer $GITEE_TOKEN" --data-urlencode repo=${t ? t.repo.split('/')[1] : '<repo>'} --data-urlencode state=closed`;
+      io.stderr.write(`warning: issue ${fm.issue}: ${error.message}; ship succeeded\nmanual: ${manual}\n`);
+    }
+  }
   return 0;
 }
 
