@@ -9,7 +9,7 @@ description: 用户说「检查」「诊断」「修复」「修改」「构建�
 
 ## 先确认本轮做什么
 
-1. `athena status`（或读 `_index.md`）看现状。分清：解释/检查，还是修改/构建。
+1. `athena status --brief` + HANDOFF 顶段看现状（不整读 queue / SPRINTS / issues）。分清：解释/检查，还是修改/构建。
 2. 「继续」「按上面的改」「进度」默认续当前任务；独立的新目标重新分诊。旧的 path / stage / next_action 只用于恢复旧任务，不决定新任务的级别。
 3. 只问状态 → 直接答。只读诊断 → 先查，不建 design 或实现链。定位到故障 ≠ 授权重启或改生产。
 4. 用户点名 Hotfix 或紧急有界恢复 → 直接 impl，可省设计；只覆盖本次范围，不把进行中的 System 整单降级。

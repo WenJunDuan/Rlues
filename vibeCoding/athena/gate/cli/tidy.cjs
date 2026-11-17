@@ -9,6 +9,8 @@ const issues = require('../lib/issues.cjs');
 const frontmatter = require('../lib/frontmatter.cjs');
 const advisory = require('../rules/advisory.cjs');
 
+const ledgers = require('./lib/hot-ledgers.cjs');
+
 const HOT_MAX = 3;
 const FINISHED = new Set(['shipped', 'dropped', 'done']);
 const KEEP_MS = 14 * 24 * 3600 * 1000;
@@ -62,6 +64,28 @@ function hotLimit(ctx, dry, report, touched) {
   }
 }
 
+// Rotate the chatty subagent stream independently of the overall runtime cap.
+// Keep hot-sprint rows in the live file: A1 still needs their provenance.
+function rotateSubagents(ctx, dry, report) {
+  const file = path.join(ctx.runtime, 'subagents.jsonl');
+  if (!fs.existsSync(file) || fs.statSync(file).size <= 1024 * 1024) return;
+  let hot = [];
+  try { hot = fs.readdirSync(path.join(ctx.aiState, 'sprints')); } catch (_) { /* none */ }
+  const live = new Set([...hot, ctx.sprint].filter(Boolean));
+  const keep = [], cold = [];
+  for (const line of fs.readFileSync(file, 'utf8').split(/(?<=\n)/).filter(Boolean)) {
+    let row;
+    try { row = JSON.parse(line); } catch (_) { /* retain malformed diagnostics in rotation */ }
+    (row && live.has(row.sprint) ? keep : cold).push(line);
+  }
+  if (!cold.length) { report.push('subagents.jsonl >1 MB: hot-sprint provenance retained'); return; }
+  report.push(`subagents.jsonl >1 MB: rotate ${cold.length} row(s); retain hot-sprint provenance`);
+  if (dry) return;
+  const target = path.join(ctx.runtime, `subagents-${Date.now()}-${process.pid}.jsonl`);
+  fs.writeFileSync(target, cold.join(''), { flag: 'wx' });
+  fs.writeFileSync(file, keep.join(''));
+}
+
 function runtimeRetention(ctx, dry, report) {
   const files = [];
   const walk = (dir) => {
@@ -78,7 +102,10 @@ function runtimeRetention(ctx, dry, report) {
   let hot = [];
   try { hot = fs.readdirSync(path.join(ctx.aiState, 'sprints')); } catch (_) { /* none */ }
   const live = new Set(hot.map(slug => `evidence/${slug}.jsonl`));
-  const candidates = files.filter(f => !PROTECTED.test(f.rel) && !live.has(f.rel.split(path.sep).join('/'))).sort((a, b) => a.mtime - b.mtime);
+  const subagentLive = f => f.rel === 'subagents.jsonl' && fs.readFileSync(f.full, 'utf8').split('\n').some(line => {
+    try { return hot.includes(JSON.parse(line).sprint); } catch (_) { return false; }
+  });
+  const candidates = files.filter(f => !subagentLive(f) && !PROTECTED.test(f.rel) && !live.has(f.rel.split(path.sep).join('/'))).sort((a, b) => a.mtime - b.mtime);
   const now = Date.now();
   let total = files.reduce((n, f) => n + f.size, 0);
   const drop = [];
@@ -96,6 +123,24 @@ function main(argv, io) {
   const dry = Boolean(f['dry-run']);
   const report = [];
   const touched = [];
+  // Validate every ledger plan before the first ledger mutation.
+  const plans = ledgers.NAMES.map(name => [name, ledgers.plan(ctx.aiState, name)]).filter(([, p]) => p);
+  const before = ledgers.summary(ctx.aiState);
+  for (const [name, p] of plans) {
+    report.push(`${name}: archive ${p.moved} finished entries; ${p.remaining} B hot (limit ${ledgers.MAX_BYTES} B)`);
+    if (p.remaining > ledgers.MAX_BYTES) report.push(`${name}: unfinished/unknown content retained above limit; manual triage needed`);
+    if (!dry && p.moved) {
+      fs.mkdirSync(path.dirname(p.target), { recursive: true });
+      fs.writeFileSync(p.target, p.cold);
+      fs.writeFileSync(p.file, p.hot);
+      touched.push(archive.stateRel(ctx, name), archive.stateRel(ctx, path.relative(ctx.aiState, p.target)));
+    }
+  }
+  if (plans.length) {
+    const after = ledgers.summary(ctx.aiState);
+    if (JSON.stringify(before) !== JSON.stringify(after)) throw new Error('ledger reconciliation failed after tidy');
+    report.push(`ledger counts (total/unfinished) unchanged: ${JSON.stringify(after)}`);
+  }
   closeMonth(ctx, dry, report, touched);
   for (const name of archive.packable(ctx)) {
     const why = archive.packProblems(ctx, name);
@@ -104,6 +149,7 @@ function main(argv, io) {
     if (!dry) touched.push(...archive.pack(ctx, name).stage);
   }
   hotLimit(ctx, dry, report, touched);
+  rotateSubagents(ctx, dry, report);
   runtimeRetention(ctx, dry, report);
   for (const w of advisory.run(ctx, { platform: 'cli' }, ['A6', 'A7', 'A8'])) report.push(`advisory ${w.rule}: ${w.message}`);
   io.stdout.write(`${report.length ? report.join('\n') : 'tidy: nothing to do'}${dry ? '\n(dry-run: nothing changed)' : ''}\n`);

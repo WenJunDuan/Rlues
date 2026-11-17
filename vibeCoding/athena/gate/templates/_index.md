@@ -14,4 +14,4 @@ pointers: {queue: "queue.md", issues: "issues.md"}
 ---
 # Project state
 
-Router only (≤3 KB). Written by the `athena` CLI; read `athena status` for the human view.
+Router only (≤3 KB). Written by the `athena` CLI; start with `athena status --brief` + HANDOFF top section; follow individual pointers only when needed.

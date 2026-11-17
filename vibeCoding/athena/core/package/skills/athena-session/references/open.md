@@ -1,7 +1,7 @@
 # 开场（用户说「开工 / 按会话流程」即执行）
 
-读：交接文档最新一段（`.ai_state/HANDOFF.md`）、`queue.md`、`issues.md`、sprint 总表（如有）、`athena status`（多仓项目每个账本都读）；各工作仓库的 `git status` / worktree / 分支；冒烟要用的端口；接了 issue tracker 的仓 `athena issue pull` 一次（不常驻）。
-漏项核对：往前几段交接的「下个会话」、调研档的切片建议表、做了一半的 sprint（暂停 / 未合入分支）逐条对账，未完成的列进排队。
+读：`athena status --brief`（默认队列前 5 项，`--limit 1..10`）与 `.ai_state/HANDOFF.md` 顶段（最新标题至下一同级标题前，多仓项目每个账本都查）；不整读 queue / SPRINTS / issues，摘要不足时按条目定位原文；各工作仓库的 `git status` / worktree / 分支；冒烟要用的端口；接了 issue tracker 的仓 `athena issue pull` 一次（不常驻）。
+漏项核对：先查 brief 的 waiting 与交接顶段；发现缺口时按指针核对往前几段交接的「下个会话」、调研档切片表与未完成 sprint（暂停 / 未合入分支），未完成的列进排队。
 
 先用表格和用户核对 5 类，再给计划：
 

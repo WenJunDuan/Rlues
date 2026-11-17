@@ -10,6 +10,7 @@ const frontmatter = require('../lib/frontmatter.cjs');
 const advisory = require('../rules/advisory.cjs');
 const evidence = require('../lib/evidence.cjs');
 const archive = require('./lib/archive.cjs');
+const ledgers = require('./lib/hot-ledgers.cjs');
 const { idle } = require('../lib/context.cjs');
 const { tree, reviewIgnore } = require('../core.cjs');
 const h1 = require('../rules/h1-design.cjs');
@@ -104,7 +105,7 @@ function collect(ctx) {
       .map(h => ({ ref: `sprint ${h.slug}`, when: h.resume_when })),
   ].map(w => ({ ...w, ready: state.resumeReady(ctx.aiState, w.when, items) }));
   let queue = [];
-  try { queue = fs.readFileSync(path.join(ctx.aiState, 'queue.md'), 'utf8').split('\n').filter(l => /^\s*(?:\d+[.)]|[-*])\s/.test(l)).slice(0, 10); } catch (_) { /* none */ }
+  queue = ledgers.queue(ctx.aiState).slice(0, 10);
   const roadmaps = {};
   for (const it of items) {
     const r = (roadmaps[it.roadmap] = roadmaps[it.roadmap] || {});
@@ -115,6 +116,7 @@ function collect(ctx) {
   return {
     route: { path: ctx.path, stage: ctx.stage, sprint: ctx.sprint, roadmap: ctx.roadmap, next_action: String(ctx.index.next_action || ''), invalid: ctx.invalid || null },
     hot, waiting, queue, roadmaps,
+    ledgers: ledgers.summary(ctx.aiState),
     questions: open.filter(r => r.type === 'question'),
     issues_open: open.length,
     exemptions: exemptions.review(ctx).map(x => ({ key: x.entry && x.entry.key, until: x.entry && x.entry.until, status: x.status, why: x.why })),
@@ -139,8 +141,8 @@ function brief(ctx, limit = 5) {
   const urgent = open.filter(r => /^P[01]$/i.test(r.sev));
   const out = [`active: ${clip(ctx.sprint || 'idle', 180)} ${clip(ctx.stage, 60)}`];
   let queue = [], handoff = '';
-  try { queue = fs.readFileSync(path.join(ctx.aiState, 'queue.md'), 'utf8').split('\n').filter(l => /^\s*(?:\d+[.)]|[-*])\s/.test(l)); } catch (_) { /* optional */ }
-  try { handoff = fs.readFileSync(path.join(ctx.aiState, 'HANDOFF.md'), 'utf8').split('\n').find(l => /^##\s+/.test(l)) || ''; } catch (_) { /* optional */ }
+  queue = ledgers.queue(ctx.aiState);
+  try { handoff = fs.readFileSync(path.join(ctx.aiState, 'HANDOFF.md'), 'utf8').split('\n').find(l => /^#{1,6}\s+/.test(l) && !/^#\s+(?:handoff|交接)\s*$/i.test(l)) || ''; } catch (_) { /* optional */ }
   out.push(`queue (first ${limit}):`);
   for (const q of queue.slice(0, limit)) out.push(`  ${clip(q.trim(), Math.floor(420 / Math.max(1, limit)))}`);
   out.push(`issues: P0 ${urgent.filter(r => /^P0$/i.test(r.sev)).length}, P1 ${urgent.filter(r => /^P1$/i.test(r.sev)).length}`);
@@ -149,7 +151,8 @@ function brief(ctx, limit = 5) {
     .map(it => `${it.roadmap}/${it.slug} — ${(it.data.deferred || {}).resume_when || ''}`);
   try {
     for (const d of fs.readdirSync(path.join(ctx.aiState, 'sprints'), { withFileTypes: true }).filter(d => d.isDirectory())) {
-      const fm = frontmatter.parse(fs.readFileSync(path.join(ctx.aiState, 'sprints', d.name, 'design.md'), 'utf8'));
+      let fm = {};
+      try { fm = frontmatter.parse(fs.readFileSync(path.join(ctx.aiState, 'sprints', d.name, 'design.md'), 'utf8')); } catch (_) { continue; }
       if (fm.status === 'paused' && !items.some(it => it.data.sprint === d.name || it.data.sprint_slug === d.name)) waiting.push(`sprint ${d.name} — ${fm.resume_when || ''}`);
     }
   } catch (_) { /* optional */ }
@@ -190,6 +193,7 @@ function main(argv, io) {
     for (const b of p.blockers) out.push(`  ${b.reason}\n      → ${b.fix}`);
     if (p.uncovered.length) out.push(`  advisory (ship warns, does not refuse): no current \`--covers\` record for ${p.uncovered.join(', ')}\n      → ${RUN(p.uncovered.join(','))}`);
   }
+  for (const [name, c] of Object.entries(s.ledgers)) out.push(`ledger ${name}: ${c.total} total, ${c.unfinished} unfinished (including archive)`);
   out.push(`issues open: ${s.issues_open}`);
   for (const x of s.exemptions) out.push(`exemption ${x.key} until ${x.until} [${x.status}]${x.why ? ` ${x.why}` : ''}`);
   out.push('exemptions: athena exemption add|list|remove');

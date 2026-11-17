@@ -96,6 +96,10 @@ const CHECKS = {
       const size = Buffer.byteLength(read(path.join(ctx.aiState, '_index.md')) || '');
       if (size > 3072) notes.push(`_index.md ${size} B (>3 KB)`);
     }
+    for (const name of ['queue.md', 'SPRINTS.md']) {
+      const size = Buffer.byteLength(read(path.join(ctx.aiState, name)) || '');
+      if (size > 16384) notes.push(`${name} ${size} B (>16 KB)`);
+    }
     return notes.length ? `tidy due: ${notes.join('; ')} — run \`athena tidy\`` : null;
   },
   /** A8 exemptions expiring or invalid. */

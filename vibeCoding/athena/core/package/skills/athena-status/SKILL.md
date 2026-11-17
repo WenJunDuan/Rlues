@@ -7,7 +7,7 @@ description: 看项目状态、记检查点、记或关问题账；用户问进�
 
 ## 看状态（只读）
 
-`athena status`（机器可读用 `--json`）：路由（path / stage / sprint / next_action）、热 sprint、队列前 10、等待项（resume 条件满足标 ready）、roadmap 进度、未关 issue、豁免、提示项。
+开场用 `athena status --brief`（≤2 KB，队列默认前 5 项，`--limit 1..10`）+ HANDOFF 顶段，不整读 queue / SPRINTS / issues。详情用 `athena status`（机器可读用 `--json`）：路由（path / stage / sprint / next_action）、热 sprint、队列前 10、等待项（resume 条件满足标 ready）、roadmap 进度、未关 issue、豁免、提示项。
 没有 `.ai_state` → 提示 `athena init`，不自动初始化。回答用户时给结论与下一步，不贴整段输出。
 
 ## 检查点（会话结束、交接、上下文将满）

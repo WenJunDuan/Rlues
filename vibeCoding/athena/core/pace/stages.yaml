@@ -31,7 +31,7 @@
     "A1": "写者溯源（generator / 外部写者）", "A2": "R/S runtime-verify 与 polish 记录",
     "A3": "R/S ≥5 文件改动未更新 architecture/（base_commit 锚定）", "A4": "承诺记账闭合",
     "A5": "design 在实现开始后改动（基线已有 design）", "A6": "_index 指针存在",
-    "A7": "梳理阈值（热层 >3、issues >40、_index >3 KB）", "A8": "豁免将到期/无效",
+    "A7": "梳理阈值（热层 >3、issues >40、_index >3 KB、queue.md / SPRINTS.md >16 KB）", "A8": "豁免将到期/无效",
     "A9": "Bugfix 复现测试在 red 记录后被改（flag bugfix_test_lock）", "A10": "reviewer 与作者同家族"
   },
   "stages": [
