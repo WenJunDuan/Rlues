@@ -198,7 +198,7 @@ function mergeToml(currentText, proposedText, home, version) {
 /** Where a dist file of a platform lands (home-relative), or null when it is not installed. */
 function target(kind, rel, release) {
   if (kind === 'core') return `.athena/${release}/${rel}`;
-  if (kind === 'pi') return /^(plugin|config)\//.test(rel) ? `.athena/${release}/pi/${rel}` : null;
+  if (kind === 'pi') return /^(plugin|config|project-packs)\//.test(rel) ? `.athena/${release}/pi/${rel}` : null;
   const top = kind === 'cc' ? '.claude/' : '.codex/';
   if (['manifest.json', 'GENERATED.md', 'contracts.json'].includes(rel)) return null;
   if (!rel.startsWith(top)) return `.athena/${release}/docs/${DIST_DIR[kind]}/${rel}`;

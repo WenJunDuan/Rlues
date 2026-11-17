@@ -53,5 +53,18 @@ class DoctorContext(unittest.TestCase):
         self.assertEqual(json.loads(run.stdout), [2, 2, 0])
 
 
+    def test_unclosed_brace_is_literal_not_a_hang(self):
+        import json
+        probe = "const t = require(process.argv[1]); const re = t.globRe('src/{draft/**'); console.log(JSON.stringify([re.test('src/{draft/a.ts'), re.test('src/draft/a.ts')]));"
+        from gate_harness import ATHENA
+        run = subprocess.run(['node', '-e', probe, str(ATHENA / 'gate/cli/lib/context-budget.cjs')], capture_output=True, text=True, timeout=10)
+        self.assertEqual(json.loads(run.stdout), [True, False])
+
+    def test_pi_installs_project_packs(self):
+        probe = "const p = require(process.argv[1]); console.log(p._target ? p._target('pi', 'project-packs/x/SKILL.md', 'r') : 'none');"
+        from gate_harness import ATHENA
+        src = (ATHENA / 'gate/cli/lib/install-plan.cjs').read_text()
+        self.assertIn("plugin|config|project-packs", src)
+
 if __name__ == '__main__':
     unittest.main()

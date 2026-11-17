@@ -79,6 +79,8 @@ function globRe(glob) {
     if (c === '*' && glob[i + 1] === '*') { re += glob[i + 2] === '/' ? '(?:.*/)?' : '.*'; i += glob[i + 2] === '/' ? 2 : 1; }
     else if (c === '*') re += '[^/]*';
     else if (c === '?') re += '[^/]';
+    // 未闭合的 `{` 按字面量处理：end=-1 会把 i 拨回去造成死循环
+    else if (c === '{' && glob.indexOf('}', i) === -1) re += '\\{';
     else if (c === '{') { const end = glob.indexOf('}', i); re += `(?:${glob.slice(i + 1, end).split(',').map(s => s.replace(/[.+^$()|[\]\\]/g, '\\$&')).join('|')})`; i = end; }
     else re += c.replace(/[.+^$()|[\]\\]/g, '\\$&');
   }
