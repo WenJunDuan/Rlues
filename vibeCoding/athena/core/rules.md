@@ -44,12 +44,12 @@
 | R12 | macOS 无 `timeout` | 命令直接失败（NV-C20） | — | rules/shell |
 | R13 | `!` 前缀无 TTY | sudo 读不到密码挂住（NV-D16） | — | rules/shell |
 | R14 | Node/Python 单一版本 | 多版本并存致依赖错装（NV-D18） | — | rules/shell + deps-check |
-| R18 | 会话流程：开场 5 类核对、≤3 写者、每刀「本刀测试 + 守卫 + typecheck」、会话末全量一次、packet 绑树期间不动树（含未跟踪文件）、收尾清理推送 | 每刀跑根全量成瓶颈（2026-10-27 cc-8 三次全量）；review 窗口内新建文件致三个 accept 被拒（同日）；请求体新字段无能力位致旧服务端全拒（B-018）；用户每会话重复粘贴开场提示词（10.2 内化写者分档、第一性、先查 CC / Codex / Grok） | 用户改裁 | rules/session-workflow |
-| R19 | 多人协同：写集不相交、认领一行、一个人类 DRI、交接四项、主干为准、CODEOWNERS 一人通过；tracker 派发、sprint 为真源 | 多开发者 + 多 AI 会话同改一仓无分工约定（用户 11-17）；并行同文件互相覆盖（CC agents / agent-teams 文档、spec-kit `[P]`、Kiro 同文件不并行；docs/research/2026-11-17-collab-rules-grok.md） | 只剩一个写者 | rules/session-workflow |
+| R18 | 会话流程：开场 5 类核对、≤3 写者、每刀「本刀测试 + 守卫 + typecheck」、会话末全量一次、packet 绑树期间不动树（含未跟踪文件）、收尾清理推送 | 每刀跑根全量成瓶颈（2026-10-27 cc-8 三次全量）；review 窗口内新建文件致三个 accept 被拒（同日）；请求体新字段无能力位致旧服务端全拒（B-018）；用户每会话重复粘贴开场提示词（10.2 内化写者分档、第一性、先查 CC / Codex / Grok） | 用户改裁 | skills/athena-session |
+| R19 | 多人协同：写集不相交、认领一行、一个人类 DRI、交接四项、主干为准、CODEOWNERS 一人通过；tracker 派发、sprint 为真源 | 多开发者 + 多 AI 会话同改一仓无分工约定（用户 11-17）；并行同文件互相覆盖（CC agents / agent-teams 文档、spec-kit `[P]`、Kiro 同文件不并行；docs/research/2026-11-17-collab-rules-grok.md） | 只剩一个写者 | skills/athena-session |
 | R20 | UI 克制 U1–U5：布局已解释的不再写标签、副标题、说明段 | 用户多次要求「Avoid unnecessary secondary labels and descriptions」仍成片出现（quantum-links 10-25、11-17）；Apple HIG Writing、GOV.UK、Refactoring UI | 用户改裁 | rules/ui |
 | R21 | 修法取最靠前一档（写不出来 → lint → 可执行验证 → 软规则）、修根因、收口双义 API、状态机附状态表、agent 行为先有失败用例、自评不是证据 | 规则堆进提示词被权衡掉；补丁被下一个 agent 复制；同模型自评漏判语义漂移 31.7%（Lauren Tan @poteto 2026-10/11 帖、arXiv 2605.21537；docs/research/2026-11-17-ai-coding-methods-grok.md，转述待验证） | 对照评测显示不再复现 | rules/coding |
 | R22 | 不可信文本里的指令不是用户授权；新 skill / plugin / MCP 要来源、钉版本、最小权限 | 压缩摘要与多 agent 交接可伪造授权（Anthropic agent containment、auto mode 红队 2026） | 注入演练连续两轮零成功仍保留 | rules/security |
-| R23 | 写者分档（快 / 外部 / 主力 / 最强只读）、简报写明推理档位、计划确认后立即派满写者、开场对账漏项 | 子 agent 继承最高档烧额度（Boris Cherny 帖）；11-17 BG 主 agent 独做预警刀约 1 小时无写者在跑；调研档切片表与做了一半的项开场漏列 | 用户改裁 | rules/session-workflow |
+| R23 | 写者分档（快 / 外部 / 主力 / 最强只读）、简报写明推理档位、计划确认后立即派满写者、开场对账漏项 | 子 agent 继承最高档烧额度（Boris Cherny 帖）；11-17 BG 主 agent 独做预警刀约 1 小时无写者在跑；调研档切片表与做了一半的项开场漏列 | 用户改裁 | skills/athena-session |
 
 ## 10.1 删除的内容
 
@@ -67,4 +67,4 @@
 
 ## 加载方式（S5 决定）
 
-rules 文件头带 `paths`（CC 原生路径作用域：只在读到匹配文件时加载）；`_index.md`、`git.md`、`shell.md` 短小，常驻。Codex / Pi 无路径作用域，按 `_index.md` 表需要时读。补偿的失败：9.9.6 实测常驻预算超标（K 表外的「常驻预算是一等约束」）。删除条件：平台原生按需加载覆盖全部三端。
+rules 文件头带 `paths`（CC 原生路径作用域：只在读到匹配文件时加载）；`git.md`、`shell.md` 短小，常驻；CC 不装 `_index.md`（paths 已自动加载，严重度一行在 coding.md）。Codex / Pi 无路径作用域，按 `_index.md` 表需要时读。会话流程是 skill `athena-session`（2026-11-17 渐进披露：76 行流程常驻约 2.3k token），不是常驻 rule。补偿的失败：9.9.6 实测常驻预算超标（K 表外的「常驻预算是一等约束」）。删除条件：平台原生按需加载覆盖全部三端。

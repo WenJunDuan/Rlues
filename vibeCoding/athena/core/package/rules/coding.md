@@ -5,6 +5,8 @@ paths:
 
 # Coding
 
+严重度（全部 rules 通用）：P0 违反 = REWORK；P1 = CONCERNS；P2 = 建议。一个 finding 违反多条，取最高。
+
 ## P0
 - 重复逻辑提取；配置不硬编码。
 - TypeScript 禁 `any`、开 strict；Python 公开 API 有类型标注。

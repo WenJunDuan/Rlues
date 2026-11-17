@@ -30,7 +30,7 @@
 CLI install --platform cc,cx --dry-run
 ```
 
-把输出里的 `write / merge / retire` 清单给用户看。`retire` = 9.9.x 残留，会移进备份，不是删除。
+把输出里的 `write / merge / retire` 清单给用户看。`retire` = 9.9.x 残留或上次安装写过、本版不再发布的文件（如 CC 的 `rules/session-workflow.md`、`rules/_index.md`；`_index.md` 有用户行时只保留用户部分），会移进备份，不是删除。
 
 ## 3. 安装
 

@@ -1,92 +1,94 @@
-"""G-014: install merges user rules index rows in a temporary HOME."""
+"""G-014: CC no longer ships rules/_index.md; an upgrade keeps only the user's part of the merged index."""
 import json
 import unittest
 
-from gate_harness import ENV, RELEASE, athena, tmpdir
+from gate_harness import ENV, athena, tmpdir
 from test_install import build
 
+INDEX = '.claude/rules/_index.md'
+OLD_PACKAGE = ('# Rules 索引\n\n项目规范（不是命令权限）。\n\n| 文件 | 何时读 |\n|---|---|\n| coding.md | 写/审代码 |\n'
+               '| session-workflow.md | 会话开场核对 |\n\n严重度：P0 违反 = REWORK。\n')
+CUSTOM = '  | models.md | 用户模型选择 |'
+NOTES = '# My notes\n\n  Preserve this paragraph.\n'
 
-class RulesIndexMerge(unittest.TestCase):
-    def test_install_preserves_user_rows_updates_package_rows_and_rolls_back(self):
-        tmp = tmpdir(self)
-        dist = build(tmp / 'dist')
-        home = tmp / 'home'
-        index = home / '.claude/rules/_index.md'
+
+def previous_install(home, files):
+    state = home / '.athena/installed.json'
+    state.parent.mkdir(parents=True, exist_ok=True)
+    state.write_text(json.dumps({'files': files, 'backup': '.athena/backups/previous'}))
+
+
+class RulesIndexRetire(unittest.TestCase):
+    def setUp(self):
+        self.base = tmpdir(self)
+        self.dist = build(self.base / 'dist')
+
+    def install(self, home, platforms='cc'):
+        run = athena('install', '--platform', platforms, '--dist', str(self.dist), cwd=home, env={**ENV, 'HOME': str(home)})
+        self.assertEqual(run.returncode, 0, run.stderr)
+        return run
+
+    def rollback(self, home):
+        run = athena('rollback', cwd=home, env={**ENV, 'HOME': str(home)})
+        self.assertEqual(run.returncode, 0, run.stderr)
+
+    def test_upgrade_keeps_only_user_rows_and_notes_and_rolls_back(self):
+        home = self.base / 'home'
+        index = home / INDEX
         index.parent.mkdir(parents=True)
-        custom = '  | models.md | 用户模型选择 |'
-        before = '# Old rules\n\n| 文件 | 何时读 |\n|---|---|\n| coding.md | stale |\n' + custom + '\n'
+        row = '| session-workflow.md | 会话开场核对 |\n'
+        before = OLD_PACKAGE.replace(row, row + CUSTOM + '\n') + '\n' + NOTES
         index.write_text(before)
-        env = {**ENV, 'HOME': str(home)}
-        proposed = (dist / f'claude/{RELEASE}/.claude/rules/_index.md').read_text()
-        for _ in range(2):
-            run = athena('install', '--platform', 'cc', '--dist', str(dist), cwd=home, env=env)
-            self.assertEqual(run.returncode, 0, run.stderr)
-            text = index.read_text()
-            self.assertEqual(text.count(custom), 1)
-            self.assertNotIn('stale', text)
-            for line in proposed.splitlines():
-                if line.startswith('|'):
-                    self.assertIn(line, text)
-        # First rollback restores the merged index; second restores the original user index.
-        for expected in (text, before):
-            run = athena('rollback', cwd=home, env=env)
-            self.assertEqual(run.returncode, 0, run.stderr)
-            self.assertEqual(index.read_text(), expected)
+        previous_install(home, [{'path': INDEX, 'kind': 'cc', 'merged': True, 'package_content': OLD_PACKAGE}])
+        run = self.install(home)
+        self.assertIn('kept your rows and notes only', run.stderr)
+        text = index.read_text()
+        self.assertEqual(text, f'| 文件 | 何时读 |\n|---|---|\n{CUSTOM}\n\n{NOTES}')
+        self.install(home)
+        self.assertEqual(index.read_text(), text, 'second install leaves the user index alone')
+        self.rollback(home)
+        self.assertEqual(index.read_text(), text)
+        self.rollback(home)
+        self.assertEqual(index.read_text(), before)
 
-    def test_upgrade_uses_only_proven_package_rows_and_keeps_same_header_user_rows(self):
-        tmp = tmpdir(self)
-        dist = build(tmp / 'dist')
-        proposed = (dist / f'claude/{RELEASE}/.claude/rules/_index.md').read_text()
-        previous = '| 文件 | 何时读 |\n|---|---|\n| retired.md | old package row |\n'
-        custom = '  | models.md | 用户模型选择 |'
-        current = previous + custom + '\n\n| 项目 | 描述 |\n|---|---|\n| unrelated.md | other table |\n'
-        for source in ('package_content', 'backup'):
-            with self.subTest(source=source):
-                home = tmp / source
-                index = home / '.claude/rules/_index.md'
-                index.parent.mkdir(parents=True)
-                index.write_text(current)
-                state = home / '.athena/installed.json'
-                state.parent.mkdir()
-                entry = {'path': '.claude/rules/_index.md'}
-                if source == 'package_content':
-                    entry['package_content'] = previous
-                else:
-                    backup = home / '.athena/backups/previous/files/.claude/rules/_index.md'
-                    backup.parent.mkdir(parents=True)
-                    backup.write_text(previous + custom + '\n')
-                state.write_text(json.dumps({'files': [entry], 'backup': '.athena/backups/previous'}))
-                for _ in range(2):
-                    run = athena('install', '--platform', 'cc', '--dist', str(dist),
-                                 cwd=home, env={**ENV, 'HOME': str(home)})
-                    self.assertEqual(run.returncode, 0, run.stderr)
-                    text = index.read_text()
-                    if source == 'package_content':
-                        self.assertNotIn('retired.md', text)
-                    else:
-                        self.assertIn('retired.md', text)  # Unknown ownership in an old user backup.
-                    self.assertIn('| 项目 | 描述 |\n|---|---|\n| unrelated.md | other table |\n', text)
-                    self.assertEqual(text.count(custom), 1)
-                    entry = next(f for f in json.loads(state.read_text())['files']
-                                 if f['path'] == '.claude/rules/_index.md')
-                    self.assertEqual(entry['package_content'], proposed)
+    def test_upgrade_retires_a_package_only_index(self):
+        home = self.base / 'home'
+        index = home / INDEX
+        index.parent.mkdir(parents=True)
+        index.write_text(OLD_PACKAGE)
+        previous_install(home, [{'path': INDEX, 'kind': 'cc', 'merged': True, 'package_content': OLD_PACKAGE}])
+        self.install(home)
+        self.assertFalse(index.exists())
+        backups = list((home / '.athena/backups').glob(f'*/files/{INDEX}'))
+        self.assertEqual([b.read_text() for b in backups], [OLD_PACKAGE])
+        self.rollback(home)
+        self.assertEqual(index.read_text(), OLD_PACKAGE)
 
-    def test_install_preserves_other_content_and_mismatched_table(self):
-        tmp = tmpdir(self)
-        dist = build(tmp / 'dist')
-        proposed = (dist / f'claude/{RELEASE}/.claude/rules/_index.md').read_text()
-        for same_header in (True, False):
-            with self.subTest(same_header=same_header):
-                home = tmp / str(same_header)
-                index = home / '.claude/rules/_index.md'
-                index.parent.mkdir(parents=True)
-                user = '# My notes\n\n  Preserve this paragraph.\n\n| 项目 | 描述 |\n|---|---|\n| unrelated.md | other table |\n'
-                index.write_text((proposed if same_header else '') + '\n' + user)
-                for _ in range(2):
-                    ok = athena('install', '--platform', 'cc', '--dist', str(dist),
-                                cwd=home, env={**ENV, 'HOME': str(home)})
-                    self.assertEqual(ok.returncode, 0, ok.stderr)
-                    text = index.read_text()
-                    self.assertIn(user, text)
-                    self.assertEqual(text.count('# My notes'), 1)
-                    self.assertTrue(text.startswith(proposed))
+    def test_upgrade_moves_files_no_longer_shipped_into_the_backup(self):
+        home = self.base / 'home'
+        stale = {'.claude/rules/session-workflow.md': 'cc', '.codex/standards/session-workflow.md': 'cx'}
+        for rel in stale:
+            (home / rel).parent.mkdir(parents=True, exist_ok=True)
+            (home / rel).write_text('# 会话工作流\n')
+        previous_install(home, [{'path': rel, 'kind': kind, 'sha256': 'x'} for rel, kind in stale.items()])
+        self.install(home, 'cc,cx')
+        for rel in stale:
+            with self.subTest(rel=rel):
+                self.assertFalse((home / rel).exists())
+                self.assertEqual(len(list((home / '.athena/backups').glob(f'*/files/{rel}'))), 1)
+        self.rollback(home)
+        for rel in stale:
+            self.assertEqual((home / rel).read_text(), '# 会话工作流\n')
+
+    def test_user_index_without_athena_record_is_left_after_a_10x_install(self):
+        home = self.base / 'home'
+        index = home / INDEX
+        index.parent.mkdir(parents=True)
+        index.write_text(NOTES)
+        previous_install(home, [])
+        self.install(home)
+        self.assertEqual(index.read_text(), NOTES)
+
+
+if __name__ == '__main__':
+    unittest.main()

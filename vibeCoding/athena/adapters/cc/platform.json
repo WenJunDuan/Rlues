@@ -9,5 +9,8 @@
   },
   "rename": {
     "AGENTS.md": "CLAUDE.md"
-  }
+  },
+  "exclude": [
+    "rules/_index.md"
+  ]
 }

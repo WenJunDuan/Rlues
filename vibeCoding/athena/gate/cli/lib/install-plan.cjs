@@ -129,6 +129,27 @@ function mergeRulesIndex(currentText, proposedText, previousText) {
   return lines.join('\n') + (remainder ? `\n${remainder}\n` : '');
 }
 
+/** The user's part of a merged rules index once Athena's rows and prose are taken out; '' when nothing is left. */
+function userRulesIndex(currentText, previousText) {
+  const prev = previousText.split('\n');
+  const tableAt = prev.findIndex(line => /^\s*\|/.test(line));
+  const owned = new Set(prev.filter((line, i) => line.trim() && i !== tableAt && i !== tableAt + 1));
+  let kept = mergeRulesIndex(currentText, previousText, previousText).split('\n').filter(line => !owned.has(line));
+  // Header and separator with no user row under them are Athena's too.
+  if (kept.filter(line => /^\s*\|/.test(line)).length <= 2) kept = kept.filter(line => !/^\s*\|/.test(line));
+  // Removed package lines leave blank-line runs behind; collapse them.
+  const text = kept.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '');
+  return text ? `${text}\n` : '';
+}
+
+/** Files the previous install recorded for these platforms (outside ~/.athena). */
+function installedFiles(home, platforms) {
+  try {
+    const installed = JSON.parse(fs.readFileSync(path.join(home, '.athena/installed.json'), 'utf8'));
+    return (installed.files || []).filter(f => platforms.includes(f.kind) && typeof f.path === 'string' && /^\.(claude|codex|agents)\//.test(f.path));
+  } catch (_) { return []; }
+}
+
 function mergeHooksFile(currentText, proposedText) {
   const current = currentText ? parseJson(currentText, '~/.codex/hooks.json') : {};
   const proposed = JSON.parse(proposedText);
@@ -201,7 +222,6 @@ function plan(home, platforms, dist) {
       if (!dest) continue;
       const read = () => { try { return fs.readFileSync(path.join(home, dest), 'utf8'); } catch (_) { return ''; } };
       if (dest === '.claude/settings.json') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeSettings(read(), f.content.toString('utf8'), version)), mode: 0o600 });
-      else if (dest === '.claude/rules/_index.md') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeRulesIndex(read(), f.content.toString('utf8'), installedRulesIndex(home))), package_content: f.content.toString('utf8'), mode: f.mode });
       else if (dest === '.codex/hooks.json') actions.push({ kind, action: 'merge', dest, content: Buffer.from(mergeHooksFile(read(), f.content.toString('utf8'))), mode: 0o644 });
       else if (dest === '.codex/config.toml') {
         const merged = mergeToml(read(), f.content.toString('utf8'), home, version);
@@ -229,6 +249,21 @@ function plan(home, platforms, dist) {
     hooks[a.dest] = Object.values(data.hooks || {}).flat().flatMap(g => g.hooks || []).map(h => h.command).filter(c => MANAGED_HOOK.test(String(c)));
   }
   const installing = new Set(actions.map(a => a.dest));
+  // A merged rules index the package no longer ships (CC dropped it): keep only the user's part, else retire it.
+  const index = '.claude/rules/_index.md';
+  const previousIndex = installedRulesIndex(home);
+  if (platforms.includes('cc') && !installing.has(index) && previousIndex && fs.existsSync(path.join(home, index))) {
+    const user = userRulesIndex(fs.readFileSync(path.join(home, index), 'utf8'), previousIndex);
+    actions.push(user ? { kind: 'cc', action: 'merge', dest: index, content: Buffer.from(user), mode: 0o644 } : { kind: 'cc', action: 'retire', dest: index });
+    installing.add(index);
+    if (user) notes.push(`${index}: Athena no longer ships it on CC; kept your rows and notes only`);
+  }
+  // Files the previous install wrote that this release no longer ships move into the backup.
+  for (const f of installedFiles(home, platforms)) {
+    if (!f.merged && !installing.has(f.path) && fs.existsSync(path.join(home, f.path))) { actions.push({ kind: f.kind, action: 'retire', dest: f.path }); installing.add(f.path); }
+  }
+  // After a 10.x install a rules index there is the user's (kept above), not a 9.9.9 leftover.
+  if (fs.existsSync(path.join(home, '.athena/installed.json'))) installing.add(index);
   for (const rel of LEGACY) {
     const owner = rel.startsWith('.claude/') ? 'cc' : 'cx';
     if (platforms.includes(owner) && !installing.has(rel) && fs.existsSync(path.join(home, rel))) actions.push({ kind: owner, action: 'retire', dest: rel });
@@ -236,4 +271,4 @@ function plan(home, platforms, dist) {
   return { version, release: dist.release, actions, notes, hooks };
 }
 
-module.exports = { plan, distRoot, readTree, mergeSettings, mergeHooksFile, mergeToml, userHooks, target, InstallError, REQUIRED_CORE, sha };
+module.exports = { plan, distRoot, readTree, mergeSettings, userRulesIndex, mergeHooksFile, mergeToml, userHooks, target, InstallError, REQUIRED_CORE, sha };

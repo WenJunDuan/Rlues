@@ -18,7 +18,7 @@ description: PACE 路径、阶段、门禁与 athena CLI 的全景；分诊后�
 | Refactor | 改结构，≥5 文件 | design → impl → runtime-verify → polish → review → ship |
 | System | 跨模块 | design → impl → runtime-verify → polish → review → ship |
 
-护栏是地板：≥2 个可独立验收切片 → roadmap；跨模块或 ≥5 文件 → Refactor/System。同任务只升不降，降级要用户明示。
+护栏是地板：何时进 roadmap 见宪法「路由」；跨模块或 ≥5 文件 → Refactor/System。同任务只升不降，降级要用户明示。
 
 ## 一个 sprint 的最短循环
 
@@ -28,7 +28,7 @@ description: PACE 路径、阶段、门禁与 athena CLI 的全景；分诊后�
 4. `athena run --covers AC1,AC2 -- <命令>`：证据绑定当前源码树（H2）。
 5. R/S：runtime-verify → polish（跳过要豁免 `skip_runtime_verify` / `skip_polish`）。
 6. `athena review prepare` → 独立 reviewer → `athena review accept`（H3，见 athena-review）。
-7. 记账全部写完 → `athena ship`（H2/H3 复核、归档、items done、`_index` 归零）→ 与代码同一提交。
+7. 记账全部写完 → `athena ship`（H2/H3 复核、归档、items done、`_index` 归零）→ 提交（记账见宪法「记账」）。
 
 `athena sprint stage <id>` 切阶段；`pause --resume-when` / `resume <slug>` / `drop <slug> --reason` 管中断（drop 的 slug 须是活跃 sprint，不符则拒绝；resume 失败时先看报错里的活跃 sprint，不要接着 drop）。ship 必须是最后一次写入：之后再改源码，证据与 review 作废。
 
@@ -41,7 +41,7 @@ description: PACE 路径、阶段、门禁与 athena CLI 的全景；分诊后�
 | H3 | 重新 `review prepare` → reviewer → accept |
 | H4 | 写者子 agent 用隔离 worktree；repo 外目标用豁免 `harness_target_outside_repo` |
 | H5 | 危险命令换安全写法；推送等 ship |
-| 认为误拦 | `athena issue add --type gate --text "<一句话>"`，请用户放行；同一拦截连续 3 次自动熔断并记 G 行 |
+| 认为误拦 | 按宪法「门禁」记一行并请用户放行；同一拦截连续 3 次自动熔断并记 G 行 |
 
 豁免：`athena exemption add --key <key> --until <YYYY-MM-DD> --reason "<理由>"`，≤14 天；`list` 查看、`remove --key <key>` 撤销，增删写审计。H2/H3 没有豁免。细节 [gates.md](references/gates.md)。
 

@@ -45,10 +45,11 @@ DELTA = {  # S2 gate core · S3 review CLI · S6 installer (entries ending in "/
                        'plugin/prompts/reviewer.md', 'plugin/skills/athena-review/SKILL.md']},
 }
 # S5 prompts-v2 rewrites constitution, rules, skills and agents wholesale (one core source, generated
-# per platform); the per-file checks for that layer live in test_prompts.py.
+# per platform); the per-file checks for that layer live in test_prompts.py. CC ships no rules/_index.md
+# since athena-pd-1, so no 9.9.9 rules file is left to differ byte-wise.
 S5 = {
     'claude': {'removed': ['.claude/rules/', '.claude/skills/', '.claude/agents/'],
-               'changed': ['.claude/CLAUDE.md', '.claude/rules/', '.claude/skills/', '.claude/agents/'],
+               'changed': ['.claude/CLAUDE.md', '.claude/skills/', '.claude/agents/'],
                'added': ['.claude/rules/', '.claude/skills/']},
     'codex': {'removed': ['.codex/standards/', '.codex/skills/', '.codex/agents/'],
               'changed': ['.codex/AGENTS.md', '.codex/standards/', '.codex/skills/', '.codex/agents/', '.codex/config.toml'],
@@ -235,7 +236,7 @@ class BuildProperties(unittest.TestCase):
             self.assertIn(rel.as_posix(), run.stderr)
 
     def test_single_source_counts(self):
-        """The shared layer really is shared: every core file ships to both CC and CX (after renames)."""
+        """The shared layer really is shared: every core file ships to both CC and CX (after renames), bar declared excludes."""
         core = sorted(p.relative_to(ATHENA / 'core/package').as_posix()
                       for p in (ATHENA / 'core/package').rglob('*') if p.is_file())
         self.assertGreaterEqual(len(core), 70)
@@ -248,6 +249,9 @@ class BuildProperties(unittest.TestCase):
                 self.assertTrue(config['core'], platform)
                 rename = config.get('rename', {})
                 for rel in core:
+                    if rel in config.get('exclude', []):
+                        self.assertFalse((Path(tmp) / 'dist' / dist / RELEASE / root / rel).exists())
+                        continue
                     out = next((to + rel[len(fr):] for fr, to in rename.items() if rel == fr or (fr.endswith('/') and rel.startswith(fr))), rel)
                     with self.subTest(platform=platform, core=rel):
                         self.assertTrue((Path(tmp) / 'dist' / dist / RELEASE / root / out).is_file())

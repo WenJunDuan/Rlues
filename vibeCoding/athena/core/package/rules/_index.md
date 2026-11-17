@@ -1,6 +1,6 @@
 # Rules 索引
 
-项目规范（不是命令权限）。CC 按文件头 `paths` 在碰到匹配文件时加载；其他平台按下表需要时读。项目自己的规范与本目录同时生效，冲突时以项目为准。
+项目规范（不是命令权限）。本平台无路径作用域，按下表需要时读（CC 按文件头 `paths` 自动加载，不装本文件）。项目自己的规范与本目录同时生效，冲突时以项目为准。
 
 | 文件 | 何时读 |
 |---|---|
@@ -10,7 +10,6 @@
 | docs.md | 写注释、文档、`.ai_state` 产物 |
 | git.md | commit / branch / PR |
 | shell.md | 本机命令行的已知坑 |
-| session-workflow.md | 会话开场核对、写者分工、验证分层、合入 review、收尾 |
 
-严重度：P0 违反 = REWORK；P1 = CONCERNS；P2 = 建议。一个 finding 违反多条，取最高。
+严重度见 coding.md 开头。会话流程（开场、写者、验证、合入、收尾）见 athena-session skill。
 每条规则的来由与删除条件见源码仓 `vibeCoding/athena/core/rules.md`。

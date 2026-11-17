@@ -10,6 +10,7 @@
 //   gate/**                    -> <gate_root>/**     (platforms that set "gate_root"; S2 gate core)
 //   docs/<root_docs>           -> ./<root_docs>      (platforms that list "root_docs": release docs)
 // "rename" {corePrefix: newPrefix} renames core files (CC AGENTS.md -> CLAUDE.md, CX rules/ -> standards/).
+// "exclude" [coreRel] drops core files a "core": true platform does not ship (CC rules/_index.md: paths load rules).
 // "core_map" {corePrefix: outPrefix} (platforms with "core": false) takes only the matching core files.
 // "adapter_map" {adapter: {packagePrefix: outPrefix}} takes only the matching files of another adapter's
 // package/ (plugin shells reuse the installer adapters' agents / skills without copying the sources);
@@ -189,8 +190,12 @@ function assemble(src, platform, version) {
   };
   for (const key of ["rename", "core_map"]) if (config[key] !== undefined) checkTable(key, config[key]);
   if (config.core_map && config.core) throw new BuildError(`adapters/${platform}/platform.json: core_map is for platforms with "core": false`);
+  const exclude = config.exclude === undefined ? [] : config.exclude;
+  if (!Array.isArray(exclude) || exclude.some(x => typeof x !== "string" || !x || x.endsWith("/"))) throw new BuildError(`adapters/${platform}/platform.json: exclude must list core file paths`);
+  if (exclude.length && !config.core) throw new BuildError(`adapters/${platform}/platform.json: exclude is for platforms with "core": true`);
+  for (const rel of exclude) if (!fs.existsSync(path.join(src, "core/package", rel))) throw new BuildError(`adapters/${platform}/platform.json: exclude ${rel} matches no core file`);
   const table = config.core ? (config.rename || {}) : config.core_map;
-  if (table) layers.push({ dir: path.join(src, "core/package"), prefix: config.core ? root : "", label: "core/package", table, only: !config.core, core: true, key: config.core ? "rename" : "core_map" });
+  if (table) layers.push({ dir: path.join(src, "core/package"), prefix: config.core ? root : "", label: "core/package", table, only: !config.core, core: true, key: config.core ? "rename" : "core_map", exclude: new Set(exclude) });
   if (config.gate_root !== undefined) {
     const gateRoot = config.gate_root;
     if (typeof gateRoot !== "string" || path.isAbsolute(gateRoot) || gateRoot.split(/[\\/]/).includes("..")) {
@@ -240,6 +245,7 @@ function assemble(src, platform, version) {
       }
     }
     for (const entry of entries) {
+      if (layer.exclude && layer.exclude.has(entry.rel)) continue;
       let inner = entry.rel;
       if (layer.table) {
         const mapped = mapPrefix(inner, layer.table);

@@ -15,6 +15,7 @@
     "skills/athena-init/": "plugin/skills/athena-init/",
     "skills/athena-review/": "plugin/skills/athena-review/",
     "skills/athena-runtime-verify/": "plugin/skills/athena-runtime-verify/",
+    "skills/athena-session/": "plugin/skills/athena-session/",
     "skills/athena-status/": "plugin/skills/athena-status/",
     "skills/brainstorm/": "plugin/skills/brainstorm/",
     "skills/pace/": "plugin/skills/pace/",

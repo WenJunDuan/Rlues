@@ -2,11 +2,7 @@
 
 ## 写入分区
 
-| 区 | 条件 | 谁写 |
-|---|---|---|
-| 绿 | ≤3 文件且 ≤150 行，或 Hotfix/Quick/Bugfix | 主 agent |
-| 黄 | 单模块 Feature | 主 agent 直做；要并行或隔离时派 generator（worktree 可选） |
-| 红 | Refactor/System，或 `parallel_writers ≥2` | 写者子 agent + 隔离 worktree（H4） |
+绿 / 黄 / 红三区的条件与谁写以 [stages.md](stages.md)「写入分区」为准（由 `core/pace/stages.yaml` 生成，写者规则单一真源）；黄区默认主 agent 直做。
 
 review 窗口内（prepare 到 accept 之间）还有并行写者（含文档）时，也按红区隔离：设 `parallel_writers: 2` 让 H4 生效；否则源码树一变，review 就作废。
 
