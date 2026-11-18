@@ -6,7 +6,7 @@ stage: ""
 sprint: ""
 roadmap: ""
 next_action: ""
-route: ["2026-11-18 shipped nov18-tidy-release","2026-11-18 Bugfix nov18-tidy-release","2026-11-18 shipped 2026-11-18-codex-reference-sync"]
+route: ["2026-11-18 shipped nov18-doctor-index","2026-11-18 Bugfix nov18-doctor-index","2026-11-18 shipped nov18-tidy-release"]
 parallel_writers: 1
 exemptions: []
 flags: {}

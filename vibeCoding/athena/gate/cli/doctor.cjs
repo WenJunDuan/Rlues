@@ -106,7 +106,8 @@ function main(argv, io) {
     const current = (() => { try { return fs.readlinkSync(path.join(home, '.athena/current')); } catch (_) { return null; } })();
     if (current !== state.release) problems.push(`~/.athena/current → ${current || '(missing)'}, expected ${state.release}`);
     const installed = new Set(state.files.map(x => x.path));
-    const leftovers = LEGACY.filter(rel => !installed.has(rel) && fs.existsSync(path.join(home, rel))
+    // The installer preserves personal rows in this index across 10.x upgrades.
+    const leftovers = LEGACY.filter(rel => rel !== '.claude/rules/_index.md' && !installed.has(rel) && fs.existsSync(path.join(home, rel))
       && ((rel.startsWith('.claude/') && state.platforms.includes('cc')) || (!rel.startsWith('.claude/') && state.platforms.includes('cx'))));
     if (leftovers.length) problems.push(`9.9.9 leftovers: ${leftovers.slice(0, 5).join(', ')}${leftovers.length > 5 ? ', …' : ''}`);
   }

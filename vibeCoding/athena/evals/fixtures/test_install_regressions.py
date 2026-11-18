@@ -110,6 +110,21 @@ class Rounds(unittest.TestCase):
         self.assertTrue((kept[0] / '.athena' / RELEASE / 'mynotes/n').is_file())
         self.assertFalse((home / '.athena/bin').exists(), 'directories the install created are removed')
 
+    def test_doctor_respects_personal_rules_index_after_reinstall(self):
+        home = self.home()
+        self.assertEqual(cli('install', '--platform', 'cc', home=home, dist=self.dist).returncode, 0)
+        index = home / '.claude/rules/_index.md'
+        index.write_text('| models.md | Choose a model |\n')
+        self.assertEqual(cli('install', '--platform', 'cc', home=home, dist=self.dist).returncode, 0)
+        self.assertEqual(cli('doctor', home=home, dist=None).returncode, 0)
+        self.assertIn('models.md', index.read_text())
+        leftover = home / '.claude/hooks/delivery-gate.cjs'
+        leftover.parent.mkdir(exist_ok=True)
+        leftover.write_text('// old hook\n')
+        result = cli('doctor', home=home, dist=None)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('delivery-gate.cjs', result.stdout)
+
     def test_doctor_catches_removed_hooks_and_broken_json(self):
         home = self.home()
         self.assertEqual(cli('install', '--platform', 'cc,cx', home=home, dist=self.dist).returncode, 0)
