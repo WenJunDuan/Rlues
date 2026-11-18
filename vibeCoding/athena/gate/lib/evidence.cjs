@@ -16,12 +16,21 @@ const { targetTree } = require('./attribution.cjs');
 // node_modules/.bin/jest) classify like the bare tool (review r4 P2).
 // Only relative, in-repo prefixes: no leading / or ~, no .. (a tool outside the tree is not evidence).
 const PREFIX = String.raw`^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*(?:npx\s+|(?:uv|poetry|pipenv|hatch)\s+run\s+)?(?:\.\/)?(?:(?!\.\.\/)\.?[\w-][\w.-]*\/)*`;
+// Maven/Gradle (quantum-backend G-005): options (`-q`, `-pl x`, `-Dk=v`) and a leading `clean`
+// may precede the phase, so `mvn -q clean test` proves a from-scratch run. Phases that run the
+// test phase (test/verify/package/install) are tests; compile phases are builds.
+const MVN_OPTS = String.raw`(?:(?:-(?:pl|P|f|s|gs|T|rf|b|l)\s+\S+|-\S+)\s+)*`;
+const MVN_LEAD = String.raw`mvnw?\s+${MVN_OPTS}(?:clean\s+${MVN_OPTS})?`;
+const GRADLE_LEAD = String.raw`\./gradlew\s+(?:-\S+\s+)*(?:clean\s+(?:-\S+\s+)*)?`;
 const PATTERNS = [
-  ['test', String.raw`(?:python[0-9.]*\s+-m\s+(?:pytest|unittest)|pytest|jest|vitest|unittest|(?:npm|pnpm|yarn|bun)\s+(?:test|run\s+test)|cargo\s+test|go\s+test|mvn\s+(?:test|verify)|\./gradlew\s+test|node\s+--test)`],
+  ['test', String.raw`(?:python[0-9.]*\s+-m\s+(?:pytest|unittest)|pytest|jest|vitest|unittest|(?:npm|pnpm|yarn|bun)\s+(?:test|run\s+test)|cargo\s+test|go\s+test|${MVN_LEAD}(?:test|verify|package|install)(?![\w-])|${GRADLE_LEAD}test(?![\w-])|node\s+--test)`],
   ['lint', String.raw`(?:eslint|prettier\s+--check|ruff|(?:npm|pnpm|yarn|bun)\s+run\s+lint|cargo\s+clippy|go\s+vet|node\s+--check|git\s+diff\s+--check)`],
   ['typecheck', String.raw`(?:tsc|(?:npm|pnpm|yarn|bun)\s+run\s+(?:typecheck|check)|cargo\s+check)`],
-  ['build', String.raw`(?:(?:npm|pnpm|yarn|bun)\s+run\s+build|cargo\s+build|go\s+build|mvn\s+compile|\./gradlew\s+build|cmake\s+--build)`],
+  ['build', String.raw`(?:(?:npm|pnpm|yarn|bun)\s+run\s+build|cargo\s+build|go\s+build|${MVN_LEAD}(?:compile|test-compile)|${GRADLE_LEAD}build|cmake\s+--build)`],
 ].map(([kind, pattern]) => [kind, new RegExp(`${PREFIX}${pattern}\\b`, 'im')]);
+// A Maven/Gradle test run that skips its tests proves only that the build compiled.
+const BUILD_TOOL = new RegExp(`${PREFIX}(?:mvnw?|\\./gradlew)\\s`, 'i');
+const SKIPPED_TESTS = /(?:^|\s)(?:-DskipTests(?:=(?!false\b)\S*)?|-Dmaven\.test\.skip(?:=(?!false\b)\S*)?|-x\s+test)(?=\s|$)/i;
 const PROVABLE_KINDS = new Set(['test', 'typecheck', 'build', 'docs']);
 // Preserve every baseline rejection (including NODE_ENV and *RC) while extending
 // the runner-selection families. G-011 requires monotonically stricter provability.
@@ -38,7 +47,9 @@ function executionAssignments(text) {
 
 
 function classifySegment(text) {
-  const hit = PATTERNS.find(([, pattern]) => pattern.test(String(text || '')));
+  const s = String(text || '');
+  const hit = PATTERNS.find(([, pattern]) => pattern.test(s));
+  if (hit && hit[0] === 'test' && BUILD_TOOL.test(s) && SKIPPED_TESTS.test(s)) return 'build';
   return hit ? hit[0] : null;
 }
 
