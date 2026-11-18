@@ -6,6 +6,7 @@ const path = require('path');
 const { requireCtx, flags, today } = require('./lib/common.cjs');
 const archive = require('./lib/archive.cjs');
 const issues = require('../lib/issues.cjs');
+const ledger = require('../lib/ledger.cjs');
 const frontmatter = require('../lib/frontmatter.cjs');
 const advisory = require('../rules/advisory.cjs');
 
@@ -64,29 +65,20 @@ function hotLimit(ctx, dry, report, touched) {
   }
 }
 
-// Rotate the chatty subagent stream independently of the overall runtime cap.
-// Keep hot-sprint rows in the live file: A1 still needs their provenance.
+// Seal the inode in one rename. Appenders that already opened it finish in the
+// sealed segment; subsequent opens create the next segment at the live path.
 function rotateSubagents(ctx, dry, report) {
   const file = path.join(ctx.runtime, 'subagents.jsonl');
-  if (!fs.existsSync(file) || fs.statSync(file).size <= 1024 * 1024) return;
-  let hot = [];
-  try { hot = fs.readdirSync(path.join(ctx.aiState, 'sprints')); } catch (_) { /* none */ }
-  const live = new Set([...hot, ctx.sprint].filter(Boolean));
-  const keep = [], cold = [];
-  for (const line of fs.readFileSync(file, 'utf8').split(/(?<=\n)/).filter(Boolean)) {
-    let row;
-    try { row = JSON.parse(line); } catch (_) { /* retain malformed diagnostics in rotation */ }
-    (row && live.has(row.sprint) ? keep : cold).push(line);
-  }
-  if (!cold.length) { report.push('subagents.jsonl >1 MB: hot-sprint provenance retained'); return; }
-  report.push(`subagents.jsonl >1 MB: rotate ${cold.length} row(s); retain hot-sprint provenance`);
+  const st = fs.statSync(file, { throwIfNoEntry: false });
+  if (!st || (st.size <= 1024 * 1024 && Date.now() - st.mtimeMs <= KEEP_MS)) return;
+  report.push(`subagents.jsonl: rotate ${st.size} B`);
   if (dry) return;
   const target = path.join(ctx.runtime, `subagents-${Date.now()}-${process.pid}.jsonl`);
-  fs.writeFileSync(target, cold.join(''), { flag: 'wx' });
-  fs.writeFileSync(file, keep.join(''));
+  try { fs.renameSync(file, target); return target; }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 
-function runtimeRetention(ctx, dry, report) {
+function runtimeRetention(ctx, dry, report, justRotated) {
   const files = [];
   const walk = (dir) => {
     let entries = [];
@@ -102,9 +94,8 @@ function runtimeRetention(ctx, dry, report) {
   let hot = [];
   try { hot = fs.readdirSync(path.join(ctx.aiState, 'sprints')); } catch (_) { /* none */ }
   const live = new Set(hot.map(slug => `evidence/${slug}.jsonl`));
-  const subagentLive = f => f.rel === 'subagents.jsonl' && fs.readFileSync(f.full, 'utf8').split('\n').some(line => {
-    try { return hot.includes(JSON.parse(line).sprint); } catch (_) { return false; }
-  });
+  const subagentLive = f => f.full === justRotated || f.rel === 'subagents.jsonl' || (ledger.subagentSegment(f.rel)
+    && ledger.readJsonl(f.full).some(row => hot.includes(row.sprint) || (ctx.sprint && ctx.sprint === row.sprint)));
   const candidates = files.filter(f => !subagentLive(f) && !PROTECTED.test(f.rel) && !live.has(f.rel.split(path.sep).join('/'))).sort((a, b) => a.mtime - b.mtime);
   const now = Date.now();
   let total = files.reduce((n, f) => n + f.size, 0);
@@ -149,8 +140,8 @@ function main(argv, io) {
     if (!dry) touched.push(...archive.pack(ctx, name).stage);
   }
   hotLimit(ctx, dry, report, touched);
-  rotateSubagents(ctx, dry, report);
-  runtimeRetention(ctx, dry, report);
+  const justRotated = rotateSubagents(ctx, dry, report);
+  runtimeRetention(ctx, dry, report, justRotated);
   for (const w of advisory.run(ctx, { platform: 'cli' }, ['A6', 'A7', 'A8'])) report.push(`advisory ${w.rule}: ${w.message}`);
   io.stdout.write(`${report.length ? report.join('\n') : 'tidy: nothing to do'}${dry ? '\n(dry-run: nothing changed)' : ''}\n`);
   return 0;

@@ -99,4 +99,15 @@ function pass(ctx, ev) {
   if (last && last.event === 'block') appendJsonl(file, { ts: new Date().toISOString(), event: 'pass', session_id: ev.session_id || '', key: last.key, sprint: ctx.sprint });
 }
 
-module.exports = { advise, drain, breaker, pass, reasonKey, appendJsonl, readJsonl };
+// Rotation filenames used since 10.2. Read the live file first so a rename
+// between that read and directory enumeration cannot hide the old segment.
+const subagentSegment = name => /^subagents-\d+-\d+\.jsonl$/.test(name);
+function hasSubagent(runtime, match) {
+  if (readJsonl(path.join(runtime, 'subagents.jsonl')).some(match)) return true;
+  let names;
+  try { names = fs.readdirSync(runtime); }
+  catch (error) { if (error.code === 'ENOENT') return false; throw error; }
+  return names.some(name => subagentSegment(name) && readJsonl(path.join(runtime, name)).some(match));
+}
+
+module.exports = { subagentSegment, hasSubagent, advise, drain, breaker, pass, reasonKey, appendJsonl, readJsonl };

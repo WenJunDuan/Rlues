@@ -26,8 +26,7 @@ const CHECKS = {
   A1(ctx) {
     if (!GENERATOR_PATHS.has(ctx.path) || !ctx.sprintDir) return null;
     if (fs.existsSync(sprintFile(ctx, 'external-writer.json'))) return null;
-    const rows = ledger.readJsonl(path.join(ctx.runtime, 'subagents.jsonl'));
-    if (rows.some(r => r.sprint === ctx.sprint && /generator|writer/i.test(String(r.type || '')))) return null;
+    if (ledger.hasSubagent(ctx.runtime, r => r.sprint === ctx.sprint && /generator|writer/i.test(String(r.type || '')))) return null;
     return 'no generator/external writer recorded for this sprint (main agent wrote the code?) — fine for small changes; otherwise note the writer in log.md';
   },
   /** A2 R/S runtime-verify and polish before review. */

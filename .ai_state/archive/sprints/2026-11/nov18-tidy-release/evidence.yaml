@@ -1,0 +1,10 @@
+sprint: "nov18-tidy-release"
+shipped: "2026-11-18T01:30:57.698Z"
+tree_sha: "25170356c8f6e8f4635ccc40713817710d7c34ec"
+review: {run: "d5ceb792-2fc6-4866-a385-fdd7d0d2c16d", verdict: "PASS"}
+final: {id: "3c1cf695f3f8", command: "python3 -m unittest discover -s vibeCoding/athena/evals/fixtures -p 'test_*.py'", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "跨空行的未完成子项和父项整组保留并出现在 brief。", evidence: ["29c8d7cddab6","3c1cf695f3f8"]}
+  - {id: AC2, text: "轮转期间追加的事件仍可找到，保留热 sprint 来源，回归可重复。", evidence: ["29c8d7cddab6","3c1cf695f3f8"]}
+  - {id: AC3, text: "发布包内说明与 VERSION、路径一致，保留历史说明并验证构建。", evidence: ["2b6360fbab32","3c1cf695f3f8"]}
+  - {id: AC4, text: "核查本机与模板的 Codex、Claude 能力和配置，区分已配置和已实测。", evidence: ["205c9250ff11","3c1cf695f3f8"]}

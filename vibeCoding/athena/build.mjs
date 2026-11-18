@@ -327,6 +327,16 @@ function main() {
   }
   const platforms = args.platform === "all" ? available : [args.platform];
   const built = platforms.map(platform => ({ platform, ...assemble(args.src, platform, version) }));
+  for (const { dir, outputs } of built) {
+    const notes = outputs.get("RELEASE.md");
+    if (!notes) continue;
+    const text = notes.content.toString("utf8");
+    const titleVersion = /^# Athena (\S+)(?:\s|$)/.exec(text)?.[1];
+    const cliPath = `vibeCoding/dist/${dir}/${release}/cli.cjs`;
+    if (titleVersion !== version || !text.includes(`\`${cliPath}\``)) {
+      throw new BuildError(`docs/RELEASE.md: expected title version ${version} and installer path ${cliPath}`);
+    }
+  }
   const dirs = new Map();
   for (const { platform, dir } of built) {
     if (dirs.has(dir)) throw new BuildError(`adapters ${dirs.get(dir)} and ${platform} share dist_dir ${dir}`);

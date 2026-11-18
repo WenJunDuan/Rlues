@@ -6,7 +6,7 @@ stage: ""
 sprint: ""
 roadmap: ""
 next_action: ""
-route: ["2026-11-09 shipped 2026-11-09-vibecoding-deploy","2026-11-09 Quick 2026-11-09-vibecoding-deploy","2026-10-07 shipped 2026-10-07-athena-deploy-cleanup"]
+route: ["2026-11-18 shipped nov18-tidy-release","2026-11-18 Bugfix nov18-tidy-release","2026-11-18 shipped 2026-11-18-codex-reference-sync"]
 parallel_writers: 1
 exemptions: []
 flags: {}

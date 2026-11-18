@@ -36,13 +36,16 @@ function records(text) {
     } else if (/^(?:[-*]|\d+[.)])\s+/.test(line)) {
       statusCol = -1;
       let end = i + 1;
-      while (end < lines.length && /^\s+\S/.test(lines[end]) && !/^\s*(?:[-*]|\d+[.)])\s+/.test(lines[end])) end++;
+      for (let next = end; next < lines.length; next++) {
+        if (!lines[next].trim()) continue;
+        if (!/^[ \t]+\S/.test(lines[next])) break;
+        end = next + 1;
+      }
       const block = lines.slice(i, end).join('');
       // Only a simple item's first-line suffix is authoritative. Nested metadata,
       // code examples and continuation blocks are ambiguous and stay hot.
       const status = line.trimEnd().match(/[;—]\s*status\s*[:=]\s*([\w-]+)[ \t]*$/i);
-      const nested = end < lines.length && /^\s*(?:[-*]|\d+[.)])\s+/.test(lines[end]) && lines[end].match(/^ */)[0].length > line.match(/^ */)[0].length;
-      const simple = end === i + 1 && !nested;
+      const simple = end === i + 1;
       out.push({ start: i, end, text: block, done: simple && (/^\s*[-*]\s+\[x\]/i.test(line) || Boolean(status && DONE.has(clean(status[1])))) });
       i = end - 1;
     } else statusCol = -1;

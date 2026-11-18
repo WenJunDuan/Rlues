@@ -7,6 +7,7 @@ project_root_markers = [".git", ".hg", ".sl"]
 project_doc_max_bytes = 65536
 
 model_provider = "openai"
+model = "gpt-6.2-sol"
 web_search = "live"
 suppress_unstable_features_warning = true
 
@@ -28,8 +29,7 @@ generate_memories = true
 use_memories = true
 disable_on_external_context = true
 
-# 多 agent：官方 `features.multi_agent` 默认开，不重复写；并发上限归 [agents] 表。
-# 原 `[features.multi_agent_v2]` 表不在官方 config-reference 合同内，10.1.5 删除。
+# Codex 0.169.1 的多代理功能已稳定；并发数使用官方 agents 配置。
 [agents]
 max_concurrent_threads_per_session = 9
 

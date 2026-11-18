@@ -283,9 +283,10 @@ class PromptsV3(unittest.TestCase):
                     with self.subTest(file=str(f.relative_to(ATHENA))):
                         self.assertIsNone(self.BANNED.search(f.read_text(encoding='utf-8')))
 
-    def test_no_model_or_effort_pin_in_packages(self):
+    def test_codex_default_model_and_no_effort_pin_in_packages(self):
         cx = (ATHENA / 'adapters/cx/package/config.toml').read_text(encoding='utf-8')
-        self.assertIsNone(re.search(r'^model\s*=|^model_reasoning_effort\s*=|^plan_mode_reasoning_effort\s*=', cx, re.M))
+        self.assertRegex(cx, r'(?m)^model = "gpt-6\.2-sol"$')
+        self.assertIsNone(re.search(r'^model_reasoning_effort\s*=|^plan_mode_reasoning_effort\s*=', cx, re.M))
         cc = (ATHENA / 'adapters/cc/package/settings.json').read_text(encoding='utf-8')
         self.assertNotIn('effortLevel', cc)
 

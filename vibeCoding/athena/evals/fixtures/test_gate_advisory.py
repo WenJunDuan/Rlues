@@ -29,6 +29,9 @@ class Advisories(unittest.TestCase):
         self.assertIn('A1', advisories(root, ['A1']))
         call('cc', 'subagent_start', root, type='generator')
         self.assertNotIn('A1', advisories(root, ['A1']))
+        stream = root / '.ai_state/.runtime/subagents.jsonl'
+        stream.rename(stream.with_name('subagents-1234-42.jsonl'))
+        self.assertNotIn('A1', advisories(root, ['A1']))
         quick = project(tmpdir(self), path='Quick', stage='ship', design=GOOD_DESIGN)
         self.assertNotIn('A1', advisories(quick, ['A1']))
 

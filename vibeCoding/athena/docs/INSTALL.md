@@ -53,6 +53,31 @@ athena doctor                            # 必须输出 doctor: no drift
 
 包模板的安全基线（首装时生效）：CC 拒读/拒改密钥文件（`.env*`、`~/.ssh`、`~/.aws`、`*.pem` 等），force push / publish 需确认；CX 为官方默认 `on-request` + `workspace-write`。用户自己的放宽（如 `danger-full-access`）属于个人配置，安装器不改。
 
+### Codex 模型与自定义代理参考
+
+Codex 首装模板默认模型为 `gpt-6.2-sol`。已有用户需在自己的 `~/.codex/config.toml` 中修改，升级不会覆盖模型选择。
+
+使用兼容 Responses API 的代理时，按[官方自定义 provider 格式](https://developers.openai.com/codex/config-advanced/#custom-model-providers)配置独立的 `proxy`。下面的根级键替换文件开头已有的对应项，provider 表追加到文件末尾；将示例 URL 换成实际代理地址。
+
+```toml
+model_provider = "proxy"
+model = "gpt-6.2-sol"
+model_reasoning_effort = "high"
+
+[model_providers.proxy]
+name = "Codex Proxy"
+base_url = "https://proxy.example.com/v1"
+wire_api = "responses"
+requires_openai_auth = true
+```
+
+此示例复用 `~/.codex/auth.json` 中已配置的代理 API 凭据。替换原有自定义 provider 后，删除其旧表并重新启动 Codex；凭据不写进模板或仓库。
+
+### 版本与能力核查（2026-11-18）
+
+- [Codex 发布历史](https://learn.chatgpt.com/docs/changelog)列出 0.169.1 和 GPT-6.2 Sol/Astra。用 `codex features list` 核对当前进程支持的开关。0.169.1 将 `multi_agent_v2` 列为 stable，`multi_agent` 列为 deprecated，`js_repl` 列为 removed。并发数配置见[官方配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)。
+- [Claude Code 2.1.327 发布记录](https://github.com/anthropics/claude-code/releases/tag/v2.1.327)包含 Remote Control 和项目 MCP 配置修复。用 `claude --version`、`claude doctor` 和 `/mcp` 核对本机版本、运行条件和连接。模板启用了六个插件。`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` 限制可选联网能力，包含 Remote Control 的功能评估。见[官方环境变量说明](https://code.claude.com/docs/en/env-vars)。
+
 ## 5. 安装后检查
 
 | 检查 | 判据 |

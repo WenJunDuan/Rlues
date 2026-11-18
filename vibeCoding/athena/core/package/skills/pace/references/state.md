@@ -24,4 +24,4 @@ A7 提示（热层 >3 个 sprint、issues >40 行、`_index` >3 KB、queue.md / 
 
 queue.md / SPRINTS.md 热层目标各 ≤16 KB。tidy 仅移动状态明确为完成的表格行或列表记录到 `archive/ledgers/`；未知、pending、active、paused、deferred 保留。未完成内容本身超限时报告人工梳理，不强制截断。`athena status --json` 的 ledgers 计数含归档；tidy 对账 total / unfinished，dry-run 不写入。表格使用 `status` / `状态` 列，列表使用 `[x]` 或行末 `— status: done` 等明确终态；正文提到 done 不算完成；代码块与含嵌套内容的复杂列表保守保留。
 
-`.runtime/subagents.jsonl` >1 MB 时轮转到同目录带时间戳文件，热 sprint 的溯源行留在活动文件；活动文件含热 sprint 溯源行时不按保留期删除；轮转文件与其他 runtime 文件同用 14 天 / 总量 50 MB 保留期。
+`.runtime/subagents.jsonl` >1 MB 时轮转到同目录带时间戳文件，A1 同时读取活动文件与轮转文件。保留含热 sprint 事件的整个文件；其余轮转文件在后续 tidy 中按 14 天 / 总量 50 MB 清理。

@@ -100,17 +100,24 @@ class Retention(unittest.TestCase):
         original = snapshot(root)
         ok(self, athena('tidy', '--dry-run', cwd=root))
         self.assertEqual(snapshot(root), original)
-        ok(self, athena('tidy', cwd=root))
-        self.assertEqual(stream.read_text(), live)
+        # An appender may already hold the old inode when rotation starts.
+        with stream.open('a') as writer:
+            ok(self, athena('tidy', cwd=root))
+            writer.write('{"id":"during","sprint":"live"}\n')
+        with stream.open('a') as writer:
+            writer.write('{"id":"after","sprint":"live"}\n')
+        self.assertIn('after', stream.read_text())
         rotated = list(runtime.glob('subagents-*.jsonl'))
         self.assertEqual(len(rotated), 1)
-        self.assertEqual(rotated[0].read_text(), old)
+        self.assertEqual(rotated[0].read_text(), old + live + '{"id":"during","sprint":"live"}\n')
         import os
         os.utime(rotated[0], (1, 1))
         os.utime(stream, (1, 1))
         ok(self, athena('tidy', cwd=root))
+        self.assertTrue(rotated[0].exists(), 'retain hot sprint provenance')
+        (s / 'sprints/live').rmdir()
+        ok(self, athena('tidy', cwd=root))
         self.assertFalse(rotated[0].exists())
-        self.assertTrue(stream.exists())
 
     def test_a7_exact_byte_boundary(self):
         from test_gate_advisory import advisories
@@ -143,10 +150,20 @@ class LedgerSafety(unittest.TestCase):
         self.assertNotIn('unfinished', archive.read_text())
         self.assertNotIn('query', archive.read_text())
 
+    def test_loose_child_stays_with_parent_in_queue_and_brief(self):
+        root = v2project(tmpdir(self))
+        queue = root / '.ai_state/queue.md'
+        group = '- [x] Parent\n\n  details\n\n  - [ ] Open child\n'
+        queue.write_text(group + '- [x] Old ' + 'x' * 17000 + '\n')
+        ok(self, athena('tidy', cwd=root))
+        self.assertEqual(queue.read_text(), group)
+        brief = ok(self, athena('status', '--brief', cwd=root)).stdout
+        self.assertIn('Open child', brief)
+
     def test_fences_and_nested_metadata_stay_hot(self):
         root = v2project(tmpdir(self))
         p = root / '.ai_state/queue.md'
-        retained = ('    | task | status |\n    |---|---|\n    | unfinished code | done |\n    - [x] code example\n'
+        retained = ('## Examples\n\n    | task | status |\n    |---|---|\n    | unfinished code | done |\n    - [x] code example\n'
                     '- pending fenced table\n  ```md\n\n  | task | status |\n  |---|---|\n  | unfinished example | done |\n  ```\n'
                     '- pending task\n  ```yaml\n  status: done\n  ```\n'
                     '- pending parent\n  child:\n    status: done\n'

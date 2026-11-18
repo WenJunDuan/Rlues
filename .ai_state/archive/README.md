@@ -75,3 +75,6 @@
 | sprints/2026-10-07-athena-deploy-cleanup/ | archive/sprints/2026-10/2026-10-07-athena-deploy-cleanup/ |
 | sprints/2026-11-09-vibecoding-deploy/ | archive/sprints/2026-11/2026-11-09-vibecoding-deploy/ |
 | archive/sprints/2026-09/ | archive/2026-09.tar.zst |
+| sprints/2026-11-18-codex-proxy-provider/ | archive/sprints/2026-11/2026-11-18-codex-proxy-provider/ |
+| sprints/2026-11-18-codex-reference-sync/ | archive/sprints/2026-11/2026-11-18-codex-reference-sync/ |
+| sprints/nov18-tidy-release/ | archive/sprints/2026-11/nov18-tidy-release/ |

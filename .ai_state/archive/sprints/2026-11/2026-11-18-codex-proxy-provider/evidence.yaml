@@ -1,0 +1,8 @@
+sprint: "2026-11-18-codex-proxy-provider"
+shipped: "2026-11-18T01:08:02.238Z"
+tree_sha: "18c441847c66286bffdfd593f855b2e86946b79e"
+review: {run: "", verdict: ""}
+final: {id: "f2773c3f9900", command: "node --test /tmp/codex-proxy-provider.test.cjs", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "provider ID 为 proxy，name 为 Codex Proxy；默认模型为 gpt-6.2-sol，推理强度保留 high，其余配置及凭据不变，通过 TOML 结构对比验证。", evidence: ["f2773c3f9900"]}
+  - {id: AC2, text: "新启动 Codex 的 config/read 和 model/list 成功，模型目录包含默认模型；对现有代理的鉴权 models 查询返回 HTTP 200。", evidence: ["f2773c3f9900"]}

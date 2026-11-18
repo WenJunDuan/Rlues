@@ -328,6 +328,18 @@ class BuildProperties(unittest.TestCase):
             built = (out / f'codex/{RELEASE}/.codex/skills/zz-probe/doc.md').read_bytes()
             self.assertEqual(built, b'write {{athena:SKILLS_DIR}} in sources\n')
 
+    def test_release_notes_reject_stale_version_or_cli_path(self):
+        for version, release in [('0.0.0', RELEASE), ((ATHENA / 'VERSION').read_text().strip(), '0.0')]:
+            with self.subTest(version=version, release=release), tempfile.TemporaryDirectory() as tmp:
+                src = self.copy_source(tmp)
+                (src / 'docs/RELEASE.md').write_text(
+                    f'# Athena {version} 发布说明\n\n`vibeCoding/dist/athena/{release}/cli.cjs`\n')
+                out = Path(tmp) / 'dist'
+                run = build(out, src, '--platform', 'core')
+                self.assertNotEqual(run.returncode, 0)
+                self.assertIn('docs/RELEASE.md', run.stderr)
+                self.assertFalse(out.exists())
+
     def test_case_only_conflict_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
             src = self.copy_source(tmp)
