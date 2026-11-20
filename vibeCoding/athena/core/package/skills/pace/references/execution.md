@@ -24,6 +24,8 @@ Git worktree 不带未提交内容：先提交或传递增量并校验。写者�
 
 ## 外部写者（grok / codex 等）
 
+具体派工与接回步骤：grok 见 `grok-exec`，codex 见 `codex-exec`。
+
 用 `athena writer dispatch --tool <名> --family <家族>` 开窗口（建同级 worktree、记 `external-writer.json`、置 `parallel_writers`），写者交回后 `athena writer collect`（探冲突、只做 ff、还原 `parallel_writers`）。CLI 不启动外部工具，只做准备与接回。
 
 - 简报：同派工模板 + 「证据只写主仓 `.ai_state/.runtime/evidence/`，不在仓库根写任何证据文件」。

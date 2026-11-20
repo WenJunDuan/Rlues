@@ -205,6 +205,9 @@ class Prompts(unittest.TestCase):
         grok = read('grok-exec/SKILL.md')
         for needle in ('grok models', '402', '最后一个顶层 JSON 对象', 'cherry-pick', 'tdd-evidence' if False else '不在仓库任何位置写证据'):
             self.assertIn(needle, grok)
+        codex = read('codex-exec/SKILL.md')
+        for needle in ('commit-tree', '--add-dir', '< /dev/null', 'read-only', '异族', 'packet 绑树'):
+            self.assertIn(needle, codex)
         deps = read('deps-check/SKILL.md')
         for needle in ('全组件清单', '标来源', '私有或未文档化契约', '一个主版本'):
             self.assertIn(needle, deps)
