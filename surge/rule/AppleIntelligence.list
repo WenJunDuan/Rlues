@@ -1,43 +1,61 @@
 # ========================================
-# Apple Intelligence / Siri AI 分流规则
-# 来源：Apple Support (enterprise networks) + 社区验证
-# 建议放在 Apple 通用规则之前，策略建议走「美国节点」或支持 Apple Intelligence 的节点
+# Apple Intelligence / Private Cloud Compute
+# 更新：2026-11-21（America/Los_Angeles）
+# 范围：仅 Apple Intelligence、Siri 听写/搜索，以及 PCC / Intelligence Extensions
+# 不要把 iCloud、App Store、系统更新、推送、地图等通用苹果流量放进来
+# 官方依据：https://support.apple.com/en-us/101555
+#          （章节：Apple Intelligence, Siri, and Search）
+# 用法：本规则集走「支持 Apple Intelligence 的节点」，
+#      并放在所有 Apple / iCloud / 17.0.0.0/8 直连规则之前
 # ========================================
 
-# --- 1. Siri / 听写 / 搜索主入口（必须）
+# --- 1. Siri / 听写 / 搜索（官方必须）
+# guzzoni：Siri 与听写。也会带走普通 Siri / 听写，不只是 Apple Intelligence
+# smoot：搜索服务，覆盖 Siri、Spotlight、Lookup、Safari、News、信息和音乐
 DOMAIN,guzzoni.apple.com
 DOMAIN-SUFFIX,smoot.apple.com
 
-# --- 2. Apple Intelligence 中继链 / Private Cloud Compute（必须）
-DOMAIN-SUFFIX,apple-relay.apple.com
-DOMAIN-SUFFIX,apple-relay.fastly-edge.com
+# --- 2. Private Cloud Compute（官方必须）
+# 部分 Apple Intelligence 请求会经 Cloudflare / Fastly 中继到 PCC
+# 协议为 TCP/UDP 443，请勿对这些主机做 HTTPS 解密
 DOMAIN-SUFFIX,apple-relay.cloudflare.com
+DOMAIN-SUFFIX,apple-relay.fastly-edge.com
 DOMAIN,cp4.cloudflare.com
 
-# --- 3. 额外中继 / Mask / 边缘节点（强烈推荐）
-DOMAIN-SUFFIX,apple-relay.akamaized.net
+# --- 3. Apple Intelligence Extensions（官方必须）
+# 官方用于 Apple Intelligence 扩展（含 ChatGPT 扩展走的 Apple 中继）
+DOMAIN-SUFFIX,apple-relay.apple.com
+
+# --- 4. 官方主机的 CNAME / 社区常见 CDN 别名（建议保留）
+# 实测 apple-relay.apple.com CNAME 到 apple-relay.mask.apple-dns.net
+# apple-relay.akamaized.net 不在 101555 正文，但社区规则普遍收录，且域名足够具体
 DOMAIN-SUFFIX,apple-relay.mask.apple-dns.net
+DOMAIN-SUFFIX,apple-relay.akamaized.net
+
+# --- 5. 可选：地区检测（默认关闭）
+# gspe1-ssl.ls.apple.com 被 SukkaW、v2fly 用于 com.apple.geod 地区判断
+# 但同一主机还影响国内地图、eSIM 地区、部分运营商 Wi-Fi Calling 等
+# 官方 101555 未将其列入 Apple Intelligence 章节；需要时再取消注释
+DOMAIN,gspe1-ssl.ls.apple.com
+
+# --- 6. 可选：社区补充中继（默认关闭）
+# apple-carry-relay.cloudflare.com 见于 hagezi（2026），可解析，但官方未列出
+DOMAIN,apple-carry-relay.cloudflare.com
+# api-siri-prod.apple.com 见于 ACL4SSR / 部分社区列表，官方未列出
+DOMAIN,api-siri-prod.apple.com
+
+# --- 7. 可选：iCloud Private Relay（默认关闭）
+# 官方将下列主机归类为 iCloud Private Relay，不是 Apple Intelligence
+# 企业网络有报告：拦截 mask-api.icloud.com 会导致 Safari 摘要 / 新 Siri 失败
+# 直连通常即可，不必代理；若直连失败再考虑取消注释
+# 注意：代理它们会把整段 Private Relay（含 Safari 浏览）送到节点
 DOMAIN,mask-api.icloud.com
-DOMAIN,mask-h2.icloud.com
+DOMAIN,mask-api.fe2.apple-dns.net
 DOMAIN,mask.icloud.com
-DOMAIN,mask-api.fe.apple-dns.net
-DOMAIN,mask-t.apple-dns.net
+DOMAIN,mask-h2.icloud.com
 DOMAIN,mask.apple-dns.net
 
-# --- 4. iCloud 网关 & AI 个性化同步（推荐）
-DOMAIN-SUFFIX,gateway.icloud.com
-
-# --- 5. 位置 / 资源配置相关（强相关，建议保留）
-DOMAIN,gspe1-ssl.ls.apple.com
-DOMAIN-SUFFIX,ls.apple.com
-
-# --- 6. 静态资源 / App 相关（按需）
-DOMAIN-SUFFIX,aapps.mzstatic.com
-DOMAIN-SUFFIX,apps.mzstatic.com
-
-# --- 7. 配置下发 / 能力接口（可选，增强稳定性）
-DOMAIN-SUFFIX,amp-api.apps.apple.com
-DOMAIN-SUFFIX,configuration.apple.com
-DOMAIN-SUFFIX,mesu.apple.com
-DOMAIN-SUFFIX,gdmf.apple.com
-DOMAIN-SUFFIX,xp.apple.com
+# --- 8. 可选：CloudKit 网关（默认关闭）
+# 官方用途是 CloudKit 内容（含 XProtect 更新、Voice Control 资源），范围过宽
+# 社区有「ChatGPT 扩展提示不在服务地区」时补它的个例，默认不要代理
+DOMAIN,gateway.icloud.com
