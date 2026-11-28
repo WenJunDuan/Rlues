@@ -10,6 +10,7 @@
 | docs.md | 写注释、文档、`.ai_state` 产物 |
 | git.md | commit / branch / PR |
 | shell.md | 本机命令行的已知坑 |
+| closing-review.md | 会话末整体审查与架构降熵、清理瘦身（Fable） |
 
 严重度见 coding.md 开头。会话流程（开场、写者、验证、合入、收尾）见 athena-session skill。
 每条规则的来由与删除条件见源码仓 `vibeCoding/athena/core/rules.md`。
