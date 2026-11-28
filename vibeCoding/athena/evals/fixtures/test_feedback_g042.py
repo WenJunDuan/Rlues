@@ -182,5 +182,28 @@ class ReviewPauseAttribution(unittest.TestCase):
         self.assert_exclusions(packet, kept=(merge,), excluded=(foreign,))
 
 
+    def test_prose_mention_of_an_archived_slug_is_not_ownership(self) -> None:
+        # review P2: archived slugs include short words; a writer subject that merely mentions one
+        # must not be excluded as that archived sprint's work, while an explicit scope still is.
+        archive = self.root / '.ai_state' / 'archive'
+        archive.mkdir(parents=True, exist_ok=True)
+        (archive / 'README.md').write_text(
+            '# Archive\n\n| a | b |\n|---|---|\n'
+            '| sprints/2026-10-08-boundaries/ | archive/sprints/2026-10/2026-10-08-boundaries/ |\n'
+            '| sprints/legacy-old | archive/sprints/2026-10/legacy-old |\n',
+            encoding='utf-8',
+        )
+        git(self.root, 'add', '-A')
+        git(self.root, 'commit', '-qm', 'chore: archive table')
+        self.pause()
+        side, merge = branch_merge(self.root, 'writer/opaque', 'writer.js', 'fix(web): add route error boundaries')
+        scoped = commit(self.root, 'legacy.js', 'fix(legacy-old): old sprint follow-up')
+        self.resume()
+
+        packet = prepare(self, self.root)
+        self.assert_changes(packet, 'writer.js')
+        self.assert_exclusions(packet, kept=(side, merge), excluded=(scoped,))
+
+
 if __name__ == '__main__':
     unittest.main()
