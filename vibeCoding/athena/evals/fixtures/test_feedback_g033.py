@@ -1,9 +1,8 @@
 """G-033: a review packet listed an older, unrelated commit (palette-calibrate packet → recap commit).
 
-The sprint was paused right after start; while paused, other sprints shipped (left the hot layer) and
-their commits had unknown ownership, so G-024 kept them in Changes. While a sprint has nothing of its
-own yet, only commits naming it stay from that paused interval. Changes after a --no-ff merge are
-base → current tree.
+The sprint was paused right after start. Another sprint left the hot layer, so its explicitly
+signed commit must still be attributed via the archive. Changes after a --no-ff merge are base →
+current tree.
 """
 import re
 import unittest
@@ -45,10 +44,10 @@ class PausedBeforeOwnWork(unittest.TestCase):
         root = v2project(tmpdir(self))
         ok(self, athena('sprint', 'start', 'r/x', '--slug', 's-x', cwd=root))
         ok(self, athena('sprint', 'pause', '--resume-when', 'after y', cwd=root))
-        ok(self, athena('sprint', 'start', 'r/y', '--slug', 's-y', cwd=root))
+        ok(self, athena('sprint', 'start', 'r/y', '--slug', 'recap', cwd=root))
         foreign = commit(root, 'recap.js', 'feat(recap): other work')
         _, named = branch_merge(root, 'writer-x', 'early.js', 'feat(s-x): early writer part')
-        ok(self, athena('sprint', 'drop', 's-y', '--reason', 'shipped elsewhere', cwd=root))
+        ok(self, athena('sprint', 'drop', 'recap', '--reason', 'shipped elsewhere', cwd=root))
         git(root, 'add', '-A')
         git(root, 'commit', '-qm', 'chore(state): close y')
         ok(self, athena('sprint', 'resume', 's-x', cwd=root))
