@@ -1,6 +1,6 @@
-# Athena 10.2.0 发布说明
+# Athena 10.2.1 发布说明
 
-本说明适用于仓库中的 10.2.0 构建。运行 `node vibeCoding/athena/build.mjs` 生成安装包，安装器入口为 `vibeCoding/dist/athena/10.2/cli.cjs`。平台选择、安装预演和回滚步骤见 [安装指南](INSTALL.md)。
+本说明适用于仓库中的 10.2.1 构建。运行 `node vibeCoding/athena/build.mjs` 生成安装包，安装器入口为 `vibeCoding/dist/athena/10.2/cli.cjs`。平台选择、安装预演和回滚步骤见 [安装指南](INSTALL.md)。
 
 - 用 `athena status --brief` 查看当前 sprint、队列和紧急问题。用 `athena tidy --dry-run` 预览已完成条目的归档计划。
 - 用 `athena doctor --context` 检查各层载入的上下文。Quantum 产品技能随项目包分发，按项目启用。

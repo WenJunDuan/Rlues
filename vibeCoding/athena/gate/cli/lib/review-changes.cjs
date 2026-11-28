@@ -20,72 +20,135 @@ function changed(ctx, base, tree, ignore) {
   };
 }
 
-/** Hot sprints whose slug (or slug without its date prefix) is a whole token of `text`. */
+/** Sprints whose slug (or slug without its date prefix) is a whole token of `text`. */
 function sprintsNamed(slugs, text) {
   return slugs.filter(slug => [slug, slug.replace(/^\d{4}-\d{2}-\d{2}-/, '')].some(key => attribution.token(text, key)));
 }
 
-// Sprints owning a paused-interval commit: named by its message, a merged branch (by name or via
-// sprintForWorktree) or the merged side's messages, or the only sprint whose state it touches.
+function revList(root, ...args) {
+  return (git(root, ['rev-list', ...args]) || '').split('\n').filter(Boolean);
+}
+
+// The redirect table still names shipped sprints after their directories have been packed.
+function archivedSlugs(ctx) {
+  let redirects;
+  try { redirects = fs.readFileSync(path.join(ctx.aiState, 'archive', 'README.md'), 'utf8'); } catch (_) { return []; }
+  return [...redirects.matchAll(/^\| sprints\/([A-Za-z0-9][A-Za-z0-9._-]*)\/ \| archive\/sprints\/\d{4}-\d{2}\/\1\/ \|$/gm)].map(m => m[1]);
+}
+
 function commitOwners(ctx, commit, slugs) {
-  const owners = new Set(sprintsNamed(slugs, git(ctx.root, ['log', '-1', '--format=%B', commit]) || ''));
-  const parents = (git(ctx.root, ['rev-list', '--parents', '-n', '1', commit]) || '').split(' ').slice(1);
-  if (parents.length > 1) {
-    for (const s of sprintsNamed(slugs, git(ctx.root, ['log', '--format=%B', `${parents[0]}..${parents[1]}`]) || '')) owners.add(s);
-    const branch = ((git(ctx.root, ['log', '-1', '--format=%s', commit]) || '').match(/^Merge (?:remote-tracking )?branch '([^']+)'/) || [])[1];
-    const mapped = branch && attribution.sprintForWorktree(ctx, '', branch);
-    if (mapped) owners.add(mapped);
-  } else if (!owners.size) {
-    const files = (git(ctx.root, ['diff-tree', '--no-commit-id', '--name-only', '-r', commit]) || '').split('\n').filter(Boolean);
-    const dirs = new Set(files.map(f => (f.match(/^\.ai_state\/sprints\/([^/]+)\//) || [])[1]));
-    if (files.length && dirs.size === 1 && slugs.includes([...dirs][0])) owners.add([...dirs][0]);
+  const named = sprintsNamed(slugs, git(ctx.root, ['log', '-1', '--format=%B', commit]) || '');
+  if (named.length) return named;
+  const files = (git(ctx.root, ['diff-tree', '--no-commit-id', '--name-only', '-r', commit]) || '').split('\n').filter(Boolean);
+  const dirs = new Set(files.map(f => (f.match(/^\.ai_state\/sprints\/([^/]+)\//) || [])[1]));
+  return dirs.size === 1 && slugs.includes([...dirs][0]) ? [...dirs] : [];
+}
+
+function mergeOwners(ctx, commit, parents, slugs, dispatches) {
+  const message = git(ctx.root, ['log', '-1', '--format=%B', commit]) || '';
+  const sideMessages = git(ctx.root, ['log', '--format=%B', ...sideRange(parents)]) || '';
+  const owners = new Set(sprintsNamed(slugs, `${message}\n${sideMessages}`));
+  const branch = (message.match(/^Merge (?:remote-tracking )?branch '([^']+)'/) || [])[1];
+  const mapped = branch && attribution.sprintForWorktree(ctx, '', branch);
+  if (mapped) owners.add(mapped);
+  const mergedParents = parents.slice(1);
+  if (dispatches.some(rec => branch ? rec.branch === branch : mergedParents.includes(rec.head))) owners.add(ctx.sprint);
+  if (!branch && !owners.has(ctx.sprint)) {
+    // An edited merge subject may omit the branch name. A ref at the merged tip can keep its work.
+    for (const parent of mergedParents) {
+      const refs = git(ctx.root, ['for-each-ref', `--points-at=${parent}`, '--format=%(refname:lstrip=2)', 'refs/heads', 'refs/remotes']) || '';
+      if (sprintsNamed([ctx.sprint], refs).length || dispatches.some(rec => refs.split('\n').includes(rec.branch))) owners.add(ctx.sprint);
+    }
   }
   return owners;
 }
 
-// Commits made while this sprint is paused that belong to another sprint: anything naming this sprint
-// stays; anything naming only others goes; unknown ownership stays (G-021/G-024) — except while the
-// sprint had nothing of its own yet (nothing kept in base..pause head), where only commits naming it
-// stay (G-033: a sprint paused right after start listed the whole interval's foreign work). Legacy
-// logs without HEAD boundaries keep the inclusive diff; excluded commits are listed in the packet.
-function excludedCommits(ctx, base) {
-  let log = '';
-  try { log = fs.readFileSync(path.join(ctx.sprintDir, 'log.md'), 'utf8'); } catch (_) { return []; }
-  const range = new Set((git(ctx.root, ['rev-list', `${base}..HEAD`]) || '').split('\n').filter(Boolean));
-  const excluded = new Set();
-  const slugs = attribution.hotSprints(ctx).concat(ctx.sprint).filter((s, i, a) => s && a.indexOf(s) === i);
+function pausedCommits(ctx, base, log) {
+  const candidates = new Set();
+  let keep = null;
   let paused = null;
   for (const line of log.split('\n')) {
     const m = line.match(/ (paused|resumed) at .*?\(head ([0-9a-f]{40,64})\)/);
     if (!m) continue;
-    if (m[1] === 'paused') paused = m[2];
-    else if (paused) {
-      const fresh = (git(ctx.root, ['rev-list', `${base}..${paused}`]) || '').split('\n').every(c => !c || excluded.has(c));
-      const commits = git(ctx.root, ['rev-list', `${paused}..${m[2]}`]);
-      for (const commit of (commits || '').split('\n')) {
-        if (!range.has(commit)) continue;
-        const owners = commitOwners(ctx, commit, slugs);
-        if (!owners.has(ctx.sprint) && (owners.size > 0 || fresh)) excluded.add(commit);
-      }
+    if (m[1] === 'paused') {
+      paused = m[2];
+      // A later pause can be recorded on a different branch with an older head.
+      keep ??= new Set(revList(ctx.root, `${base}..${paused}`));
+    } else if (paused) {
+      for (const commit of revList(ctx.root, `${paused}..${m[2]}`)) if (!keep.has(commit)) candidates.add(commit);
       paused = null;
     }
   }
-  return [...excluded];
+  return { keep, candidates };
+}
+
+// The first parent already contains mainline changes brought into a writer branch by an earlier sync.
+const sideRange = ([first, ...side]) => [...side, `^${first}`];
+
+function attributeMerges(ctx, range, slugs, candidates, keep) {
+  const foreign = new Set();
+  const dispatches = attribution.writerDispatches(ctx);
+  for (const row of revList(ctx.root, '--first-parent', '--merges', '--parents', range)) {
+    const [commit, ...parents] = row.split(' ');
+    const owners = mergeOwners(ctx, commit, parents, slugs, dispatches);
+    const group = owners.has(ctx.sprint) ? keep : candidates.has(commit) && owners.size ? foreign : null;
+    if (group) for (const sha of [commit, ...revList(ctx.root, ...sideRange(parents))]) group.add(sha);
+  }
+  return foreign;
+}
+
+// Keep unknown ownership. Legacy logs without HEAD boundaries retain the inclusive diff.
+function excludedCommits(ctx, base) {
+  if (!base) return [];
+  let log;
+  try { log = fs.readFileSync(path.join(ctx.sprintDir, 'log.md'), 'utf8'); } catch (_) { return []; }
+  const { keep, candidates } = pausedCommits(ctx, base, log);
+  if (!candidates.size) return [];
+  const headRange = `${base}..HEAD`;
+  const reachable = new Set(revList(ctx.root, headRange));
+  const slugs = [...new Set([...attribution.hotSprints(ctx), ...archivedSlugs(ctx), ctx.sprint])];
+  const foreign = attributeMerges(ctx, headRange, slugs, candidates, keep);
+  return [...candidates].filter(commit => {
+    if (keep.has(commit) || !reachable.has(commit)) return false;
+    const owners = commitOwners(ctx, commit, slugs);
+    return !owners.includes(ctx.sprint) && (owners.length > 0 || foreign.has(commit));
+  });
+}
+
+function commitDiffs(root, base, omit, spec) {
+  const covered = new Set(omit);
+  const pairs = [];
+  for (const row of revList(root, '--topo-order', '--parents', `${base}..HEAD`)) {
+    const [commit, ...parents] = row.split(' ');
+    if (covered.has(commit)) continue;
+    let paths = spec;
+    if (parents.length > 1) {
+      const side = revList(root, ...sideRange(parents));
+      if (side.some(sha => omit.has(sha))) {
+        // Review the kept side commits separately, plus paths changed relative to every parent.
+        const names = (git(root, ['diff-tree', '-r', '-c', '--name-only', '-z', commit, ...spec]) || '').split('\0').slice(1, -1);
+        if (!names.length) continue;
+        paths = ['--', ...names.map(name => `:(top,literal)${name}`)];
+      } else {
+        for (const sha of side) covered.add(sha);
+      }
+    }
+    pairs.push([`${commit}^`, commit, paths]);
+  }
+  return pairs.reverse();
 }
 
 function sprintChanges(ctx, base, tree, ignore, excluded) {
   if (!excluded.length) return changed(ctx, base, tree, ignore);
-  const omit = new Set(excluded);
-  const commits = (git(ctx.root, ['rev-list', '--reverse', '--first-parent', `${base}..HEAD`]) || '').split('\n').filter(c => c && !omit.has(c));
   const spec = ['--', ...pathspec(ignore)];
   const stats = [], names = new Set();
   // Per-commit patches retain this sprint's edits even when another slice touched the same file.
-  const pairs = commits.map(c => [c + '^', c]);
-  pairs.push(['HEAD', tree]); // staged, unstaged and untracked source are still reviewed
-  for (const [from, to] of pairs) {
-    const stat = git(ctx.root, ['diff-tree', '-r', '--stat=120', from, to, ...spec]);
+  const pairs = commitDiffs(ctx.root, base, new Set(excluded), spec);
+  pairs.push(['HEAD', tree, spec]); // staged, unstaged and untracked source are still reviewed
+  for (const [from, to, paths] of pairs) {
+    const stat = git(ctx.root, ['diff-tree', '-r', '--stat=120', from, to, ...paths]);
     if (stat) stats.push(`${from} → ${to}\n${stat}`);
-    for (const name of (git(ctx.root, ['diff-tree', '-r', '--name-status', from, to, ...spec]) || '').split('\n')) if (name) names.add(name);
+    for (const name of (git(ctx.root, ['diff-tree', '-r', '--name-status', from, to, ...paths]) || '').split('\n')) if (name) names.add(name);
   }
   return { stat: stats.join('\n') || '(no changes)', names: [...names] };
 }

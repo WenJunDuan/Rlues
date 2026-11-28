@@ -143,6 +143,12 @@ function hotSprints(ctx) {
   return names.filter(n => context.SAFE_SLUG.test(n) && fs.existsSync(path.join(ctx.aiState, 'sprints', n, 'design.md'))).sort();
 }
 
+/** External writer dispatches for the current sprint, oldest first. */
+function writerDispatches(ctx) {
+  const rec = readJson(path.join(ctx.sprintDir, 'external-writer.json'));
+  return rec ? [...(rec.previous || []), rec] : [];
+}
+
 /** Pick one of [{slug, key}]: the longest key; a tie → null. */
 function pick(hits) {
   if (!hits.length) return null;
@@ -259,4 +265,4 @@ function gitState(dir) {
   return { repo: toplevel(dir), head: context.git(dir, ['rev-parse', 'HEAD']), status: context.git(dir, ['status', '--porcelain']), tree: targetTree(dir) };
 }
 
-module.exports = { runOwner, crossRepo, targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints, token };
+module.exports = { runOwner, crossRepo, targetTree, gitState, targetDir, owner, sprintForWorktree, sprintCtx, linkedWorktree, hotSprints, token, writerDispatches };
