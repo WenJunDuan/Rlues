@@ -20,9 +20,23 @@ function changed(ctx, base, tree, ignore) {
   };
 }
 
+const undated = slug => slug.replace(/^\d{4}-\d{2}-\d{2}-/, '');
+
 /** Sprints whose slug (or slug without its date prefix) is a whole token of `text`. */
 function sprintsNamed(slugs, text) {
-  return slugs.filter(slug => [slug, slug.replace(/^\d{4}-\d{2}-\d{2}-/, '')].some(key => attribution.token(text, key)));
+  return slugs.filter(slug => [slug, undated(slug)].some(key => attribution.token(text, key)));
+}
+
+// Archived slugs number in the thousands and include short words (tts, x, boundaries), so prose
+// mentions are not ownership: only a conventional-commit scope `type(slug):` names an archived sprint.
+function archivedNamed(archived, text) {
+  const scopes = new Set([...text.matchAll(/^[a-z]+\(([^)\s]+)\)!?:/gm)].map(m => m[1]));
+  return archived.filter(slug => scopes.has(slug) || scopes.has(undated(slug)));
+}
+
+/** Owners named in `text`: hot sprints by any whole-token mention, archived ones by commit scope. */
+function ownersNamed(slugs, text) {
+  return [...sprintsNamed(slugs.hot, text), ...archivedNamed(slugs.archived, text)];
 }
 
 function revList(root, ...args) {
@@ -33,21 +47,21 @@ function revList(root, ...args) {
 function archivedSlugs(ctx) {
   let redirects;
   try { redirects = fs.readFileSync(path.join(ctx.aiState, 'archive', 'README.md'), 'utf8'); } catch (_) { return []; }
-  return [...redirects.matchAll(/^\| sprints\/([A-Za-z0-9][A-Za-z0-9._-]*)\/ \| archive\/sprints\/\d{4}-\d{2}\/\1\/ \|$/gm)].map(m => m[1]);
+  return [...redirects.matchAll(/^\| sprints\/([A-Za-z0-9][A-Za-z0-9._-]*)\/? \| archive\/sprints\/\d{4}-\d{2}\/\1\/? \|$/gm)].map(m => m[1]);
 }
 
 function commitOwners(ctx, commit, slugs) {
-  const named = sprintsNamed(slugs, git(ctx.root, ['log', '-1', '--format=%B', commit]) || '');
+  const named = ownersNamed(slugs, git(ctx.root, ['log', '-1', '--format=%B', commit]) || '');
   if (named.length) return named;
   const files = (git(ctx.root, ['diff-tree', '--no-commit-id', '--name-only', '-r', commit]) || '').split('\n').filter(Boolean);
   const dirs = new Set(files.map(f => (f.match(/^\.ai_state\/sprints\/([^/]+)\//) || [])[1]));
-  return dirs.size === 1 && slugs.includes([...dirs][0]) ? [...dirs] : [];
+  return dirs.size === 1 && slugs.hot.includes([...dirs][0]) ? [...dirs] : [];
 }
 
 function mergeOwners(ctx, commit, parents, slugs, dispatches) {
   const message = git(ctx.root, ['log', '-1', '--format=%B', commit]) || '';
   const sideMessages = git(ctx.root, ['log', '--format=%B', ...sideRange(parents)]) || '';
-  const owners = new Set(sprintsNamed(slugs, `${message}\n${sideMessages}`));
+  const owners = new Set(ownersNamed(slugs, `${message}\n${sideMessages}`));
   const branch = (message.match(/^Merge (?:remote-tracking )?branch '([^']+)'/) || [])[1];
   const mapped = branch && attribution.sprintForWorktree(ctx, '', branch);
   if (mapped) owners.add(mapped);
@@ -106,7 +120,8 @@ function excludedCommits(ctx, base) {
   if (!candidates.size) return [];
   const headRange = `${base}..HEAD`;
   const reachable = new Set(revList(ctx.root, headRange));
-  const slugs = [...new Set([...attribution.hotSprints(ctx), ...archivedSlugs(ctx), ctx.sprint])];
+  const hot = [...new Set([...attribution.hotSprints(ctx), ctx.sprint])];
+  const slugs = { hot, archived: archivedSlugs(ctx).filter(slug => !hot.includes(slug)) };
   const foreign = attributeMerges(ctx, headRange, slugs, candidates, keep);
   return [...candidates].filter(commit => {
     if (keep.has(commit) || !reachable.has(commit)) return false;
